@@ -7,19 +7,19 @@
 // to globally compile do: g++ -W -g test.cpp -lsqlite3 -o test
 
 /*int main() {
-  register_table("foo.db", "CREATE VIRTUAL TABLE classF USING mod(INTEGER PRIMARY KEY AUTOINCREMENT,att1 INT,att2 TEXT,att3 DOUBLE)");
-  register_table("foo.db", "CREATE VIRTUAL TABLE classE USING mod(INTEGER PRIMARY KEY AUTOINCREMENT,att1 INT,att2 TEXT,att3 DOUBLE)");
-  register_table("foo.db", "CREATE VIRTUAL TABLE classD USING mod(INTEGER PRIMARY KEY AUTOINCREMENT,att1 INT,att2 TEXT,att3 DOUBLE)");
-  register_table("foo.db", "CREATE VIRTUAL TABLE classC USING mod(INTEGER PRIMARY KEY AUTOINCREMENT,att1 INT,att2 TEXT,att3 DOUBLE)");
-  register_table("foo.db", "CREATE VIRTUAL TABLE classB USING mod(INTEGER PRIMARY KEY AUTOINCREMENT,account_no TEXT,balance FLOAT,classE_id references classE,classF_id references classF)"); 
-  register_table("foo.db", "CREATE VIRTUAL TABLE classA USING mod(INTEGER PRIMARY KEY AUTOINCREMENT,model TEXT,km DOUBLE,classC_id references classC,classD_id references classD)");
-  register_table("foo.db", "CREATE VIRTUAL TABLE test USING mod(nick_name TEXT,name TEXT,salary INT,classA_id references classA,classB_id references classB)");
-  //  register_table("foo.db", "CREATE VIRTUAL TABLE classA USING mod(INTEGER PRIMARY KEY AUTOINCREMENT,model TEXT,km DOUBLE,classC_id references classC,classD_id references classD)");
-  //  register_table("foo.db", "CREATE VIRTUAL TABLE classB USING mod(INTEGER PRIMARY KEY AUTOINCREMENT,account_no TEXT,balance FLOAT,classE_id references classE,classF_id references classF)"); 
-  //  register_table("foo.db", "CREATE VIRTUAL TABLE classC USING mod(INTEGER PRIMARY KEY AUTOINCREMENT,att1 INT,att2 TEXT,att3 DOUBLE)");
-  //  register_table("foo.db", "CREATE VIRTUAL TABLE classD USING mod(INTEGER PRIMARY KEY AUTOINCREMENT,att1 INT,att2 TEXT,att3 DOUBLE)");
-  //  register_table("foo.db", "CREATE VIRTUAL TABLE classE USING mod(INTEGER PRIMARY KEY AUTOINCREMENT,att1 INT,att2 TEXT,att3 DOUBLE)");
-  //  register_table("foo.db", "CREATE VIRTUAL TABLE classF USING mod(INTEGER PRIMARY KEY AUTOINCREMENT,att1 INT,att2 TEXT,att3 DOUBLE)");
+  register_table("foo.db", "CREATE VIRTUAL TABLE classF USING stl(INTEGER PRIMARY KEY AUTOINCREMENT,att1 INT,att2 TEXT,att3 DOUBLE)");
+  register_table("foo.db", "CREATE VIRTUAL TABLE classE USING stl(INTEGER PRIMARY KEY AUTOINCREMENT,att1 INT,att2 TEXT,att3 DOUBLE)");
+  register_table("foo.db", "CREATE VIRTUAL TABLE classD USING stl(INTEGER PRIMARY KEY AUTOINCREMENT,att1 INT,att2 TEXT,att3 DOUBLE)");
+  register_table("foo.db", "CREATE VIRTUAL TABLE classC USING stl(INTEGER PRIMARY KEY AUTOINCREMENT,att1 INT,att2 TEXT,att3 DOUBLE)");
+  register_table("foo.db", "CREATE VIRTUAL TABLE classB USING stl(INTEGER PRIMARY KEY AUTOINCREMENT,account_no TEXT,balance FLOAT,classE_id references classE,classF_id references classF)"); 
+  register_table("foo.db", "CREATE VIRTUAL TABLE classA USING stl(INTEGER PRIMARY KEY AUTOINCREMENT,model TEXT,km DOUBLE,classC_id references classC,classD_id references classD)");
+  register_table("foo.db", "CREATE VIRTUAL TABLE test USING stl(nick_name TEXT,name TEXT,salary INT,classA_id references classA,classB_id references classB)");
+  //  register_table("foo.db", "CREATE VIRTUAL TABLE classA USING stl(INTEGER PRIMARY KEY AUTOINCREMENT,model TEXT,km DOUBLE,classC_id references classC,classD_id references classD)");
+  //  register_table("foo.db", "CREATE VIRTUAL TABLE classB USING stl(INTEGER PRIMARY KEY AUTOINCREMENT,account_no TEXT,balance FLOAT,classE_id references classE,classF_id references classF)"); 
+  //  register_table("foo.db", "CREATE VIRTUAL TABLE classC USING stl(INTEGER PRIMARY KEY AUTOINCREMENT,att1 INT,att2 TEXT,att3 DOUBLE)");
+  //  register_table("foo.db", "CREATE VIRTUAL TABLE classD USING stl(INTEGER PRIMARY KEY AUTOINCREMENT,att1 INT,att2 TEXT,att3 DOUBLE)");
+  //  register_table("foo.db", "CREATE VIRTUAL TABLE classE USING stl(INTEGER PRIMARY KEY AUTOINCREMENT,att1 INT,att2 TEXT,att3 DOUBLE)");
+  //  register_table("foo.db", "CREATE VIRTUAL TABLE classF USING stl(INTEGER PRIMARY KEY AUTOINCREMENT,att1 INT,att2 TEXT,att3 DOUBLE)");
   register_table("foo.db", "DROP TABLE classF");
   register_table("foo.db", "DROP TABLE classE");
   register_table("foo.db", "DROP TABLE classD");
@@ -27,10 +27,10 @@
   register_table("foo.db", "DROP TABLE classB");
   register_table("foo.db", "DROP TABLE classA");
   register_table("foo.db", "DROP TABLE test");
-  /*
-  register_table("foo.db", "CREATE VIRTUAL TABLE account USING mod(INTEGER PRIMARY KEY AUTOINCREMENT,account_no TEXT,balance FLOAT)");		 
-  register_table("foo.db", "CREATE VIRTUAL TABLE Car USING mod(INTEGER PRIMARY KEY AUTOINCREMENT,model TEXT,km DOUBLE)");
-  register_table("foo.db", "CREATE VIRTUAL TABLE employees USING mod(nick_name TEXT,name TEXT,salary INT,account_id references account,Car_id references Car)");
+
+  register_table("foo.db", "CREATE VIRTUAL TABLE account USING stl(INTEGER PRIMARY KEY AUTOINCREMENT,account_no TEXT,balance FLOAT)",);		 
+  register_table("foo.db", "CREATE VIRTUAL TABLE Car USING stl(INTEGER PRIMARY KEY AUTOINCREMENT,model TEXT,km DOUBLE)");
+  register_table("foo.db", "CREATE VIRTUAL TABLE employees USING stl(nick_name TEXT,name TEXT,salary INT,account_id references account,Car_id references Car)");
   register_table("foo.db", "DROP TABLE account");
   register_table("foo.db", "DROP TABLE Car");
   register_table("foo.db", "DROP TABLE employees");
@@ -69,7 +69,7 @@ int prep_exec(sqlite3 *db, char *q) {
 }
 
 // register the module with an open database connection
-int register_table(char *ndb,char *q) {
+int register_table(char *ndb,char *q, void *data) {
 
   printf("\nquery to be executed: %s\n in database: %s\n\n", q, ndb);
 
@@ -85,7 +85,7 @@ int register_table(char *ndb,char *q) {
   //  char q[arrange_size(argc, as)];
   void *p;
 
-  int output=sqlite3_create_module(db, "mod", &mod, NULL);              // hard-coded
+  int output=sqlite3_create_module(db, "stl", &mod, data);              // hard-coded
   if (output==1) printf("Error while registering module\n");
   else if (output==0) printf("Module registered successfully\n");
 
@@ -232,12 +232,24 @@ int disconnect_vtable(sqlite3_vtab *ppVtab) {
 // xBestindex
 int bestindex_vtable(sqlite3_vtab *pVtab, sqlite3_index_info *pInfo) {
   stl_table * st=(stl_table *)pVtab;
-  st->pInfo=pInfo;
+  char nidxStr[pInfo->nConstraint*2];
+  memset(nidxStr, 0, sizeof(nidxStr));
 
-  int i;
-  for(i=0; i<pInfo->nConstraint; i++){
+  assert(pInfo->idxStr==0);
+  int i, j=0;
+  for(i=0; i<pInfo->nConstraint; i++) {
     struct sqlite3_index_constraint *pCons = &pInfo->aConstraint[i];
     if( pCons->usable==0 ) continue;
+    switch (pCons->op) {
+    case SQLITE_INDEX_CONSTRAINT_LT:  nidxStr[j++]="A"; break;
+    case SQLITE_INDEX_CONSTRAINT_LE:  nidxStr[j++]="B"; break;
+    case SQLITE_INDEX_CONSTRAINT_EQ:  nidxStr[j++]="C"; break;
+    case SQLITE_INDEX_CONSTRAINT_GE:  nidxStr[j++]="D"; break;
+    case SQLITE_INDEX_CONSTRAINT_GT:  nidxStr[j++]="E"; break;
+      //    case SQLITE_INDEX_CONSTRAINT_MATCH: nidxStr[i]="F"; break;
+    }
+    nidxStr[j++] = pCons->iColumn - 1 + 'a';
+
 
 
     //    UNUSED_PARAMETER(pVtab);
@@ -245,6 +257,8 @@ int bestindex_vtable(sqlite3_vtab *pVtab, sqlite3_index_info *pInfo) {
     pInfo->aConstraintUsage[i].argvIndex = 1;
     pInfo->aConstraintUsage[i].omit = 1;
   }
+  pInfo->needToFreeIdxStr=1;
+  if ( (j>0) && 0==(pInfo->idxStr=sqlite3_mprintf("%s", nidxStr)) ) return SQLITE_NOMEM;
   return SQLITE_OK;
 }
 
@@ -252,19 +266,18 @@ int bestindex_vtable(sqlite3_vtab *pVtab, sqlite3_index_info *pInfo) {
 int filter_vtable(sqlite3_vtab_cursor *cur, int idxNum, const char *idxStr, int argc, sqlite3_value **argv) {
   stl_table *st=(stl_table *)cur->pVtab;
   stl_table_cursor *stc=(stl_table_cursor *)cur;
-  sqlite3_index_info *pInfo=st->pInfo;
   // int *resultset in stc;
   // a data structure to hold index positions of resultset so that in the end of loops the remaining resultset is the wanted one.
-  int i;
-  for(i=0; i<pInfo->nConstraint; i++){
-    struct sqlite3_index_constraint *pCons = &pInfo->aConstraint[i];
-    if( pCons->usable==0 ) continue;
-    search(stc->resultset, st->data, pCons->iColumn, pCons->op, argv[i]);
-    
+  int i, j=0;
+  char constr[3];
+  memset(constr, 0, sizeof(constr));
+  for(i=0; i<argc; i++){
+    constr[0]=idxStr[j++];
+    constr[1]=idxStr[j++];
+    constr[2]='\0';
+    search(stc->resultset, st->data, constr, argv[i]);    
   }
   return next_vtable(cur);
-
-
 }
 
 //xNext

@@ -8,7 +8,7 @@ typedef unsigned char boolean;
 #define true (0==0)
 #define false (!true)
 
-int register_table(char *ndb, char *query);
+int register_table(char *ndb, char *query, void *data);
 
 int create_vtable(sqlite3 *db, void *paux, int argc, const char * const * argv, sqlite3_vtab **ppVtab, char **pzErr);
   
