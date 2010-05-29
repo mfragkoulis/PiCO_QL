@@ -1,11 +1,20 @@
-#ifdef __cplusplus
-extern "C"
-#endif
-
-//#include "sqlite3.h"
 #include "stl_to_sql.h"
 #include "search.h"
 
-void search(int *resultset, void *data, int icol, char *op, sqlite3_value *val);
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+  int register_table(char *db, char *query, void *data);
+  void search(int *resultset, void *data, char *constraint, sqlite3_value *val);
+
+#ifdef __cplusplus
+}
+#endif
+
+
+
+
 
 
