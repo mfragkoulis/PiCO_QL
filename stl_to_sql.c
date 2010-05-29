@@ -268,14 +268,14 @@ int filter_vtable(sqlite3_vtab_cursor *cur, int idxNum, const char *idxStr, int 
   stl_table_cursor *stc=(stl_table_cursor *)cur;
   // int *resultset in stc;
   // a data structure to hold index positions of resultset so that in the end of loops the remaining resultset is the wanted one.
-  int i, j=0;
+  int i, j=0, size=0;
   char constr[3];
   memset(constr, 0, sizeof(constr));
   for(i=0; i<argc; i++){
     constr[0]=idxStr[j++];
     constr[1]=idxStr[j++];
     constr[2]='\0';
-    search(stc->resultset, st->data, constr, argv[i]);    
+    search(&size, stc->resultset, (void *)st, constr, argv[i]);    
   }
   return next_vtable(cur);
 }

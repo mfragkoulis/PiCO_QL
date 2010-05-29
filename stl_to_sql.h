@@ -2,6 +2,7 @@
 #define STL_TO_SQL_H
 
 #include "sqlite3.h"
+//#include "search.h"
 #include "bridge.h"
 
 typedef unsigned char boolean;

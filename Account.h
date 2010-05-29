@@ -1,4 +1,5 @@
-
+#ifndef ACCOUNT_H
+#define ACCOUNT_H
 
 class Account {
 
@@ -7,11 +8,9 @@ class Account {
   float balance;
 
  public:
-  Account(char *acc_no, float b) {
-    account_no=acc_no;
-    balance=b;
-
-
-  }
-
+  Account(char *acc_no, float b);
+  float get_balance();
 };
+
+
+#endif

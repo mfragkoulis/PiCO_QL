@@ -80,7 +80,7 @@ class Input_Description
 
       def transform(my_array, attributes)
       	  argv=Array.new
-	  argv.push("mod")
+	  argv.push("stl")
 	  argv.push(my_array[0])
 	  argv.push(my_array[1])
 	  i=0

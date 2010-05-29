@@ -7,14 +7,8 @@ extern "C" {
 #endif
 
   int register_table(char *db, char *query, void *data);
-  void search(int *resultset, void *data, char *constraint, sqlite3_value *val);
+  void search(int *size, int *resultset, void *st, char *constraint, sqlite3_value *val);
 
 #ifdef __cplusplus
 }
 #endif
-
-
-
-
-
-
