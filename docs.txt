@@ -26,3 +26,25 @@
 
 2. sqlite3_free complains about non-aligned pointer being freed
    (attempting to free (int*)) while free does ok.
+
+   should be ok now.hadn't allocated enough memory for
+   stl_table_cursor
+
+3. column names (char **azColumn field in stl_table doesn't behave as
+   should.
+   eg. stl->azColumn[0]="INTEGER"  ??
+       stl->azColumn[1]="account_no"
+       stl->azColumn[2]="balanc\b"  ??
+
+4. row manipulation
+
+   - the fact that xnext( fetch next row) is called only once strikes
+     me as odd.
+
+- operation returns error code in the end. code is SQLITE_ROW which
+  means another row of result is available but why is it terminating?
+  it should call xnext again. so I'm missing sth.
+
+- gdb shows nothing unusual. SQLITE_ROW is set because there is still
+  work to be done, I didn't make out an error of some kind.
+  sqlite3VdbeExec and sqlite3Step is where it all happens.

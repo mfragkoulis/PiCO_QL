@@ -62,6 +62,8 @@ int prep_exec(sqlite3 *db, char *q) {
     printf("error\n");
   } else if (result==SQLITE_MISUSE) {
     printf("inappropriate use\n");
+  } else if (result==SQLITE_ROW) {
+    printf("row of resultset available");
   } else printf("other\n");
   printf("\n");
   sqlite3_finalize(stmt);

@@ -100,6 +100,7 @@ int retrieve(void *stc, int n, sqlite3_context* con) {       // code generation 
     case 3: sqlite3_result_blob(con, stc, -1, SQLITE_STATIC); break;    //ignore
     }
   }
+  return SQLITE_OK;
 }
 
 
