@@ -89,14 +89,15 @@ int retrieve(void *stc, int n, sqlite3_context* con) {       // code generation 
   int index=stcsr->current;
   iter=accounts->begin() + stcsr->resultset[index];
   int datatype=2;                                     //hard-coded
+  float r=iter->get_balance();      //to make sure it works
   if (n==0) {
     sqlite3_result_int(con, stcsr->resultset[index]);                         //primary key
   } else {
     switch (datatype) {                                 // in automated code: "iter->" + col_name will work.
-    case 0: sqlite3_result_int(con, iter->get_balance());                        // ignore
-    case 1: sqlite3_result_text(con, iter->get_account_no(), -1, SQLITE_STATIC); //ignore
-    case 2: sqlite3_result_double(con, iter->get_balance());
-    case 3: sqlite3_result_blob(con, stc, -1, SQLITE_STATIC);    //ignore
+    case 0: sqlite3_result_int(con, iter->get_balance()); break;                       // ignore
+    case 1: sqlite3_result_text(con, iter->get_account_no(), -1, SQLITE_STATIC); break; //ignore
+    case 2: sqlite3_result_double(con, r); break;
+    case 3: sqlite3_result_blob(con, stc, -1, SQLITE_STATIC); break;    //ignore
     }
   }
 }

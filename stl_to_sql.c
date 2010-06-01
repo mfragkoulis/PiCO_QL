@@ -282,13 +282,13 @@ int filter_vtable(sqlite3_vtab_cursor *cur, int idxNum, const char *idxStr, int 
   *initial=1;
   char constr[3];
   memset(constr, 0, sizeof(constr));
-  if (argc==0) search((void *)stc, &initial, (void *)st, NULL, NULL);        //empty where clause
+  if (argc==0) search((void *)stc, initial, (void *)st, NULL, NULL);        //empty where clause
   else {
     for(i=0; i<argc; i++) {
       constr[0]=idxStr[j++];
       constr[1]=idxStr[j++];
       constr[2]='\0';
-      search((void *)stc, &initial, (void *)st, constr, argv[i]);   // case-specific
+      search((void *)stc, initial, (void *)st, constr, argv[i]);   // case-specific
       if (*initial==-1) break;
       else if (*initial==1) *initial=0;
     }
@@ -313,11 +313,11 @@ int open_vtable(sqlite3_vtab *pVtab, sqlite3_vtab_cursor **ppCsr) {
   
   // UNUSED_PARAMETER(pVtab);
   
-  *ppCsr = pCsr = (sqlite3_vtab_cursor *)sqlite3_malloc(sizeof(sqlite3_vtab_cursor));
+  *ppCsr = pCsr = (sqlite3_vtab_cursor *)sqlite3_malloc(sizeof(stl_table_cursor));
   if( !pCsr ){
     return SQLITE_NOMEM;
   }
-  memset(pCsr, 0, sizeof(sqlite3_vtab_cursor));
+  memset(pCsr, 0, sizeof(stl_table_cursor));
   return SQLITE_OK;
 }
 
