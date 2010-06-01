@@ -1,0 +1,28 @@
+31/5/2010
+
+1. void search(stl_table_cursor *, ...,stl_table *, ...) 
+
+   doesn't compile : syntax error before '*' token
+
+   needs:
+
+   void search(void *,...,void *,...)
+
+2. notes on mixing C/C++ 
+
+   main has to be compiled with g++
+
+   linking has to be performed with g++ so that it can use its special libraries
+
+
+
+1/6/2010
+
+1. fts3 setup wasn't created to keep integer primary key column, so
+   column 0 has name "integer" instead of "integer primary key
+   autoincrement"
+
+   proposed convention for input description: column 0 is "integer primary key autoincrement"
+
+2. sqlite3_free complains about non-aligned pointer being freed
+   (attempting to free (int*)) while free does ok.

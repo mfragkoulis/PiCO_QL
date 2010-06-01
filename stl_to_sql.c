@@ -55,6 +55,7 @@ int prep_exec(sqlite3 *db, char *q) {
   if (result==SQLITE_DONE) {
     printf("perfecto!\n");
     result=0;
+    //what's this
   } else if (result==SQLITE_OK) {
     printf("ok!\n");
   }else if (result==SQLITE_ERROR) {
@@ -69,7 +70,7 @@ int prep_exec(sqlite3 *db, char *q) {
 }
 
 // register the module with an open database connection
-int register_table(char *ndb,char *q, void *data) {
+int register_table(char *ndb, char *q, void *data) {
 
   printf("\nquery to be executed: %s\n in database: %s\n\n", q, ndb);
 
@@ -83,7 +84,7 @@ int register_table(char *ndb,char *q, void *data) {
   sqlite3_module mod;
   fill_module(&mod);
   //  char q[arrange_size(argc, as)];
-  void *p;
+  //  void *p;
 
   int output=sqlite3_create_module(db, "stl", &mod, data);              // hard-coded
   if (output==1) printf("Error while registering module\n");
@@ -113,7 +114,6 @@ void create(sqlite3 *db, int argc, char **as, char *q) {
   //  printf("query is: %s with length %i \n", q, strlen(q));
 }
 
-// implementation of both xCreate and xConnect
 int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc, const char * const * argv, sqlite3_vtab **ppVtab, char **pzErr) {
   // printf("in init_vtable...\n");
   stl_table *stl;
@@ -148,6 +148,7 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc, const char * co
   }
   memset(stl, 0, nByte);
   stl->db=db;
+  stl->data=paux;
   stl->nColumn=nCol;
   stl->azColumn=(char **)&stl[1];
   temp=(char *)&stl->azColumn[nCol];
@@ -232,33 +233,35 @@ int disconnect_vtable(sqlite3_vtab *ppVtab) {
 // xBestindex
 int bestindex_vtable(sqlite3_vtab *pVtab, sqlite3_index_info *pInfo) {
   stl_table * st=(stl_table *)pVtab;
-  char nidxStr[pInfo->nConstraint*2];
-  memset(nidxStr, 0, sizeof(nidxStr));
+  if (pInfo->nConstraint > 0) {            // no constraint no setting up
+    char nidxStr[pInfo->nConstraint*2];
+    memset(nidxStr, 0, sizeof(nidxStr));
 
-  assert(pInfo->idxStr==0);
-  int i, j=0;
-  for(i=0; i<pInfo->nConstraint; i++) {
-    struct sqlite3_index_constraint *pCons = &pInfo->aConstraint[i];
-    if( pCons->usable==0 ) continue;
-    switch (pCons->op) {
-    case SQLITE_INDEX_CONSTRAINT_LT:  nidxStr[j++]="A"; break;
-    case SQLITE_INDEX_CONSTRAINT_LE:  nidxStr[j++]="B"; break;
-    case SQLITE_INDEX_CONSTRAINT_EQ:  nidxStr[j++]="C"; break;
-    case SQLITE_INDEX_CONSTRAINT_GE:  nidxStr[j++]="D"; break;
-    case SQLITE_INDEX_CONSTRAINT_GT:  nidxStr[j++]="E"; break;
-      //    case SQLITE_INDEX_CONSTRAINT_MATCH: nidxStr[i]="F"; break;
+    assert(pInfo->idxStr==0);
+    int i, j=0;
+    for(i=0; i<pInfo->nConstraint; i++) {
+      struct sqlite3_index_constraint *pCons = &pInfo->aConstraint[i];
+      if( pCons->usable==0 ) continue;
+      switch (pCons->op) {
+      case SQLITE_INDEX_CONSTRAINT_LT:  nidxStr[j++]="A"; break;
+      case SQLITE_INDEX_CONSTRAINT_LE:  nidxStr[j++]="B"; break;
+      case SQLITE_INDEX_CONSTRAINT_EQ:  nidxStr[j++]="C"; break;
+      case SQLITE_INDEX_CONSTRAINT_GE:  nidxStr[j++]="D"; break;
+      case SQLITE_INDEX_CONSTRAINT_GT:  nidxStr[j++]="E"; break;
+	//    case SQLITE_INDEX_CONSTRAINT_MATCH: nidxStr[i]="F"; break;
+      }
+      nidxStr[j++] = pCons->iColumn - 1 + 'a';
+      
+      
+      
+      //    UNUSED_PARAMETER(pVtab);
+      
+      pInfo->aConstraintUsage[i].argvIndex = 1;
+      pInfo->aConstraintUsage[i].omit = 1;
     }
-    nidxStr[j++] = pCons->iColumn - 1 + 'a';
-
-
-
-    //    UNUSED_PARAMETER(pVtab);
-
-    pInfo->aConstraintUsage[i].argvIndex = 1;
-    pInfo->aConstraintUsage[i].omit = 1;
+    pInfo->needToFreeIdxStr=1;
+    if ( (j>0) && 0==(pInfo->idxStr=sqlite3_mprintf("%s", nidxStr)) ) return SQLITE_NOMEM;
   }
-  pInfo->needToFreeIdxStr=1;
-  if ( (j>0) && 0==(pInfo->idxStr=sqlite3_mprintf("%s", nidxStr)) ) return SQLITE_NOMEM;
   return SQLITE_OK;
 }
 
@@ -266,17 +269,32 @@ int bestindex_vtable(sqlite3_vtab *pVtab, sqlite3_index_info *pInfo) {
 int filter_vtable(sqlite3_vtab_cursor *cur, int idxNum, const char *idxStr, int argc, sqlite3_value **argv) {
   stl_table *st=(stl_table *)cur->pVtab;
   stl_table_cursor *stc=(stl_table_cursor *)cur;
-  // int *resultset in stc;
+
+  int array_size=get_data_structure_size(st);
+  stc->resultset=(int *)sqlite3_malloc(sizeof(int)*array_size);     // will need space at most equal to the data structure size
+  memset(stc->resultset, -1 , sizeof(stc->resultset));
+
   // a data structure to hold index positions of resultset so that in the end of loops the remaining resultset is the wanted one.
-  int i, j=0, size=0;
+  int i, j=0;
+  stc->size=array_size;   // initialize size of resultset data structure
+  int *initial;
+  initial=(int *)sqlite3_malloc(sizeof(int));       // is this wrong? getting unaligned pointer being freed
+  *initial=1;
   char constr[3];
   memset(constr, 0, sizeof(constr));
-  for(i=0; i<argc; i++){
-    constr[0]=idxStr[j++];
-    constr[1]=idxStr[j++];
-    constr[2]='\0';
-    search(&size, stc->resultset, (void *)st, constr, argv[i]);    
+  if (argc==0) search((void *)stc, &initial, (void *)st, NULL, NULL);        //empty where clause
+  else {
+    for(i=0; i<argc; i++) {
+      constr[0]=idxStr[j++];
+      constr[1]=idxStr[j++];
+      constr[2]='\0';
+      search((void *)stc, &initial, (void *)st, constr, argv[i]);   // case-specific
+      if (*initial==-1) break;
+      else if (*initial==1) *initial=0;
+    }
   }
+  sqlite3_free(initial);
+  stc->current=-1;
   return next_vtable(cur);
 }
 
@@ -284,9 +302,9 @@ int filter_vtable(sqlite3_vtab_cursor *cur, int idxNum, const char *idxStr, int 
 int next_vtable(sqlite3_vtab_cursor *cur) {
   stl_table *st=(stl_table *)cur->pVtab;
   stl_table_cursor *stc=(stl_table_cursor *)cur;
-
-
-
+  if (stc->current>=stc->size -1) stc->isEof=1;
+  else stc->current++;
+  return SQLITE_OK;
 }
 
 // xOpen
@@ -305,19 +323,23 @@ int open_vtable(sqlite3_vtab *pVtab, sqlite3_vtab_cursor **ppCsr) {
 
 //xColumn
 int column_vtable(sqlite3_vtab_cursor *cur, sqlite3_context *con, int n) {
-
-
+  stl_table_cursor *stc=(stl_table_cursor *)cur;
+  sqlite3_value *value_back;
+  return retrieve((void *)stc, n, con);          // case-specific
 }
 
 //xRowid
 int rowid_vtable(sqlite3_vtab_cursor *cur, sqlite_int64 *pRowid) {
   
+  //needed?
 
 }
 
 //xClose
 int close_vtable(sqlite3_vtab_cursor *cur) {
-  sqlite3_free(cur);
+  stl_table_cursor *stc=(stl_table_cursor *)cur;
+  sqlite3_free(stc->resultset);
+  sqlite3_free(stc);
   return SQLITE_OK;
 }
 
