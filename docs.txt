@@ -48,3 +48,12 @@
 - gdb shows nothing unusual. SQLITE_ROW is set because there is still
   work to be done, I didn't make out an error of some kind.
   sqlite3VdbeExec and sqlite3Step is where it all happens.
+
+
+2/06/2010
+
+1. operation success. no output
+
+2. improve code quality
+
+   sqlite3_stmt is actually a Vdbe struct. in case needed in xcolumn

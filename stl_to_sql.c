@@ -50,8 +50,8 @@ int prep_exec(sqlite3 *db, char *q) {
     printf("prepared ok (virtual)\n");
   }
   printf("\n NOW STEPPING... \n");
+ step_again:
   result=sqlite3_step(stmt);
-  //  cout << "geeet outtahere" << endl;
   if (result==SQLITE_DONE) {
     printf("perfecto!\n");
     result=0;
@@ -63,7 +63,10 @@ int prep_exec(sqlite3 *db, char *q) {
   } else if (result==SQLITE_MISUSE) {
     printf("inappropriate use\n");
   } else if (result==SQLITE_ROW) {
-    printf("row of resultset available");
+    printf("row of resultset available\n");
+    printf("val: %f \n", sqlite3_column_double(stmt, 0));
+    goto step_again; 
+    //  printf("%d", d);
   } else printf("other\n");
   printf("\n");
   sqlite3_finalize(stmt);

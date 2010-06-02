@@ -90,6 +90,7 @@ int retrieve(void *stc, int n, sqlite3_context* con) {       // code generation 
   iter=accounts->begin() + stcsr->resultset[index];
   int datatype=2;                                     //hard-coded
   float r=iter->get_balance();      //to make sure it works
+  
   if (n==0) {
     sqlite3_result_int(con, stcsr->resultset[index]);                         //primary key
   } else {
@@ -115,7 +116,7 @@ int main() {
   //  register_table("foo.db", "CREATE VIRTUAL TABLE account USING stl(INTEGER PRIMARY KEY AUTOINCREMENT,account_no TEXT,balance FLOAT)", data);  //create the virtual table.done once
   sqlite3* db;
   sqlite3_stmt *stmt;
-  int re;
+  int re, i , j;
 
   re=sqlite3_open("foo.db", &db);
 
@@ -133,7 +134,22 @@ int main() {
   if (output==1) printf("Error while registering module\n");
   else if (output==0) printf("Module registered successfully\n");
 
-  prep_exec(db, "SELECT balance FROM account;");
+  char ***pazResult=(char ***)sqlite3_malloc(sizeof(char***));
+  int *nRows=(int *)sqlite3_malloc(sizeof(int));
+  int *nCols=(int *)sqlite3_malloc(sizeof(int));
+  char **errMsg=(char **)sqlite3_malloc(sizeof(char**));
+
+  if (sqlite3_get_table(db, "SELECT balance FROM account;", pazResult, nRows, nCols, errMsg)==SQLITE_OK) {
+    printf("result table:\n");
+    for (i=0; i< *nRows; i++) {
+      printf("\n");
+      for (j=0; j<2*(*nCols); j++) {
+	printf("%s ", pazResult[i][j]);
+      }
+      printf("\n");
+    }
+  }
+  //  prep_exec(db, "SELECT balance FROM account;");
   sqlite3_close(db);
 }
 
