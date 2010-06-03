@@ -50,7 +50,7 @@ int prep_exec(sqlite3 *db, char *q) {
     printf("prepared ok (virtual)\n");
   }
   printf("\n NOW STEPPING... \n");
- step_again:
+  // step_again:
   result=sqlite3_step(stmt);
   if (result==SQLITE_DONE) {
     printf("perfecto!\n");
@@ -64,8 +64,8 @@ int prep_exec(sqlite3 *db, char *q) {
     printf("inappropriate use\n");
   } else if (result==SQLITE_ROW) {
     printf("row of resultset available\n");
-    printf("val: %f \n", sqlite3_column_double(stmt, 0));
-    goto step_again; 
+    //    printf("val: %f \n", sqlite3_column_double(stmt, 0));
+    //    goto step_again; 
     //  printf("%d", d);
   } else printf("other\n");
   printf("\n");
@@ -124,6 +124,9 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc, const char * co
   stl_table *stl;
   int nDb, nName, nByte, nCol, nString, count, i, k, t;
   char *temp, **store;
+  int *col_type;
+  col_type=(int *)malloc(sizeof(int)*(argc-3));
+  memset(col_type, -1, (argc-3)*sizeof(int));
   nDb = (int)strlen(argv[1]) + 1;
   nName = (int)strlen(argv[2]) + 1;
   nString=0;
@@ -133,15 +136,55 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc, const char * co
   */
   store=(char **)sqlite3_malloc((argc-3) * sizeof(char *));
   memset(store,0,(argc-3) * sizeof(char *));
+  char *result1=NULL;            //to make column datatype available
+  char *result2=NULL;
+  char *int_type="integer";
+  char *pk_type="primary";
+  char *fk_type="references";
+  char *text_type="text";
+  char *double_type="double";
+  char *float_type="float";
+  char *blob_type="blob";
+
+  int l, column_data=1;
   for (i=3; i<argc; i++) {
     t=(strlen(argv[i])+1)*sizeof(char);
     store[i-3]=(char *)malloc(t);
     memcpy(store[i-3], argv[i], t);
+
+    result1=strtok(store[i-3]," ");
+    result2=strtok(NULL, " ");     // column data type
+    for (l=0; l<(int)strlen(result2); l++) {
+      result2[l]=tolower(result2[l]);
+    }
+    if (!strcmp(result2, int_type)) {
+      col_type[i-3]=0; 
+    } else if (!strcmp(result2, pk_type)) {
+      col_type[i-3]=0; 
+      if (t<3*sizeof(char)) store[i-3]=(char *)realloc(store[i-3], 3*sizeof(char));
+      store[i-3]="PK";
+      column_data=0; 
+    } else if (!strcmp(result2, fk_type))  {
+      col_type[i-3]=0;
+      if (t< (4 + strlen(result1))*sizeof(char)) store[i-3]=(char *)realloc(store[i-3], (4 + strlen(result1))*sizeof(char));
+      store[i-3]="FK "; 
+      strcat(store[i-3], result1); 
+    } else if (!strcmp(result2, text_type)) {
+      col_type[i-3]=1;
+    } else if (!strcmp(result2, double_type)) { 
+      col_type[i-3]=2;
+    } else if (!strcmp(result2, float_type)) { 
+      col_type[i-3]=2;
+    } else if (!strcmp(result2, blob_type)) {
+      col_type[i-3]=3;
+    }
     for (k=0; k<strlen(store[i-3]) && !isspace(store[i-3][k]); k++) {
       nString++;
     }
-    nString++;    // '\0'
-    store[i-3][k]='\0';
+    if (column_data) {
+      nString++;    // '\0'
+      store[i-3][k]='\0';
+    }
   }
   nCol=argc - 3;
   assert(nCol > 0);
@@ -155,6 +198,7 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc, const char * co
   stl->db=db;
   stl->data=paux;
   stl->nColumn=nCol;
+  stl->colDataType=col_type;
   stl->azColumn=(char **)&stl[1];
   temp=(char *)&stl->azColumn[nCol];
 
@@ -239,6 +283,7 @@ int disconnect_vtable(sqlite3_vtab *ppVtab) {
 int bestindex_vtable(sqlite3_vtab *pVtab, sqlite3_index_info *pInfo) {
   stl_table * st=(stl_table *)pVtab;
   if (pInfo->nConstraint > 0) {            // no constraint no setting up
+    char op, iCol;
     char nidxStr[pInfo->nConstraint*2];
     memset(nidxStr, 0, sizeof(nidxStr));
 
@@ -248,17 +293,17 @@ int bestindex_vtable(sqlite3_vtab *pVtab, sqlite3_index_info *pInfo) {
       struct sqlite3_index_constraint *pCons = &pInfo->aConstraint[i];
       if( pCons->usable==0 ) continue;
       switch (pCons->op) {
-      case SQLITE_INDEX_CONSTRAINT_LT:  nidxStr[j++]="A"; break;
-      case SQLITE_INDEX_CONSTRAINT_LE:  nidxStr[j++]="B"; break;
-      case SQLITE_INDEX_CONSTRAINT_EQ:  nidxStr[j++]="C"; break;
-      case SQLITE_INDEX_CONSTRAINT_GE:  nidxStr[j++]="D"; break;
-      case SQLITE_INDEX_CONSTRAINT_GT:  nidxStr[j++]="E"; break;
+      case SQLITE_INDEX_CONSTRAINT_LT:  op='A'; break;
+      case SQLITE_INDEX_CONSTRAINT_LE:  op='B'; break;
+      case SQLITE_INDEX_CONSTRAINT_EQ:  op='C'; break;
+      case SQLITE_INDEX_CONSTRAINT_GE:  op='D'; break;
+      case SQLITE_INDEX_CONSTRAINT_GT:  op='E'; break;
 	//    case SQLITE_INDEX_CONSTRAINT_MATCH: nidxStr[i]="F"; break;
       }
-      nidxStr[j++] = pCons->iColumn - 1 + 'a';
+      iCol = pCons->iColumn - 1 + 'a';
       
-      
-      
+      nidxStr[j++]=op;
+      nidxStr[j++]=iCol;
       //    UNUSED_PARAMETER(pVtab);
       
       pInfo->aConstraintUsage[i].argvIndex = 1;
@@ -281,11 +326,11 @@ int filter_vtable(sqlite3_vtab_cursor *cur, int idxNum, const char *idxStr, int 
 
   // a data structure to hold index positions of resultset so that in the end of loops the remaining resultset is the wanted one.
   int i, j=0;
-  stc->size=array_size;   // initialize size of resultset data structure
+  stc->size=0;   // initialize size of resultset data structure
   int *initial;
   initial=(int *)sqlite3_malloc(sizeof(int));       // is this wrong? getting unaligned pointer being freed
   *initial=1;
-  char constr[3];
+  char *constr=(char *)sqlite3_malloc(sizeof(char)*3);
   memset(constr, 0, sizeof(constr));
   if (argc==0) search((void *)stc, initial, (void *)st, NULL, NULL);        //empty where clause
   else {
@@ -299,6 +344,7 @@ int filter_vtable(sqlite3_vtab_cursor *cur, int idxNum, const char *idxStr, int 
     }
   }
   sqlite3_free(initial);
+  sqlite3_free(constr);
   stc->current=-1;
   return next_vtable(cur);
 }

@@ -197,8 +197,9 @@ SQLITE_API int sqlite3_threadsafe(void);
 ** [sqlite3_busy_timeout()] to name but three) that are methods on an
 ** sqlite3 object.
 */
-typedef struct sqlite3 sqlite3;
 
+typedef struct sqlite3 sqlite3;
+  
 /*
 ** CAPI3REF: 64-Bit Integer Types
 ** KEYWORDS: sqlite_int64 sqlite_uint64

@@ -18,6 +18,7 @@ class Type {
   void set_blob(const void * b);
   void set_type_of_value(int tov);
   int get_type_of_value();
+  int get_int();
   float get_doub();
   char * get_text();
 

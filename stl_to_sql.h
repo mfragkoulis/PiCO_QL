@@ -55,7 +55,7 @@ typedef struct {boolean e_map;boolean e_collection;} e_datastructure;
 
 typedef struct {sqlite3_module *module;} my_module;
 
-typedef struct {sqlite3_vtab vtab; sqlite3 *db; const char *zDb; const char *zName; int nColumn; char **azColumn; void *data;} stl_table;
+typedef struct {sqlite3_vtab vtab; sqlite3 *db; const char *zDb; const char *zName; int nColumn; char **azColumn; int *colDataType; void *data;} stl_table;
 
 typedef struct {sqlite3_vtab_cursor vtab; int *resultset; int size; int current; int isEof;} stl_table_cursor;
 

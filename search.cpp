@@ -56,20 +56,22 @@ void search(void *stc, int *initial, void *st, char *constr, sqlite3_value *val)
     if (stcsr->size==0) {  // not enough. can't differentiate initial state, from a possible final empty resultset or a possible intermediate empty resultset 
       if (*initial) {      // now ok with additional check
 	for (iter=accounts->begin(); iter!=accounts->end(); iter++) {
-	  if (iter->get_balance()==value->get_doub()) stcsr->resultset[count++]=iter - accounts->begin();
+	  if (iter->get_balance()>value->get_int()) stcsr->resultset[count++]=iter - accounts->begin();
 	}
-	stcsr->size=count-1;
+	stcsr->size=count;
 	//      stcsr->resultset=results;
       } else *initial=-1;
+    }
+      /* one constraint checked each time
     } else { // should be generic. next constraint to be checked
       iter=accounts->begin();
       for (int i=0; i< stcsr->size; i++) {
 	if (iter->get_account_no()==value->get_text()) stcsr->resultset[i]=-1;    // would like to delete.realloc??
 	iter++;
       }
-      stcsr->size=count-1;
+      stcsr->size=count;
       // stcsr->resultset=results;
-    }
+      }*/
   }
 }
 
@@ -82,22 +84,26 @@ void traverse(char *col_name, char *op, void *value) {   // automatic code gener
 int retrieve(void *stc, int n, sqlite3_context* con) {       // code generation needed
   sqlite3_vtab_cursor *svc=(sqlite3_vtab_cursor *)stc; 
   stl_table *stl=(stl_table *)svc->pVtab;
+  // sqlite3 *dbe=(sqlite3 *)stl->db;
+  // sqlite3_stmt *stmt=(sqlite3_stmt *)&dbe->pVdbe[0];
+  // sqlite3_stmt *stmt=(sqlite3_stmt *)dbe->pVdbe;
   stl_table_cursor *stcsr=(stl_table_cursor *)stc;
   vector < Account > *accounts=(vector < Account > *)stl->data;   // case-specific
   vector < Account >::iterator iter;                              // case-specific
-  char *col_name=stl->azColumn[n];                               // has to be generated
+  char *col_name=stl->azColumn[n];                                // has to be generated
   int index=stcsr->current;
   iter=accounts->begin() + stcsr->resultset[index];
-  int datatype=2;                                     //hard-coded
-  float r=iter->get_balance();      //to make sure it works
+  int datatype;                                     //hard-coded
+  datatype=stl->colDataType[n];
+  char *pk="PK";
   
-  if (n==0) {
+  if ( (n==0) && (!strcmp(stl->azColumn[0], pk)) ) {
     sqlite3_result_int(con, stcsr->resultset[index]);                         //primary key
   } else {
     switch (datatype) {                                 // in automated code: "iter->" + col_name will work.
     case 0: sqlite3_result_int(con, iter->get_balance()); break;                       // ignore
     case 1: sqlite3_result_text(con, iter->get_account_no(), -1, SQLITE_STATIC); break; //ignore
-    case 2: sqlite3_result_double(con, r); break;
+    case 2: sqlite3_result_double(con, iter->get_balance()); break;
     case 3: sqlite3_result_blob(con, stc, -1, SQLITE_STATIC); break;    //ignore
     }
   }
@@ -110,10 +116,12 @@ int main() {
 
 
   Account acc1("10068", 500.0);
+  Account acc2("10234", 394.28);
   vector<Account> accounts;
   accounts.push_back(acc1);
+  accounts.push_back(acc2);
   void *data=(void *)&accounts;
-  //  register_table("foo.db", "CREATE VIRTUAL TABLE account USING stl(INTEGER PRIMARY KEY AUTOINCREMENT,account_no TEXT,balance FLOAT)", data);  //create the virtual table.done once
+  //register_table("foo.db", "CREATE VIRTUAL TABLE account USING stl(INTEGER PRIMARY KEY AUTOINCREMENT,account_no TEXT,balance FLOAT)", data);  //create the virtual table.done once
   sqlite3* db;
   sqlite3_stmt *stmt;
   int re, i , j;
@@ -139,15 +147,13 @@ int main() {
   int *nCols=(int *)sqlite3_malloc(sizeof(int));
   char **errMsg=(char **)sqlite3_malloc(sizeof(char**));
 
-  if (sqlite3_get_table(db, "SELECT balance FROM account;", pazResult, nRows, nCols, errMsg)==SQLITE_OK) {
-    printf("result table:\n");
-    for (i=0; i< *nRows; i++) {
-      printf("\n");
-      for (j=0; j<2*(*nCols); j++) {
-	printf("%s ", pazResult[i][j]);
-      }
-      printf("\n");
+  if (sqlite3_get_table(db, "SELECT * FROM account WHERE balance>400;", pazResult, nRows, nCols, errMsg)==SQLITE_OK) {
+    printf("result table:\n\n");
+    for (i=0; i< (*nRows +1)*(*nCols); i++) {
+      printf("%s ", pazResult[0][i]);
+      if ( (i+(*nCols) +1) % (*nCols)==0) printf("\n");
     }
+    printf("\n\n");
   }
   //  prep_exec(db, "SELECT balance FROM account;");
   sqlite3_close(db);

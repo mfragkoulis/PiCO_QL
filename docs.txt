@@ -57,3 +57,25 @@
 2. improve code quality
 
    sqlite3_stmt is actually a Vdbe struct. in case needed in xcolumn
+
+3. output with sqlite3_column but found sqlite3_get_table very handy
+
+4. make a wrapper function for the select query.
+
+   arguments: module name, db name, void * pointer to data, sql query
+
+5. make prep_exec distinguish create calls from select calls
+   (register_stl_table / run_stl_query) so that sqlite3_get_table is incorporated
+
+
+3/06/2010
+
+1. have to have sqlite3_stmt available in retrieve so that to wrap all
+   column returns with sqlite3_column_text and return them with
+   sqlite3_result_text
+
+   Problem is sqlite3 (which has field vdbe * aka sqlite3_stmt *) is
+   only declared in sqlite3.h (typedef struct sqlite3 sqlite3;) and not defined hence trying to refer to
+   vdbe * fails as incomplete type.
+
+2. 

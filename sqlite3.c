@@ -8309,7 +8309,7 @@ struct sqlite3 {
   sqlite3_mutex *mutex;         /* Connection mutex */
   int aLimit[SQLITE_N_LIMIT];   /* Limits */
   struct sqlite3InitInfo {      /* Information used during initialization */
-    int iDb;                    /* When back is being initialized */
+   int iDb;                    /* When back is being initialized */
     int newTnum;                /* Rootpage of table being initialized */
     u8 busy;                    /* TRUE if currently initializing */
     u8 orphanTrigger;           /* Last statement is orphaned TEMP trigger */

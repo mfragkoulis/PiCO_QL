@@ -39,3 +39,7 @@ int Type::get_type_of_value() {
 char * Type::get_text() {
   return text;
 }
+
+int Type::get_int() {
+  return integ;
+}
