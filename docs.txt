@@ -22,37 +22,48 @@
    column 0 has name "integer" instead of "integer primary key
    autoincrement"
 
-   proposed convention for input description: column 0 is "integer primary key autoincrement"
+   proposed convention for input description: column 0 is "integer
+   primary key autoincrement"  -> no need. if "integer" then key else data.
 
 2. sqlite3_free complains about non-aligned pointer being freed
    (attempting to free (int*)) while free does ok.
 
-   should be ok now.hadn't allocated enough memory for
+-> should be ok now.hadn't allocated enough memory for
    stl_table_cursor
 
 3. column names (char **azColumn field in stl_table doesn't behave as
    should.
-   eg. stl->azColumn[0]="INTEGER"  ??
+   eg. stl->azColumn[0]="INTEGER"  tokenized key
        stl->azColumn[1]="account_no"
-       stl->azColumn[2]="balanc\b"  ??
+       stl->azColumn[2]="balance\b"  ??
+       if more columns then ok. (??)
 
 4. row manipulation
 
-   - the fact that xnext( fetch next row) is called only once strikes
-     me as odd.
+- the fact that xnext( fetch next row) is called only once strikes
+  me as odd.
+
+->size was not set right so isEof was set.
 
 - operation returns error code in the end. code is SQLITE_ROW which
   means another row of result is available but why is it terminating?
   it should call xnext again. so I'm missing sth.
 
+->it is waiting for you to manage resultset. solved with
+  sqlite3_column family of routines. sqlite3_get_table magnificent wrapper.
+
 - gdb shows nothing unusual. SQLITE_ROW is set because there is still
   work to be done, I didn't make out an error of some kind.
   sqlite3VdbeExec and sqlite3Step is where it all happens.
+
+->see above.
 
 
 2/06/2010
 
 1. operation success. no output
+
+->see above. resultset is not handled.
 
 2. improve code quality
 
@@ -64,8 +75,11 @@
 
    arguments: module name, db name, void * pointer to data, sql query
 
+->done: query_table
+
 5. make prep_exec distinguish create calls from select calls
    (register_stl_table / run_stl_query) so that sqlite3_get_table is incorporated
+
 
 
 3/06/2010
@@ -74,8 +88,42 @@
    column returns with sqlite3_column_text and return them with
    sqlite3_result_text
 
+->can't do using sqlite3_get_table
    Problem is sqlite3 (which has field vdbe * aka sqlite3_stmt *) is
    only declared in sqlite3.h (typedef struct sqlite3 sqlite3;) and not defined hence trying to refer to
    vdbe * fails as incomplete type.
 
-2. 
+-> solved with adding int *colDataType in stl_table struct to keep the
+   data_type of each column
+
+2. simple constraint passed through and executed successfully.
+
+3. column names in azColumn are not accurate.
+
+->sometimes.see above.
+
+4/06/2010
+
+1. function to retrieve value from datastructure has to be generated
+   automatically. is it safe to suppose that this function will be
+   found under the name get_attribute() where attribute is the column
+   name?
+
+2. on accepted datatypes upon description..
+
+3. haven't used rowid
+
+4. automatic compilation?methods search, retrieve
+
+5. query-specific vs datastructure specific
+
+6. how about pk-fk relationship?
+   account.account_id=customer.account_id
+
+   left hand-side and operation coded in xbestindex(idxStr), right hand side
+   available in xfilter(setting argvindex in xbestindex).
+
+   pk-fk actually represent a nested structure (eg. Customer class has
+   Account attribute)
+
+   iter_nested->account_id->get_

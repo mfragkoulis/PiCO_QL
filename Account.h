@@ -5,13 +5,13 @@
 class Account {
 
  private:
-  char *account_no;
+  const char *account_no;
   float balance;
 
  public:
-  Account(char *acc_no, float b);
+  Account(const char *acc_no, float b);
   float get_balance();
-  char * get_account_no();
+  const char * get_account_no();
 };
 
 

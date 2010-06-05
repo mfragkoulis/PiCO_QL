@@ -1,5 +1,8 @@
-test: Account.o Type.o search.o stl_to_sql.o sqlite3.o
-	g++ -W -g Account.o Type.o search.o stl_to_sql.o sqlite3.o -o test
+test: main.o Account.o Type.o search.o stl_to_sql.o sqlite3.o
+	g++ -W -g main.o Account.o Type.o search.o stl_to_sql.o sqlite3.o -o test
+
+main.o: main.cpp Account.h sqlite3.h
+	g++ -W -g -c main.cpp
 
 stl_to_sql.o: stl_to_sql.c stl_to_sql.h sqlite3.h bridge.h
 	gcc -W -g -c stl_to_sql.c

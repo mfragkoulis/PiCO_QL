@@ -12,6 +12,8 @@ typedef unsigned char boolean;
 
 //int register_table(char *ndb, char *query, void *data);
 
+//void open_register(char *ndb, sqlite3 **db, char *nmodule, void *data); 
+
 int create_vtable(sqlite3 *db, void *paux, int argc, const char * const * argv, sqlite3_vtab **ppVtab, char **pzErr);
   
 int connect_vtable(sqlite3 *db, void *paux, int argc, const char * const * argv, sqlite3_vtab **ppVtab, char **pzErr);

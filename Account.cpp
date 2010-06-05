@@ -2,7 +2,7 @@
 
 using namespace std;
 
-Account::Account(char *acc_no, float b){
+Account::Account(const char *acc_no, float b){
   account_no=acc_no;
   balance=b;
 }
@@ -11,6 +11,6 @@ float Account::get_balance() {
   return balance;
 }
 
-char * Account::get_account_no() {
+const char * Account::get_account_no() {
   return account_no;
 }
