@@ -4,7 +4,7 @@
 class Type {
 
  private:
-  char *text;
+  const unsigned char *text;
   float doub;
   int integ;
   void *blob;
@@ -20,7 +20,7 @@ class Type {
   int get_type_of_value();
   int get_int();
   float get_doub();
-  char * get_text();
+  const unsigned char * get_text();
 
 };
 

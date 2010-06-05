@@ -12,21 +12,27 @@ typedef unsigned char boolean;
 
 //int register_table(char *ndb, char *query, void *data);
 
-//void open_register(char *ndb, sqlite3 **db, char *nmodule, void *data); 
-
-int create_vtable(sqlite3 *db, void *paux, int argc, const char * const * argv, sqlite3_vtab **ppVtab, char **pzErr);
+int create_vtable(sqlite3 *db, void *paux, int argc, 
+		  const char * const * argv, sqlite3_vtab **ppVtab, 
+		  char **pzErr);
   
-int connect_vtable(sqlite3 *db, void *paux, int argc, const char * const * argv, sqlite3_vtab **ppVtab, char **pzErr);
+int connect_vtable(sqlite3 *db, void *paux, int argc, 
+		   const char * const * argv, sqlite3_vtab **ppVtab, 
+		   char **pzErr);
   
-int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc, const char * const * argv, sqlite3_vtab **ppVtab, char **pzErr);
+int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc, 
+		const char * const * argv, sqlite3_vtab **ppVtab, 
+		char **pzErr);
 
-int update_vtable(sqlite3_vtab *pVtab, int argc, sqlite3_value **argv, sqlite_int64 *pRowid);
+int update_vtable(sqlite3_vtab *pVtab, int argc, sqlite3_value **argv, 
+		  sqlite_int64 *pRowid);
 
 int destroy_vtable(sqlite3_vtab  *ppVtab);
 
 int bestindex_vtable(sqlite3_vtab *pVTab, sqlite3_index_info *pinfo);
 
-int filter_vtable(sqlite3_vtab_cursor *cur, int idxNum, const char *idxStr, int argc, sqlite3_value **argv);
+int filter_vtable(sqlite3_vtab_cursor *cur, int idxNum, 
+		  const char *idxStr, int argc, sqlite3_value **argv);
 
 int next_vtable(sqlite3_vtab_cursor *cur);
 
@@ -50,16 +56,12 @@ int disconnect_vtable(sqlite3_vtab *ppVtab);
 
 int arrange_size(int argc, const char * const * argv);
 
-//int sql_register_stl(char *name, collect *c);                                                                                                                                                                  
+typedef struct {sqlite3_vtab vtab; sqlite3 *db; const char *zDb; 
+  const char *zName; int nColumn; char **azColumn; int *colDataType; 
+  void *data;} stlTable;
 
-
-typedef struct {boolean e_map;boolean e_collection;} e_datastructure;
-
-typedef struct {sqlite3_module *module;} my_module;
-
-typedef struct {sqlite3_vtab vtab; sqlite3 *db; const char *zDb; const char *zName; int nColumn; char **azColumn; int *colDataType; void *data;} stl_table;
-
-typedef struct {sqlite3_vtab_cursor vtab; int *resultset; int size; int current; int isEof;} stl_table_cursor;
+typedef struct {sqlite3_vtab_cursor vtab; int *resultSet; int size; 
+  int current; int isEof;} stlTableCursor;
 
 
 #endif

@@ -2,7 +2,7 @@
 #define ACCOUNT_H
 
 
-class Account {
+class Account{
 
  private:
   const char *account_no;
