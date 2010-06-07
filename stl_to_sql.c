@@ -313,40 +313,39 @@ int bestindex_vtable(sqlite3_vtab *pVtab, sqlite3_index_info *pInfo){
 // xFilter
 int filter_vtable(sqlite3_vtab_cursor *cur, int idxNum, const char *idxStr,
 		  int argc, sqlite3_value **argv){
+
   stlTable *st=(stlTable *)cur->pVtab;
   stlTableCursor *stc=(stlTableCursor *)cur;
 
-  int arraySize=get_data_structure_size(st);
+  memset(stc->resultSet, -1, sizeof(stc->resultSet));
 
-  // a data structure to hold index positions of resultset so that in the end
-  // of loops the remaining resultset is the wanted one.
-  // will need space at most equal to the data structure size
-  stc->resultSet=(int *)sqlite3_malloc(sizeof(int) * arraySize);
-  memset(stc->resultSet, -1 , sizeof(stc->resultSet));
+  // initialize size of resultset data structure
+  stc->size = 0;
+
+  // initial cursor position
+  stc->current=-1;
+
+  // in case of a join xfilter will be called many times, x times for x 
+  // eligible rows of the paired table in this case isEof will be set to 
+  // terminate at row level and has to be reset to allow matching all 
+  // eligible rows
+  stc->isEof=0;
 
   int i, j=0;
-  stc->size = 0;   // initialize size of resultset data structure
-  int *initial;
-  initial = (int *)sqlite3_malloc(sizeof(int));
-  *initial = 1;
   char *constr = (char *)sqlite3_malloc(sizeof(char) * 3);
   memset(constr, 0, sizeof(constr));
 
   //empty where clause
-  if( argc==0 ) search((void *)stc, initial, NULL, NULL);
+  if( argc==0 ) search((void *)stc, NULL, NULL);
   else{
     for(i=0; i<argc; i++) {
       constr[0] = idxStr[j++];
       constr[1] = idxStr[j++];
       constr[2] = '\0';
-      search((void *)stc, initial, constr, argv[i]);
-      if( *initial==-1 ) break;
-      else if( *initial==1 ) *initial = 0;
+      search((void *)stc, constr, argv[i]);
     }
   }
-  sqlite3_free(initial);
   sqlite3_free(constr);
-  stc->current=-1;
   return next_vtable(cur);
 }
 
@@ -362,15 +361,24 @@ int next_vtable(sqlite3_vtab_cursor *cur){
 // xOpen
 int open_vtable(sqlite3_vtab *pVtab, sqlite3_vtab_cursor **ppCsr){
   sqlite3_vtab_cursor *pCsr;               /* Allocated cursor */
-  
-  // UNUSED_PARAMETER(pVtab);
-  
+    
   *ppCsr = pCsr = 
     (sqlite3_vtab_cursor *)sqlite3_malloc(sizeof(stlTableCursor));
   if( !pCsr ){
     return SQLITE_NOMEM;
   }
   memset(pCsr, 0, sizeof(stlTableCursor));
+
+  stlTableCursor *stc=(stlTableCursor *)pCsr;
+  stlTable *st=(stlTable *)pVtab;
+
+  int arraySize=get_data_structure_size(st);
+
+  // a data structure to hold index positions of resultset so that in the end
+  // of loops the remaining resultset is the wanted one.
+  // will need space at most equal to the data structure size
+  stc->resultSet=(int *)sqlite3_malloc(sizeof(int) * arraySize);
+
   return SQLITE_OK;
 }
 

@@ -12,8 +12,8 @@ int main(){
     accounts.push_back(acc1);
     accounts.push_back(acc2);
     void *data=(void *)&accounts;
-    register_table("foo.db", "stl", "CREATE VIRTUAL TABLE account USING stl( \
-INTEGER PRIMARY KEY AUTOINCREMENT,account_no TEXT,balance FLOAT)", data);   
+//    register_table("foo.db", "stl", "CREATE VIRTUAL TABLE account USING stl( \
+//INTEGER PRIMARY KEY AUTOINCREMENT,account_no TEXT,balance FLOAT)", data);   
 //create the virtual table.done once
 
 
@@ -24,7 +24,10 @@ INTEGER PRIMARY KEY AUTOINCREMENT,account_no TEXT,balance FLOAT)", data);
     
     char *nDb = "foo.db";
     char *nModule = "stl";
-    char *query = "SELECT * FROM account,customer WHERE account.account_no==customer.account_id;";
+//    char *query = "SELECT * FROM account,customer	\
+//WHERE account.account_no==customer.account_id;";
+
+    char *query = "SELECT * FROM account WHERE account_no='10068';";
     
     int re = sqlite3_open(nDb, &db);
     if( re ){

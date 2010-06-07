@@ -12,7 +12,7 @@ extern "C" {
   void fill_module(sqlite3_module *stl);
   int register_table(char *nDb, char *nModule, char *query, void *data);
   int get_data_structure_size(void *st);
-  void search(void *stc, int *initial, char *constraint, sqlite3_value *val);
+  void search(void *stc, char *constraint, sqlite3_value *val);
   int retrieve(void *stc, int n, sqlite3_context *con);
 
 #ifdef __cplusplus

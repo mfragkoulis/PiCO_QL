@@ -16,7 +16,7 @@ int get_data_structure_size(void *st){
 }
 
 // decode constraint and search the datastructure to find matches
-void search(void *stc, int *initial, char *constr, sqlite3_value *val){
+void search(void *stc, char *constr, sqlite3_value *val){
     sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;
     stlTable *stl = (stlTable *)cur->pVtab;  
     stlTableCursor *stcsr = (stlTableCursor *)stc;
@@ -32,8 +32,9 @@ void search(void *stc, int *initial, char *constr, sqlite3_value *val){
     if ( val==NULL ){         
 
 // index all elements of data structure since all are eligible    
-	for (int j=0; j<stcsr->size; j++){
+	for (int j=0; j<get_data_structure_size((void *)stl); j++){
 	    stcsr->resultSet[j] = j;      
+	    stcsr->size++;
 	}
     }else{
 	switch( sqlite3_value_type(val) ){
@@ -57,47 +58,45 @@ void search(void *stc, int *initial, char *constr, sqlite3_value *val){
 	    NULL;    
 	    break;
 	}
+	
 	int iCol;
 	iCol = constr[1] - 'a' + 1;
 // doxygen
 	char *colName = stl->azColumn[iCol];     
-    
+	
 // want the content of col_name and the actual op (not a string)
 // so from this point on, code has to be generated automatically..
-    
-     /* switch ( constr[0] -'A' ){
-	case 0: 
-	    traverse(colName, "<", value);
-	    break;
-	case 1:
-	    traverse(colName, "<=", value);
-	    break;
-	case 2:
-	    traverse(colName, "==", value);
-	    break;
-	case 3:
-	    traverse(colName, ">=", value);
-	    break;
-	case 4:
-	    traverse(colName, ">", value);
-	    break;
 	
-	//    case SQLITE_INDEX_CONSTRAINT_MATCH: nidxStr[i]="F"; break;
-	}
-    */
-
+	/* switch ( constr[0] -'A' ){
+	   case 0: 
+	   traverse(colName, "<", value);
+	   break;
+	   case 1:
+	   traverse(colName, "<=", value);
+	   break;
+	   case 2:
+	   traverse(colName, "==", value);
+	   break;
+	   case 3:
+	   traverse(colName, ">=", value);
+	   break;
+	   case 4:
+	   traverse(colName, ">", value);
+	   break;
+	   
+	   //    case SQLITE_INDEX_CONSTRAINT_MATCH: nidxStr[i]="F"; break;
+	   }
+	*/
+	
 // the idea hard-coded for now. 
 	int count = 0;
-	if ( stcsr->size==0 ){ 
-
-	    if ( *initial ){
-		for (iter=accounts->begin(); iter!=accounts->end(); iter++) {
-		    if ( !strcmp(iter->get_account_no(), (const char *)value->get_text()) )
-			stcsr->resultSet[count++] = iter - accounts->begin();
-		}
-		stcsr->size = count;
-	    } else *initial = -1;
+	
+	for(iter=accounts->begin(); iter!=accounts->end(); iter++){
+	    if( !strcmp(iter->get_account_no(), 
+			(const char *)value->get_text()) )
+		stcsr->resultSet[count++] = iter - accounts->begin();
 	}
+	stcsr->size += count;
     }
 }
 
