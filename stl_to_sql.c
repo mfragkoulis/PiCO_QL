@@ -3,6 +3,9 @@
 #include <string.h>
 #include <assert.h>
 #include <stdlib.h>
+#include "sqlite3ext.h"
+
+SQLITE_EXTENSION_INIT1
 
 // to globally compile do: g++ -W -g test.cpp -lsqlite3 -o test
 
@@ -91,7 +94,7 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc,
   int nDb, nName, nByte, nCol, nString, count, i, k, t;
   char *temp, **store;
   int *colType;
-  colType = (int *)malloc(sizeof(int) * (argc-3));
+  colType = (int *)sqlite3_malloc(sizeof(int) * (argc-3));
   memset(colType, -1, (argc-3) * sizeof(int));
   nDb = (int)strlen(argv[1]) + 1;
   nName = (int)strlen(argv[2]) + 1;
@@ -122,7 +125,7 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc,
   int l, columnData=1;
   for(i=3; i<argc; i++){
     t = (strlen(argv[i])+1) * sizeof(char);
-    store[i-3] = (char *)malloc(t);
+    store[i-3] = (char *)sqlite3_malloc(t);
     memcpy(store[i-3], argv[i], t);
 
     // column name
@@ -137,13 +140,13 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc,
     }else if( !strcmp(result2, pkType) ){
       colType[i-3] = 0;
       if( t<3*sizeof(char))
-	store[i-3] = (char *)realloc(store[i-3], 3*sizeof(char));
+	store[i-3] = (char *)sqlite3_realloc(store[i-3], 3*sizeof(char));
       store[i-3] = "PK";
       columnData = 0; 
     }else if( !strcmp(result2, fkType) ) {
       colType[i-3] = 0;
       if( t< (4 + strlen(result1)) * sizeof(char)) 
-	store[i-3] = (char *)realloc(store[i-3],
+	store[i-3] = (char *)sqlite3_realloc(store[i-3],
 				     (4 + strlen(result1)) * sizeof(char));
       store[i-3] = "FK "; 
       strcat(store[i-3], result1); 
@@ -223,7 +226,7 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc,
 int connect_vtable(sqlite3 *db, void *paux, int argc,
 		   const char * const * argv, sqlite3_vtab **ppVtab,
 		   char **pzErr){
-  //   printf("in connect_vtable... \n");
+  printf("in connect_vtable... \n");
   return init_vtable(0, db, paux, argc, argv, ppVtab, pzErr);
 }
 
@@ -231,7 +234,7 @@ int connect_vtable(sqlite3 *db, void *paux, int argc,
 int create_vtable(sqlite3 *db, void *paux, int argc,
 		  const char * const * argv, sqlite3_vtab **ppVtab,
 		  char **pzErr){
-  // printf("in create_vtable... \n");
+  printf("in create_vtable... \n");
   return init_vtable(1, db, paux, argc, argv, ppVtab, pzErr);
 }
 
@@ -245,7 +248,7 @@ int update_vtable(sqlite3_vtab *pVtab, int argc, sqlite3_value **argv,
 
 // xDestroy
 int destroy_vtable(sqlite3_vtab *ppVtab){
-  // printf("in destroy_vtable...\n");
+  printf("in destroy_vtable...\n");
   int result;
 
   /*    need to destroy additional storage structures. so far not any.
@@ -258,6 +261,7 @@ int destroy_vtable(sqlite3_vtab *ppVtab){
 
 // xDisconnect
 int disconnect_vtable(sqlite3_vtab *ppVtab){
+  printf("in disconnect vtable\n");
   stlTable *s=(stlTable *)ppVtab;
   sqlite3_free(s);
   return SQLITE_OK;
@@ -265,6 +269,7 @@ int disconnect_vtable(sqlite3_vtab *ppVtab){
 
 // xBestindex
 int bestindex_vtable(sqlite3_vtab *pVtab, sqlite3_index_info *pInfo){
+  printf("in bestindex_vtable");
   stlTable *st=(stlTable *)pVtab;
   if ( pInfo->nConstraint>0 ){            // no constraint no setting up
     char op, iCol;
@@ -314,6 +319,7 @@ int bestindex_vtable(sqlite3_vtab *pVtab, sqlite3_index_info *pInfo){
 int filter_vtable(sqlite3_vtab_cursor *cur, int idxNum, const char *idxStr,
 		  int argc, sqlite3_value **argv){
 
+  printf("in filter_vtable");
   stlTable *st=(stlTable *)cur->pVtab;
   stlTableCursor *stc=(stlTableCursor *)cur;
 
@@ -351,6 +357,7 @@ int filter_vtable(sqlite3_vtab_cursor *cur, int idxNum, const char *idxStr,
 
 //xNext
 int next_vtable(sqlite3_vtab_cursor *cur){
+  printf("in next_vtable");
   stlTable *st=(stlTable *)cur->pVtab;
   stlTableCursor *stc=(stlTableCursor *)cur;
   if ( stc->current>=stc->size-1 ) stc->isEof = 1;
@@ -361,7 +368,7 @@ int next_vtable(sqlite3_vtab_cursor *cur){
 // xOpen
 int open_vtable(sqlite3_vtab *pVtab, sqlite3_vtab_cursor **ppCsr){
   sqlite3_vtab_cursor *pCsr;               /* Allocated cursor */
-    
+  printf("open");
   *ppCsr = pCsr = 
     (sqlite3_vtab_cursor *)sqlite3_malloc(sizeof(stlTableCursor));
   if( !pCsr ){
@@ -384,6 +391,7 @@ int open_vtable(sqlite3_vtab *pVtab, sqlite3_vtab_cursor **ppCsr){
 
 //xColumn
 int column_vtable(sqlite3_vtab_cursor *cur, sqlite3_context *con, int n){
+  printf("in column_vtable");
   stlTableCursor *stc=(stlTableCursor *)cur;
 
   // case specific
@@ -399,6 +407,7 @@ int rowid_vtable(sqlite3_vtab_cursor *cur, sqlite_int64 *pRowid){
 
 //xClose
 int close_vtable(sqlite3_vtab_cursor *cur){
+  printf("in close_vtable");
   stlTableCursor *stc=(stlTableCursor *)cur;
   sqlite3_free(stc->resultSet);
   sqlite3_free(stc);
@@ -407,9 +416,11 @@ int close_vtable(sqlite3_vtab_cursor *cur){
 
 //xEof
 int eof_vtable(sqlite3_vtab_cursor *cur){
+  printf("in eof_vtable");
   return ((stlTableCursor *)cur)->isEof;
 
 }
+
 
 // fill module's function pointers with particular implementations found 
 // locally
@@ -436,6 +447,7 @@ void fill_module(sqlite3_module *m){
   m->xRename = 0;
 }
 
+
 // estimate of the query by counting the length of the parameters passed
 int arrange_size(int argc, const char * const * argv){
   int length = 28;          // length of standard keywords of sql queries
@@ -450,3 +462,27 @@ int arrange_size(int argc, const char * const * argv){
   // printf("length is %i \n",length);
   return length;
 }
+
+int sqlite_stl_init(sqlite3 *db){
+  sqlite3_module stl;
+  fill_module(&stl);
+
+  // hard-coded. taken from printf in main
+  void *data=(void *)0xbffff84c;
+  printf("data is in %x\n", data);
+  int re=sqlite3_create_module(db, "stl", &stl, data);
+  if( re ) printf("error while registering module\n");
+  else printf("successful module registration\n");
+  return re;
+
+}
+
+int sqlite3_extension_init(sqlite3 *db, char **pzErrMsg,
+                           const sqlite3_api_routines *pApi){
+  SQLITE_EXTENSION_INIT2(pApi)
+    printf("db is in %x\n", db);
+    return sqlite_stl_init(db);
+}
+
+
+

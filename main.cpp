@@ -1,6 +1,6 @@
-#include "sqlite3.h"
+//#include "sqlite3.h"
 #include <vector>
-#include "bridge.h"
+//#include "bridge.h"
 #include "Account.h"
 
 using namespace std;
@@ -12,6 +12,11 @@ int main(){
     accounts.push_back(acc1);
     accounts.push_back(acc2);
     void *data=(void *)&accounts;
+    printf("data is in %x\n", data);
+    char text[20];
+    scanf("%s", text);
+}
+/*
 //    register_table("foo.db", "stl", "CREATE VIRTUAL TABLE account USING stl( \
 //INTEGER PRIMARY KEY AUTOINCREMENT,account_no TEXT,balance FLOAT)", data);   
 //create the virtual table.done once
@@ -65,8 +70,9 @@ int main(){
     }
     sqlite3_close(db);
 
-    sqlite3_free(pazResult);
+    sqlite3_free_table(*pazResult);
     sqlite3_free(nRows);
     sqlite3_free(nCols);
     sqlite3_free(errMsg);
 }
+*/
