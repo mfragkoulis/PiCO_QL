@@ -42,7 +42,10 @@ int main(){
     
     if( output==1 ) printf("Error while registering module\n");
     else if( output==0 ) printf("Module registered successfully\n");
-    
+
+    char text[20];
+    printf("%x\n", db);
+    scanf("%s", text);
     
     char ***pazResult = (char ***)sqlite3_malloc(sizeof(char***));
     int *nRows=(int *)sqlite3_malloc(sizeof(int));
