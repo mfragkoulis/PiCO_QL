@@ -1,9 +1,10 @@
 #ifndef STL_TO_SQL_H
 #define STL_TO_SQL_H
 
+#include "sqlite3.h"
 //#include "search.h"
 #include "bridge.h"
-#include "sqlite3.h"
+
 
 typedef unsigned char boolean;
 #define true (0==0)
@@ -49,7 +50,7 @@ void create(sqlite3 *db, int argc, char **as, char *q);
 
 //int prep_exec(sqlite3 *db, char *query);
 
-static int disconnect_vtable(sqlite3_vtab *ppVtab);
+int disconnect_vtable(sqlite3_vtab *ppVtab);
 
 //void fill_module(sqlite3_module *m);
 
@@ -61,6 +62,5 @@ typedef struct {sqlite3_vtab vtab; sqlite3 *db; const char *zDb;
 
 typedef struct {sqlite3_vtab_cursor vtab; int *resultSet; int size; 
   int current; int isEof;} stlTableCursor;
-
 
 #endif

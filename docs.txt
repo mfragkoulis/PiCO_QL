@@ -127,3 +127,56 @@
    Account attribute)
 
    iter_nested->account_id->get_
+
+
+8/06/2010
+
+1. dynamically loading module succeeds but querying invokes bus error.
+
+2. tried to make exe (not library) with added routines, invoke from
+   main and debug but running it, I have trouble calling sqlite_API
+   functions (sqlite3_malloc, sqlite3_declare_vtab)
+   
+
+9/06/2010
+
+1. select statement path:
+
+   sqlite3Select   (master)
+   sqlite3SelectPrep
+
+   sqlite3SelectExpand
+   sqlite3ResolveSelectNames
+   resolveSelectStep
+
+2. two alternatives emerge:
+
+   a) in C++:
+      create datastructure
+      call register_table which will:
+      		     register module (includes passing address of datastrusture)
+		     create virtual table
+      	     	     call ruby's function to automatically generate:
+		     	    the data structure specific functions used in search and result set
+      make (together with any user supplied classes)
+
+      in sqlite3 command line client:
+      use same database connection (???) to query
+
+   b) in C++:
+      create datastructure
+      
+      build module as an extension meaning:
+      	    	     call ruby's function to generate:
+		     	    the data structure specific functions used in search and result set
+			    content of sqlite3_extension_init (called by sqlite3_load_extension):
+			    	    register_module (includes passing address of datastrusture???)
+      make (extension: g++ -bundle -fPIC...) (+ user supplied classes)
+      
+      in sqlite3 command line client should get:
+
+      sense-dhcp-2:trunk mfrag$ sqlite3 foo.db 
+      sqlite> .load stl_module
+      module registered successfully
+      virtual table declared successfully
+      sqlite> select * from account;
