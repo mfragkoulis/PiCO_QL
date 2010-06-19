@@ -1,40 +1,42 @@
-#include "sqlite3.h"
+#include <stdio.h>
+#include <string>
+#include "stl_to_sql.h"
+#include <pthread.h>
 #include <vector>
-#include "bridge.h"
 #include "Account.h"
 
 using namespace std;
 
 
+
 void * thread_sqlite(void *data){
-    printf("Thread sqlite beginning..\n");
-    int re;
-    re = register_table("foo.db", "stl", "CREATE VIRTUAL TABLE account USING stl( \
-INTEGER PRIMARY KEY AUTOINCREMENT,account_no TEXT,balance FLOAT)", data, 0);   
-    printf("thread sqlite returning..\n");
-    return (void *)re;
+  const char **queries;
+  queries = (const char **)sqlite3_malloc(sizeof(char *) * 1);
+  int failure=0;
+  queries[0] = "CREATE VIRTUAL TABLE account USING stl(account_no TEXT,balance FLOAT)";
+  failure = register_table("foo.db", 1, queries, data, 1);
+  printf("Thread sqlite returning..\n");
+  sqlite3_free(queries);
+  return (void *)failure;
 }
 
 
 int main(){
-    
-    int re_sqlite;
-    void *data;
+  int re_sqlite;
+  void *data;
 
-    Account acc1("10068", 500.0);
-    Account acc2("10234", 394.28);
-    vector<Account> accounts;
-    accounts.push_back(acc1);
-    accounts.push_back(acc2);
-    data = (void *)&accounts;
+  Account acc1("10068", 500.0);
+  Account acc2("10234", 394.28);
+  vector<Account> accounts;
+  accounts.push_back(acc1);
+  accounts.push_back(acc2);
+  data = (void *)&accounts;
 
-    printf("\ndata is in: %x\n", data);
 
-    pthread_t sqlite_thread;
-    re_sqlite = pthread_create(&sqlite_thread, NULL, thread_sqlite, data);
+  // declare and fill datastructure;
 
-    pthread_join(sqlite_thread, NULL);
-
-    printf("thread sqlite returned: %i\n", re_sqlite);
+  pthread_t sqlite_thread;
+  re_sqlite = pthread_create(&sqlite_thread, NULL, thread_sqlite, data);
+  pthread_join(sqlite_thread, NULL);
+  printf("Thread sqlite returned %i\n", re_sqlite);
 }
-

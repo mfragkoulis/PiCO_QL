@@ -1,0 +1,13 @@
+    Account acc1("10068", 500.0);
+    Account acc2("10234", 394.28);
+    vector<Account> accounts;
+    accounts.push_back(acc1);
+    accounts.push_back(acc2);
+    data = (void *)&accounts;
+
+    Account acc1("10068", 500.0);
+    Account acc2("10234", 394.28);
+    map<string,Account> accounts;
+    accounts.insert(make_pair("0", acc1));
+    accounts.insert(make_pair("1", acc2));
+    data = (void *)&accounts;

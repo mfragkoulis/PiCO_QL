@@ -126,9 +126,9 @@ void call_swill(sqlite3 *db){
   }
 }
 
-int register_table(char *nDb, char *nModule, char *q, void *data, int create){
+int register_table(char *nDb, int argc, const char **q, void *data, int create){
 
-  int re;
+  int re, i=0;
   sqlite3 *db;
   re = sqlite3_open(nDb, &db);
   if( re ){
@@ -137,17 +137,23 @@ int register_table(char *nDb, char *nModule, char *q, void *data, int create){
     exit(1);
   }
 
-  printf("\nquery to be executed: %s\n in database: %s\n\n", q, nDb);
+  for(i=0; i<argc; i++){
+    printf("\nquery to be executed: %s\n in database: %s\n\n", q[i], nDb);
+  }
 
   sqlite3_module mod;
   fill_module(&mod);
 
-  int output = sqlite3_create_module(db, nModule, &mod, data);
+  int output = sqlite3_create_module(db, "stl", &mod, data);
   if( output==1 ) printf("Error while registering module\n");
   else if( output==0 ) printf("Module registered successfully\n");
 
 
-  if( create ) re = prep_exec(db,q);
+  if( create ){
+    for(i=0; i< argc; i++){
+      re = prep_exec(db,q[i]);
+    }
+  }
   printf("Please visit http://localhost:8080 to be served\n");
   call_swill(db);
   return re;

@@ -1,4 +1,5 @@
 #include "stl_to_sql.h"
+#include "bridge.h"
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
@@ -315,7 +316,7 @@ int open_vtable(sqlite3_vtab *pVtab, sqlite3_vtab_cursor **ppCsr){
   stlTableCursor *stc=(stlTableCursor *)pCsr;
   stlTable *st=(stlTable *)pVtab;
 
-  int arraySize=get_data_structure_size(st);
+  int arraySize=get_datastructure_size(st);
 
   // a data structure to hold index positions of resultset so that in the end
   // of loops the remaining resultset is the wanted one.

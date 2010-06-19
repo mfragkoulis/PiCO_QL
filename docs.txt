@@ -180,3 +180,45 @@
       module registered successfully
       virtual table declared successfully
       sqlite> select * from account;
+
+12/06/2010
+
+1. files to be generated automatically: search.cpp, sql_calls.c (copy_paste.c)
+
+2. remove call_swill and prep_exec from bridge.h (internal use only)
+
+3. swill needed index.html to work properly.
+
+4. register_table from thread in main. main does really work in
+   parallel with thread?
+
+14/06/2010
+
+- Issues in automatic code generation
+
+1.     multimap<string,Account> *any_dstr = (multimap<string,Account> *)stl->data;
+       can we do it for every STL class?
+
+2.     colName. need to address its content. its content is known in
+       the context of auto_search.cpp so cannot puts from ruby.
+       printf
+
+3.     keeping datatype in init_vtable is useless. anyway, same idea
+       if applied in ruby will solve the problem.
+       one switch ( n ) in auto_search.cpp.
+       cases in switch will be determined by datatype.
+       if column keeps int then sqlite3_result_int must be puts.
+
+4.     what happens with multiple classes?
+
+16/06/2010
+
+1.     intger primary key for top level table too?
+
+2.     datatypes and affinity need investigation-testing
+
+3.     operations in, between, like implementation
+
+4.     ruby needs refactoring?
+
+5.     

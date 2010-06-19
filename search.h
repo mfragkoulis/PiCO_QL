@@ -10,7 +10,10 @@
 //int get_data_structure_size(void *st);
 //void search(void *stc, int *initial, char *constr, sqlite3_value *val);
 //int retrieve(void *stc, int n, sqlite3_context * con);
-void traverse(char *col_name, char *op, void *value);
+//int traverse(const unsigned char *col_name, int op, const unsigned char *value);
+//int traverse(int col_name, int op, int value);
+//int traverse(double col_name, int op, double value);
+//int traverse(const void *col_name, int op, const void *value);
 
 
 #endif
