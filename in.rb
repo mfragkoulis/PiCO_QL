@@ -322,7 +322,7 @@ class Input_Description
                   split_column[1].match(/\icharacter/) || split_column[1].match(/\ivarchar/) ||
 		  split_column[1].match(/\invarchar/) || split_column[1].match(/\ivarying character/) ||
 		  split_column[1].match(/\inative character/) || split_column[1]=="clob" ||
-		  split_column[1].match(/\inchar/) || split_column[1]=="string"
+		  split_column[1].match(/\inchar/)
 			      if @container_type=="associative"
 			      	if( @key_class_type==1 )
 				  m=i
@@ -339,6 +339,25 @@ class Input_Description
 				end
 			      else
 		  	        fw.puts "                if( traverse((const unsigned char *)iter->get_" + split_column[0] + "(), op, sqlite3_value_text(val)) )"
+			      end
+	      elsif split_column[1]=="string"
+# need to use c_str() to convert string to char *
+			      if @container_type=="associative"
+			      	if( @key_class_type==1 )
+				  m=i
+				  while( m<@key_class_attributes )
+		  	            fw.puts "                if( traverse((const unsigned char *)iter->first.get_" + split_column[0] + "().c_str(), op, sqlite3_value_text(val)) )"
+				    m+=1
+				  end
+				elsif( i==0 )
+		  	          fw.puts "                if( traverse((const unsigned char *)iter->first.c_str(), op, sqlite3_value_text(val)) )"
+				end
+# if PK, i==1
+				if( i>=@key_class_attributes)
+		  	          fw.puts "                if( traverse((const unsigned char *)iter->second.get_" + split_column[0] + "().c_str(), op, sqlite3_value_text(val)) )"
+				end
+			      else
+		  	        fw.puts "                if( traverse((const unsigned char *)iter->get_" + split_column[0] + "().c_str(), op, sqlite3_value_text(val)) )"
 			      end
 	      end
 	      fw.puts "                    stcsr->resultSet[count++] = i;"
@@ -363,8 +382,12 @@ class Input_Description
           fw.puts "    " + @signature + ":: iterator iter;"
           fw.puts "    char *colName = stl->azColumn[n];"
           fw.puts "    int index = stcsr->current;"
-          fw.puts "    //iterator implementation. serial traversing or hit?"
-          fw.puts "    iter = any_dstr->begin() + stcsr->resultSet[index];"
+          fw.puts "// iterator implementation. serial traversing or hit?"
+          fw.puts "    iter = any_dstr->begin();"
+	  fw.puts "// serial traversing. simple and generic. visitor pattern is next step."
+	  fw.puts "    for(int i=0; i<stcsr->resultSet[index]; i++){"
+	  fw.puts "        iter++;"
+	  fw.puts "    }"
           fw.puts "    int datatype;"
           fw.puts "    datatype = stl->colDataType[n];"
           fw.puts "    const char *pk = \"PK\";"
@@ -391,39 +414,107 @@ class Input_Description
                   split_column[1]=="bool" || split_column[1]=="boolean" ||
 		  split_column[1]=="int8" || split_column[1]=="numeric" 
 		  	      if @container_type=="associative"
-          		        fw.puts "            sqlite3_result_int(con, iter->second.get_" + split_column[0] + "());"
+			      	if( @key_class_type==1 )
+				  m=i
+				  while( m<@key_class_attributes )
+          		            fw.puts "            sqlite3_result_int(con, iter->first.get_" + split_column[0] + "());"
+				    m+=1
+				  end
+				elsif( i==0 )
+          		            fw.puts "            sqlite3_result_int(con, iter->first);"
+				end
+# if PK, i==1
+				if( i>=@key_class_attributes)
+          		          fw.puts "            sqlite3_result_int(con, iter->second.get_" + split_column[0] + "());"
+				end
 			      else
           		        fw.puts "            sqlite3_result_int(con, iter->get_" + split_column[0] + "());"
 			      end
-			        fw.puts "            break;"
+			      fw.puts "            break;"
 	      elsif split_column[1]=="blob"
-		  	      if @container_type=="associative"
-          		        fw.puts "            sqlite3_result_blob(con, iter->second.get_" + split_column[0] + "(),-1,SQLITE_STATIC);"
+			      if @container_type=="associative"
+			      	if( @key_class_type==1 )
+				  m=i
+				  while( m<@key_class_attributes )
+          		            fw.puts "          sqlite3_result_blob(con, (const void *)iter->first.get_" + split_column[0] + "(),-1,SQLITE_STATIC);"
+				    m+=1
+				  end
+				elsif( i==0 )
+          		          fw.puts "            sqlite3_result_blob(con, (const void *)iter->first,-1,SQLITE_STATIC);"
+				end
+# if PK, i==1
+				if( i>=@key_class_attributes)
+          		          fw.puts "            sqlite3_result_blob(con, (const void *)iter->second.get_" + split_column[0] + "(),-1,SQLITE_STATIC);"
+				end
 			      else
-          		        fw.puts "            sqlite3_result_blob(con, iter->get_" + split_column[0] + "(),-1,SQLITE_STATIC);"
+          		        fw.puts "            sqlite3_result_blob(con, (const void *)iter->get_" + split_column[0] + "(),-1,SQLITE_STATIC);"
 			      end
-			        fw.puts "            break;"
+			      fw.puts "            break;"
               elsif split_column[1]=="float" ||	split_column[1]=="double"  ||
 	      	  split_column[1].match(/\idecimal/) ||
       	  	  split_column[1]=="double precision" || split_column[1]=="real"
-		  	      if @container_type=="associative"
-          		        fw.puts "            sqlite3_result_double(con, iter->second.get_" + split_column[0] + "());"
+			      if @container_type=="associative"
+			      	if( @key_class_type==1 )
+				  m=i
+				  while( m<@key_class_attributes )
+          		            fw.puts "            sqlite3_result_double(con, iter->first.get_" + split_column[0] + "());"
+				    m+=1
+				  end
+				elsif( i==0 )
+          		          fw.puts "            sqlite3_result_double(con, iter->first);"
+				end
+# if PK, i==1
+				if( i>=@key_class_attributes)
+          		          fw.puts "            sqlite3_result_double(con, iter->second.get_" + split_column[0] + "());"
+				end
 			      else
           		        fw.puts "            sqlite3_result_double(con, iter->get_" + split_column[0] + "());"
 			      end
-			        fw.puts "            break;"
+			      fw.puts "            break;"
 	      elsif split_column[1]=="text" || split_column[1]=="date" ||
 		  split_column[1]=="datetime" ||
                   split_column[1].match(/\icharacter/) || split_column[1].match(/\ivarchar/) ||
 		  split_column[1].match(/\invarchar/) || split_column[1].match(/\ivarying character/) ||
 		  split_column[1].match(/\inative character/) || split_column[1]=="clob" ||
-		  split_column[1].match(/\inchar/) || split_column[1]=="string"
-		  	      if @container_type=="associative"
-          		        fw.puts "            sqlite3_result_text(con, iter->second.get_" + split_column[0] + "(),-1,SQLITE_STATIC);"
+		  split_column[1].match(/\inchar/)
+			      if @container_type=="associative"
+			      	if( @key_class_type==1 )
+				  m=i
+				  while( m<@key_class_attributes )
+          		            fw.puts "            sqlite3_result_text(con, (const char *)iter->first.get_" + split_column[0] + "(),-1,SQLITE_STATIC);"
+				    m+=1
+				  end
+				elsif( i==0 )
+          		          fw.puts "            sqlite3_result_text(con, (const char *)iter->first,-1,SQLITE_STATIC);"
+				end
+# if PK, i==1
+				if( i>=@key_class_attributes)
+          		          fw.puts "            sqlite3_result_text(con, (const char *)iter->second.get_" + split_column[0] + "(),-1,SQLITE_STATIC);"
+				end
 			      else
-          		        fw.puts "            sqlite3_result_text(con, iter->get_" + split_column[0] + "(),-1,SQLITE_STATIC);"
+          		        fw.puts "            sqlite3_result_text(con, (const char *)iter->get_" + split_column[0] + "(),-1,SQLITE_STATIC);"
 			      end
-			        fw.puts "            break;"
+			      fw.puts "            break;"
+	      elsif split_column[1]=="string"
+# need to use c_str() to convert string to char *
+			      if @container_type=="associative"
+			      	if( @key_class_type==1 )
+				  m=i
+				  while( m<@key_class_attributes )
+          		            fw.puts "            sqlite3_result_text(con, (const char *)iter->first.get_" + split_column[0] + "().c_str(),-1,SQLITE_STATIC);"
+				    m+=1
+				  end
+				elsif( i==0 )
+          		          fw.puts "            sqlite3_result_text(con, (const char *)iter->first.c_str(),-1,SQLITE_STATIC);"
+				end
+# if PK, i==1
+				if( i>=@key_class_attributes)
+          		          fw.puts "            sqlite3_result_text(con, (const char *)iter->second.get_" + split_column[0] + "().c_str(),-1,SQLITE_STATIC);"
+				end
+			      else
+          		        fw.puts "            sqlite3_result_text(con, (const char *)iter->get_" + split_column[0] + "().c_str(),-1,SQLITE_STATIC);"
+			      end
+			      fw.puts "            break;"
 	      end
 	      i+=1
 	  end
@@ -502,7 +593,8 @@ class Input_Description
 		  name_type[1].match(/\inative character/) || name_type[1].match(/\inchar/)
 		    argv.push(name_type[0] + " " + name_type[1].upcase)
 		elsif name_type[1]=="string"
-		    argv.push(name_type[0] + " TEXT")
+		    argv.push(name_type[0] + " STRING")
+# STRING: was TEXT
                 else
 	           puts "\nERROR STATE. CANCELLING COMPLETED OPERATIONS:\n"
 		   puts "\nPRINTING ERROR INFO:\n"
@@ -717,14 +809,26 @@ end
 # test cases
 
 if __FILE__==$0
-#=begin
-    input=Input_Description.new("foo .db;account;
-    vector<Account>;Account,class-a ccount_no,string-balance,FLoat")                                  
-
 =begin
+    input=Input_Description.new("foo .db;account;
+    vector<Account>;Account,class-a ccount_no,text-balance,FLoat")                                  
+
 #=end
-    input=Input_Description.new("foo .db;account;	map<string,Account>;nick_name,string;Account,class-a ccount_no,string-balance,FLoat")                                  
-#=begin
+    input=Input_Description.new("foo .db;account;	map<string,Account>;nick_name,string;Account,class-a ccount_no,text-balance,FLoat")                                  
+#=end
+    input=Input_Description.new("foo .db;account;
+    deque<Account>;Account,class-a ccount_no,text-balance,FLoat")                                  
+#=end
+    input=Input_Description.new("foo .db;account;
+    list<Account>;Account,class-a ccount_no,text-balance,FLoat")                                  
+=end
+    input=Input_Description.new("foo .db;account;
+    set<Account>;Account,class-a ccount_no,text-balance,FLoat")                                  
+=begin
+    input=Input_Description.new("foo .db;account;
+    queue<Account>;Account,class-a ccount_no,text-balance,FLoat")                                  
+
+
 #=end
     input=Input_Description.new("foo .db;emplo	yees;
      vector;nick_name,class-nick_name,string;")         

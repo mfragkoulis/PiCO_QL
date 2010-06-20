@@ -2,7 +2,7 @@
 #include <string>
 #include "stl_to_sql.h"
 #include <pthread.h>
-#include <vector>
+#include <set>
 #include "Account.h"
 
 using namespace std;
@@ -27,9 +27,9 @@ int main(){
 
   Account acc1("10068", 500.0);
   Account acc2("10234", 394.28);
-  vector<Account> accounts;
-  accounts.push_back(acc1);
-  accounts.push_back(acc2);
+  set<Account> accounts;
+  accounts.insert(acc1);
+  accounts.insert(acc2);
   data = (void *)&accounts;
 
 
