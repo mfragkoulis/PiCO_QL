@@ -2,7 +2,7 @@
 #include <string>
 #include "stl_to_sql.h"
 #include <pthread.h>
-#include <set>
+#include <vector>
 #include "Account.h"
 
 using namespace std;
@@ -21,15 +21,25 @@ void * thread_sqlite(void *data){
 }
 
 
+/* comparison function for datastructure if needed
+struct classcomp{
+    bool operator() (const USER_CLASS& uc1, const USER_CLASS& uc2) const{
+        return (uc1.get_known_type()<uc2.get_known_type());
+    }
+};
+// in main: include classcomp in template arguments
+*/
+
+
 int main(){
   int re_sqlite;
   void *data;
 
   Account acc1("10068", 500.0);
   Account acc2("10234", 394.28);
-  set<Account> accounts;
-  accounts.insert(acc1);
-  accounts.insert(acc2);
+  vector<Account> accounts;
+  accounts.push_back(acc1);
+  accounts.push_back(acc2);
   data = (void *)&accounts;
 
 

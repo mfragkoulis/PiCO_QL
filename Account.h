@@ -10,8 +10,8 @@ class Account{
 
  public:
   Account(const char *acc_no, float b);
-  float get_balance();
-  const char * get_account_no();
+  float get_balance() const;
+  const char * get_account_no() const;
 };
 
 

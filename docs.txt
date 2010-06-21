@@ -213,7 +213,7 @@
 
 16/06/2010
 
-1.     intger primary key for top level table too?
+1.     integer primary key for top level table too?
 
 2.     datatypes and affinity need investigation-testing
 
@@ -221,4 +221,33 @@
 
 4.     ruby needs refactoring?
 
-5.     
+21/06/2010
+
+1.	multimap, multiset but include map,set respectively
+
+2.	SGI extensions (hash like)?
+
+3.	bitset?
+
+4.	about comparison functions:
+	  need to address when defining the datastructure and write
+	  the appropriate struct(in main).ruby doesn't have to know about it
+	  so user should nnot include it in description.
+	  main will address the issue respectively.
+
+5.	make all get_ functions const. 
+	  a) good practice
+	  b) user defined comparison function requires const arguments
+	  (eg const Account&)
+	  A simple associative container(like set) provides constant iterators
+	  only,not mutable iterators.Keys are the elements themselves.
+	  Changing the elements would make the container inconsistent.
+	  this is why Account::get_balance() const;because it is used
+	  as key. In pair associative containers (eg. map) first field
+	  aka the key has to be immutable too. (Austern,STL, p.76)
+
+6.	mechanism for PK-FK. memory address of object.
+
+7.	searching for attributes of nested object(eg
+	Person-Address-Post code) which is
+	necessarily a virtual table of its own.

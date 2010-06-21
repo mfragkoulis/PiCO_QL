@@ -1,4 +1,4 @@
-#include <set>
+#include <vector>
 #include "search.h"
 #include <string>
 #include "Type.h"
@@ -10,7 +10,7 @@ using namespace std;
 
 int get_datastructure_size(void *st){
     stlTable *stl = (stlTable *)st;
-    set<Account> *any_dstr = (set<Account> *)stl->data;
+    vector<Account> *any_dstr = (vector<Account> *)stl->data;
     return any_dstr->size();
 }
 
@@ -82,8 +82,8 @@ void search(void *stc, char *constr, sqlite3_value *val){
     sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;
     stlTable *stl = (stlTable *)cur->pVtab;
     stlTableCursor *stcsr = (stlTableCursor *)stc;
-    set<Account> *any_dstr = (set<Account> *)stl->data;
-    set<Account>:: iterator iter;
+    vector<Account> *any_dstr = (vector<Account> *)stl->data;
+    vector<Account>:: iterator iter;
     Type value;
     int op, count=0;
 // val==NULL then constr==NULL also
@@ -155,8 +155,8 @@ int retrieve(void *stc, int n, sqlite3_context* con){
     sqlite3_vtab_cursor *svc = (sqlite3_vtab_cursor *)stc;
     stlTable *stl = (stlTable *)svc->pVtab;
     stlTableCursor *stcsr = (stlTableCursor *)stc;
-    set<Account> *any_dstr = (set<Account> *)stl->data;
-    set<Account>:: iterator iter;
+    vector<Account> *any_dstr = (vector<Account> *)stl->data;
+    vector<Account>:: iterator iter;
     char *colName = stl->azColumn[n];
     int index = stcsr->current;
 // iterator implementation. serial traversing or hit?

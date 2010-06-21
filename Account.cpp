@@ -7,10 +7,10 @@ Account::Account(const char *acc_no, float b){
     balance=b;
 }
 
-float Account::get_balance(){
+float Account::get_balance() const{
     return balance;
 }
 
-const char * Account::get_account_no(){
+const char * Account::get_account_no() const{
     return account_no;
 }

@@ -10,6 +10,7 @@ class Input_Description
 # make twodimensional and cancel columns array?
 	  @classnames=Array.new
 	  @container_type=""
+	  @template_args=""
 	  @key_class_type=0
 # key class type is used to declare what kind of key an associative datastructure has 
 # 0=plain, 1=user-defined, 2=user-defined nested
@@ -66,6 +67,18 @@ class Input_Description
           fw.puts "\#include \"stl_to_sql.h\""
           fw.puts "\#include <pthread.h>"
 	  c_type=@signature.split(/</)
+	  if c_type[0].match(/\imap/)
+	     c_type[0]="map"
+	  elsif c_type[0].match(/\iset/)
+	     c_type[0]="set"
+	  elsif (c_type[0].match(/\ihash/) && (c_type[0].match(/\set/)))
+	     c_type[0]="hash_set"
+	  elsif (c_type[0].match(/\ihash/) && (c_type[0].match(/\map/)))
+	     c_type[0]="hash_map"
+	  elsif c_type[0]=="hash"
+	     c_type[0]="hash_set"
+# defined also in hash_map
+  	  end
           fw.puts "\#include <" + c_type[0] + ">"
 	  k=0
 	  while (k<@classnames.length-1)
@@ -95,6 +108,17 @@ class Input_Description
           fw.puts "}"
           fw.puts "\n\n"
 
+	  fw.puts "/* comparison function for datastructure if needed"
+	  fw.puts "struct classcomp{"
+	  fw.puts "    bool operator() (const USER_CLASS& uc1, const USER_CLASS& uc2) const{"
+	  fw.puts "        return (uc1.get_known_type()<uc2.get_known_type());"
+	  fw.puts "    }"
+	  fw.puts "};"
+	  fw.puts "// in main: include classcomp in template arguments"
+	  fw.puts "*/"
+	  fw.puts "\n\n"
+
+
           fw.puts "int main(){"
           fw.puts "  int re_sqlite;"
           fw.puts "  void *data;"
@@ -111,6 +135,18 @@ class Input_Description
 
 	myfile=File.open("search.cpp", "w") do |fw|
 	  c_type=@signature.split(/</)
+	  if c_type[0].match(/\imap/)
+	     c_type[0]="map"
+	  elsif c_type[0].match(/\iset/)
+	     c_type[0]="set"
+	  elsif (c_type[0].match(/\ihash/) && (c_type[0].match(/\set/)))
+	     c_type[0]="hash_set"
+	  elsif (c_type[0].match(/\ihash/) && (c_type[0].match(/\map/)))
+	     c_type[0]="hash_map"
+	  elsif c_type[0]=="hash"
+	     c_type[0]="hash_set"
+# defined also in hash_map
+  	  end
           fw.puts "\#include <" + c_type[0] + ">"
           fw.puts "\#include \"search.h\""
           fw.puts "\#include <string>"
@@ -262,7 +298,7 @@ class Input_Description
 		  split_column[1]=="unsigned bigint" || split_column[1]=="int2" ||
                   split_column[1]=="bool" || split_column[1]=="boolean" ||
 		  split_column[1]=="int8" || split_column[1]=="numeric" 
-		  	      if @container_type=="associative"
+		  	      if @template_args=="double"
 			      	if( @key_class_type==1 )
 				  m=i
 				  while( m<@key_class_attributes )
@@ -280,7 +316,7 @@ class Input_Description
 		  	        fw.puts "                if( traverse(iter->get_" + split_column[0] + "(), op, sqlite3_value_int(val)) )"
 			      end
 	      elsif split_column[1]=="blob"
-			      if @container_type=="associative"
+			      if @template_args=="double"
 			      	if( @key_class_type==1 )
 				  m=i
 				  while( m<@key_class_attributes )
@@ -300,7 +336,7 @@ class Input_Description
               elsif split_column[1]=="float" ||	split_column[1]=="double"  ||
 	      	  split_column[1].match(/\idecimal/) ||
       	  	  split_column[1]=="double precision" || split_column[1]=="real"
-			      if @container_type=="associative"
+			      if @template_args=="double"
 			      	if( @key_class_type==1 )
 				  m=i
 				  while( m<@key_class_attributes )
@@ -323,7 +359,7 @@ class Input_Description
 		  split_column[1].match(/\invarchar/) || split_column[1].match(/\ivarying character/) ||
 		  split_column[1].match(/\inative character/) || split_column[1]=="clob" ||
 		  split_column[1].match(/\inchar/)
-			      if @container_type=="associative"
+			      if @template_args=="double"
 			      	if( @key_class_type==1 )
 				  m=i
 				  while( m<@key_class_attributes )
@@ -342,7 +378,7 @@ class Input_Description
 			      end
 	      elsif split_column[1]=="string"
 # need to use c_str() to convert string to char *
-			      if @container_type=="associative"
+			      if @template_args=="double"
 			      	if( @key_class_type==1 )
 				  m=i
 				  while( m<@key_class_attributes )
@@ -413,7 +449,7 @@ class Input_Description
 		  split_column[1]=="unsigned bigint" || split_column[1]=="int2" ||
                   split_column[1]=="bool" || split_column[1]=="boolean" ||
 		  split_column[1]=="int8" || split_column[1]=="numeric" 
-		  	      if @container_type=="associative"
+		  	      if @template_args=="double"
 			      	if( @key_class_type==1 )
 				  m=i
 				  while( m<@key_class_attributes )
@@ -432,7 +468,7 @@ class Input_Description
 			      end
 			      fw.puts "            break;"
 	      elsif split_column[1]=="blob"
-			      if @container_type=="associative"
+			      if @template_args=="double"
 			      	if( @key_class_type==1 )
 				  m=i
 				  while( m<@key_class_attributes )
@@ -453,7 +489,7 @@ class Input_Description
               elsif split_column[1]=="float" ||	split_column[1]=="double"  ||
 	      	  split_column[1].match(/\idecimal/) ||
       	  	  split_column[1]=="double precision" || split_column[1]=="real"
-			      if @container_type=="associative"
+			      if @template_args=="double"
 			      	if( @key_class_type==1 )
 				  m=i
 				  while( m<@key_class_attributes )
@@ -477,7 +513,7 @@ class Input_Description
 		  split_column[1].match(/\invarchar/) || split_column[1].match(/\ivarying character/) ||
 		  split_column[1].match(/\inative character/) || split_column[1]=="clob" ||
 		  split_column[1].match(/\inchar/)
-			      if @container_type=="associative"
+			      if @template_args=="double"
 			      	if( @key_class_type==1 )
 				  m=i
 				  while( m<@key_class_attributes )
@@ -497,7 +533,7 @@ class Input_Description
 			      fw.puts "            break;"
 	      elsif split_column[1]=="string"
 # need to use c_str() to convert string to char *
-			      if @container_type=="associative"
+			      if @template_args=="double"
 			      	if( @key_class_type==1 )
 				  m=i
 				  while( m<@key_class_attributes )
@@ -736,25 +772,43 @@ class Input_Description
 
           if container_class=="list" || container_class=="deque"  || container_class=="vector" || container_class=="slist" ||
             container_class=="set" || container_class=="multiset" ||
-            container_class=="hash_set" || container_class=="hash_multiset"
-                     @container_type="collection"
+            container_class=="hash_set" || container_class=="hash_multiset" ||
+	    container_class=="bitset"
+                     @template_args="single"
           elsif container_class=="map" ||
             container_class=="multimap" || container_class=="hash_map" || container_class=="hash_multimap"
-                     @container_type="associative"
+                     @template_args="double"
           else     
 	       puts "\nERROR STATE. CANCELLING COMPLETED OPERATIONS:\n"
 	       puts "\nPRINTING ERROR INFO:\n"
                raise TypeError.new("no such container class: " + container_class + "\n\n NOW EXITING. \n")
           end
 
-	  if (@container_type=="collection" && container_split[1].include?(",")) || 
-	     (@container_type=="associative" && !container_split[1].include?(","))
+# comparison function for user defined types ruins the check. but c.f
+# shouldn't be reported so go ahead
+
+	  if (@template_args=="single" && container_split[1].include?(",")) || 
+	     (@template_args=="double" && !container_split[1].include?(","))
 	     			raise ArgumentError.new("STL class signature not properly given: wrong number of arguments for template: " + my_array[2] + "\n\n NOW EXITING. \n")
+	  end
+
+
+          if container_class=="list" || container_class=="deque"  || container_class=="vector" || container_class=="slist" ||
+	    container_class=="bitset"
+                     @container_type="sequence"
+          elsif container_class=="map" ||
+            container_class=="multimap" || container_class=="hash_map" || container_class=="hash_multimap" || 
+            container_class=="set" || container_class=="multiset" ||
+            container_class=="hash_set" || container_class=="hash_multiset"
+                     @container_type="associative"
+          elsif container_class=="bitset"
+	  	     @container_type="bitset"
 	  end
 
 	  @signature=my_array[2]
 	  puts "container signature is: " + @signature
-          puts "container_type is: " + @container_type
+          puts "no of template args is: " + @template_args
+	  puts "container type is: " + @container_type
 
 	  i=0
 	  while i<my_array.length
@@ -762,7 +816,7 @@ class Input_Description
 		i+=1
 	  end 
 	  if my_array.length==4
-	     unless @container_type=="collection"
+	     unless @template_args=="single"
 	        puts "\nERROR STATE. CANCELLING COMPLETED OPERATIONS:\n"
 		puts "\nPRINTING ERROR INFO:\n"
 	     	raise ArgumentError.new("wrong number of arguments for associative datastructure" + "\n\n NOW EXITING. \n")
@@ -771,7 +825,7 @@ class Input_Description
 	     puts "top class is: " + top_class
 	     register_class(my_array,top_class)
 	  elsif my_array.length==5
-	     unless @container_type=="associative"
+	     unless @template_args=="double"
 		puts "\nERROR STATE. CANCELLING COMPLETED OPERATIONS:\n"
 		puts "\nPRINTING ERROR INFO:\n"
 	        raise ArgumentError.new("wrong number of arguments for datastructure of type collection" + "\n\n NOW EXITING. \n")
@@ -809,26 +863,28 @@ end
 # test cases
 
 if __FILE__==$0
-=begin
+#=begin
     input=Input_Description.new("foo .db;account;
     vector<Account>;Account,class-a ccount_no,text-balance,FLoat")                                  
 
-#=end
+=begin
     input=Input_Description.new("foo .db;account;	map<string,Account>;nick_name,string;Account,class-a ccount_no,text-balance,FLoat")                                  
 #=end
     input=Input_Description.new("foo .db;account;
     deque<Account>;Account,class-a ccount_no,text-balance,FLoat")                                  
 #=end
     input=Input_Description.new("foo .db;account;
-    list<Account>;Account,class-a ccount_no,text-balance,FLoat")                                  
-=end
+    slist<Account>;Account,class-a ccount_no,text-balance,FLoat")                                  
+#=begin
+#=end
     input=Input_Description.new("foo .db;account;
     set<Account>;Account,class-a ccount_no,text-balance,FLoat")                                  
-=begin
+#=end
     input=Input_Description.new("foo .db;account;
-    queue<Account>;Account,class-a ccount_no,text-balance,FLoat")                                  
-
-
+    multiset<Account>;Account,class-a ccount_no,text-balance,FLoat")                                  
+#=end
+    input=Input_Description.new("foo .db;account;	multimap<string,Account>;nick_name,string;Account,class-a ccount_no,text-balance,FLoat")                                  
+#=begin
 #=end
     input=Input_Description.new("foo .db;emplo	yees;
      vector;nick_name,class-nick_name,string;")         
