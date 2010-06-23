@@ -573,6 +573,8 @@ class Input_Description
 	  argv.push("stl")
 	  argv.push(my_array[0])
 	  argv.push(my_array[1])
+#	  argv.push("INTEGER PRIMARY KEY AUTOINCREMENT")
+
 	  i=0
 	  while i< attributes.length
 	     if attributes[i].include?(",")
@@ -863,13 +865,13 @@ end
 # test cases
 
 if __FILE__==$0
-#=begin
+=begin
     input=Input_Description.new("foo .db;account;
     vector<Account>;Account,class-a ccount_no,text-balance,FLoat")                                  
 
-=begin
+=end
     input=Input_Description.new("foo .db;account;	map<string,Account>;nick_name,string;Account,class-a ccount_no,text-balance,FLoat")                                  
-#=end
+=begin
     input=Input_Description.new("foo .db;account;
     deque<Account>;Account,class-a ccount_no,text-balance,FLoat")                                  
 #=end
