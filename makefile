@@ -1,5 +1,5 @@
 test: main.o Account.o Type.o search.o stl_to_sql.o sqlite3.o user_functions.o
-	g++ -L/Users/mf08/trunk -lswill -W -g main.o Account.o Type.o search.o stl_to_sql.o sqlite3.o user_functions.o -o test
+	g++ -lswill -W -g main.o Account.o Type.o search.o stl_to_sql.o sqlite3.o user_functions.o -o test
 
 main.o: main.cpp Account.h sqlite3.h bridge.h
 	g++ -W -g -c main.cpp

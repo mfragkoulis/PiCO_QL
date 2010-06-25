@@ -34,9 +34,6 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc,
   stlTable *stl;
   int nDb, nName, nByte, nCol, nString, count, i, k, t;
   char *temp, **store;
-  int *colType;
-  colType = (int *)malloc(sizeof(int) * (argc-3));
-  memset(colType, -1, (argc-3) * sizeof(int));
   nDb = (int)strlen(argv[1]) + 1;
   nName = (int)strlen(argv[2]) + 1;
   nString=0;
@@ -55,18 +52,13 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc,
   char *result1 = NULL;
   char *result2 = NULL;
 
-  const char *intType = "integer";
   const char *pkType = "primary";
   const char *fkType = "references";
-  const char *textType = "text";
-  const char *doubleType = "double";
-  const char *floatType = "float";
-  const char *blobType = "blob";
 
-  int l, columnData=1;
+  int l;
   for(i=3; i<argc; i++){
     t = (strlen(argv[i])+1) * sizeof(char);
-    store[i-3] = (char *)malloc(t);
+    store[i-3] = (char *)sqlite3_malloc(t);
     memcpy(store[i-3], argv[i], t);
 
     // column name
@@ -76,38 +68,16 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc,
     for(l=0; l<(int)strlen(result2); l++){
       result2[l] = tolower(result2[l]);
     }
-    if ( !strcmp(result2, intType) ){
-      colType[i-3] = 0; 
-    }else if( !strcmp(result2, pkType) ){
-      colType[i-3] = 0;
-      if( t<3*sizeof(char))
-	store[i-3] = (char *)realloc(store[i-3], 3*sizeof(char));
+    if( !strcmp(result2, pkType) ){
+      store[i-3] = (char *)sqlite3_realloc(store[i-3], 3*sizeof(char));
       store[i-3] = "PK";
-      columnData = 0; 
     }else if( !strcmp(result2, fkType) ) {
-      colType[i-3] = 0;
-      if( t< (4 + strlen(result1)) * sizeof(char)) 
-	store[i-3] = (char *)realloc(store[i-3],
-				     (4 + strlen(result1)) * sizeof(char));
+      store[i-3] = (char *)sqlite3_realloc(store[i-3],
+					   (4 + strlen(result1)) * sizeof(char));
       store[i-3] = "FK "; 
       strcat(store[i-3], result1); 
-    }else if( !strcmp(result2, textType) ){
-      colType[i-3] = 1;
-    }else if( !strcmp(result2, doubleType) ){ 
-      colType[i-3] = 2;
-    }else if( !strcmp(result2, floatType) ){ 
-      colType[i-3] = 2;
-    }else if( !strcmp(result2, blobType) ){
-      colType[i-3] = 3;
-    }
-    for(k=0; k<(int)strlen(store[i-3]) && !isspace(store[i-3][k]); k++){
-      nString++;
-    }
-    if( columnData ){
-      // '\0'
-      nString++;
-      store[i-3][k] = '\0';
-    }
+      }
+    nString += (int)strlen(store[i-3]) +1;
   }
   nCol = argc - 3;
   assert( nCol > 0 );
@@ -121,7 +91,6 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc,
   stl->db = db;
   stl->data = paux;
   stl->nColumn = nCol;
-  stl->colDataType = colType;
   stl->azColumn=(char **)&stl[1];
   temp=(char *)&stl->azColumn[nCol];
 
@@ -261,7 +230,7 @@ int filter_vtable(sqlite3_vtab_cursor *cur, int idxNum, const char *idxStr,
   stlTable *st=(stlTable *)cur->pVtab;
   stlTableCursor *stc=(stlTableCursor *)cur;
 
-  memset(stc->resultSet, -1, sizeof(stc->resultSet));
+  //  memset(stc->resultSet, -1, sizeof(stc->resultSet));
 
   // initialize size of resultset data structure
   stc->size = 0;
@@ -322,6 +291,8 @@ int open_vtable(sqlite3_vtab *pVtab, sqlite3_vtab_cursor **ppCsr){
   // of loops the remaining resultset is the wanted one.
   // will need space at most equal to the data structure size
   stc->resultSet=(int *)sqlite3_malloc(sizeof(int) * arraySize);
+  memset(stc->resultSet, -1, sizeof(stc->resultSet));
+
 
   return SQLITE_OK;
 }

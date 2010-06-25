@@ -57,7 +57,7 @@ int disconnect_vtable(sqlite3_vtab *ppVtab);
 int arrange_size(int argc, const char * const * argv);
 
 typedef struct {sqlite3_vtab vtab; sqlite3 *db; const char *zDb; 
-  const char *zName; int nColumn; char **azColumn; int *colDataType; 
+  const char *zName; int nColumn; char **azColumn; 
   void *data;} stlTable;
 
 typedef struct {sqlite3_vtab_cursor vtab; int *resultSet; int size; 

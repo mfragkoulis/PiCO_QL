@@ -183,11 +183,12 @@
 
 12/06/2010
 
-1. files to be generated automatically: search.cpp, sql_calls.c (copy_paste.c)
+1. files to be generated automatically: search.cpp, sql_calls.c
+   (copy_paste.c) ok
 
-2. remove call_swill and prep_exec from bridge.h (internal use only)
+2. remove call_swill and prep_exec from bridge.h (internal use only) ok
 
-3. swill needed index.html to work properly.
+3. swill needed index.html to work properly. ok
 
 4. register_table from thread in main. main does really work in
    parallel with thread?
@@ -197,23 +198,28 @@
 - Issues in automatic code generation
 
 1.     multimap<string,Account> *any_dstr = (multimap<string,Account> *)stl->data;
-       can we do it for every STL class?
+       can we do it for every STL class? ok
 
 2.     colName. need to address its content. its content is known in
        the context of auto_search.cpp so cannot puts from ruby.
-       printf
+       
+       in ruby you have all column names.use that info(@table_columns). ok
 
 3.     keeping datatype in init_vtable is useless. anyway, same idea
        if applied in ruby will solve the problem.
-       one switch ( n ) in auto_search.cpp.
+       one switch ( n ) in search.cpp.
        cases in switch will be determined by datatype.
        if column keeps int then sqlite3_result_int must be puts.
+       ok
 
-4.     what happens with multiple classes?
+4.     what happens with multiple classes? 
+       all in one VT. ok
+
 
 16/06/2010
 
-1.     integer primary key for top level table too?
+1.     integer primary key for top level table too? 
+       no PK-FK needed.All in one VT. ok
 
 2.     datatypes and affinity need investigation-testing
 
@@ -223,17 +229,17 @@
 
 21/06/2010
 
-1.	multimap, multiset but include map,set respectively
+1.	multimap, multiset but include map,set respectively. ok
 
-2.	SGI extensions (hash like)?
+2.	SGI extensions (hash like)? no. ok
 
-3.	bitset?
+3.	bitset? no. ok
 
 4.	about comparison functions:
 	  need to address when defining the datastructure and write
 	  the appropriate struct(in main).ruby doesn't have to know about it
-	  so user should nnot include it in description.
-	  main will address the issue respectively.
+	  so user should not include it in description.
+	  main will address the issue respectively. ok
 
 5.	make all get_ functions const. 
 	  a) good practice
@@ -244,10 +250,53 @@
 	  Changing the elements would make the container inconsistent.
 	  this is why Account::get_balance() const;because it is used
 	  as key. In pair associative containers (eg. map) first field
-	  aka the key has to be immutable too. (Austern,STL, p.76)
+	  aka the key has to be immutable too. (Austern,STL, p.76) ok
 
 6.	mechanism for PK-FK. memory address of object.
+	not needed. ok.
 
 7.	searching for attributes of nested object(eg
 	Person-Address-Post code) which is
-	necessarily a virtual table of its own.
+	necessarily a virtual table on its own.
+	All in one VT. ok.
+
+23/06/2010
+
+1.	nested object in data structure (ds)?
+	couldn't care less
+	just enumerate columns and build a big flat VT.
+
+2.	more than one ds?
+	x ds, x VTs.
+	x descriptions have to be given at once.
+	module contains ds specific code.
+	therefore module has to know about every VT (ds) registered with it
+	otherwise it won't be able to search and retrieve results for
+	it.
+
+	Depending on table name, a different version of search,
+	retrieval will be called.
+
+	So ruby has to generate x {search, retrieval} for x
+	ds.To do that, it has to keep full trace of
+	table names, classes's names, classes's attributes, ds
+	signatures.
+
+	seperate addresses will have to be given.
+	let's suppose that we wrap void * around a struct containing
+	void ** (memory locations of data structures) and perhaps table
+	names (const char **) so that you can pair memory locations to
+	ds and of course n (total number of ds).
+
+
+	sqlite3_create_module only way to pass void pointer to data.
+	another reason why all descriptions must be given together.
+
+
+3.	data structure inside object inside data structure?
+	seperate VTs,PK-FK mechanism
+
+	embedded ds does not need seperate address, only seperate
+	description and of course auto-generation of search, retrieval. careful
+	reference of elements (iterators) in search, retrieval.
+

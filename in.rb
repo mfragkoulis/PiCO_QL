@@ -163,7 +163,7 @@ class Input_Description
           fw.puts "int get_datastructure_size(void *st){"
           fw.puts "    stlTable *stl = (stlTable *)st;"
           fw.puts "    " + @signature + " *any_dstr = (" + @signature + " *)stl->data;"
-	  fw.puts "    return any_dstr->size();"
+	  fw.puts "    return ((int)any_dstr->size());"
 	  fw.puts "}"
 	  fw.puts "\n"
 
@@ -279,17 +279,43 @@ class Input_Description
 	  fw.puts "        int iCol;"
 	  fw.puts "        iCol = constr[1] - 'a' + 1;"
 	  fw.puts "        char *colName = stl->azColumn[iCol];"
+# FK search
+
+	  fw.puts "        const char *fk = \"FK\";"
+	  fw.puts "        if(!strcmp(colName, fk)){"
+	  fw.puts "            iter=any_dstr->begin();"
+	  fw.puts "            for(int i=0; i<(int)any_dstr->size(); i++){"
+          fw.puts "                if( traverse((int)&(*iter), op, sqlite3_value_int(val)) )"
+	  fw.puts "                    stcsr->resultSet[count++] = i;"
+	  fw.puts "                iter++;"
+	  fw.puts "            }"
+	  fw.puts "            stcsr->size += count;"
+	  fw.puts "        }else{"
+
 	  fw.puts "\n\n"
 	  fw.puts "// handle colName\n\n"
-	  fw.puts "        switch( iCol ){"
-	  i=0
-#i=0. search using PK?memory location?or no PK?
+	  fw.puts "            switch( iCol ){"
+	  i=1
+# i=0. search using PK?memory location?or no PK?
+# no can't do.PK will be memory location. PK in every table
+# PK search
+
+	  fw.puts "            case 0:" 
+	  fw.puts "                iter=any_dstr->begin();"
+	  fw.puts "                for(int i=0; i<(int)any_dstr->size(); i++){"
+	  fw.puts "                    if( traverse((int)&(*iter), op, sqlite3_value_int(val)) )"
+	  fw.puts "                        stcsr->resultSet[count++] = i;"
+	  fw.puts "                    iter++;"
+	  fw.puts "                }"
+	  fw.puts "                stcsr->size += count;"
+	  fw.puts "                break;"
+
 	  while( i<@table_columns.length )
 	      split_column = @table_columns[i].split(/ /)
-	      fw.puts "        case " + i.to_s + ":" 
+	      fw.puts "            case " + i.to_s + ":" 
 	      fw.puts "// why necessarily iter->second in associative?if non pointer then second. else second->"
-	      fw.puts "            iter=any_dstr->begin();"
-	      fw.puts "            for(int i=0; i<(int)any_dstr->size(); i++){"
+	      fw.puts "                iter=any_dstr->begin();"
+	      fw.puts "                for(int i=0; i<(int)any_dstr->size(); i++){"
 	      
 	      split_column[1]=split_column[1].downcase
               if split_column[1]=="int" || split_column[1]=="integer" ||
@@ -299,59 +325,41 @@ class Input_Description
                   split_column[1]=="bool" || split_column[1]=="boolean" ||
 		  split_column[1]=="int8" || split_column[1]=="numeric" 
 		  	      if @template_args=="double"
-			      	if( @key_class_type==1 )
-				  m=i
-				  while( m<@key_class_attributes )
-		  	            fw.puts "                if( traverse(iter->first.get_" + split_column[0] + "(), op, sqlite3_value_int(val)) )"
-				    m+=1
-				  end
-				elsif( i==0 )
-		  	          fw.puts "                if( traverse(iter->first, op, sqlite3_value_int(val)) )"
-				end
-# if PK, i==1
-				if( i>=@key_class_attributes)
-		  	          fw.puts "                if( traverse(iter->second.get_" + split_column[0] + "(), op, sqlite3_value_int(val)) )"
+			      	if( (@key_class_type==1)&&(i<=@key_class_attributes) )
+		  	            fw.puts "                    if( traverse(iter->first.get_" + split_column[0] + "(), op, sqlite3_value_int(val)) )"
+				elsif( (@key_class_type==0)&&(i==1) )
+		  	          fw.puts "                   if( traverse(iter->first, op, sqlite3_value_int(val)) )"				
+				elsif( i>@key_class_attributes)
+		  	          fw.puts "                    if( traverse(iter->second.get_" + split_column[0] + "(), op, sqlite3_value_int(val)) )"
 				end
 			      else
-		  	        fw.puts "                if( traverse(iter->get_" + split_column[0] + "(), op, sqlite3_value_int(val)) )"
+		  	        fw.puts "                    if( traverse(iter->get_" + split_column[0] + "(), op, sqlite3_value_int(val)) )"
 			      end
 	      elsif split_column[1]=="blob"
 			      if @template_args=="double"
-			      	if( @key_class_type==1 )
-				  m=i
-				  while( m<@key_class_attributes )
-		  	            fw.puts "                if( traverse((const void*)iter->first.get_" + split_column[0] + "(), op, sqlite3_value_blob(val)) )"
-				    m+=1
-				  end
-				elsif( i==0 )
-		  	          fw.puts "                if( traverse((const void*)iter->first, op, sqlite3_value_blob(val)) )"
-				end
-# if PK, i==1
-				if( i>=@key_class_attributes)
-		  	          fw.puts "                if( traverse((const void*)iter->second.get_" + split_column[0] + "(), op, sqlite3_value_blob(val)) )"
+			      	if( (@key_class_type==1)&&(i<=@key_class_attributes) )
+		  	            fw.puts "                    if( traverse((const void*)iter->first.get_" + split_column[0] + "(), op, sqlite3_value_blob(val)) )"
+				elsif( (@key_class_type==0)&&(i==1) )
+		  	          fw.puts "                    if( traverse((const void*)iter->first, op, sqlite3_value_blob(val)) )"
+				elsif( i>@key_class_attributes )
+		  	          fw.puts "                    if( traverse((const void*)iter->second.get_" + split_column[0] + "(), op, sqlite3_value_blob(val)) )"
 				end
 			      else
-		  	        fw.puts "                if( traverse((const void*)iter->get_" + split_column[0] + "(), op, sqlite3_value_blob(val)) )"
+		  	        fw.puts "                    if( traverse((const void*)iter->get_" + split_column[0] + "(), op, sqlite3_value_blob(val)) )"
 			      end
               elsif split_column[1]=="float" ||	split_column[1]=="double"  ||
 	      	  split_column[1].match(/\idecimal/) ||
       	  	  split_column[1]=="double precision" || split_column[1]=="real"
 			      if @template_args=="double"
-			      	if( @key_class_type==1 )
-				  m=i
-				  while( m<@key_class_attributes )
-		  	            fw.puts "                if( traverse(iter->first.get_" + split_column[0] + "(), op, sqlite3_value_double(val)) )"
-				    m+=1
-				  end
-				elsif( i==0 )
-		  	          fw.puts "                if( traverse(iter->first, op, sqlite3_value_double(val)) )"
-				end
-# if PK, i==1
-				if( i>=@key_class_attributes)
-		  	          fw.puts "                if( traverse(iter->second.get_" + split_column[0] + "(), op, sqlite3_value_double(val)) )"
+			      	if( (@key_class_type==1)&&(i<=@key_class_attributes) )
+		  	            fw.puts "                    if( traverse(iter->first.get_" + split_column[0] + "(), op, sqlite3_value_double(val)) )"
+				elsif( (@key_class_type==0)&&(i==1) )
+		  	          fw.puts "                    if( traverse(iter->first, op, sqlite3_value_double(val)) )"
+				elsif( i>@key_class_attributes)
+		  	          fw.puts "                    if( traverse(iter->second.get_" + split_column[0] + "(), op, sqlite3_value_double(val)) )"
 				end
 			      else
-		  	        fw.puts "                if( traverse(iter->get_" + split_column[0] + "(), op, sqlite3_value_double(val)) )"
+		  	        fw.puts "                    if( traverse(iter->get_" + split_column[0] + "(), op, sqlite3_value_double(val)) )"
 			      end
 	      elsif split_column[1]=="text" || split_column[1]=="date" ||
 		  split_column[1]=="datetime" ||
@@ -360,50 +368,39 @@ class Input_Description
 		  split_column[1].match(/\inative character/) || split_column[1]=="clob" ||
 		  split_column[1].match(/\inchar/)
 			      if @template_args=="double"
-			      	if( @key_class_type==1 )
-				  m=i
-				  while( m<@key_class_attributes )
-		  	            fw.puts "                if( traverse((const unsigned char *)iter->first.get_" + split_column[0] + "(), op, sqlite3_value_text(val)) )"
-				    m+=1
-				  end
-				elsif( i==0 )
-		  	          fw.puts "                if( traverse((const unsigned char *)iter->first, op, sqlite3_value_text(val)) )"
-				end
-# if PK, i==1
-				if( i>=@key_class_attributes)
-		  	          fw.puts "                if( traverse((const unsigned char *)iter->second.get_" + split_column[0] + "(), op, sqlite3_value_text(val)) )"
+			      	if( (@key_class_type==1)&&(i<=@key_class_attributes) )
+		  	            fw.puts "                    if( traverse((const unsigned char *)iter->first.get_" + split_column[0] + "(), op, sqlite3_value_text(val)) )"
+				elsif( (@key_class_type==0)&&(i==1) )
+		  	          fw.puts "                    if( traverse((const unsigned char *)iter->first, op, sqlite3_value_text(val)) )"
+				elsif( i>@key_class_attributes)
+		  	          fw.puts "                    if( traverse((const unsigned char *)iter->second.get_" + split_column[0] + "(), op, sqlite3_value_text(val)) )"
 				end
 			      else
-		  	        fw.puts "                if( traverse((const unsigned char *)iter->get_" + split_column[0] + "(), op, sqlite3_value_text(val)) )"
+		  	        fw.puts "                    if( traverse((const unsigned char *)iter->get_" + split_column[0] + "(), op, sqlite3_value_text(val)) )"
 			      end
 	      elsif split_column[1]=="string"
 # need to use c_str() to convert string to char *
 			      if @template_args=="double"
-			      	if( @key_class_type==1 )
-				  m=i
-				  while( m<@key_class_attributes )
-		  	            fw.puts "                if( traverse((const unsigned char *)iter->first.get_" + split_column[0] + "().c_str(), op, sqlite3_value_text(val)) )"
-				    m+=1
-				  end
-				elsif( i==0 )
-		  	          fw.puts "                if( traverse((const unsigned char *)iter->first.c_str(), op, sqlite3_value_text(val)) )"
-				end
-# if PK, i==1
-				if( i>=@key_class_attributes)
-		  	          fw.puts "                if( traverse((const unsigned char *)iter->second.get_" + split_column[0] + "().c_str(), op, sqlite3_value_text(val)) )"
+			      	if( (@key_class_type==1)&&(i<=@key_class_attributes) )
+		  	            fw.puts "                    if( traverse((const unsigned char *)iter->first.get_" + split_column[0] + "().c_str(), op, sqlite3_value_text(val)) )"
+				elsif( (@key_class_type==0)&&(i==1) )
+		  	          fw.puts "                    if( traverse((const unsigned char *)iter->first.c_str(), op, sqlite3_value_text(val)) )"
+				elsif( i>@key_class_attributes )
+		  	          fw.puts "                    if( traverse((const unsigned char *)iter->second.get_" + split_column[0] + "().c_str(), op, sqlite3_value_text(val)) )"
 				end
 			      else
-		  	        fw.puts "                if( traverse((const unsigned char *)iter->get_" + split_column[0] + "().c_str(), op, sqlite3_value_text(val)) )"
+		  	        fw.puts "                    if( traverse((const unsigned char *)iter->get_" + split_column[0] + "().c_str(), op, sqlite3_value_text(val)) )"
 			      end
 	      end
-	      fw.puts "                    stcsr->resultSet[count++] = i;"
+	      fw.puts "                        stcsr->resultSet[count++] = i;"
 	      fw.puts "                    iter++;"
-	      fw.puts "            }"
-	      fw.puts "            stcsr->size += count;"
-	      fw.puts "            break;"
+	      fw.puts "                }"
+	      fw.puts "                stcsr->size += count;"
+	      fw.puts "                break;"
 	      i+=1
 	  end
 	  fw.puts "// more datatypes and ops exist"
+	  fw.puts "            }"
 	  fw.puts "        }"
           fw.puts "    }"      
 	  fw.puts "}"
@@ -424,21 +421,23 @@ class Input_Description
 	  fw.puts "    for(int i=0; i<stcsr->resultSet[index]; i++){"
 	  fw.puts "        iter++;"
 	  fw.puts "    }"
-          fw.puts "    int datatype;"
-          fw.puts "    datatype = stl->colDataType[n];"
-          fw.puts "    const char *pk = \"PK\";"
+          fw.puts "// int datatype;"
+          fw.puts "// datatype = stl->colDataType[n];"
+          fw.puts "    const char *pk = \"id\";"
           fw.puts "    const char *fk = \"FK\";"
           fw.puts "    if ( (n==0) && (!strcmp(stl->azColumn[0], pk)) ){"
 	  fw.puts "// attention!"
-          fw.puts "        sqlite3_result_blob(con, (const void *)&(*iter),-1,SQLITE_STATIC);"
+          fw.puts "        sqlite3_result_int(con, (int)&(*iter));"
+	  fw.puts "        printf(\"memory location of PK: %x\\n\", &(*iter));"
 	  fw.puts "    }else if( !strncmp(stl->azColumn[n], fk, 2) ){"
-	  fw.puts "        sqlite3_result_blob(con, (const void *)&(*iter),-1,SQLITE_STATIC);"
+	  fw.puts "        sqlite3_result_int(con, (int)&(*iter));"
 	  fw.puts "// need work"
           fw.puts "    }else{"
           fw.puts "// in automated code: \"iter->get_\" + col_name + \"()\" will work.safe?no.doxygen."
-	  i=0
+	  i=1
           fw.puts "        switch ( n ){"
 	  fw.puts "// why necessarily iter->second in associative?"
+# only for one-level description!!!
 	  while( i<@table_columns.length )
 	      split_column = @table_columns[i].split(/ /)
 	      split_column[1]=split_column[1].downcase
@@ -450,17 +449,11 @@ class Input_Description
                   split_column[1]=="bool" || split_column[1]=="boolean" ||
 		  split_column[1]=="int8" || split_column[1]=="numeric" 
 		  	      if @template_args=="double"
-			      	if( @key_class_type==1 )
-				  m=i
-				  while( m<@key_class_attributes )
+			      	if( (@key_class_type==1)&&(i<=@key_class_attributes) )
           		            fw.puts "            sqlite3_result_int(con, iter->first.get_" + split_column[0] + "());"
-				    m+=1
-				  end
-				elsif( i==0 )
+				elsif( (@key_class_type==0)&&(i==1) )
           		            fw.puts "            sqlite3_result_int(con, iter->first);"
-				end
-# if PK, i==1
-				if( i>=@key_class_attributes)
+				elsif( i>@key_class_attributes )
           		          fw.puts "            sqlite3_result_int(con, iter->second.get_" + split_column[0] + "());"
 				end
 			      else
@@ -469,17 +462,11 @@ class Input_Description
 			      fw.puts "            break;"
 	      elsif split_column[1]=="blob"
 			      if @template_args=="double"
-			      	if( @key_class_type==1 )
-				  m=i
-				  while( m<@key_class_attributes )
+			      	if( (@key_class_type==1)&&(i<=@key_class_attributes) )
           		            fw.puts "          sqlite3_result_blob(con, (const void *)iter->first.get_" + split_column[0] + "(),-1,SQLITE_STATIC);"
-				    m+=1
-				  end
-				elsif( i==0 )
+				elsif( (@key_class_type==0)&&(i==1) )
           		          fw.puts "            sqlite3_result_blob(con, (const void *)iter->first,-1,SQLITE_STATIC);"
-				end
-# if PK, i==1
-				if( i>=@key_class_attributes)
+				elsif( i>@key_class_attributes)
           		          fw.puts "            sqlite3_result_blob(con, (const void *)iter->second.get_" + split_column[0] + "(),-1,SQLITE_STATIC);"
 				end
 			      else
@@ -490,17 +477,11 @@ class Input_Description
 	      	  split_column[1].match(/\idecimal/) ||
       	  	  split_column[1]=="double precision" || split_column[1]=="real"
 			      if @template_args=="double"
-			      	if( @key_class_type==1 )
-				  m=i
-				  while( m<@key_class_attributes )
+			      	if( (@key_class_type==1)&&(i<=@key_class_attributes) )
           		            fw.puts "            sqlite3_result_double(con, iter->first.get_" + split_column[0] + "());"
-				    m+=1
-				  end
-				elsif( i==0 )
+				elsif( (@key_class_type==0)&&(i==1) )
           		          fw.puts "            sqlite3_result_double(con, iter->first);"
-				end
-# if PK, i==1
-				if( i>=@key_class_attributes)
+				elsif( i>@key_class_attributes )
           		          fw.puts "            sqlite3_result_double(con, iter->second.get_" + split_column[0] + "());"
 				end
 			      else
@@ -514,17 +495,12 @@ class Input_Description
 		  split_column[1].match(/\inative character/) || split_column[1]=="clob" ||
 		  split_column[1].match(/\inchar/)
 			      if @template_args=="double"
-			      	if( @key_class_type==1 )
-				  m=i
-				  while( m<@key_class_attributes )
+			      	if( (@key_class_type==1)&&(i<=@key_class_attributes) )
           		            fw.puts "            sqlite3_result_text(con, (const char *)iter->first.get_" + split_column[0] + "(),-1,SQLITE_STATIC);"
-				    m+=1
-				  end
-				elsif( i==0 )
+# @key_class_attributes==1 instead?
+				elsif( (@key_class_type==0)&&(i==1) )
           		          fw.puts "            sqlite3_result_text(con, (const char *)iter->first,-1,SQLITE_STATIC);"
-				end
-# if PK, i==1
-				if( i>=@key_class_attributes)
+				elsif( i>@key_class_attributes)
           		          fw.puts "            sqlite3_result_text(con, (const char *)iter->second.get_" + split_column[0] + "(),-1,SQLITE_STATIC);"
 				end
 			      else
@@ -534,17 +510,11 @@ class Input_Description
 	      elsif split_column[1]=="string"
 # need to use c_str() to convert string to char *
 			      if @template_args=="double"
-			      	if( @key_class_type==1 )
-				  m=i
-				  while( m<@key_class_attributes )
+			      	if( (@key_class_type==1)&&(i<=@key_class_attributes) )
           		            fw.puts "            sqlite3_result_text(con, (const char *)iter->first.get_" + split_column[0] + "().c_str(),-1,SQLITE_STATIC);"
-				    m+=1
-				  end
-				elsif( i==0 )
+				elsif( (@key_class_type==0)&&(i==1) )
           		          fw.puts "            sqlite3_result_text(con, (const char *)iter->first.c_str(),-1,SQLITE_STATIC);"
-				end
-# if PK, i==1
-				if( i>=@key_class_attributes)
+				elsif( i>@key_class_attributes)
           		          fw.puts "            sqlite3_result_text(con, (const char *)iter->second.get_" + split_column[0] + "().c_str(),-1,SQLITE_STATIC);"
 				end
 			      else
@@ -573,8 +543,8 @@ class Input_Description
 	  argv.push("stl")
 	  argv.push(my_array[0])
 	  argv.push(my_array[1])
-#	  argv.push("INTEGER PRIMARY KEY AUTOINCREMENT")
-
+# PK for all tables (top level too)
+	  argv.push("id INTEGER PRIMARY KEY AUTOINCREMENT")
 	  i=0
 	  while i< attributes.length
 	     if attributes[i].include?(",")
@@ -597,9 +567,12 @@ class Input_Description
 		    end
 		    @classnames.push(name_type[0])
                     puts "table_name is " + name_type[0]
+# top level tables won't go in this condition only intermediate ones.
+# table name is set as default so that it works for top level.
+# intermediate tables override default with respective class name.
 		    argv.delete_at(2)
 		    argv.insert(2,name_type[0])
-		    argv.push("INTEGER PRIMARY KEY AUTOINCREMENT")
+#		    argv.push("INTEGER PRIMARY KEY AUTOINCREMENT")
 		elsif name_type[1]=="reference"
 		    k=0
 		    while k<@classnames.length
@@ -700,12 +673,15 @@ class Input_Description
 #	    create_vt(columns)       #need for return. register_class(my_array,3,1)
 #	    puts $query
 	  else
+#why?
 	    attributes=Array.new(1,my_array[index])
 	    return my_array[index]
 	  end
 # function:transform classes elements into valid sqlite3 column parameter format
 # create a virtual table for each corresponding class description, don't forget PK, FK 
 # complex vs class
+
+# why?
   	  if classes
 	     return classes[0]
 	  end
@@ -867,26 +843,22 @@ end
 if __FILE__==$0
 =begin
     input=Input_Description.new("foo .db;account;
-    vector<Account>;Account,class-a ccount_no,text-balance,FLoat")                                  
+    vector<Account>;Account,class-a ccount_no,text-balance,FLoat")  
 
+#=begin
+    input=Input_Description.new("foo .db;account;	map<string,Account>;nick_name,string;Account,class-a ccount_no,text-balance,FLoat-isbn,integer")
+#=end
+    input=Input_Description.new("foo .db;account;
+    deque<Account>;Account,class-a ccount_no,text-balance,FLoat-isbn,integer") 
+#=end
+    input=Input_Description.new("foo .db;account;
+    set<Account>;Account,class-a ccount_no,text-balance,FLoat") 
+#=end
+    input=Input_Description.new("foo .db;account;
+    multiset<Account>;Account,class-a ccount_no,text-balance,FLoat-isbn,integer") 
 =end
-    input=Input_Description.new("foo .db;account;	map<string,Account>;nick_name,string;Account,class-a ccount_no,text-balance,FLoat")                                  
+    input=Input_Description.new("foo .db;account;	multimap<string,Account>;nick_name,string;Account,class-a ccount_no,text-balance,FLoat-isbn,integer")
 =begin
-    input=Input_Description.new("foo .db;account;
-    deque<Account>;Account,class-a ccount_no,text-balance,FLoat")                                  
-#=end
-    input=Input_Description.new("foo .db;account;
-    slist<Account>;Account,class-a ccount_no,text-balance,FLoat")                                  
-#=begin
-#=end
-    input=Input_Description.new("foo .db;account;
-    set<Account>;Account,class-a ccount_no,text-balance,FLoat")                                  
-#=end
-    input=Input_Description.new("foo .db;account;
-    multiset<Account>;Account,class-a ccount_no,text-balance,FLoat")                                  
-#=end
-    input=Input_Description.new("foo .db;account;	multimap<string,Account>;nick_name,string;Account,class-a ccount_no,text-balance,FLoat")                                  
-#=begin
 #=end
     input=Input_Description.new("foo .db;emplo	yees;
      vector;nick_name,class-nick_name,string;")         
