@@ -12,7 +12,8 @@ class Input_Description
 	  @container_type=""
 	  @template_args=""
 	  @key_class_type=0
-# key class type is used to declare what kind of key an associative datastructure has 
+# key class type is used to declare what kind of key an associative 
+# datastructure has 
 # 0=plain, 1=user-defined, 2=user-defined nested
 	  @key_class_attributes=1
 # cancel filename?
@@ -37,7 +38,8 @@ class Input_Description
 #	    columns[1]=no_extension[0]	    
 #	 end
 
-         query="CREATE VIRTUAL TABLE " + columns[2]  + " USING " + columns[0] + "("
+         query="CREATE VIRTUAL TABLE " + columns[2]  + " USING " + 
+	 	       columns[0] + "("
 	 i=3
 	 while i<columns.length
 	    @table_columns.push(columns[i])
@@ -60,7 +62,225 @@ class Input_Description
 # includes action to be taken in case a call fails.
 # all created VTs at that point are dropped and program exits.
 
+
       def write_to_file(db_name)
+
+
+
+# HERE DOCUMENTS FOR METHOD
+
+
+  # HereDoc1
+
+      auto_gen1 = <<-AG1
+
+using namespace std;
+
+
+
+void * thread_sqlite(void *data){
+  const char **queries;
+  queries = (const char **)sqlite3_malloc(sizeof(char *) * 
+  	    	   #{@queries.length.to_s});
+  int failure = 0;
+AG1
+
+
+
+   #HereDoc2
+
+      auto_gen2 = <<-AG2
+  failure = register_table( "#{db_name}" ,  #{@queries.length.to_s}, queries,
+  	   data, enter 1 if table is to be created 0 if already created);
+  printf(\"Thread sqlite returning..\\n\");  
+  sqlite3_free(queries);
+  return (void *)failure;
+}
+
+
+/* comparison function for datastructure if needed
+struct classcomp{
+    bool operator() (const USER_CLASS& uc1, const USER_CLASS& uc2) const{
+        return (uc1.get_known_type()<uc2.get_known_type());
+    }
+};
+// in main: include classcomp in template arguments
+*/
+
+
+int main(){
+  int re_sqlite;
+  void *data;
+
+  // declare and fill datastructure;
+
+  pthread_t sqlite_thread;
+  re_sqlite = pthread_create(&sqlite_thread, NULL, thread_sqlite, data);
+  pthread_join(sqlite_thread, NULL);
+  printf(\"Thread sqlite returned %i\\n\", re_sqlite);
+}
+
+
+AG2
+
+
+
+    #HereDoc3
+
+
+	auto_gen3 = <<-AG3
+
+using namespace std;
+
+
+
+int get_datastructure_size(void *st){
+    stlTable *stl = (stlTable *)st;
+    #{@signature} *any_dstr = (#{@signature} *)stl->data;
+    return ((int)any_dstr->size());
+}
+
+
+int traverse(int dstr_value, int op, int value){
+    switch( op ){
+    case 0:
+        return dstr_value<value;
+    case 1:
+        return dstr_value<=value;
+    case 2:
+        return dstr_value==value;
+    case 3:
+        return dstr_value>=value;
+    case 4:
+        return dstr_value>value;
+    }
+}
+
+
+int traverse(double dstr_value, int op, double value){
+    switch( op ){
+    case 0:
+        return dstr_value<value;
+    case 1:
+        return dstr_value<=value;
+    case 2:
+        return dstr_value==value;
+    case 3:
+        return dstr_value>=value;
+    case 4:
+        return dstr_value>value;
+    }
+}
+
+
+int traverse(const void *dstr_value, int op, const void *value){
+    switch( op ){
+    case 0:
+        return dstr_value<value;
+    case 1:
+        return dstr_value<=value;
+    case 2:
+        return dstr_value==value;
+    case 3:
+        return dstr_value>=value;
+    case 4:
+        return dstr_value>value;
+    }
+}
+
+
+int traverse(const unsigned char *dstr_value, int op, 
+    		   const unsigned char *value){
+    switch( op ){
+    case 0:
+        return strcmp((const char *)dstr_value,(const char *)value)<0;
+    case 1:
+        return strcmp((const char *)dstr_value,(const char *)value)<=0;
+    case 2:
+        return strcmp((const char *)dstr_value,(const char *)value)==0;
+    case 3:
+        return strcmp((const char *)dstr_value,(const char *)value)>=0;
+    case 4:
+        return strcmp((const char *)dstr_value,(const char *)value)>0;
+    }
+}
+
+	  
+void search(void *stc, char *constr, sqlite3_value *val){
+    sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;
+    stlTable *stl = (stlTable *)cur->pVtab;
+    stlTableCursor *stcsr = (stlTableCursor *)stc;
+    #{@signature} *any_dstr = (#{@signature} *)stl->data;
+    #{@signature}:: iterator iter;
+    Type value;
+    int op, count = 0;
+// val==NULL then constr==NULL also
+    if ( val==NULL ){
+        for (int j=0; j<get_datastructure_size((void *)stl); j++){
+            stcsr->resultSet[j] = j;
+            stcsr->size++;
+        }
+    }else{
+        switch( constr[0] - 'A' ){
+        case 0:
+            op = 0;
+            break;
+        case 1:
+            op = 1;
+            break;
+        case 2:
+            op = 2;
+            break;
+        case 3:
+            op = 3;
+            break;
+        case 4:
+            op = 4;
+            break;
+        case 5:
+            op = 5;
+            break;
+        default:
+            NULL;
+            break;
+        }
+
+        int iCol;
+        iCol = constr[1] - 'a' + 1;
+        char *colName = stl->azColumn[iCol];
+// FK search
+        const char *fk = "FK";
+        if(!strcmp(colName, fk)){
+            iter=any_dstr->begin();
+            for(int i=0; i<(int)any_dstr->size(); i++){
+                if( traverse((int)&(*iter), op, sqlite3_value_int(val)) )
+                    stcsr->resultSet[count++] = i;
+                iter++;
+            }
+            stcsr->size += count;
+        }else{
+
+
+// handle colName\n\n
+
+            switch( iCol ){
+
+// i=0. search using PK?memory location?or no PK?
+// no can't do.PK will be memory location. PK in every table
+// PK search
+            case 0: 
+                iter=any_dstr->begin();
+                for(int i=0; i<(int)any_dstr->size(); i++){
+                    if( traverse((int)&(*iter), op, sqlite3_value_int(val)) )
+                        stcsr->resultSet[count++] = i;
+                    iter++;
+                }
+                stcsr->size += count;
+                break;
+AG3
+
+# END OF HereDocs
+
         myfile=File.open(@filename, "w") do |fw|
           fw.puts "\#include <stdio.h>"
           fw.puts "\#include <string>"
@@ -85,52 +305,18 @@ class Input_Description
             fw.puts "\#include \"" + @classnames[k] + ".h\""
 	    k+=1
 	  end
-	  fw.puts "\n"
-	  fw.puts "using namespace std;"
 
-          fw.puts "\n\n\n"
-          fw.puts "void * thread_sqlite(void *data){"
-          fw.puts "  const char **queries;"
-          fw.puts "  queries = (const char **)sqlite3_malloc(sizeof(char *) * " + @queries.length.to_s + ");"
+# call HereDoc1
+	  fw.puts auto_gen1
 
-          fw.puts "  int failure=0;"
           i=0
           while i<@queries.length
              fw.puts "  queries[" + i.to_s + "] = \"" + @queries[i] + "\";"
              i+=1
           end
 
-
-          fw.puts "  failure = register_table(\"" + db_name + "\", " +@queries.length.to_s + ", queries, data, enter 1 if table is to be created 0 if already created);"
-	  fw.puts "  printf(\"Thread sqlite returning..\\n\");"
-	  fw.puts "  sqlite3_free(queries);"
-	  fw.puts "  return (void *)failure;"
-          fw.puts "}"
-          fw.puts "\n\n"
-
-	  fw.puts "/* comparison function for datastructure if needed"
-	  fw.puts "struct classcomp{"
-	  fw.puts "    bool operator() (const USER_CLASS& uc1, const USER_CLASS& uc2) const{"
-	  fw.puts "        return (uc1.get_known_type()<uc2.get_known_type());"
-	  fw.puts "    }"
-	  fw.puts "};"
-	  fw.puts "// in main: include classcomp in template arguments"
-	  fw.puts "*/"
-	  fw.puts "\n\n"
-
-
-          fw.puts "int main(){"
-          fw.puts "  int re_sqlite;"
-          fw.puts "  void *data;"
-	  fw.puts "\n"
-          fw.puts "  // declare and fill datastructure;"
-	  fw.puts "\n"
-          fw.puts "  pthread_t sqlite_thread;"
-          fw.puts "  re_sqlite = pthread_create(&sqlite_thread, NULL, thread_sqlite, data);"
-          fw.puts "  pthread_join(sqlite_thread, NULL);"
-	  fw.puts "  printf(\"Thread sqlite returned %i\\n\", re_sqlite);"
-
-          fw.puts "}"
+# call HereDoc2
+	  fw.puts auto_gen2
         end
 
 	myfile=File.open("search.cpp", "w") do |fw|
@@ -156,172 +342,24 @@ class Input_Description
             fw.puts "\#include \"" + @classnames[k] + ".h\""
 	    k+=1
 	  end
-	  fw.puts "\n"
-	  fw.puts "using namespace std;"
 
-          fw.puts "\n\n\n"
-          fw.puts "int get_datastructure_size(void *st){"
-          fw.puts "    stlTable *stl = (stlTable *)st;"
-          fw.puts "    " + @signature + " *any_dstr = (" + @signature + " *)stl->data;"
-	  fw.puts "    return ((int)any_dstr->size());"
-	  fw.puts "}"
-	  fw.puts "\n"
-
-
-	  fw.puts "int traverse(int dstr_value, int op, int value){"
-	  fw.puts "    switch( op ){"
-	  fw.puts "    case 0:"
-	  fw.puts "        return dstr_value<value;"
-	  fw.puts "    case 1:"
-	  fw.puts "        return dstr_value<=value;"
-	  fw.puts "    case 2:"
-	  fw.puts "        return dstr_value==value;"
-	  fw.puts "    case 3:"
-	  fw.puts "        return dstr_value>=value;"
-	  fw.puts "    case 4:"
-	  fw.puts "        return dstr_value>value;"
-	  fw.puts "    }"
-	  fw.puts "}"
-	  fw.puts "\n\n"
-
-
-	  fw.puts "int traverse(double dstr_value, int op, double value){"
-	  fw.puts "    switch( op ){"
-	  fw.puts "    case 0:"
-	  fw.puts "        return dstr_value<value;"
-	  fw.puts "    case 1:"
-	  fw.puts "        return dstr_value<=value;"
-	  fw.puts "    case 2:"
-	  fw.puts "        return dstr_value==value;"
-	  fw.puts "    case 3:"
-	  fw.puts "        return dstr_value>=value;"
-	  fw.puts "    case 4:"
-	  fw.puts "        return dstr_value>value;"
-	  fw.puts "    }"
-	  fw.puts "}"
-	  fw.puts "\n\n"
-
-
-	  fw.puts "int traverse(const void *dstr_value, int op, const void *value){"
-	  fw.puts "    switch( op ){"
-	  fw.puts "    case 0:"
-	  fw.puts "        return dstr_value<value;"
-	  fw.puts "    case 1:"
-	  fw.puts "        return dstr_value<=value;"
-	  fw.puts "    case 2:"
-	  fw.puts "        return dstr_value==value;"
-	  fw.puts "    case 3:"
-	  fw.puts "        return dstr_value>=value;"
-	  fw.puts "    case 4:"
-	  fw.puts "        return dstr_value>value;"
-	  fw.puts "    }"
-	  fw.puts "}"
-	  fw.puts "\n\n"
-
-
-	  fw.puts "int traverse(const unsigned char *dstr_value, int op, const unsigned char *value){"
-	  fw.puts "    switch( op ){"
-	  fw.puts "    case 0:"
-	  fw.puts "        return strcmp((const char *)dstr_value,(const char *)value)<0;"
-	  fw.puts "    case 1:"
-	  fw.puts "        return strcmp((const char *)dstr_value,(const char *)value)<=0;"
-	  fw.puts "    case 2:"
-	  fw.puts "        return strcmp((const char *)dstr_value,(const char *)value)==0;"
-	  fw.puts "    case 3:"
-	  fw.puts "        return strcmp((const char *)dstr_value,(const char *)value)>=0;"
-	  fw.puts "    case 4:"
-	  fw.puts "        return strcmp((const char *)dstr_value,(const char *)value)>0;"
-	  fw.puts "    }"
-	  fw.puts "}"
-	  fw.puts "\n\n"
-
-
-	  
-          fw.puts "void search(void *stc, char *constr, sqlite3_value *val){"
-	  fw.puts "    sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;"
-          fw.puts "    stlTable *stl = (stlTable *)cur->pVtab;"
-	  fw.puts "    stlTableCursor *stcsr = (stlTableCursor *)stc;"
-          fw.puts "    " + @signature + " *any_dstr = (" + @signature + " *)stl->data;"
-          fw.puts "    " + @signature + ":: iterator iter;"
-	  fw.puts "    Type value;"
-	  fw.puts "    int op, count=0;"
-	  fw.puts "// val==NULL then constr==NULL also"
-    	  fw.puts "    if ( val==NULL ){"
-          fw.puts "        for (int j=0; j<get_datastructure_size((void *)stl); j++){"
-          fw.puts "            stcsr->resultSet[j] = j;"
-          fw.puts "            stcsr->size++;"
-	  fw.puts "        }"
-	  fw.puts "    }else{"
-          fw.puts "        switch( constr[0] - 'A' ){"
-	  fw.puts "        case 0:"
-	  fw.puts "            op = 0;"
-          fw.puts "            break;"
-	  fw.puts "        case 1:"
-	  fw.puts "            op = 1;"
-          fw.puts "            break;"
-	  fw.puts "        case 2:"
-	  fw.puts "            op = 2;"
-	  fw.puts "            break;"
-	  fw.puts "        case 3:"
-	  fw.puts "            op = 3;"
-	  fw.puts "            break;"
-	  fw.puts "        case 4:"
-	  fw.puts "            op = 4;"
-	  fw.puts "            break;"
-	  fw.puts "        case 5:"
-	  fw.puts "            op = 5;"
-	  fw.puts "            break;"
-	  fw.puts "        default:"
-	  fw.puts "            NULL;"
-	  fw.puts "            break;"
-	  fw.puts "        }"
-	  fw.puts "\n"
-	  fw.puts "        int iCol;"
-	  fw.puts "        iCol = constr[1] - 'a' + 1;"
-	  fw.puts "        char *colName = stl->azColumn[iCol];"
-# FK search
-
-	  fw.puts "        const char *fk = \"FK\";"
-	  fw.puts "        if(!strcmp(colName, fk)){"
-	  fw.puts "            iter=any_dstr->begin();"
-	  fw.puts "            for(int i=0; i<(int)any_dstr->size(); i++){"
-          fw.puts "                if( traverse((int)&(*iter), op, sqlite3_value_int(val)) )"
-	  fw.puts "                    stcsr->resultSet[count++] = i;"
-	  fw.puts "                iter++;"
-	  fw.puts "            }"
-	  fw.puts "            stcsr->size += count;"
-	  fw.puts "        }else{"
-
-	  fw.puts "\n\n"
-	  fw.puts "// handle colName\n\n"
-	  fw.puts "            switch( iCol ){"
+# call HereDoc3	  
+	  fw.puts auto_gen3
 	  i=1
-# i=0. search using PK?memory location?or no PK?
-# no can't do.PK will be memory location. PK in every table
-# PK search
-
-	  fw.puts "            case 0:" 
-	  fw.puts "                iter=any_dstr->begin();"
-	  fw.puts "                for(int i=0; i<(int)any_dstr->size(); i++){"
-	  fw.puts "                    if( traverse((int)&(*iter), op, sqlite3_value_int(val)) )"
-	  fw.puts "                        stcsr->resultSet[count++] = i;"
-	  fw.puts "                    iter++;"
-	  fw.puts "                }"
-	  fw.puts "                stcsr->size += count;"
-	  fw.puts "                break;"
-
 	  while( i<@table_columns.length )
 	      split_column = @table_columns[i].split(/ /)
 	      fw.puts "            case " + i.to_s + ":" 
-	      fw.puts "// why necessarily iter->second in associative?if non pointer then second. else second->"
+	      fw.puts "// why necessarily iter->second in associative?"
+	      fw.puts "// if non pointer then second. else second->"
 	      fw.puts "                iter=any_dstr->begin();"
-	      fw.puts "                for(int i=0; i<(int)any_dstr->size(); i++){"
-	      
+	      fw.puts "                for(int i=0; i<(int)any_dstr->size(); 
+	  			       	       	    		i++){"
 	      split_column[1]=split_column[1].downcase
               if split_column[1]=="int" || split_column[1]=="integer" ||
-		  split_column[1]=="tinyint" || split_column[1]=="smallint" || 
+		  split_column[1]=="tinyint" || split_column[1]=="smallint"|| 
 		  split_column[1]=="mediumint" || split_column[1]=="bigint" ||
-		  split_column[1]=="unsigned bigint" || split_column[1]=="int2" ||
+		  split_column[1]=="unsigned bigint" ||
+		  split_column[1]=="int2" ||
                   split_column[1]=="bool" || split_column[1]=="boolean" ||
 		  split_column[1]=="int8" || split_column[1]=="numeric" 
 		  	      if @template_args=="double"
@@ -836,7 +874,6 @@ class Input_Description
 #=end
 
 end
-
 
 # test cases
 
