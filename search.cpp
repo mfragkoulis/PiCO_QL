@@ -14,6 +14,7 @@ int get_datastructure_size(void *st){
     return ((int)any_dstr->size());
 }
 
+
 int traverse(int dstr_value, int op, int value){
     switch( op ){
     case 0:
@@ -62,7 +63,8 @@ int traverse(const void *dstr_value, int op, const void *value){
 }
 
 
-int traverse(const unsigned char *dstr_value, int op, const unsigned char *value){
+int traverse(const unsigned char *dstr_value, int op, 
+    		   const unsigned char *value){
     switch( op ){
     case 0:
         return strcmp((const char *)dstr_value,(const char *)value)<0;
@@ -77,7 +79,7 @@ int traverse(const unsigned char *dstr_value, int op, const unsigned char *value
     }
 }
 
-
+	  
 void search(void *stc, char *constr, sqlite3_value *val){
     sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;
     stlTable *stl = (stlTable *)cur->pVtab;
@@ -85,7 +87,7 @@ void search(void *stc, char *constr, sqlite3_value *val){
     multimap<string,Account> *any_dstr = (multimap<string,Account> *)stl->data;
     multimap<string,Account>:: iterator iter;
     Type value;
-    int op, count=0;
+    int op, count = 0;
 // val==NULL then constr==NULL also
     if ( val==NULL ){
         for (int j=0; j<get_datastructure_size((void *)stl); j++){
@@ -120,6 +122,7 @@ void search(void *stc, char *constr, sqlite3_value *val){
         int iCol;
         iCol = constr[1] - 'a' + 1;
         char *colName = stl->azColumn[iCol];
+// FK search
         const char *fk = "FK";
         if(!strcmp(colName, fk)){
             iter=any_dstr->begin();
@@ -134,8 +137,14 @@ void search(void *stc, char *constr, sqlite3_value *val){
 
 // handle colName
 
+
+
             switch( iCol ){
-            case 0:
+
+// i=0. search using PK?memory location?or no PK?
+// no can't do.PK will be memory location. PK in every table
+// PK search
+            case 0: 
                 iter=any_dstr->begin();
                 for(int i=0; i<(int)any_dstr->size(); i++){
                     if( traverse((int)&(*iter), op, sqlite3_value_int(val)) )
@@ -145,17 +154,20 @@ void search(void *stc, char *constr, sqlite3_value *val){
                 stcsr->size += count;
                 break;
             case 1:
-// why necessarily iter->second in associative?if non pointer then second. else second->
+// why necessarily iter->second in associative?
+// if non pointer then second. else second->
                 iter=any_dstr->begin();
                 for(int i=0; i<(int)any_dstr->size(); i++){
-                    if( traverse((const unsigned char *)iter->first.c_str(), op, sqlite3_value_text(val)) )
+                    if( traverse((const unsigned char *)iter->first.c_str(), 
+		    	op, sqlite3_value_text(val)) )
                         stcsr->resultSet[count++] = i;
                     iter++;
                 }
                 stcsr->size += count;
                 break;
             case 2:
-// why necessarily iter->second in associative?if non pointer then second. else second->
+// why necessarily iter->second in associative?
+// if non pointer then second. else second->
                 iter=any_dstr->begin();
                 for(int i=0; i<(int)any_dstr->size(); i++){
                     if( traverse((const unsigned char *)iter->second.get_account_no(), op, sqlite3_value_text(val)) )
@@ -165,7 +177,8 @@ void search(void *stc, char *constr, sqlite3_value *val){
                 stcsr->size += count;
                 break;
             case 3:
-// why necessarily iter->second in associative?if non pointer then second. else second->
+// why necessarily iter->second in associative?
+// if non pointer then second. else second->
                 iter=any_dstr->begin();
                 for(int i=0; i<(int)any_dstr->size(); i++){
                     if( traverse(iter->second.get_balance(), op, sqlite3_value_double(val)) )
@@ -175,7 +188,8 @@ void search(void *stc, char *constr, sqlite3_value *val){
                 stcsr->size += count;
                 break;
             case 4:
-// why necessarily iter->second in associative?if non pointer then second. else second->
+// why necessarily iter->second in associative?
+// if non pointer then second. else second->
                 iter=any_dstr->begin();
                 for(int i=0; i<(int)any_dstr->size(); i++){
                     if( traverse(iter->second.get_isbn(), op, sqlite3_value_int(val)) )
@@ -189,6 +203,7 @@ void search(void *stc, char *constr, sqlite3_value *val){
         }
     }
 }
+
 
 
 int retrieve(void *stc, int n, sqlite3_context* con){
@@ -217,11 +232,13 @@ int retrieve(void *stc, int n, sqlite3_context* con){
         sqlite3_result_int(con, (int)&(*iter));
 // need work
     }else{
-// in automated code: "iter->get_" + col_name + "()" will work.safe?no.doxygen.
+// in automated code: "iter->get_" + col_name + "()" will work.safe?
+// no.doxygen.
         switch ( n ){
 // why necessarily iter->second in associative?
         case 1:
-            sqlite3_result_text(con, (const char *)iter->first.c_str(),-1,SQLITE_STATIC);
+            sqlite3_result_text(con, (const char *)iter->first.c_str(),-1,
+	    			     SQLITE_STATIC);
             break;
         case 2:
             sqlite3_result_text(con, (const char *)iter->second.get_account_no(),-1,SQLITE_STATIC);

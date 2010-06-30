@@ -11,11 +11,13 @@ using namespace std;
 
 void * thread_sqlite(void *data){
   const char **queries;
-  queries = (const char **)sqlite3_malloc(sizeof(char *) * 1);
-  int failure=0;
+  queries = (const char **)sqlite3_malloc(sizeof(char *) * 
+  	    	   1);
+  int failure = 0;
   queries[0] = "CREATE VIRTUAL TABLE account USING stl(id INTEGER PRIMARY KEY AUTOINCREMENT,nick_name STRING,account_no TEXT,balance FLOAT,isbn INTEGER)";
-  failure = register_table("foo.db", 1, queries, data, 1);
-  printf("Thread sqlite returning..\n");
+  failure = register_table( "foo.db" ,  1, queries,
+  	   data, enter 1 if table is to be created 0 if already created);
+  printf("Thread sqlite returning..\n");  
   sqlite3_free(queries);
   return (void *)failure;
 }
@@ -35,14 +37,6 @@ int main(){
   int re_sqlite;
   void *data;
 
-  Account acc1("10068", 500.0,699);
-  Account acc2("10234", 394.28,58579);
-  multimap<string,Account> accounts;
-  accounts.insert(make_pair("1", acc1));
-  accounts.insert(make_pair("1", acc2));
-  data = (void *)&accounts;
-
-
   // declare and fill datastructure;
 
   pthread_t sqlite_thread;
@@ -50,3 +44,5 @@ int main(){
   pthread_join(sqlite_thread, NULL);
   printf("Thread sqlite returned %i\n", re_sqlite);
 }
+
+

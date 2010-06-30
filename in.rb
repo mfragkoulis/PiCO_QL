@@ -279,6 +279,450 @@ void search(void *stc, char *constr, sqlite3_value *val){
                 break;
 AG3
 
+	
+    #HereDoc4
+
+
+	trv111 = <<-T111
+                    if( traverse(iter->first.get_
+T111
+
+	
+    #HereDoc5
+
+
+	rtrv111 = <<-RT111
+(), op, sqlite3_value_int(val)) )
+RT111
+
+	
+    #HereDoc6
+
+
+	trv112 = <<-T112
+                   if( traverse(iter->first, op, sqlite3_value_int(val)) )
+T112
+
+	
+    #HereDoc7
+
+
+	trv113 = <<-T113
+                    if( traverse(iter->second.get_
+T113
+
+	
+    #HereDoc8
+
+
+	trv114 = <<-T114
+                    if( traverse(iter->get_
+T114
+
+	
+    #HereDoc9
+
+
+	trv121 = <<-T121
+                    if( traverse((const void*)iter->first.get_
+T121
+
+	
+    #HereDoc10
+
+
+	rtrv121 = <<-RT121
+(), op, sqlite3_value_blob(val)) )
+RT121
+
+	
+    #HereDoc11
+
+
+	trv122 = <<-T122
+                    if( traverse((const void*)iter->first, op, 
+		    	sqlite3_value_blob(val)) )
+T122
+
+	
+    #HereDoc12
+
+
+	trv123 = <<-T123
+                    if( traverse((const void*)iter->second.get_
+T123
+
+	
+    #HereDoc13
+
+
+	trv124 = <<-T124
+                    if( traverse((const void*)iter->get_
+T124
+
+	
+    #HereDoc14
+
+
+	trv131 = <<-T131
+                    if( traverse(iter->first.get_
+T131
+
+	
+    #HereDoc15
+
+
+	rtrv131 = <<-RT131
+(), op, sqlite3_value_double(val)) )
+RT131
+
+	
+    #HereDoc16
+
+
+	trv132 = <<-T132
+                    if( traverse(iter->first, op, sqlite3_value_double(val)) ) 
+T132
+
+	
+    #HereDoc17
+
+
+	trv133 = <<-T133
+                    if( traverse(iter->second.get_
+T133
+
+	
+    #HereDoc18
+
+
+	trv134 = <<-T134
+                    if( traverse(iter->get_
+T134
+
+	
+    #HereDoc19
+
+
+	trv141 = <<-T141
+                    if( traverse((const unsigned char
+                    *)iter->first.get_
+T141
+
+	
+    #HereDoc20
+
+
+	rtrv141 = <<-RT141
+(), op, sqlite3_value_text(val)) )
+RT141
+
+	
+    #HereDoc21
+
+
+	trv142 = <<-T142
+                    if( traverse((const unsigned char *)iter->first, op, 
+		    	sqlite3_value_text(val)) )
+T142
+
+	
+    #HereDoc22
+
+
+	trv143 = <<-T143
+                    if( traverse((const unsigned char *)iter->second.get_
+T143
+
+	
+    #HereDoc23
+
+
+	trv144 = <<-T144
+                    if( traverse((const unsigned char *)iter->get_
+T144
+
+	
+    #HereDoc24
+
+
+	trv151 = <<-T151
+                    if( traverse((const unsigned char *)iter->first.get_
+T151
+
+	
+    #HereDoc25
+
+
+	rtrv151 = <<-RT151
+().c_str(), op, sqlite3_value_text(val)) )
+RT151
+
+	
+    #HereDoc26
+
+
+	trv152 = <<-T152
+                    if( traverse((const unsigned char *)iter->first.c_str(), 
+		    	op, sqlite3_value_text(val)) )
+T152
+
+	
+    #HereDoc27
+
+
+	trv153 = <<-T153
+                    if( traverse((const unsigned char *)iter->second.get_
+T153
+
+		
+    #HereDoc28
+
+
+	trv154 = <<-T154
+                    if( traverse((const unsigned char *)iter->get_
+T154
+
+	
+    #HereDoc29
+
+
+	gather_results = <<-rslt
+                        stcsr->resultSet[count++] = i;
+                    iter++;
+                }
+                stcsr->size += count;
+                break;
+rslt
+
+#	      i+=1
+#	  end
+
+	
+    #HereDoc30
+
+
+	cls_search_opn_retrieve = <<-cls_opn
+// more datatypes and ops exist
+            }
+        }
+    }
+}
+
+
+
+int retrieve(void *stc, int n, sqlite3_context* con){
+    sqlite3_vtab_cursor *svc = (sqlite3_vtab_cursor *)stc;
+    stlTable *stl = (stlTable *)svc->pVtab;
+    stlTableCursor *stcsr = (stlTableCursor *)stc;
+    #{@signature} *any_dstr = (#{@signature} *)stl->data;
+    #{@signature}:: iterator iter;
+    char *colName = stl->azColumn[n];
+    int index = stcsr->current;
+// iterator implementation. serial traversing or hit?
+    iter = any_dstr->begin();
+// serial traversing. simple and generic. visitor pattern is next step.
+    for(int i=0; i<stcsr->resultSet[index]; i++){
+        iter++;
+    }
+// int datatype;
+// datatype = stl->colDataType[n];
+    const char *pk = "id";
+    const char *fk = "FK";
+    if ( (n==0) && (!strcmp(stl->azColumn[0], pk)) ){
+// attention!
+        sqlite3_result_int(con, (int)&(*iter));
+        printf(\"memory location of PK: %x\\n\", &(*iter));
+    }else if( !strncmp(stl->azColumn[n], fk, 2) ){
+        sqlite3_result_int(con, (int)&(*iter));
+// need work
+    }else{
+// in automated code: \"iter->get_\" + col_name + \"()\" will work.safe?
+// no.doxygen.
+cls_opn
+
+#	  i=1
+#          fw.puts "        switch ( n ){"
+#	  fw.puts "// why necessarily iter->second in associative?"
+
+	
+    #HereDoc31
+
+
+	trv211 = <<-T211
+            sqlite3_result_int(con, iter->first.get_
+T211
+
+	
+    #HereDoc32
+
+
+	trv212 = <<-T212
+            sqlite3_result_int(con, iter->first);
+T212
+
+
+    #HereDoc33
+
+
+	trv213 = <<-T213
+            sqlite3_result_int(con, iter->second.get_
+T213
+
+
+    #HereDoc34
+
+
+	trv214 = <<-T214
+            sqlite3_result_int(con, iter->get_
+T214
+
+
+    #HereDoc35
+
+    
+	trv221 = <<-T221
+          sqlite3_result_blob(con, (const void *)iter->first.get_
+T221
+
+
+    #HereDoc36
+
+    
+	rtrv221 = <<-RT221
+(),-1,SQLITE_STATIC);
+RT221
+
+
+    #HereDoc37
+
+    
+	trv222 = <<-T222
+            sqlite3_result_blob(con, (const void *)iter->first,-1,
+	    			     SQLITE_STATIC);
+T222
+
+
+    #HereDoc38
+
+    
+	trv223 = <<-T223
+            sqlite3_result_blob(con, (const void *)iter->second.get_
+T223
+
+
+    #HereDoc39
+
+    
+	trv224 = <<-T224
+            sqlite3_result_blob(con, (const void *)iter->get_
+T224
+
+
+    #HereDoc40
+
+    
+	trv231 = <<-T231
+            sqlite3_result_double(con, iter->first.get_
+T231
+
+
+    #HereDoc41
+
+    
+	trv232 = <<-T232
+            sqlite3_result_double(con, iter->first);
+T232
+
+
+    #HereDoc42
+
+    
+	trv233 = <<-T233
+            sqlite3_result_double(con, iter->second.get_
+T233
+
+
+    #HereDoc43
+
+    
+	trv234 = <<-T234
+            sqlite3_result_double(con, iter->get_
+T234
+
+
+    #HereDoc44
+
+    
+	trv241 = <<-T241
+            sqlite3_result_text(con, (const char *)iter->first.get_
+T241
+
+
+    #HereDoc45
+
+    
+	trv242 = <<-T242
+            sqlite3_result_text(con, (const char *)iter->first,-1,
+	    			     SQLITE_STATIC);
+T242
+
+
+    #HereDoc46
+
+    
+	trv243 = <<-T243
+            sqlite3_result_text(con, (const char *)iter->second.get_
+T243
+
+
+    #HereDoc47
+
+    
+	trv244 = <<-T244
+            sqlite3_result_text(con, (const char *)iter->get_
+T244
+
+
+    #HereDoc48
+
+    
+	trv251 = <<-T251
+            sqlite3_result_text(con, (const char *)iter->first.get_
+T251
+
+
+    #HereDoc49
+
+    
+	rtrv251 = <<-RT251
+().c_str(),-1,SQLITE_STATIC);
+RT251
+
+
+    #HereDoc50
+
+    
+	trv252 = <<-T252
+            sqlite3_result_text(con, (const char *)iter->first.c_str(),-1,
+	    			     SQLITE_STATIC);
+T252
+
+
+    #HereDoc51
+
+    
+	trv253 = <<-T253
+            sqlite3_result_text(con, (const char *)iter->second.get_
+T253
+
+    #HereDoc52
+
+    
+	trv254 = <<-T254
+            sqlite3_result_text(con, (const char *)iter->get_
+T254
+
 # END OF HereDocs
 
         myfile=File.open(@filename, "w") do |fw|
@@ -347,218 +791,191 @@ AG3
 	  fw.puts auto_gen3
 	  i=1
 	  while( i<@table_columns.length )
-	      split_column = @table_columns[i].split(/ /)
-	      fw.puts "            case " + i.to_s + ":" 
-	      fw.puts "// why necessarily iter->second in associative?"
-	      fw.puts "// if non pointer then second. else second->"
-	      fw.puts "                iter=any_dstr->begin();"
-	      fw.puts "                for(int i=0; i<(int)any_dstr->size(); 
-	  			       	       	    		i++){"
+	    split_column = @table_columns[i].split(/ /)
+	    fw.puts "            case " + i.to_s + ":" 
+	    fw.puts "// why necessarily iter->second in associative?"
+	    fw.puts "// if non pointer then second. else second->"
+	    fw.puts "                iter=any_dstr->begin();"
+	    fw.puts "                for(int i=0; i<(int)any_dstr->size(); i++){"
 	      split_column[1]=split_column[1].downcase
               if split_column[1]=="int" || split_column[1]=="integer" ||
-		  split_column[1]=="tinyint" || split_column[1]=="smallint"|| 
-		  split_column[1]=="mediumint" || split_column[1]=="bigint" ||
-		  split_column[1]=="unsigned bigint" ||
-		  split_column[1]=="int2" ||
-                  split_column[1]=="bool" || split_column[1]=="boolean" ||
-		  split_column[1]=="int8" || split_column[1]=="numeric" 
-		  	      if @template_args=="double"
-			      	if( (@key_class_type==1)&&(i<=@key_class_attributes) )
-		  	            fw.puts "                    if( traverse(iter->first.get_" + split_column[0] + "(), op, sqlite3_value_int(val)) )"
-				elsif( (@key_class_type==0)&&(i==1) )
-		  	          fw.puts "                   if( traverse(iter->first, op, sqlite3_value_int(val)) )"				
-				elsif( i>@key_class_attributes)
-		  	          fw.puts "                    if( traverse(iter->second.get_" + split_column[0] + "(), op, sqlite3_value_int(val)) )"
-				end
-			      else
-		  	        fw.puts "                    if( traverse(iter->get_" + split_column[0] + "(), op, sqlite3_value_int(val)) )"
-			      end
+		split_column[1]=="tinyint" || split_column[1]=="smallint"|| 
+		split_column[1]=="mediumint" || split_column[1]=="bigint" ||
+		split_column[1]=="unsigned bigint" ||
+		split_column[1]=="int2" ||
+                split_column[1]=="bool" || split_column[1]=="boolean" ||
+		split_column[1]=="int8" || split_column[1]=="numeric" 
+		  if @template_args=="double"
+		    if( (@key_class_type==1)&&(i<=@key_class_attributes) )
+		      fw.puts trv111.chomp + split_column[0] + rtrv111
+		    elsif( (@key_class_type==0)&&(i==1) )
+		      fw.puts trv112
+		    elsif( i>@key_class_attributes)
+		      fw.print trv113.chomp + split_column[0] + rtrv111
+	 	    end
+		  else
+		    fw.puts trv114.chomp + split_column[0] + rtrv111
+		  end
 	      elsif split_column[1]=="blob"
-			      if @template_args=="double"
-			      	if( (@key_class_type==1)&&(i<=@key_class_attributes) )
-		  	            fw.puts "                    if( traverse((const void*)iter->first.get_" + split_column[0] + "(), op, sqlite3_value_blob(val)) )"
-				elsif( (@key_class_type==0)&&(i==1) )
-		  	          fw.puts "                    if( traverse((const void*)iter->first, op, sqlite3_value_blob(val)) )"
-				elsif( i>@key_class_attributes )
-		  	          fw.puts "                    if( traverse((const void*)iter->second.get_" + split_column[0] + "(), op, sqlite3_value_blob(val)) )"
-				end
-			      else
-		  	        fw.puts "                    if( traverse((const void*)iter->get_" + split_column[0] + "(), op, sqlite3_value_blob(val)) )"
-			      end
+	        if @template_args=="double"
+		  if( (@key_class_type==1)&&(i<=@key_class_attributes) )
+		    fw.puts trv121.chomp + split_column[0] + rtrv121
+		  elsif( (@key_class_type==0)&&(i==1) )
+		    fw.puts trv122
+		  elsif( i>@key_class_attributes )
+		    fw.puts trv123.chomp + split_column[0] + rtrv121
+		  end
+	      else
+		fw.puts trv124.chomp + split_column[0] + rtrv121
+	      end
               elsif split_column[1]=="float" ||	split_column[1]=="double"  ||
-	      	  split_column[1].match(/\idecimal/) ||
-      	  	  split_column[1]=="double precision" || split_column[1]=="real"
-			      if @template_args=="double"
-			      	if( (@key_class_type==1)&&(i<=@key_class_attributes) )
-		  	            fw.puts "                    if( traverse(iter->first.get_" + split_column[0] + "(), op, sqlite3_value_double(val)) )"
-				elsif( (@key_class_type==0)&&(i==1) )
-		  	          fw.puts "                    if( traverse(iter->first, op, sqlite3_value_double(val)) )"
-				elsif( i>@key_class_attributes)
-		  	          fw.puts "                    if( traverse(iter->second.get_" + split_column[0] + "(), op, sqlite3_value_double(val)) )"
-				end
-			      else
-		  	        fw.puts "                    if( traverse(iter->get_" + split_column[0] + "(), op, sqlite3_value_double(val)) )"
-			      end
+	        split_column[1].match(/\idecimal/) ||
+      	        split_column[1]=="double precision" || split_column[1]=="real"
+	          if @template_args=="double"
+		    if( (@key_class_type==1)&&(i<=@key_class_attributes) )
+		      fw.puts trv131.chomp + split_column[0] + rtrv131
+		    elsif( (@key_class_type==0)&&(i==1) )
+		      fw.puts trv132
+		    elsif( i>@key_class_attributes)
+		      fw.puts trv133.chomp + split_column[0] + rtrv131
+		    end
+		  else
+		    fw.puts trv134.chomp + split_column[0] + rtrv131
+		  end
 	      elsif split_column[1]=="text" || split_column[1]=="date" ||
-		  split_column[1]=="datetime" ||
-                  split_column[1].match(/\icharacter/) || split_column[1].match(/\ivarchar/) ||
-		  split_column[1].match(/\invarchar/) || split_column[1].match(/\ivarying character/) ||
-		  split_column[1].match(/\inative character/) || split_column[1]=="clob" ||
-		  split_column[1].match(/\inchar/)
-			      if @template_args=="double"
-			      	if( (@key_class_type==1)&&(i<=@key_class_attributes) )
-		  	            fw.puts "                    if( traverse((const unsigned char *)iter->first.get_" + split_column[0] + "(), op, sqlite3_value_text(val)) )"
-				elsif( (@key_class_type==0)&&(i==1) )
-		  	          fw.puts "                    if( traverse((const unsigned char *)iter->first, op, sqlite3_value_text(val)) )"
-				elsif( i>@key_class_attributes)
-		  	          fw.puts "                    if( traverse((const unsigned char *)iter->second.get_" + split_column[0] + "(), op, sqlite3_value_text(val)) )"
-				end
-			      else
-		  	        fw.puts "                    if( traverse((const unsigned char *)iter->get_" + split_column[0] + "(), op, sqlite3_value_text(val)) )"
-			      end
+		split_column[1]=="datetime" ||
+                split_column[1].match(/\icharacter/) || 
+		split_column[1].match(/\ivarchar/) ||
+		split_column[1].match(/\invarchar/) || 
+		split_column[1].match(/\ivarying character/) ||
+		split_column[1].match(/\inative character/) || 
+		split_column[1]=="clob" ||
+		split_column[1].match(/\inchar/)
+		  if @template_args=="double"
+		    if( (@key_class_type==1)&&(i<=@key_class_attributes) )
+		      fw.puts trv141.chomp + split_column[0] + rtrv141
+		    elsif( (@key_class_type==0)&&(i==1) )
+		      fw.puts trv142
+		    elsif( i>@key_class_attributes)
+		      fw.puts trv143.chomp + split_column[0] + rtrv141
+		    end
+		  else
+		    fw.puts trv144.chomp + split_column[0] + rtrv141
+	 	  end
 	      elsif split_column[1]=="string"
 # need to use c_str() to convert string to char *
-			      if @template_args=="double"
-			      	if( (@key_class_type==1)&&(i<=@key_class_attributes) )
-		  	            fw.puts "                    if( traverse((const unsigned char *)iter->first.get_" + split_column[0] + "().c_str(), op, sqlite3_value_text(val)) )"
-				elsif( (@key_class_type==0)&&(i==1) )
-		  	          fw.puts "                    if( traverse((const unsigned char *)iter->first.c_str(), op, sqlite3_value_text(val)) )"
-				elsif( i>@key_class_attributes )
-		  	          fw.puts "                    if( traverse((const unsigned char *)iter->second.get_" + split_column[0] + "().c_str(), op, sqlite3_value_text(val)) )"
-				end
-			      else
-		  	        fw.puts "                    if( traverse((const unsigned char *)iter->get_" + split_column[0] + "().c_str(), op, sqlite3_value_text(val)) )"
-			      end
+	        if @template_args=="double"
+		  if( (@key_class_type==1)&&(i<=@key_class_attributes) )
+		    fw.puts trv151.chomp + split_column[0] + rtrv151
+		  elsif( (@key_class_type==0)&&(i==1) )
+		    fw.puts trv152
+		  elsif( i>@key_class_attributes )
+		    fw.puts trv153.chomp + split_column[0] + rtrv151
+		  end
+		else
+		  fw.puts trv154.chomp + split_column[0] + rtrv1
+		end
 	      end
-	      fw.puts "                        stcsr->resultSet[count++] = i;"
-	      fw.puts "                    iter++;"
-	      fw.puts "                }"
-	      fw.puts "                stcsr->size += count;"
-	      fw.puts "                break;"
+
+# call HereDoc29
+	      fw.puts gather_results
 	      i+=1
 	  end
-	  fw.puts "// more datatypes and ops exist"
-	  fw.puts "            }"
-	  fw.puts "        }"
-          fw.puts "    }"      
-	  fw.puts "}"
-	  fw.puts "\n\n"
 
+# call HereDoc30
+	  fw.puts cls_search_opn_retrieve
 
-	  fw.puts "int retrieve(void *stc, int n, sqlite3_context* con){"
-	  fw.puts "    sqlite3_vtab_cursor *svc = (sqlite3_vtab_cursor *)stc;"
-	  fw.puts "    stlTable *stl = (stlTable *)svc->pVtab;"
-	  fw.puts "    stlTableCursor *stcsr = (stlTableCursor *)stc;"
-          fw.puts "    " + @signature + " *any_dstr = (" + @signature + " *)stl->data;"
-          fw.puts "    " + @signature + ":: iterator iter;"
-          fw.puts "    char *colName = stl->azColumn[n];"
-          fw.puts "    int index = stcsr->current;"
-          fw.puts "// iterator implementation. serial traversing or hit?"
-          fw.puts "    iter = any_dstr->begin();"
-	  fw.puts "// serial traversing. simple and generic. visitor pattern is next step."
-	  fw.puts "    for(int i=0; i<stcsr->resultSet[index]; i++){"
-	  fw.puts "        iter++;"
-	  fw.puts "    }"
-          fw.puts "// int datatype;"
-          fw.puts "// datatype = stl->colDataType[n];"
-          fw.puts "    const char *pk = \"id\";"
-          fw.puts "    const char *fk = \"FK\";"
-          fw.puts "    if ( (n==0) && (!strcmp(stl->azColumn[0], pk)) ){"
-	  fw.puts "// attention!"
-          fw.puts "        sqlite3_result_int(con, (int)&(*iter));"
-	  fw.puts "        printf(\"memory location of PK: %x\\n\", &(*iter));"
-	  fw.puts "    }else if( !strncmp(stl->azColumn[n], fk, 2) ){"
-	  fw.puts "        sqlite3_result_int(con, (int)&(*iter));"
-	  fw.puts "// need work"
-          fw.puts "    }else{"
-          fw.puts "// in automated code: \"iter->get_\" + col_name + \"()\" will work.safe?no.doxygen."
 	  i=1
           fw.puts "        switch ( n ){"
 	  fw.puts "// why necessarily iter->second in associative?"
 # only for one-level description!!!
 	  while( i<@table_columns.length )
-	      split_column = @table_columns[i].split(/ /)
-	      split_column[1]=split_column[1].downcase
-	      fw.puts "        case " + i.to_s + ":" 
-              if split_column[1]=="int" || split_column[1]=="integer" ||
-		  split_column[1]=="tinyint" || split_column[1]=="smallint" || 
-		  split_column[1]=="mediumint" || split_column[1]=="bigint" ||
-		  split_column[1]=="unsigned bigint" || split_column[1]=="int2" ||
-                  split_column[1]=="bool" || split_column[1]=="boolean" ||
-		  split_column[1]=="int8" || split_column[1]=="numeric" 
-		  	      if @template_args=="double"
-			      	if( (@key_class_type==1)&&(i<=@key_class_attributes) )
-          		            fw.puts "            sqlite3_result_int(con, iter->first.get_" + split_column[0] + "());"
-				elsif( (@key_class_type==0)&&(i==1) )
-          		            fw.puts "            sqlite3_result_int(con, iter->first);"
-				elsif( i>@key_class_attributes )
-          		          fw.puts "            sqlite3_result_int(con, iter->second.get_" + split_column[0] + "());"
-				end
-			      else
-          		        fw.puts "            sqlite3_result_int(con, iter->get_" + split_column[0] + "());"
-			      end
-			      fw.puts "            break;"
-	      elsif split_column[1]=="blob"
-			      if @template_args=="double"
-			      	if( (@key_class_type==1)&&(i<=@key_class_attributes) )
-          		            fw.puts "          sqlite3_result_blob(con, (const void *)iter->first.get_" + split_column[0] + "(),-1,SQLITE_STATIC);"
-				elsif( (@key_class_type==0)&&(i==1) )
-          		          fw.puts "            sqlite3_result_blob(con, (const void *)iter->first,-1,SQLITE_STATIC);"
-				elsif( i>@key_class_attributes)
-          		          fw.puts "            sqlite3_result_blob(con, (const void *)iter->second.get_" + split_column[0] + "(),-1,SQLITE_STATIC);"
-				end
-			      else
-          		        fw.puts "            sqlite3_result_blob(con, (const void *)iter->get_" + split_column[0] + "(),-1,SQLITE_STATIC);"
-			      end
-			      fw.puts "            break;"
+	    split_column = @table_columns[i].split(/ /)
+	    split_column[1]=split_column[1].downcase
+	    fw.puts "        case " + i.to_s + ":" 
+            if split_column[1]=="int" || split_column[1]=="integer" ||
+	      split_column[1]=="tinyint" || split_column[1]=="smallint" || 
+	      split_column[1]=="mediumint" || split_column[1]=="bigint" ||
+	      split_column[1]=="unsigned bigint" || split_column[1]=="int2" ||
+              split_column[1]=="bool" || split_column[1]=="boolean" ||
+	      split_column[1]=="int8" || split_column[1]=="numeric" 
+		if @template_args=="double"
+		  if( (@key_class_type==1)&&(i<=@key_class_attributes) )
+          	    fw.puts trv211.chomp + split_column[0] + "());"
+		  elsif( (@key_class_type==0)&&(i==1) )
+          	    fw.puts trv212
+		  elsif( i>@key_class_attributes )
+          	    fw.puts trv213.chomp + split_column[0] + "());"
+		  end
+		else
+          	  fw.puts trv214.chomp + split_column[0] + "());"
+		end
+		fw.puts "            break;"
+	    elsif split_column[1]=="blob"
+	      if @template_args=="double"
+	        if( (@key_class_type==1)&&(i<=@key_class_attributes) )
+          	  fw.puts trv221.chomp + split_column[0] + rtrv221
+		elsif( (@key_class_type==0)&&(i==1) )
+          	  fw.puts trv222
+		elsif( i>@key_class_attributes)
+          	  fw.puts trv223.chomp + split_column[0] + rtrv221
+		end
+	      else
+      	        fw.puts trv224.chomp + split_column[0] + rtrv221
+	      end
+	      fw.puts "            break;"
               elsif split_column[1]=="float" ||	split_column[1]=="double"  ||
-	      	  split_column[1].match(/\idecimal/) ||
-      	  	  split_column[1]=="double precision" || split_column[1]=="real"
-			      if @template_args=="double"
-			      	if( (@key_class_type==1)&&(i<=@key_class_attributes) )
-          		            fw.puts "            sqlite3_result_double(con, iter->first.get_" + split_column[0] + "());"
-				elsif( (@key_class_type==0)&&(i==1) )
-          		          fw.puts "            sqlite3_result_double(con, iter->first);"
-				elsif( i>@key_class_attributes )
-          		          fw.puts "            sqlite3_result_double(con, iter->second.get_" + split_column[0] + "());"
-				end
-			      else
-          		        fw.puts "            sqlite3_result_double(con, iter->get_" + split_column[0] + "());"
-			      end
-			      fw.puts "            break;"
+	      	split_column[1].match(/\idecimal/) ||
+      	  	split_column[1]=="double precision" || 
+		split_column[1]=="real"
+		  if @template_args=="double"
+		    if( (@key_class_type==1)&&(i<=@key_class_attributes) )
+          	      fw.puts trv231.chomp + split_column[0] + "());"
+		    elsif( (@key_class_type==0)&&(i==1) )
+          	      fw.puts trv232
+		    elsif( i>@key_class_attributes )
+          	      fw.puts trv233.chomp + split_column[0] + "());"
+		    end
+		  else
+          	    fw.puts trv234.chomp + split_column[0] + "());"
+		  end
+		  fw.puts "            break;"
 	      elsif split_column[1]=="text" || split_column[1]=="date" ||
 		  split_column[1]=="datetime" ||
-                  split_column[1].match(/\icharacter/) || split_column[1].match(/\ivarchar/) ||
-		  split_column[1].match(/\invarchar/) || split_column[1].match(/\ivarying character/) ||
-		  split_column[1].match(/\inative character/) || split_column[1]=="clob" ||
+                  split_column[1].match(/\icharacter/) || 
+		  split_column[1].match(/\ivarchar/) ||
+		  split_column[1].match(/\invarchar/) || 
+		  split_column[1].match(/\ivarying character/) ||
+		  split_column[1].match(/\inative character/) || 
+		  split_column[1]=="clob" ||
 		  split_column[1].match(/\inchar/)
-			      if @template_args=="double"
-			      	if( (@key_class_type==1)&&(i<=@key_class_attributes) )
-          		            fw.puts "            sqlite3_result_text(con, (const char *)iter->first.get_" + split_column[0] + "(),-1,SQLITE_STATIC);"
+		    if @template_args=="double"
+		      if( (@key_class_type==1)&&(i<=@key_class_attributes) )
+          		fw.puts trv241.chomp + split_column[0] + rtrv221
 # @key_class_attributes==1 instead?
-				elsif( (@key_class_type==0)&&(i==1) )
-          		          fw.puts "            sqlite3_result_text(con, (const char *)iter->first,-1,SQLITE_STATIC);"
-				elsif( i>@key_class_attributes)
-          		          fw.puts "            sqlite3_result_text(con, (const char *)iter->second.get_" + split_column[0] + "(),-1,SQLITE_STATIC);"
-				end
-			      else
-          		        fw.puts "            sqlite3_result_text(con, (const char *)iter->get_" + split_column[0] + "(),-1,SQLITE_STATIC);"
-			      end
-			      fw.puts "            break;"
+		      elsif( (@key_class_type==0)&&(i==1) )
+          		fw.puts trv242
+		      elsif( i>@key_class_attributes)
+          	        fw.puts trv243.chomp + split_column[0] + rtrv221
+		      end
+		    else
+          	      fw.puts trv244.chomp + split_column[0] + rtrv221
+		    end
+		    fw.puts "            break;"
 	      elsif split_column[1]=="string"
 # need to use c_str() to convert string to char *
-			      if @template_args=="double"
-			      	if( (@key_class_type==1)&&(i<=@key_class_attributes) )
-          		            fw.puts "            sqlite3_result_text(con, (const char *)iter->first.get_" + split_column[0] + "().c_str(),-1,SQLITE_STATIC);"
-				elsif( (@key_class_type==0)&&(i==1) )
-          		          fw.puts "            sqlite3_result_text(con, (const char *)iter->first.c_str(),-1,SQLITE_STATIC);"
-				elsif( i>@key_class_attributes)
-          		          fw.puts "            sqlite3_result_text(con, (const char *)iter->second.get_" + split_column[0] + "().c_str(),-1,SQLITE_STATIC);"
-				end
-			      else
-          		        fw.puts "            sqlite3_result_text(con, (const char *)iter->get_" + split_column[0] + "().c_str(),-1,SQLITE_STATIC);"
-			      end
-			      fw.puts "            break;"
+	        if @template_args=="double"
+		  if( (@key_class_type==1)&&(i<=@key_class_attributes) )
+          	    fw.puts trv251.chomp + split_column[0] + rtrv251
+		  elsif( (@key_class_type==0)&&(i==1) )
+          	    fw.puts trv252
+		  elsif( i>@key_class_attributes)
+          	    fw.puts trv253.chomp + split_column[0] + rtrv251
+		  end
+		else
+          	  fw.puts trv254.chomp + split_column[0] + rtrv251
+		end
+		fw.puts "            break;"
 	      end
 	      i+=1
 	  end
@@ -572,97 +989,144 @@ AG3
       end
 
 
-# produces the array argv which contains all the necessary arguments for a well-formed "CREATE VIRTUAL TABLE" query
-# argument attributes is an array containing a class description (pairs of name,type aka attributes)
+# GLOBAL HERE DOCUMENTS
+
+  # HereDoc1
+
+      $err_state = <<-ERS
+
+ERROR STATE. CANCELLING COMPLETED OPERATIONS:
+
+PRINTING ERROR INFO:
+
+ERS
+
+# END OF GLOBAL HEREDOCS
+
+
+# produces the array argv which contains all the necessary arguments for a 
+# well-formed "CREATE VIRTUAL TABLE" query
+# argument attributes is an array containing a class description 
+# (pairs of name,type aka attributes)
 # maps types to sqlite3 data_types and pushes pairs to argv
 
       def transform(my_array, attributes)
-      	  argv=Array.new
-	  argv.push("stl")
-	  argv.push(my_array[0])
-	  argv.push(my_array[1])
+
+
+# HERE DOCUMENTS FOR METHOD
+
+  # HereDoc1
+
+      no_bind = <<-NB
+no binding between class and reference keywords. 
+trying to refer to non-defined class: 
+NB
+
+
+  # HereDoc2
+
+      data_types = <<-DT
+.
+please select one from following list:
+int or integer, tinyint, smallint, mediumint, 
+bigint, unsigned bigint, int2, int8, 
+blob(no type.values stored exactly as input), 
+float, double, double precision, real, numeric, date, 
+datetime, bool or boolean, decimal(10,5), text, 
+clob(type text), character(20), varchar(255), varying 
+character(255), nchar(55), native character(70), 
+nvarchar(100), string
+
+NOW EXITING.
+DT
+
+# END OF HEREDOCS
+
+        argv=Array.new
+	argv.push("stl")
+	argv.push(my_array[0])
+	argv.push(my_array[1])
 # PK for all tables (top level too)
-	  argv.push("id INTEGER PRIMARY KEY AUTOINCREMENT")
-	  i=0
-	  while i< attributes.length
-	     if attributes[i].include?(",")
-	        name_type=attributes[i].split(/,/)
-		if name_type.length!=2
-		    puts "\nERROR STATE. CANCELLING COMPLETED OPERATIONS:\n"
-		    puts "\nPRINTING ERROR INFO:\n"
-		    raise ArgumentError.new("expected pair name,type got " + attributes[i] + "\n\n NOW EXITING. \n") 
+	argv.push("id INTEGER PRIMARY KEY AUTOINCREMENT")
+	i=0
+	while i< attributes.length
+	  if attributes[i].include?(",")
+	    name_type=attributes[i].split(/,/)
+	    if name_type.length!=2
+	      puts $err_state
+	      raise ArgumentError.new("expected pair name,type got " + 
+	      	    attributes[i] + "\n\n NOW EXITING. \n") 
+	    end
+	    name_type[1]=name_type[1].downcase
+            if name_type[1]=="class"
+	      k=0
+	      while k<@classnames.length
+		if @classnames[k]==name_type[0]
+		  puts $err_state
+ 		  raise ArgumentError.new("Attempt to create virtual table" +
+	 	  	" twice \n\n NOW EXITING. \n")
 		end
-		name_type[1]=name_type[1].downcase
-                if name_type[1]=="class"
-		    k=0
-		    while k<@classnames.length
-		       if @classnames[k]==name_type[0]
-		          puts "\nERROR STATE. CANCELLING COMPLETED OPERATIONS:\n"
-			  puts "\nPRINTING ERROR INFO:\n"
- 		          raise ArgumentError.new("Attempt to create virtual table twice" + "\n\n NOW EXITING. \n")
-		       end
-		       k+=1
-		    end
-		    @classnames.push(name_type[0])
-                    puts "table_name is " + name_type[0]
+		k+=1
+	      end
+	      @classnames.push(name_type[0])
+              puts "table_name is " + name_type[0]
 # top level tables won't go in this condition only intermediate ones.
 # table name is set as default so that it works for top level.
 # intermediate tables override default with respective class name.
-		    argv.delete_at(2)
-		    argv.insert(2,name_type[0])
-#		    argv.push("INTEGER PRIMARY KEY AUTOINCREMENT")
-		elsif name_type[1]=="reference"
-		    k=0
-		    while k<@classnames.length
-		       if @classnames[k]==name_type[0]
-		          pushed=true
-		       end
-		       k+=1
-             	    end
-		    if pushed
-		       argv.push(name_type[0] + "_id references " + name_type[0])
-		    else 
-		       puts "\nERROR STATE. CANCELLING COMPLETED OPERATIONS:\n"
-		       puts "\nPRINTING ERROR INFO:\n"
-		       raise ArgumentError.new("no binding between class and reference keywords. trying to refer to non-defined class: " + name_type[0] + "\n\n NOW EXITING. \n")
-		    end
-                elsif name_type[1]=="int" || name_type[1]=="integer" ||
-		  name_type[1]=="tinyint" || name_type[1]=="smallint" || 
-		  name_type[1]=="mediumint" || name_type[1]=="bigint" ||
-		  name_type[1]=="unsigned bigint" || name_type[1]=="int2" ||
-		  name_type[1]=="int8" || name_type[1]=="blob" ||
-                  name_type[1]=="float" || name_type[1]=="double"  ||
-      	  	  name_type[1]=="double precision" || name_type[1]=="real" ||
-		  name_type[1]=="numeric" || name_type[1]=="date" ||
-                  name_type[1]=="bool" || name_type[1]=="boolean" ||
-		  name_type[1]=="datetime" || name_type[1].match(/\idecimal/) ||
-		  name_type[1]=="text" || name_type[1]=="clob" ||
-                  name_type[1].match(/\icharacter/) || name_type[1].match(/\ivarchar/) ||
-		  name_type[1].match(/\invarchar/) || name_type[1].match(/\ivarying character/) ||
-		  name_type[1].match(/\inative character/) || name_type[1].match(/\inchar/)
-		    argv.push(name_type[0] + " " + name_type[1].upcase)
-		elsif name_type[1]=="string"
-		    argv.push(name_type[0] + " STRING")
-# STRING: was TEXT
-                else
-	           puts "\nERROR STATE. CANCELLING COMPLETED OPERATIONS:\n"
-		   puts "\nPRINTING ERROR INFO:\n"
-                   raise TypeError.new("no such data type " + name_type[1].upcase + ".\nplease select one from following list:
-		   int or integer, tinyint, smallint, mediumint,bigint, unsigned bigint, int2, int8, 
-		   blob(no type.values stored exactly as input), float, double, double precision, real, 
-      	  	   numeric, date, datetime, bool or boolean, decimal(10,5), 
-      	  	   text, clob(type text), character(20), varchar(255), varying 
-      	  	   character(255), nchar(55), native character(70), 
-      	  	   nvarchar(100), string" + "\n\n NOW EXITING. \n") 
+	      argv.delete_at(2)
+	      argv.insert(2,name_type[0])
+#	      argv.push("INTEGER PRIMARY KEY AUTOINCREMENT")
+	    elsif name_type[1]=="reference"
+	      k=0
+	      while k<@classnames.length
+		if @classnames[k]==name_type[0]
+		  pushed=true
 		end
-	     else
-		puts "\nERROR STATE. CANCELLING COMPLETED OPERATIONS:\n"
-		puts "\nPRINTING ERROR INFO:\n"
-	        raise ArgumentError.new("error in input format. expected name,type got " + attributes[i] + "\n\n NOW EXITING. \n")
-	     end
-	  i+=1
+		k+=1
+              end
+	      if pushed
+		argv.push(name_type[0] + "_id references " + name_type[0])
+	      else 
+	        puts $err_state
+		raise ArgumentError.new(no_bind.chomp + name_type[0] + 
+		      "\n\n NOW EXITING. \n")
+	      end
+            elsif name_type[1]=="int" || name_type[1]=="integer" ||
+	      name_type[1]=="tinyint" || name_type[1]=="smallint" || 
+	      name_type[1]=="mediumint" || name_type[1]=="bigint" ||
+	      name_type[1]=="unsigned bigint" || name_type[1]=="int2" ||
+	      name_type[1]=="int8" || name_type[1]=="blob" ||
+              name_type[1]=="float" || name_type[1]=="double"  ||
+      	      name_type[1]=="double precision" || name_type[1]=="real" ||
+	      name_type[1]=="numeric" || name_type[1]=="date" ||
+              name_type[1]=="bool" || name_type[1]=="boolean" ||
+	      name_type[1]=="datetime" || 
+	      name_type[1].match(/\idecimal/) ||
+	      name_type[1]=="text" || name_type[1]=="clob" ||
+              name_type[1].match(/\icharacter/) || 
+	      name_type[1].match(/\ivarchar/) ||
+	      name_type[1].match(/\invarchar/) || 
+	      name_type[1].match(/\ivarying character/) ||
+	      name_type[1].match(/\inative character/) || 
+	      name_type[1].match(/\inchar/)
+		argv.push(name_type[0] + " " + name_type[1].upcase)
+	    elsif name_type[1]=="string"
+	      argv.push(name_type[0] + " STRING")
+# STRING: was TEXT
+            else
+	      puts $err_state
+              raise TypeError.new("no such data type " + name_type[1].upcase +
+ 	      	    		      data_types) 
+	    end
+	  else
+	    puts $err_state
+	    raise ArgumentError.new("error in input format." + 
+	    	  "expected name,type got " + attributes[i] + 
+	    	  "\n\n NOW EXITING. \n")
 	  end
-	  return argv
+	  i+=1
+	end
+	return argv
       end
 
 
@@ -675,6 +1139,33 @@ AG3
 # concerns the top class(es) of the template argument(s). 
 
       def register_class(*args)
+
+
+# HERE DOCUMENTS FOR METHOD
+
+
+  # HereDoc1
+
+     tmpl_abuse = <<-TA
+template arguments abuse class definition. 
+multiple class name-type assignments
+
+NOW EXITING
+
+TA
+
+  # HereDoc2
+
+     method_args = <<-MA
+internal: method register_class accepts either two or three arguments
+
+
+NOW EXITING.
+
+MA
+
+# END OF HEREDOCS
+
         columns=Array.new
         if args.size==3
 	  my_array=args[0]
@@ -704,19 +1195,23 @@ AG3
 #	       puts $query
 	    end
 	    return classes[0]
-	  elsif my_array[index].include?("-") && my_array.length==4        # datastructure is of type collection
+	  elsif my_array[index].include?("-") && my_array.length==4        
+# datastructure is of type collection
 	    return my_array[index]
 #	    attributes=my_array[index].split(/-/)
 #	    columns=transform(my_array, attributes)	    
-#	    create_vt(columns)       #need for return. register_class(my_array,3,1)
+#	    create_vt(columns)       
+#need for return. register_class(my_array,3,1)
 #	    puts $query
 	  else
 #why?
 	    attributes=Array.new(1,my_array[index])
 	    return my_array[index]
 	  end
-# function:transform classes elements into valid sqlite3 column parameter format
-# create a virtual table for each corresponding class description, don't forget PK, FK 
+# function:transform classes elements into valid sqlite3 column 
+# parameter format
+# create a virtual table for each corresponding class description, 
+# don't forget PK, FK 
 # complex vs class
 
 # why?
@@ -742,9 +1237,8 @@ AG3
 	  i+=1
 	  end
 	  if count>2
-	    puts "\nERROR STATE. CANCELLING COMPLETED OPERATIONS:\n"
-	    puts "\nPRINTING ERROR INFO:\n"
-	    raise ArgumentError.new("template arguments abuse class definition. multiple class name-type assignments" + "\n\n NOW EXITING. \n")
+	    puts $err_state
+	    raise ArgumentError.new(tmpl_abuse)
 	  end
 	  columns=transform(my_array, attributes)
 	  t=0
@@ -755,9 +1249,8 @@ AG3
 	  create_vt(columns)
 #	  puts $query
 	else
-          puts "\nERROR STATE. CANCELLING COMPLETED OPERATIONS:\n"
-	  puts "\nPRINTING ERROR INFO:\n"
-	  raise ArgumentError.new("internal: method register_class accepts either two or three arguments" + "\n\n NOW EXITING. \n")
+	  puts $err_state
+	  raise ArgumentError.new(method_args)
 	end
       end
 
@@ -766,109 +1259,153 @@ AG3
 # call register_class for each template argument. 
 
       def register_datastructure
-          puts "description before whitespace cleanup " + @description
-          @description.gsub!(/\s/,"")
-          puts "description after whitespace cleanup " + @description
 
-	  my_array=@description.split(/;/)
+# HERE DOCUMENTS FOR METHOD
+
+
+    # HereDoc1
+
+      class_sign = <<-CS
+STL class signature not properly given:
+template error in
+CS
+
+    # HereDoc2
+
+      ass_args = <<-ASR
+wrong number of arguments for associative datastructure
+
+NOW EXITING.
+
+ASR
+
+    # HereDoc3
+
+      col_args = <<-CLR
+wrong number of arguments for datastructure of type collection
+
+NOW EXITING.
+
+CLR
+
+    # HereDoc4
+
+      nargs = <<-NAR
+wrong number of arguments. check input description 
+
+
+NOW EXITING.
+
+NAR
+
+# END OF HEREDOCS
+
+        puts "description before whitespace cleanup " + @description
+        @description.gsub!(/\s/,"")
+        puts "description after whitespace cleanup " + @description
+
+	my_array=@description.split(/;/)
 =begin
-	  if my_array[0].include?(".")
-	     no_extension=my_array[0].split(/\./)
-	     my_array[0]=no_extension[0]
+	if my_array[0].include?(".")
+	  no_extension=my_array[0].split(/\./)
+	  my_array[0]=no_extension[0]
 # make foo.db -> foo
-	  end
+	end
 =end
 
-	  if my_array[2].include?("<") && my_array[2].include?(">")
-	     container_split=my_array[2].split(/</)
-	     container_class=container_split[0]
-	  else
-	     raise ArgumentError.new("STL class signature not properly given: template error in " + my_array[2] + "\n\n NOW EXITING. \n") 
-	  end
+	if my_array[2].include?("<") && my_array[2].include?(">")
+	  container_split=my_array[2].split(/</)
+	  container_class=container_split[0]
+	else
+	  raise ArgumentError.new(class_sign + my_array[2] + 
+	     	   "\n\n NOW EXITING. \n") 
+	end
 
-          if container_class=="list" || container_class=="deque"  || container_class=="vector" || container_class=="slist" ||
-            container_class=="set" || container_class=="multiset" ||
-            container_class=="hash_set" || container_class=="hash_multiset" ||
-	    container_class=="bitset"
+        if container_class=="list" || container_class=="deque"  || 
+	  container_class=="vector" || container_class=="slist" ||
+          container_class=="set" || container_class=="multiset" ||
+          container_class=="hash_set" || container_class=="hash_multiset" ||
+	  container_class=="bitset"
                      @template_args="single"
-          elsif container_class=="map" ||
-            container_class=="multimap" || container_class=="hash_map" || container_class=="hash_multimap"
+        elsif container_class=="map" ||
+          container_class=="multimap" || container_class=="hash_map" || 
+ 	  container_class=="hash_multimap"
                      @template_args="double"
-          else     
-	       puts "\nERROR STATE. CANCELLING COMPLETED OPERATIONS:\n"
-	       puts "\nPRINTING ERROR INFO:\n"
-               raise TypeError.new("no such container class: " + container_class + "\n\n NOW EXITING. \n")
-          end
+        else     
+	  puts $err_state
+          raise TypeError.new("no such container class: " + container_class +
+ 	  			  "\n\n NOW EXITING. \n")
+        end
 
 # comparison function for user defined types ruins the check. but c.f
 # shouldn't be reported so go ahead
 
-	  if (@template_args=="single" && container_split[1].include?(",")) || 
-	     (@template_args=="double" && !container_split[1].include?(","))
-	     			raise ArgumentError.new("STL class signature not properly given: wrong number of arguments for template: " + my_array[2] + "\n\n NOW EXITING. \n")
-	  end
+	if (@template_args=="single" && container_split[1].include?(",")) || 
+	   (@template_args=="double" && !container_split[1].include?(","))
+	     raise ArgumentError.new(class_sign + my_array[2] + 
+	     	   "\n\n NOW EXITING. \n")
+	end
 
 
-          if container_class=="list" || container_class=="deque"  || container_class=="vector" || container_class=="slist" ||
-	    container_class=="bitset"
+        if container_class=="list" || container_class=="deque"  || 
+	  container_class=="vector" || container_class=="slist" ||
+	  container_class=="bitset"
                      @container_type="sequence"
-          elsif container_class=="map" ||
-            container_class=="multimap" || container_class=="hash_map" || container_class=="hash_multimap" || 
-            container_class=="set" || container_class=="multiset" ||
-            container_class=="hash_set" || container_class=="hash_multiset"
+        elsif container_class=="map" ||
+          container_class=="multimap" || container_class=="hash_map" || 
+	  container_class=="hash_multimap" || 
+          container_class=="set" || container_class=="multiset" ||
+          container_class=="hash_set" || container_class=="hash_multiset"
                      @container_type="associative"
-          elsif container_class=="bitset"
+        elsif container_class=="bitset"
 	  	     @container_type="bitset"
+	end
+
+	@signature=my_array[2]
+	puts "container signature is: " + @signature
+        puts "no of template args is: " + @template_args
+	puts "container type is: " + @container_type
+
+	i=0
+	while i<my_array.length
+	  puts my_array[i]
+	  i+=1
+	end 
+	if my_array.length==4
+	  unless @template_args=="single"
+	    puts $err_state
+	    raise ArgumentError.new(no_args)
 	  end
-
-	  @signature=my_array[2]
-	  puts "container signature is: " + @signature
-          puts "no of template args is: " + @template_args
-	  puts "container type is: " + @container_type
-
-	  i=0
-	  while i<my_array.length
-	  	puts my_array[i]
-		i+=1
-	  end 
-	  if my_array.length==4
-	     unless @template_args=="single"
-	        puts "\nERROR STATE. CANCELLING COMPLETED OPERATIONS:\n"
-		puts "\nPRINTING ERROR INFO:\n"
-	     	raise ArgumentError.new("wrong number of arguments for associative datastructure" + "\n\n NOW EXITING. \n")
-	     end
-	     top_class=register_class(my_array,3,1)
-	     puts "top class is: " + top_class
-	     register_class(my_array,top_class)
-	  elsif my_array.length==5
-	     unless @template_args=="double"
-		puts "\nERROR STATE. CANCELLING COMPLETED OPERATIONS:\n"
-		puts "\nPRINTING ERROR INFO:\n"
-	        raise ArgumentError.new("wrong number of arguments for datastructure of type collection" + "\n\n NOW EXITING. \n")
-	     end
-	     top_class1=register_class(my_array, 3, 1)
-	     top_class2=register_class(my_array, 4, 1)
-	     puts "top_class1 :" + top_class1
-	     puts "top_class2 :" + top_class2	     
+	  top_class=register_class(my_array,3,1)
+	  puts "top class is: " + top_class
+	  register_class(my_array,top_class)
+	elsif my_array.length==5
+	  unless @template_args=="double"
+	    puts $err_state
+	    raise ArgumentError.new(col_args)
+	  end
+	  top_class1=register_class(my_array, 3, 1)
+	  top_class2=register_class(my_array, 4, 1)
+	  puts "top_class1 :" + top_class1
+	  puts "top_class2 :" + top_class2	     
 # needed for method search in order to be able to address both
 # template arguments's columns. however, attributes stored anywhere?
-	     if( my_array[3].include?("-") ) 
-	       @key_class_type = 1
-	       no_attributes = my_array[3].split(/-/)
-	       @key_class_attributes = no_attributes.length
-	     else 
-	       @key_class_type = 0
-	     end
-	     register_class(my_array, top_class1 + "-" + top_class2)
-	  else
-	     puts "\nERROR STATE. CANCELLING COMPLETED OPERATIONS:\n"
-	     puts "\nPRINTING ERROR INFO:\n"
-	     raise ArgumentError.new("wrong number of arguments. check input description" + "\n\n NOW EXITING. \n")
+	  if( my_array[3].include?("-") ) 
+	    @key_class_type = 1
+	    no_attributes = my_array[3].split(/-/)
+	    @key_class_attributes = no_attributes.length
+	  else 
+	    @key_class_type = 0
 	  end
+	  register_class(my_array, top_class1 + "-" + top_class2)
+	else
+	  puts $err_state
+	  raise ArgumentError.new(nargs)
+	end
 #why?use as top table name
-	  @classnames.push(my_array[1])	
-	  write_to_file(my_array[0])
-	  puts "CONGRATS?"
+	@classnames.push(my_array[1])	
+	write_to_file(my_array[0])
+	puts "CONGRATS?"
       end
 
 #=end
