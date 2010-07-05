@@ -7,6 +7,7 @@ class Input_Description
           @description=description
 	  @signature=""
 	  @table_columns=Array.new
+	  @data_structures=Hash.new
 # make twodimensional and cancel columns array?
 	  @classnames=Array.new
 	  @container_type=""
@@ -14,7 +15,7 @@ class Input_Description
 	  @key_class_type=0
 # key class type is used to declare what kind of key an associative 
 # datastructure has 
-# 0=plain, 1=user-defined, 2=user-defined nested
+# 0=primitive, 1=user-defined (class), 2=user-defined nested
 	  @key_class_attributes=1
 # cancel filename?
 	  @filename="main.cpp"
@@ -33,6 +34,7 @@ class Input_Description
 
       def create_vt(columns)
 
+# strips the extension from db name given.no need
 #         if columns[1].include?(".")
 #	    no_extension=columns[1].split(/\./)
 #	    columns[1]=no_extension[0]	    
@@ -59,8 +61,8 @@ class Input_Description
 # opens a new c source file and writes c code.
 # there for each query a call to register_table is done
 # to create the respective VT.
-# includes action to be taken in case a call fails.
-# all created VTs at that point are dropped and program exits.
+# includes action to be taken in case a call fails.?
+# all created VTs at that point are dropped and program exits.?
 
 
       def write_to_file(db_name)
@@ -405,8 +407,7 @@ T134
 
 
 	trv141 = <<-T141
-                    if( traverse((const unsigned char
-                    *)iter->first.get_
+                    if( traverse((const unsigned char *)iter->first.get_
 T141
 
 	
@@ -495,9 +496,6 @@ T154
                 break;
 rslt
 
-#	      i+=1
-#	  end
-
 	
     #HereDoc30
 
@@ -540,10 +538,6 @@ int retrieve(void *stc, int n, sqlite3_context* con){
 // in automated code: \"iter->get_\" + col_name + \"()\" will work.safe?
 // no.doxygen.
 cls_opn
-
-#	  i=1
-#          fw.puts "        switch ( n ){"
-#	  fw.puts "// why necessarily iter->second in associative?"
 
 	
     #HereDoc31
@@ -1201,19 +1195,13 @@ MA
 #	    attributes=my_array[index].split(/-/)
 #	    columns=transform(my_array, attributes)	    
 #	    create_vt(columns)       
-#need for return. register_class(my_array,3,1)
+# need for return. register_class(my_array,3,1)
 #	    puts $query
 	  else
 #why?
 	    attributes=Array.new(1,my_array[index])
 	    return my_array[index]
 	  end
-# function:transform classes elements into valid sqlite3 column 
-# parameter format
-# create a virtual table for each corresponding class description, 
-# don't forget PK, FK 
-# complex vs class
-
 # why?
   	  if classes
 	     return classes[0]
@@ -1253,6 +1241,7 @@ MA
 	  raise ArgumentError.new(method_args)
 	end
       end
+
 
 # split the string description into arguments (; delimeter) to extract
 # the required info and then
@@ -1304,108 +1293,115 @@ NAR
         @description.gsub!(/\s/,"")
         puts "description after whitespace cleanup " + @description
 
-	my_array=@description.split(/;/)
+	
+	ds = @description.split(/!/)
+	w = 1
+	while w<ds.length
+	  my_array = ds[w].split(/;/)
+	
 =begin
-	if my_array[0].include?(".")
-	  no_extension=my_array[0].split(/\./)
-	  my_array[0]=no_extension[0]
+	if ds[0].include?(".")
+	  no_extension=ds[0].split(/\./)
+	  ds[0]=ds[0]
 # make foo.db -> foo
 	end
 =end
 
-	if my_array[2].include?("<") && my_array[2].include?(">")
-	  container_split=my_array[2].split(/</)
-	  container_class=container_split[0]
-	else
-	  raise ArgumentError.new(class_sign + my_array[2] + 
-	     	   "\n\n NOW EXITING. \n") 
-	end
+	  if my_array[1].include?("<") && my_array[1].include?(">")
+	    container_split=my_array[1].split(/</)
+	    container_class=container_split[0]
+	  else
+	    raise ArgumentError.new(class_sign + my_array[1] + 
+	     	     "\n\n NOW EXITING. \n") 
+	  end
 
-        if container_class=="list" || container_class=="deque"  || 
-	  container_class=="vector" || container_class=="slist" ||
-          container_class=="set" || container_class=="multiset" ||
-          container_class=="hash_set" || container_class=="hash_multiset" ||
-	  container_class=="bitset"
-                     @template_args="single"
-        elsif container_class=="map" ||
-          container_class=="multimap" || container_class=="hash_map" || 
- 	  container_class=="hash_multimap"
-                     @template_args="double"
-        else     
-	  puts $err_state
-          raise TypeError.new("no such container class: " + container_class +
+	
+
+          if container_class=="list" || container_class=="deque"  || 
+	    container_class=="vector" || container_class=="slist" ||
+            container_class=="set" || container_class=="multiset" ||
+            container_class=="hash_set" || container_class=="hash_multiset" ||
+	    container_class=="bitset"
+                       @template_args="single"
+          elsif container_class=="map" ||
+            container_class=="multimap" || container_class=="hash_map" || 
+ 	    container_class=="hash_multimap"
+                       @template_args="double"
+          else     
+	    puts $err_state
+            raise TypeError.new("no such container class: " + container_class+
  	  			  "\n\n NOW EXITING. \n")
-        end
+          end
 
-# comparison function for user defined types ruins the check. but c.f
-# shouldn't be reported so go ahead
-
-	if (@template_args=="single" && container_split[1].include?(",")) || 
-	   (@template_args=="double" && !container_split[1].include?(","))
-	     raise ArgumentError.new(class_sign + my_array[2] + 
-	     	   "\n\n NOW EXITING. \n")
-	end
-
-
-        if container_class=="list" || container_class=="deque"  || 
-	  container_class=="vector" || container_class=="slist" ||
-	  container_class=="bitset"
-                     @container_type="sequence"
-        elsif container_class=="map" ||
-          container_class=="multimap" || container_class=="hash_map" || 
-	  container_class=="hash_multimap" || 
-          container_class=="set" || container_class=="multiset" ||
-          container_class=="hash_set" || container_class=="hash_multiset"
-                     @container_type="associative"
-        elsif container_class=="bitset"
-	  	     @container_type="bitset"
-	end
-
-	@signature=my_array[2]
-	puts "container signature is: " + @signature
-        puts "no of template args is: " + @template_args
-	puts "container type is: " + @container_type
-
-	i=0
-	while i<my_array.length
-	  puts my_array[i]
-	  i+=1
-	end 
-	if my_array.length==4
-	  unless @template_args=="single"
-	    puts $err_state
-	    raise ArgumentError.new(no_args)
+	  if (@template_args=="single" && container_split[1].include?(",")) || 
+	     (@template_args=="double" && !container_split[1].include?(","))
+	       raise ArgumentError.new(class_sign + my_array[1] + 
+	     	     "\n\n NOW EXITING. \n")
 	  end
-	  top_class=register_class(my_array,3,1)
-	  puts "top class is: " + top_class
-	  register_class(my_array,top_class)
-	elsif my_array.length==5
-	  unless @template_args=="double"
-	    puts $err_state
-	    raise ArgumentError.new(col_args)
+
+
+          if container_class=="list" || container_class=="deque"  || 
+	    container_class=="vector" || container_class=="slist" ||
+	    container_class=="bitset"
+                       @container_type="sequence"
+          elsif container_class=="map" ||
+            container_class=="multimap" || container_class=="hash_map" || 
+	    container_class=="hash_multimap" || 
+            container_class=="set" || container_class=="multiset" ||
+            container_class=="hash_set" || container_class=="hash_multiset"
+                       @container_type="associative"
+          elsif container_class=="bitset"
+	  	       @container_type="bitset"
 	  end
-	  top_class1=register_class(my_array, 3, 1)
-	  top_class2=register_class(my_array, 4, 1)
-	  puts "top_class1 :" + top_class1
-	  puts "top_class2 :" + top_class2	     
+
+	  @signature=my_array[1]
+	  puts "container signature is: " + @signature
+          puts "no of template args is: " + @template_args
+	  puts "container type is: " + @container_type
+
+	  i=0
+	  while i<my_array.length
+	    puts my_array[i]
+	    i+=1
+	  end 
+	  if my_array.length==3
+	    unless @template_args=="single"
+	      puts $err_state
+	      raise ArgumentError.new(no_args)
+	    end
+	    top_class=register_class(my_array,2,1)
+	    puts "top class is: " + top_class
+	    register_class(my_array,top_class)
+	  elsif my_array.length==4
+	    unless @template_args=="double"
+	      puts $err_state
+	      raise ArgumentError.new(col_args)
+	    end
+	    top_class1=register_class(my_array, 2, 1)
+	    top_class2=register_class(my_array, 3, 1)
+	    puts "top_class1 :" + top_class1
+	    puts "top_class2 :" + top_class2	     
+
 # needed for method search in order to be able to address both
 # template arguments's columns. however, attributes stored anywhere?
-	  if( my_array[3].include?("-") ) 
-	    @key_class_type = 1
-	    no_attributes = my_array[3].split(/-/)
-	    @key_class_attributes = no_attributes.length
-	  else 
-	    @key_class_type = 0
+	    if( my_array[2].include?("-") ) 
+	      @key_class_type = 1
+	      no_attributes = my_array[2].split(/-/)
+	      @key_class_attributes = no_attributes.length
+	    else 
+	      @key_class_type = 0
+	    end
+	    register_class(my_array, top_class1 + "-" + top_class2)
+	  else
+	    puts $err_state
+	    raise ArgumentError.new(nargs)
 	  end
-	  register_class(my_array, top_class1 + "-" + top_class2)
-	else
-	  puts $err_state
-	  raise ArgumentError.new(nargs)
+	  w += 1
 	end
 #why?use as top table name
-	@classnames.push(my_array[1])	
-	write_to_file(my_array[0])
-	puts "CONGRATS?"
+#	  @classnames.push(my_array[0])	
+	  write_to_file(ds[0])
+	  puts "CONGRATS?"
       end
 
 #=end
@@ -1415,12 +1411,15 @@ end
 # test cases
 
 if __FILE__==$0
-=begin
-    input=Input_Description.new("foo .db;account;
+#=begin
+    input=Input_Description.new("foo .db!account;
     vector<Account>;Account,class-a ccount_no,text-balance,FLoat")  
 
-#=begin
-    input=Input_Description.new("foo .db;account;	map<string,Account>;nick_name,string;Account,class-a ccount_no,text-balance,FLoat-isbn,integer")
+=begin
+    input=Input_Description.new("foo .db;account;
+    map<string,Account>;
+    nick_name,string;Account,class-a ccount_no,text-balance,FLoat-isbn,
+    integer")
 #=end
     input=Input_Description.new("foo .db;account;
     deque<Account>;Account,class-a ccount_no,text-balance,FLoat-isbn,integer") 
@@ -1430,9 +1429,9 @@ if __FILE__==$0
 #=end
     input=Input_Description.new("foo .db;account;
     multiset<Account>;Account,class-a ccount_no,text-balance,FLoat-isbn,integer") 
-=end
+#=end
     input=Input_Description.new("foo .db;account;	multimap<string,Account>;nick_name,string;Account,class-a ccount_no,text-balance,FLoat-isbn,integer")
-=begin
+#=begin
 #=end
     input=Input_Description.new("foo .db;emplo	yees;
      vector;nick_name,class-nick_name,string;")         
