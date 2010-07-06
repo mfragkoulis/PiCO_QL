@@ -1,4 +1,4 @@
-#include <vector>
+#include <map>
 #include "search.h"
 #include <string>
 #include "Type.h"
@@ -9,7 +9,7 @@ using namespace std;
 
 int get_datastructure_size(void *st){
     stlTable *stl = (stlTable *)st;
-    vector<Account> *any_dstr = (vector<Account> *)stl->data;
+    map<string,Account> *any_dstr = (map<string,Account> *)stl->data;
     return ((int)any_dstr->size());
 }
 
@@ -83,8 +83,8 @@ void search(void *stc, char *constr, sqlite3_value *val){
     sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;
     stlTable *stl = (stlTable *)cur->pVtab;
     stlTableCursor *stcsr = (stlTableCursor *)stc;
-    vector<Account> *any_dstr = (vector<Account> *)stl->data;
-    vector<Account>:: iterator iter;
+    map<string,Account> *any_dstr = (map<string,Account> *)stl->data;
+    map<string,Account>:: iterator iter;
     Type value;
     int op, count = 0;
 // val==NULL then constr==NULL also
@@ -152,28 +152,6 @@ void search(void *stc, char *constr, sqlite3_value *val){
                 }
                 stcsr->size += count;
                 break;
-            case 1:
-// why necessarily iter->second in associative?
-// if non pointer then second. else second->
-                iter=any_dstr->begin();
-                for(int i=0; i<(int)any_dstr->size(); i++){
-                    if( traverse((const unsigned char *)iter->get_account_no(), op, sqlite3_value_text(val)) )
-                        stcsr->resultSet[count++] = i;
-                    iter++;
-                }
-                stcsr->size += count;
-                break;
-            case 2:
-// why necessarily iter->second in associative?
-// if non pointer then second. else second->
-                iter=any_dstr->begin();
-                for(int i=0; i<(int)any_dstr->size(); i++){
-                    if( traverse(iter->get_balance(), op, sqlite3_value_double(val)) )
-                        stcsr->resultSet[count++] = i;
-                    iter++;
-                }
-                stcsr->size += count;
-                break;
 // more datatypes and ops exist
             }
         }
@@ -186,8 +164,8 @@ int retrieve(void *stc, int n, sqlite3_context* con){
     sqlite3_vtab_cursor *svc = (sqlite3_vtab_cursor *)stc;
     stlTable *stl = (stlTable *)svc->pVtab;
     stlTableCursor *stcsr = (stlTableCursor *)stc;
-    vector<Account> *any_dstr = (vector<Account> *)stl->data;
-    vector<Account>:: iterator iter;
+    map<string,Account> *any_dstr = (map<string,Account> *)stl->data;
+    map<string,Account>:: iterator iter;
     char *colName = stl->azColumn[n];
     int index = stcsr->current;
 // iterator implementation. serial traversing or hit?
@@ -212,12 +190,6 @@ int retrieve(void *stc, int n, sqlite3_context* con){
 // no.doxygen.
         switch ( n ){
 // why necessarily iter->second in associative?
-        case 1:
-            sqlite3_result_text(con, (const char *)iter->get_account_no(),-1,SQLITE_STATIC);
-            break;
-        case 2:
-            sqlite3_result_double(con, iter->get_balance());
-            break;
         }
     }
     return SQLITE_OK;

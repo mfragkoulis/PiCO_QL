@@ -2,7 +2,7 @@
 #include <string>
 #include "stl_to_sql.h"
 #include <pthread.h>
-#include <vector>
+#include <map>
 
 using namespace std;
 
@@ -11,10 +11,9 @@ using namespace std;
 void * thread_sqlite(void *data){
   const char **queries;
   queries = (const char **)sqlite3_malloc(sizeof(char *) * 
-  	    	   1);
+  	    	   0);
   int failure = 0;
-  queries[0] = "CREATE VIRTUAL TABLE vector<Account> USING stl(id INTEGER PRIMARY KEY AUTOINCREMENT,account_no TEXT,balance FLOAT)";
-  failure = register_table( "foo.db" ,  1, queries,
+  failure = register_table( "foo.db" ,  0, queries,
   	   data, enter 1 if table is to be created 0 if already created);
   printf("Thread sqlite returning..\n");  
   sqlite3_free(queries);

@@ -8,16 +8,13 @@ class Input_Description
 	  @signature=""
 	  @table_columns=Array.new
 	  @data_structures=Hash.new
+	  @temp_type=""
+	  @key_class_type
+	  @key_class_attributes
 # make twodimensional and cancel columns array?
 	  @classnames=Array.new
 	  @container_type=""
 	  @template_args=""
-	  @key_class_type=0
-# key class type is used to declare what kind of key an associative 
-# datastructure has 
-# 0=primitive, 1=user-defined (class), 2=user-defined nested
-	  @key_class_attributes=1
-# cancel filename?
 	  @filename="main.cpp"
 	  @queries=Array.new
       end
@@ -1132,7 +1129,7 @@ DT
 # respective VT creation. the version that takes two arguments
 # concerns the top class(es) of the template argument(s). 
 
-      def register_class(*args)
+      def register_class(my_array, index)
 
 
 # HERE DOCUMENTS FOR METHOD
@@ -1161,85 +1158,51 @@ MA
 # END OF HEREDOCS
 
         columns=Array.new
-        if args.size==3
-	  my_array=args[0]
-	  index=args[1]
-	  if my_array[index].include?(":")
-	    classes=my_array[index].split(/:/)
-	    i= -1 + classes.length
-
-# why third parameter(it is fixed.)?seperate versions
-
-	    while i>=args[2]
-	       puts classes[i]
-	       attributes=classes[i].split(/-/)
-	       k=0
-	       while k<attributes.length
-	  	 puts attributes[k]
-		 k+=1
+	template = Hash.new
+	if my_array[index].include?(":")
+	  @temp_type = "complex"
+	  classes=my_array[index].split(/:/)
+	  i = 0
+	  while i < classes.length
+	     puts classes[i]	
+	     attributes = classes[i].split(/-/)
+	     k = 0
+	     while k<attributes.length
+	       puts attributes[k]
+	       if attributes[k].match(/,class/)
+		 name = attributes[k].split(/,/)
 	       end
-	       i-=1
-	       columns=transform(my_array, attributes)
-	       t=0
-	       while t<columns.length
-	       	  puts columns[t]
-	       	  t+=1
-	       end
-	       create_vt(columns)
-#	       puts $query
+	       k += 1
+	     end
+	     i += 1
+	     columns = transform(my_array, attributes)
+	     template[name[0]] = columns
+	  end
+	elsif my_array[index].include?("-")   
+# user defined class with attributes of primitive type
+	  @temp_type = "user_simple"
+	  attributes = my_array[index].split(/-/)
+	  k = 0
+	  while k<attributes.length
+	    puts attributes[k]
+	    if attributes[k].match(/,class/)
+	      name = attributes[k].split(/,/)
 	    end
-	    return classes[0]
-	  elsif my_array[index].include?("-") && my_array.length==4        
-# datastructure is of type collection
-	    return my_array[index]
-#	    attributes=my_array[index].split(/-/)
-#	    columns=transform(my_array, attributes)	    
-#	    create_vt(columns)       
-# need for return. register_class(my_array,3,1)
-#	    puts $query
-	  else
-#why?
-	    attributes=Array.new(1,my_array[index])
-	    return my_array[index]
+	    k += 1
 	  end
-# why?
-  	  if classes
-	     return classes[0]
-	  end
-	elsif args.size==2
-	  my_array=args[0]
-	  template_arg=args[1]
-          attributes=template_arg.split(/-/)
-	  i=0
-	  count=0
-	  while i<attributes.length 
-#    don't really care about the class names. the table
-#    name has been given seperately
-	    if attributes[i].match(/,class/)
-# intervention
-	      keep_class=attributes[i].split(/,/)
-	      @classnames.push(keep_class[0])
-	      count+=1
-	      attributes.delete_at(i)
-	    end
-	  i+=1
-	  end
-	  if count>2
-	    puts $err_state
-	    raise ArgumentError.new(tmpl_abuse)
-	  end
-	  columns=transform(my_array, attributes)
-	  t=0
-	  while t<columns.length
-	     puts columns[t]
-	     t+=1
-	  end
-	  create_vt(columns)
-#	  puts $query
+	  columns = transform(my_array, attributes)
+	  template[name[0]] = columns
 	else
-	  puts $err_state
-	  raise ArgumentError.new(method_args)
+	  @temp_type = "primitive"
+	  if my_array[index].include?(",")
+	    name = my_array[index].split(/,/)
+	    columns[0] = name[1]
+	    template[name[0]] = columns
+	  end
 	end
+ 	template.each_pair { |key, value_array| 
+	   value_array.each {|value| puts "key is #{key} value is #{value}"}}  
+	return template
       end
 
 
@@ -1289,6 +1252,10 @@ NAR
 
 # END OF HEREDOCS
 
+        templates_representation = Hash.new
+        ds_struct = Hash.new
+	ds_chars = Array.new
+
         puts "description before whitespace cleanup " + @description
         @description.gsub!(/\s/,"")
         puts "description after whitespace cleanup " + @description
@@ -1298,11 +1265,13 @@ NAR
 	w = 1
 	while w<ds.length
 	  my_array = ds[w].split(/;/)
-	
+# data structure name
+	  ds_chars.push(my_array[0])
+
 =begin
 	if ds[0].include?(".")
 	  no_extension=ds[0].split(/\./)
-	  ds[0]=ds[0]
+	  ds[0]=no_extension[0]
 # make foo.db -> foo
 	end
 =end
@@ -1355,6 +1324,7 @@ NAR
 	  end
 
 	  @signature=my_array[1]
+	  ds_chars.push(my_array[1])
 	  puts "container signature is: " + @signature
           puts "no of template args is: " + @template_args
 	  puts "container type is: " + @container_type
@@ -1369,29 +1339,20 @@ NAR
 	      puts $err_state
 	      raise ArgumentError.new(no_args)
 	    end
-	    top_class=register_class(my_array,2,1)
-	    puts "top class is: " + top_class
-	    register_class(my_array,top_class)
+	    template=register_class(my_array,2)
+	    key = Hash.new
+	    key["none"] = nil
+	    templates_Representation[key] = template
 	  elsif my_array.length==4
 	    unless @template_args=="double"
 	      puts $err_state
 	      raise ArgumentError.new(col_args)
 	    end
-	    top_class1=register_class(my_array, 2, 1)
-	    top_class2=register_class(my_array, 3, 1)
-	    puts "top_class1 :" + top_class1
-	    puts "top_class2 :" + top_class2	     
-
-# needed for method search in order to be able to address both
-# template arguments's columns. however, attributes stored anywhere?
-	    if( my_array[2].include?("-") ) 
-	      @key_class_type = 1
-	      no_attributes = my_array[2].split(/-/)
-	      @key_class_attributes = no_attributes.length
-	    else 
-	      @key_class_type = 0
-	    end
-	    register_class(my_array, top_class1 + "-" + top_class2)
+	    template1=register_class(my_array, 2)
+	    template2=register_class(my_array, 3)
+	    templates_Representation[template1] = template2
+#	    puts "template1 :" + template1
+#	    puts "template2 :" + template2	     
 	  else
 	    puts $err_state
 	    raise ArgumentError.new(nargs)
@@ -1411,16 +1372,16 @@ end
 # test cases
 
 if __FILE__==$0
-#=begin
+=begin
     input=Input_Description.new("foo .db!account;
     vector<Account>;Account,class-a ccount_no,text-balance,FLoat")  
 
-=begin
-    input=Input_Description.new("foo .db;account;
+=end
+    input=Input_Description.new("foo .db!account;
     map<string,Account>;
     nick_name,string;Account,class-a ccount_no,text-balance,FLoat-isbn,
     integer")
-#=end
+=begin
     input=Input_Description.new("foo .db;account;
     deque<Account>;Account,class-a ccount_no,text-balance,FLoat-isbn,integer") 
 #=end
@@ -1507,5 +1468,3 @@ string-balance,float")
     input.register_datastructure
 
 end
-
-
