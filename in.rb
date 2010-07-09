@@ -1,5 +1,29 @@
 # raise alarm if special characters are used in description
 
+class Template
+      
+      def initialize
+        @template_description=Hash.new
+      end
+      attr_accessor (:template_description)
+
+end
+      
+
+class Data_structure_characteristics
+
+      def initialize
+      	  @name=""
+	  @type=""
+	  @signature=""	
+	  @nested="" 
+	  @template1_type="" 
+	  @template2_type=""
+      end
+      attr_accessor (:name, :type, :signature, :nested,
+      		    :template1_type, :template2_type) 
+
+end
 
 class Input_Description
 
@@ -7,7 +31,7 @@ class Input_Description
           @description=description
 	  @signature=""
 	  @table_columns=Array.new
-	  @data_structures=Hash.new
+	  @data_structures_array=Array.new
 	  @temp_type=""
 	  @key_class_type
 	  @key_class_attributes
@@ -20,22 +44,10 @@ class Input_Description
       end
 
 
-      def two_dms_array(height, width)
-      	  a = Array.new(height)
-	  a.map!{Array.new(width)}
-	  return a
-      end
-
 # produces a valid sql query for creating a virtual table according to
 # the argument array columns
 
       def create_vt(columns)
-
-# strips the extension from db name given.no need
-#         if columns[1].include?(".")
-#	    no_extension=columns[1].split(/\./)
-#	    columns[1]=no_extension[0]	    
-#	 end
 
          query="CREATE VIRTUAL TABLE " + columns[2]  + " USING " + 
 	 	       columns[0] + "("
@@ -1129,7 +1141,7 @@ DT
 # respective VT creation. the version that takes two arguments
 # concerns the top class(es) of the template argument(s). 
 
-      def register_class(my_array, index)
+      def register_class(ds_chars_inst, my_array, index)
 
 
 # HERE DOCUMENTS FOR METHOD
@@ -1145,22 +1157,20 @@ NOW EXITING
 
 TA
 
-  # HereDoc2
-
-     method_args = <<-MA
-internal: method register_class accepts either two or three arguments
-
-
-NOW EXITING.
-
-MA
 
 # END OF HEREDOCS
 
         columns=Array.new
-	template = Hash.new
+	template = Template.new
+	description = Hash.new
 	if my_array[index].include?(":")
-	  @temp_type = "complex"
+	  if ds_chars_inst.template1_type == "none"
+	    ds_chars_inst.template2_type = "complex"
+	  elsif ds_chars_inst.template1_type==""
+	    ds_chars_inst.template1_type = "complex"
+	  else
+	    ds_chars_inst.template2_type = "complex"
+	  end
 	  classes=my_array[index].split(/:/)
 	  i = 0
 	  while i < classes.length
@@ -1176,11 +1186,17 @@ MA
 	     end
 	     i += 1
 	     columns = transform(my_array, attributes)
-	     template[name[0]] = columns
+	     description[name[0]] = columns
 	  end
 	elsif my_array[index].include?("-")   
 # user defined class with attributes of primitive type
-	  @temp_type = "user_simple"
+	  if ds_chars_inst.template1_type == "none"
+	    ds_chars_inst.template2_type = "user_simple"
+	  elsif ds_chars_inst.template1_type==""
+	    ds_chars_inst.template1_type = "user_simple"
+	  else
+	    ds_chars_inst.template2_type = "user_simple"
+	  end
 	  attributes = my_array[index].split(/-/)
 	  k = 0
 	  while k<attributes.length
@@ -1191,17 +1207,24 @@ MA
 	    k += 1
 	  end
 	  columns = transform(my_array, attributes)
-	  template[name[0]] = columns
+	  description[name[0]] = columns
 	else
-	  @temp_type = "primitive"
+	  if ds_chars_inst.template1_type == "none"
+	    ds_chars_inst.template2_type = "primitive"
+	  elsif ds_chars_inst.template1_type==""
+	    ds_chars_inst.template1_type = "primitive"
+	  else
+	    ds_chars_inst.template2_type = "primitive"
+	  end
 	  if my_array[index].include?(",")
 	    name = my_array[index].split(/,/)
 	    columns[0] = name[1]
-	    template[name[0]] = columns
+	    description[name[0]] = columns
 	  end
 	end
- 	template.each_pair { |key, value_array| 
+ 	description.each_pair { |key, value_array| 
 	   value_array.each {|value| puts "key is #{key} value is #{value}"}}  
+	template.template_description = description
 	return template
       end
 
@@ -1252,29 +1275,33 @@ NAR
 
 # END OF HEREDOCS
 
-        templates_representation = Hash.new
-        ds_struct = Hash.new
-	ds_chars = Array.new
-
         puts "description before whitespace cleanup " + @description
         @description.gsub!(/\s/,"")
         puts "description after whitespace cleanup " + @description
 
 	
 	ds = @description.split(/!/)
+
+	data_structure = Array.new
+        templates_representation = Array.new
+	ds_chars = Array.new
+	template1 = Array.new
+	template2 = Array.new
+
 	w = 1
 	while w<ds.length
-	  my_array = ds[w].split(/;/)
-# data structure name
-	  ds_chars.push(my_array[0])
 
-=begin
-	if ds[0].include?(".")
-	  no_extension=ds[0].split(/\./)
-	  ds[0]=no_extension[0]
-# make foo.db -> foo
-	end
-=end
+	  data_structure[w-1] = Hash.new
+          templates_representation[w-1] = Hash.new
+	  ds_chars[w-1] = Data_structure_characteristics.new
+	  template1[w-1] = Template.new
+	  template2[w-1] = Template.new
+
+	  my_array = ds[w].split(/;/)
+
+# data structure name
+	  ds_chars[w-1].name=my_array[0]
+
 
 	  if my_array[1].include?("<") && my_array[1].include?(">")
 	    container_split=my_array[1].split(/</)
@@ -1285,7 +1312,6 @@ NAR
 	  end
 
 	
-
           if container_class=="list" || container_class=="deque"  || 
 	    container_class=="vector" || container_class=="slist" ||
             container_class=="set" || container_class=="multiset" ||
@@ -1324,7 +1350,7 @@ NAR
 	  end
 
 	  @signature=my_array[1]
-	  ds_chars.push(my_array[1])
+	  ds_chars[w-1].signature=my_array[1]
 	  puts "container signature is: " + @signature
           puts "no of template args is: " + @template_args
 	  puts "container type is: " + @container_type
@@ -1339,31 +1365,89 @@ NAR
 	      puts $err_state
 	      raise ArgumentError.new(no_args)
 	    end
-	    template=register_class(my_array,2)
-	    key = Hash.new
-	    key["none"] = nil
-	    templates_Representation[key] = template
+	    ds_chars[w-1].template1_type="none"
+	    
+	    template2[w-1]=register_class(ds_chars[w-1], my_array, 2)
+	    template1[w-1].template_description["none"] = nil
+	    templates_representation[w-1].store(template1[w-1], 
+	    						template2[w-1])
 	  elsif my_array.length==4
 	    unless @template_args=="double"
 	      puts $err_state
 	      raise ArgumentError.new(col_args)
 	    end
-	    template1=register_class(my_array, 2)
-	    template2=register_class(my_array, 3)
-	    templates_Representation[template1] = template2
-#	    puts "template1 :" + template1
-#	    puts "template2 :" + template2	     
+	    template1[w-1]=register_class(ds_chars[w-1], my_array, 2)
+	    template2[w-1]=register_class(ds_chars[w-1], my_array, 3)
+	    templates_representation[w-1].store(template1[w-1], 
+	    						template2[w-1])
 	  else
 	    puts $err_state
 	    raise ArgumentError.new(nargs)
 	  end
+	  data_structure[w-1].store(ds_chars[w-1],
+				templates_representation[w-1])
+	  @data_structures_array.push(data_structure[w-1])
 	  w += 1
 	end
-#why?use as top table name
-#	  @classnames.push(my_array[0])	
-	  write_to_file(ds[0])
-	  puts "CONGRATS?"
-      end
+
+	q = 0
+	tmpr_ds=Hash.new
+	tmpr_chars=Data_structure_characteristics.new
+	tmpr_keys=Array.new
+	tmpr_template = Hash.new
+	tmpr_classes1 = Template.new	    
+	tmpr_classes2 = Template.new
+	tmpr_class = Hash.new
+
+	puts "length " + @data_structures_array.length.to_s
+	while q < @data_structures_array.length
+	  tmpr_ds=@data_structures_array[q]
+
+# extract keys from original beasty hash
+# contains only one key of type Data_structure_characteristics
+
+	  tmpr_keys=tmpr_ds.keys
+	  tmpr_chars=tmpr_keys[0]
+
+	  puts tmpr_chars.name
+	  puts tmpr_chars.signature
+	  puts tmpr_chars.type
+	  puts tmpr_chars.nested
+	  puts tmpr_chars.template1_type
+	  puts tmpr_chars.template2_type
+
+	  tmpr_template = tmpr_ds.fetch(tmpr_chars)
+
+# tmpr_keys length should be one
+	  tmpr_keys = tmpr_template.keys
+	  tmpr_classes1 = tmpr_keys[0]
+	  tmpr_classes2 = tmpr_template.fetch(tmpr_keys[0])
+
+# extract keys from Hash template
+# contains only one key of type Array (template description)
+
+	  tc = 0
+	  tmpr_class = tmpr_classes1.template_description
+	  if tmpr_class.has_key?("none") 
+	    puts "empty template"
+	  else
+	    tmpr_class.each_pair{|class_name, attribute_array|
+	    attribute_array.each{|attribute|
+	    puts "#{class_name}, #{attribute}"}}
+	  end
+	  tmpr_class = tmpr_classes2.template_description
+	  if tmpr_class.has_key?("none")
+	    puts "empty template"
+	  else
+	    tmpr_class.each_pair{|class_name, attribute_array|
+	     attribute_array.each{|attribute|
+	     puts "#{class_name}, #{attribute}"}}
+	  end
+	  q += 1
+	end
+	write_to_file(ds[0])
+	puts "CONGRATS?"
+    end
 
 #=end
 
@@ -1380,7 +1464,7 @@ if __FILE__==$0
     input=Input_Description.new("foo .db!account;
     map<string,Account>;
     nick_name,string;Account,class-a ccount_no,text-balance,FLoat-isbn,
-    integer")
+    integer!persons;vector<Person>;Person,class-name,string-age,int")
 =begin
     input=Input_Description.new("foo .db;account;
     deque<Account>;Account,class-a ccount_no,text-balance,FLoat-isbn,integer") 
