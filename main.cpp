@@ -2,8 +2,7 @@
 #include <string>
 #include "stl_to_sql.h"
 #include <pthread.h>
-#include <vector>
-#include "Account.h"
+#include <map>
 
 using namespace std;
 

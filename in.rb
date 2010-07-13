@@ -36,6 +36,7 @@ class Input_Description
 	  @key_class_type
 	  @key_class_attributes
 # make twodimensional and cancel columns array?
+          @ds_nested_names = Array.new
 	  @classnames=Array.new
 	  @container_type=""
 	  @template_args=""
@@ -47,7 +48,7 @@ class Input_Description
 # produces a valid sql query for creating a virtual table according to
 # the argument array columns
 
-      def create_vt(columns)
+      def create_vt()
 
          query="CREATE VIRTUAL TABLE " + columns[2]  + " USING " + 
 	 	       columns[0] + "("
@@ -1013,7 +1014,10 @@ ERS
 # (pairs of name,type aka attributes)
 # maps types to sqlite3 data_types and pushes pairs to argv
 
-      def transform(my_array, attributes)
+
+# my_array obsolete in tranform?
+
+      def transform(attributes)
 
 
 # HERE DOCUMENTS FOR METHOD
@@ -1046,11 +1050,11 @@ DT
 # END OF HEREDOCS
 
         argv=Array.new
-	argv.push("stl")
-	argv.push(my_array[0])
-	argv.push(my_array[1])
+#	argv.push("stl")
+#	argv.push(my_array[0])
+#	argv.push(my_array[2])
 # PK for all tables (top level too)
-	argv.push("id INTEGER PRIMARY KEY AUTOINCREMENT")
+#	argv.push("id INTEGER PRIMARY KEY AUTOINCREMENT")
 	i=0
 	while i< attributes.length
 	  if attributes[i].include?(",")
@@ -1061,7 +1065,7 @@ DT
 	      	    attributes[i] + "\n\n NOW EXITING. \n") 
 	    end
 	    name_type[1]=name_type[1].downcase
-            if name_type[1]=="class"
+            if name_type[1].match(/class/)
 	      k=0
 	      while k<@classnames.length
 		if @classnames[k]==name_type[0]
@@ -1076,8 +1080,8 @@ DT
 # top level tables won't go in this condition only intermediate ones.
 # table name is set as default so that it works for top level.
 # intermediate tables override default with respective class name.
-	      argv.delete_at(2)
-	      argv.insert(2,name_type[0])
+#	      argv.delete_at(2)
+#	      argv.insert(2,name_type[0])
 #	      argv.push("INTEGER PRIMARY KEY AUTOINCREMENT")
 	    elsif name_type[1]=="reference"
 	      k=0
@@ -1088,12 +1092,27 @@ DT
 		k+=1
               end
 	      if pushed
-		argv.push(name_type[0] + "_id references " + name_type[0])
+		argv.push(name_type[0] + " reference")
 	      else 
 	        puts $err_state
 		raise ArgumentError.new(no_bind.chomp + name_type[0] + 
 		      "\n\n NOW EXITING. \n")
 	      end
+	    elsif name_type[1].match(/\ids/)
+	      e=0
+	      while e < @ds_nested_names.length
+	        if @ds_nested_names[e]==name_type[0]
+		  bind=true
+	        end
+		e += 1
+	      end
+	      if bind
+		argv.push(name_type[0] + " " + name_type[1])
+	      else
+	        puts $err_state
+		raise ArgumentError.new(no_bind.chomp + name_type[0] + 
+		      "\n\n NOW EXITING. \n")
+	      end	      
             elsif name_type[1]=="int" || name_type[1]=="integer" ||
 	      name_type[1]=="tinyint" || name_type[1]=="smallint" || 
 	      name_type[1]=="mediumint" || name_type[1]=="bigint" ||
@@ -1134,12 +1153,8 @@ DT
 
 
 
-#method overloading
 # splits a template argument into the classes definitions that it
-# contains (: delimeter). For each class it calls transform and then
-# create_vt() to produce a valid sql query that will result in the
-# respective VT creation. the version that takes two arguments
-# concerns the top class(es) of the template argument(s). 
+# contains (: delimeter). 
 
       def register_class(ds_chars_inst, my_array, index)
 
@@ -1172,8 +1187,10 @@ TA
 	    ds_chars_inst.template2_type = "complex"
 	  end
 	  classes=my_array[index].split(/:/)
-	  i = 0
-	  while i < classes.length
+
+# bottom up
+	  i = -1 + classes.length
+	  while i >= 0
 	     puts classes[i]	
 	     attributes = classes[i].split(/-/)
 	     k = 0
@@ -1184,9 +1201,9 @@ TA
 	       end
 	       k += 1
 	     end
-	     i += 1
-	     columns = transform(my_array, attributes)
+	     columns = transform(attributes)
 	     description[name[0]] = columns
+	     i -= 1
 	  end
 	elsif my_array[index].include?("-")   
 # user defined class with attributes of primitive type
@@ -1206,7 +1223,7 @@ TA
 	    end
 	    k += 1
 	  end
-	  columns = transform(my_array, attributes)
+	  columns = transform(attributes)
 	  description[name[0]] = columns
 	else
 	  if ds_chars_inst.template1_type == "none"
@@ -1288,26 +1305,39 @@ NAR
 	template1 = Array.new
 	template2 = Array.new
 
-	w = 1
-	while w<ds.length
+	w = - 1 + ds.length
+	l = - 1 + ds.length
+	while w > 0
 
-	  data_structure[w-1] = Hash.new
-          templates_representation[w-1] = Hash.new
-	  ds_chars[w-1] = Data_structure_characteristics.new
-	  template1[w-1] = Template.new
-	  template2[w-1] = Template.new
+	  puts "\nDATA STRUCTURE DESCRIPTION No: " + w.to_s + "\n"
+
+	  data_structure[l-w] = Hash.new
+          templates_representation[l-w] = Hash.new
+	  ds_chars[l-w] = Data_structure_characteristics.new
+	  template1[l-w] = Template.new
+	  template2[l-w] = Template.new
 
 	  my_array = ds[w].split(/;/)
 
 # data structure name
-	  ds_chars[w-1].name=my_array[0]
+	  ds_chars[l-w].name=my_array[0]
+	  @ds_nested_names.push(my_array[0])
+	  ds_chars[l-w].type=my_array[1]
 
+# @classnames is used to keep track of classes contained
+# in a datastructure for avoidance of duplication
+# and to help recognizing nested classes
+# cleared to be reused
 
-	  if my_array[1].include?("<") && my_array[1].include?(">")
-	    container_split=my_array[1].split(/</)
+	  if !@classnames.empty?
+	    @classnames.clear
+	  end
+
+	  if my_array[2].include?("<") && my_array[2].include?(">")
+	    container_split=my_array[2].split(/</)
 	    container_class=container_split[0]
 	  else
-	    raise ArgumentError.new(class_sign + my_array[1] + 
+	    raise ArgumentError.new(class_sign + my_array[2] + 
 	     	     "\n\n NOW EXITING. \n") 
 	  end
 
@@ -1330,7 +1360,7 @@ NAR
 
 	  if (@template_args=="single" && container_split[1].include?(",")) || 
 	     (@template_args=="double" && !container_split[1].include?(","))
-	       raise ArgumentError.new(class_sign + my_array[1] + 
+	       raise ArgumentError.new(class_sign + my_array[2] + 
 	     	     "\n\n NOW EXITING. \n")
 	  end
 
@@ -1349,8 +1379,8 @@ NAR
 	  	       @container_type="bitset"
 	  end
 
-	  @signature=my_array[1]
-	  ds_chars[w-1].signature=my_array[1]
+	  @signature=my_array[2]
+	  ds_chars[l-w].signature=my_array[2]
 	  puts "container signature is: " + @signature
           puts "no of template args is: " + @template_args
 	  puts "container type is: " + @container_type
@@ -1360,34 +1390,35 @@ NAR
 	    puts my_array[i]
 	    i+=1
 	  end 
-	  if my_array.length==3
+
+	  if my_array.length==4
 	    unless @template_args=="single"
 	      puts $err_state
 	      raise ArgumentError.new(no_args)
 	    end
-	    ds_chars[w-1].template1_type="none"
+	    ds_chars[l-w].template1_type="none"
 	    
-	    template2[w-1]=register_class(ds_chars[w-1], my_array, 2)
-	    template1[w-1].template_description["none"] = nil
-	    templates_representation[w-1].store(template1[w-1], 
-	    						template2[w-1])
-	  elsif my_array.length==4
+	    template2[l-w]=register_class(ds_chars[l-w], my_array, 3)
+	    template1[l-w].template_description["none"] = nil
+	    templates_representation[l-w].store(template1[l-w], 
+	    						template2[l-w])
+	  elsif my_array.length==5
 	    unless @template_args=="double"
 	      puts $err_state
 	      raise ArgumentError.new(col_args)
 	    end
-	    template1[w-1]=register_class(ds_chars[w-1], my_array, 2)
-	    template2[w-1]=register_class(ds_chars[w-1], my_array, 3)
-	    templates_representation[w-1].store(template1[w-1], 
-	    						template2[w-1])
+	    template1[l-w]=register_class(ds_chars[l-w], my_array, 3)
+	    template2[l-w]=register_class(ds_chars[l-w], my_array, 4)
+	    templates_representation[l-w].store(template1[l-w], 
+	    						template2[l-w])
 	  else
 	    puts $err_state
 	    raise ArgumentError.new(nargs)
 	  end
-	  data_structure[w-1].store(ds_chars[w-1],
-				templates_representation[w-1])
-	  @data_structures_array.push(data_structure[w-1])
-	  w += 1
+	  data_structure[l-w].store(ds_chars[l-w],
+				templates_representation[l-w])
+	  @data_structures_array.push(data_structure[l-w])
+	  w -= 1
 	end
 
 	q = 0
@@ -1399,7 +1430,8 @@ NAR
 	tmpr_classes2 = Template.new
 	tmpr_class = Hash.new
 
-	puts "length " + @data_structures_array.length.to_s
+	puts "\n Data structures stored: " + 
+	     @data_structures_array.length.to_s + "\n"
 	while q < @data_structures_array.length
 	  tmpr_ds=@data_structures_array[q]
 
@@ -1412,7 +1444,6 @@ NAR
 	  puts tmpr_chars.name
 	  puts tmpr_chars.signature
 	  puts tmpr_chars.type
-	  puts tmpr_chars.nested
 	  puts tmpr_chars.template1_type
 	  puts tmpr_chars.template2_type
 
@@ -1445,6 +1476,7 @@ NAR
 	  end
 	  q += 1
 	end
+	create_vt
 	write_to_file(ds[0])
 	puts "CONGRATS?"
     end
@@ -1461,10 +1493,10 @@ if __FILE__==$0
     vector<Account>;Account,class-a ccount_no,text-balance,FLoat")  
 
 =end
-    input=Input_Description.new("foo .db!account;
+    input=Input_Description.new("foo .db!account;pointer;
     map<string,Account>;
     nick_name,string;Account,class-a ccount_no,text-balance,FLoat-isbn,
-    integer!persons;vector<Person>;Person,class-name,string-age,int")
+    integer!persons;object;vector<Person>;Person,class-name,string-age,int")
 =begin
     input=Input_Description.new("foo .db;account;
     deque<Account>;Account,class-a ccount_no,text-balance,FLoat-isbn,integer") 

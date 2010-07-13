@@ -1,0 +1,149 @@
+\documentclass[pdftex, 11pt, a4paper]{report}
+\usepackage[pdftex]{graphicx}                % See geometry.pdf to learn the layout options. There are lots.
+\usepackage{setspace}
+\usepackage[greek, english]{babel}
+\usepackage{appendix}
+\usepackage{url}
+\newcommand{\HRule}{\rule{\linewidth}{0.5mm}}
+%\geometry{landscape}                % Activate for for rotated page geometry
+%\usepackage[parfill]{parskip}    % Activate to begin paragraphs with an empty line rather than an indent
+%\pdfpagewidth 8.5in
+%\pdfpageheight 11in
+\topmargin -1cm
+\oddsidemargin 0.7cm
+\evensidemargin 0.55cm
+\textwidth 14cm
+\textheight 24cm
+%\linespread{1}
+
+\onehalfspacing
+
+\renewcommand{\baselinestretch}{1.4}
+
+
+\usepackage{sectsty}
+\chapterfont{\Huge}
+\sectionfont{\LARGE}
+\subsectionfont{\Large}
+
+\makeatletter
+\newcommand\ackname{Acknowledgements}
+\if@titlepage
+  \newenvironment{acknowledgements}{%
+      \titlepage
+      \null\vfil
+      \@beginparpenalty\@lowpenalty
+      \begin{center}%
+        \bfseries \ackname
+        \@endparpenalty\@M
+      \end{center}}%
+     {\par\vfil\null\endtitlepage}
+\else
+  \newenvironment{acknowledgements}{%
+      \if@twocolumn
+        \chapter*{\abstractname}%
+      \else
+        \small
+        \begin{center}%
+          {\bfseries \ackname\vspace{-.5em}\vspace{\z@}}%
+        \end{center}%
+        \quotation
+      \fi}
+      {\if@twocolumn\else\endquotation\fi}
+\fi
+\makeatother
+
+
+
+\begin{document}
+
+\begin{titlepage}
+\begin{center}
+\topskip 3cm
+\HRule \\[0.4 cm]
+\textsc{\Huge A relational view}\\[0.5 cm]
+\textsc{\Huge of non-relational}\\[0.5 cm]
+\textsc{\Huge data}\\[0.5 cm]
+\textsc{\Huge }
+\HRule \\[2.0 cm]
+\textsc{\LARGE Marios Fragkoulis}\\[3.0 cm]
+\textsc{\LARGE Supervisor: Dr. Diomidis Spinellis}\\[2.0 cm]
+\textsc{\Large \today}                                           % Activate to display a given date or no date
+
+\vspace{3.5 cm}
+
+\begin{minipage}{0.4\linewidth}
+\begin{flushleft} \large
+\it{Athens University of Economics and Business}
+\end{flushleft}
+\end{minipage}
+\begin{minipage}{0.5\linewidth}
+\begin{flushright} \large
+\it{Department of Management Science and Technology}
+\end{flushright}
+\end{minipage}
+
+\vfill
+
+\end{center}
+\end{titlepage}
+
+%\begin{document}
+%\maketitle 
+%\newpage
+
+
+\parindent 6mm
+\parskip 0.2cm
+
+
+\begin{abstract}
+
+\end{abstract}
+
+\topmargin 0.5cm
+\textheight 21cm
+
+\newpage
+
+\begin{acknowledgements}
+
+
+
+\end{acknowledgements}
+
+\newpage
+
+
+\tableofcontents
+
+\newpage
+
+
+\chapter{Introduction}
+\par
+
+
+\section{Motivation}
+\par
+
+
+\section{Approach}
+\par
+To provide the service of monitoring data structures of the Standard Template Library (STL) a relational interpretation of the data structure is built. Hence, we need to address the impedance mismatch problem which exists between the Object Oriented (OO) and the relational model. On this road, we use the Virtual Table API of the Sqlite open source database engine to map the data structure to a virtual table and then the well known query facilities of SQL to retrieve information, treating it as a database table. Finally, the SWILL library is utilized to provide user with a cosy interface to write queries and visualize the respective results.
+\par
+Sqlite's virtual table API allows us to define a module stating the characteristics it will bear and the methods used to access the underlying structure. Those methods are assigned to function pointers included in the module struct, called by the sqlite engine when a respective job has to be performed on the virtual table. Effectively, the idiosyncrasies of the item behind the virtual table are well hidden. It is this abstraction layer that makes our goal plausible.
+\par
+However, to retrieve information from a data structure through the virtual table mechanism is no easy task. What makes this matter complex is that a data structure can store simply anything, since the class template can be instantiated by passing a user defined class as a template argument. The effect incurred is that we cannot write generic code to realize the services in request because the possibilities are endless. On the contrary, we are obliged to act on a case to case basis vis-a-vis the specific instantiation of the data structure.
+\par
+Once a query has been input to execute against the virtual table, the sqlite engine issues calls to respective callback methods of the module the virtual table is registered with, to initiate search on the underlying structure. Search can not be carried out without knowing the structure of the object hosted by the data structure. The same applies to result retrieval. Therefore, it is requisite to be given a description of the object included in the container so that callback methods can be parameterized respectively. 
+\par
+Furthermore, the callback methods are tuned with respect to user description via automatic code generation. User supplies all necessary data to a program written in ruby language. Data are processed, code is generated and written to a C++ file fulfilling the functionality of callback methods. A sample main function is also generated for the user to fill in own functionality. Then the files have to be compiled with user defined classes. The executable incurred opens a thread, registers the module with a database connection against a database file the user has opted for, creates the virtual table using the module and prompts user to open his browser at localhost where SWILL library masqueraded as a web server allows him to write and execute queries using the open database connection.
+\par
+In more detail...
+\par
+As mentioned above, a description of the data structure is necessary to make the approach functional. This description is transformed to a set of C++ functions, to be incorporated to the module, by a program written in the ruby language. To be precise, the description given falls under certain rules so that it can be parsed and analyzed. It includes the name of the database file to create the virtual table, the name of the data structure (to name the virtual table after), the signature of the data structure (container class and template arguments) and finally the description(s) of the template argument(s). The latter encloses the class name and the names and types of the attributes. Relationships between classes and inheritance hierarchies are accounted for together with the possibility of embedded data structures. In a nutshell, it is a simple language with delimeters and keywords to address all aforementioned matters.
+\par
+
+
+\end{document}
