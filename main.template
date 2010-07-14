@@ -13,8 +13,8 @@ void * thread_sqlite(void *data){
   queries = (const char **)sqlite3_malloc(sizeof(char *) * 
   	    	   2);
   int failure = 0;
-  queries[0] = "CREATE VIRTUAL TABLE persons USING stl(";
-  queries[1] = "CREATE VIRTUAL TABLE account USING stl(";
+  queries[0] = "CREATE VIRTUAL TABLE persons USING stl(name STRING,age INT)";
+  queries[1] = "CREATE VIRTUAL TABLE account USING stl(nick_name STRING,account_no TEXT,balance FLOAT,isbn INTEGER)";
   failure = register_table( "foo.db" ,  2, queries,
   	   data, enter 1 if table is to be created 0 if already created);
   printf("Thread sqlite returning..\n");  

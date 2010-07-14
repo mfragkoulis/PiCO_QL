@@ -32,7 +32,7 @@ class Input_Description
 	  @signature=""
 	  @table_columns=Array.new
 	  @data_structures_array=Array.new
-	  @temp_type=""
+#	  @temp_type=""
 	  @key_class_type
 	  @key_class_attributes
 # make twodimensional and cancel columns array?
@@ -40,32 +40,135 @@ class Input_Description
 	  @classnames=Array.new
 	  @container_type=""
 	  @template_args=""
-	  @filename="main.cpp"
+	  @filename="main.template"
+	  @query=""
 	  @queries=Array.new
       end
 
+
+      def recursive_traversal(tmpr_class, attributes, at)
+	while at < attributes.length
+	  ret_attribute = neat_attributes(attributes[at])
+	  if ret_attribute.match(/jump/)
+	    split = ret_attribute.split(/ /)
+	    puts "split " + split[1]
+	    ret_attribute = recursive_traversal(tmpr_class,
+				tmpr_class.fetch(split[1]), 0)
+	  else
+	    @query += ret_attribute + "," 
+	  end
+	  at += 1
+	end
+      end
+
+
+# to construct the string of the query to be passed
+# to sqlite engine some attributes are not valid as stored in
+# @data_structures_array
+
+
+      def neat_attributes(attribute)
+        puts "neat_attributes"
+        puts attribute
+      	if attribute.include?("\s")
+	  name_type = attribute.split(/ /)
+	else
+	  puts "error " + attribute
+	end
+	if name_type[1]=="ds" || name_type[1]=="ds_pointer"
+	  ret_attribute = "id references " + name_type[0]
+	elsif name_type[1]=="reference"
+	  ret_attribute = "jump_to " + name_type[0]
+	elsif name_type[1].match(/inherits_from/)
+	  superclass = nametype[1].split(/inherits_from/)
+	  ret_attribute = "jump_to " + superclass
+	else
+	  ret_attribute = attribute
+# primitive type	
+  	end  
+	return ret_attribute
+      end
 
 # produces a valid sql query for creating a virtual table according to
 # the argument array columns
 
       def create_vt()
 
-         query="CREATE VIRTUAL TABLE " + columns[2]  + " USING " + 
-	 	       columns[0] + "("
-	 i=3
-	 while i<columns.length
-	    @table_columns.push(columns[i])
-# one-level-table
-	    query+=columns[i]
-	    if i+1==columns.length
-	       query+=")"	       	       
-	    else 
-	       query+=","
-	    end
-	    i+=1
-	 end	 
-	 puts query
-	 @queries.push(query)
+        puts "create_vt"
+	puts ""
+	q = 0
+	tmpr_ds=Hash.new
+	tmpr_chars=Data_structure_characteristics.new
+	tmpr_keys=Array.new
+	tmpr_template = Hash.new
+	tmpr_classes1 = Template.new	    
+	tmpr_classes2 = Template.new
+	tmpr_class = Hash.new
+	template_class = Array.new
+	attributes = Array.new
+
+	if !@classnames.empty?
+	  @classnames.clear
+	end
+
+
+	while q < @data_structures_array.length
+	  tmpr_ds=@data_structures_array[q]
+
+# extract keys from original beasty hash
+# contains only one key of type Data_structure_characteristics
+
+	  tmpr_keys=tmpr_ds.keys
+	  tmpr_chars=tmpr_keys[0]
+
+          @query = "CREATE VIRTUAL TABLE " + tmpr_chars.name  + " USING stl("
+
+# get template arguments from signature
+
+	  cleared = tmpr_chars.signature.split(/</)
+	  tml_arg = cleared[1].chomp(">")
+	  puts "tml_arg " + tml_arg
+	  puts ""
+	  if tml_arg.match(/,/)
+	    cleared = tml_arg.split(/,/)	  
+	    template_class.push(cleared[0])
+	    template_class.push(cleared[1])
+	  else
+	    template_class.push("none")
+	    template_class.push(tml_arg)
+	  end
+	  puts "template_class1 " + template_class[0]
+	  puts "template_class2 " + template_class[1]
+	  puts ""
+	  tmpr_template = tmpr_ds.fetch(tmpr_chars)
+
+# tmpr_keys length should be one
+	  tmpr_keys = tmpr_template.keys
+	  tmpr_classes1 = tmpr_keys[0]
+	  tmpr_classes2 = tmpr_template.fetch(tmpr_keys[0])
+
+# extract keys from Hash template
+# contains only one key of type Array (template description)
+
+
+	  tmpr_class = tmpr_classes1.template_description
+	  if tmpr_class.has_key?("none") 
+	    puts "empty template"
+	  else
+	    recursive_traversal(tmpr_class,
+			tmpr_class.fetch(template_class[0]), 0)
+	    puts "query " + @query
+	  end
+	  tmpr_class = tmpr_classes2.template_description
+	  recursive_traversal(tmpr_class,
+			tmpr_class.fetch(template_class[1]), 0)
+	  @query = @query.chomp(",")
+	  @query += ")"
+	  puts "query final " + @query
+	  @queries.push(@query)
+	  template_class.clear
+	  q += 1
+        end
       end
 
 # opens a new c source file and writes c code.
@@ -1070,13 +1173,13 @@ DT
 	      while k<@classnames.length
 		if @classnames[k]==name_type[0]
 		  puts $err_state
- 		  raise ArgumentError.new("Attempt to create virtual table" +
+ 		  raise ArgumentError.new("Attempt to declare same class" +
 	 	  	" twice \n\n NOW EXITING. \n")
 		end
 		k+=1
 	      end
 	      @classnames.push(name_type[0])
-              puts "table_name is " + name_type[0]
+#              puts "table_name is " + name_type[0]
 # top level tables won't go in this condition only intermediate ones.
 # table name is set as default so that it works for top level.
 # intermediate tables override default with respective class name.
@@ -1113,6 +1216,9 @@ DT
 		raise ArgumentError.new(no_bind.chomp + name_type[0] + 
 		      "\n\n NOW EXITING. \n")
 	      end	      
+	    elsif name_type[1].match(/inherits_from/)
+	      superclass = nametype[1].split(/inherits_from/)
+	      argv.push(name_type[0] + ",inherits_from," + superclass[1]) 
             elsif name_type[1]=="int" || name_type[1]=="integer" ||
 	      name_type[1]=="tinyint" || name_type[1]=="smallint" || 
 	      name_type[1]=="mediumint" || name_type[1]=="bigint" ||
@@ -1233,10 +1339,17 @@ TA
 	  else
 	    ds_chars_inst.template2_type = "primitive"
 	  end
+	  attributes = Array.new
 	  if my_array[index].include?(",")
+	    attributes.push(my_array[index])
+# for type validation
+	    columns = transform(attributes)
 	    name = my_array[index].split(/,/)
-	    columns[0] = name[1]
-	    description[name[0]] = columns
+# see to it
+	    columns[0] = name[0] + " " + name[1].upcase
+	    description[name[1]] = columns
+	  else
+	    "error in input format " + my_array[index]
 	  end
 	end
  	description.each_pair { |key, value_array| 
