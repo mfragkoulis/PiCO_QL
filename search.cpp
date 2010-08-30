@@ -1,16 +1,17 @@
-#include <map>
 #include "search.h"
 #include <string>
 #include "Type.h"
+#include <map>
+#include "Account.h"
 
 using namespace std;
 
-
-
 int get_datastructure_size(void *st){
     stlTable *stl = (stlTable *)st;
-    map<string,Account> *any_dstr = (map<string,Account> *)stl->data;
-    return ((int)any_dstr->size());
+    if( !strcmp(stl->zName, "account") ){
+        map<string,Account> *any_dstr = (map<string,Account> *)stl->data;
+        return ((int)any_dstr->size());
+    }
 }
 
 
@@ -45,7 +46,7 @@ int traverse(double dstr_value, int op, double value){
     }
 }
 
-
+// compare addresses???
 int traverse(const void *dstr_value, int op, const void *value){
     switch( op ){
     case 0:
@@ -78,8 +79,10 @@ int traverse(const unsigned char *dstr_value, int op,
     }
 }
 
-	  
-void search(void *stc, char *constr, sqlite3_value *val){
+
+
+
+void account_search(void *stc, char *constr, sqlite3_value *val){
     sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;
     stlTable *stl = (stlTable *)cur->pVtab;
     stlTableCursor *stcsr = (stlTableCursor *)stc;
@@ -122,7 +125,7 @@ void search(void *stc, char *constr, sqlite3_value *val){
         iCol = constr[1] - 'a' + 1;
         char *colName = stl->azColumn[iCol];
 // FK search
-        const char *fk = "FK";
+        const char *fk = "fk";
         if(!strcmp(colName, fk)){
             iter=any_dstr->begin();
             for(int i=0; i<(int)any_dstr->size(); i++){
@@ -132,14 +135,8 @@ void search(void *stc, char *constr, sqlite3_value *val){
             }
             stcsr->size += count;
         }else{
-
-
 // handle colName
-
-
-
             switch( iCol ){
-
 // i=0. search using PK?memory location?or no PK?
 // no can't do.PK will be memory location. PK in every table
 // PK search
@@ -147,6 +144,42 @@ void search(void *stc, char *constr, sqlite3_value *val){
                 iter=any_dstr->begin();
                 for(int i=0; i<(int)any_dstr->size(); i++){
                     if( traverse((int)&(*iter), op, sqlite3_value_int(val)) )
+                        stcsr->resultSet[count++] = i;
+                    iter++;
+                }
+                stcsr->size += count;
+                break;
+            case 1:
+                iter=any_dstr->begin();
+                for(int i=0;i<(int)any_dstr->size();i++){
+                    if( traverse((const unsigned char *)iter->first.c_str(), op, sqlite3_value_text(val)) )
+                        stcsr->resultSet[count++] = i;
+                    iter++;
+                }
+                stcsr->size += count;
+                break;
+            case 2:
+                iter=any_dstr->begin();
+                for(int i=0;i<(int)any_dstr->size();i++){
+                    if( traverse((const unsigned char *)iter->second.get_account_no(), op, sqlite3_value_text(val)) )
+                        stcsr->resultSet[count++] = i;
+                    iter++;
+                }
+                stcsr->size += count;
+                break;
+            case 3:
+                iter=any_dstr->begin();
+                for(int i=0;i<(int)any_dstr->size();i++){
+                    if( traverse(iter->second.get_balance(), op, sqlite3_value_double(val)) )
+                        stcsr->resultSet[count++] = i;
+                    iter++;
+                }
+                stcsr->size += count;
+                break;
+            case 4:
+                iter=any_dstr->begin();
+                for(int i=0;i<(int)any_dstr->size();i++){
+                    if( traverse(iter->second.get_isbn(), op, sqlite3_value_int(val)) )
                         stcsr->resultSet[count++] = i;
                     iter++;
                 }
@@ -160,9 +193,10 @@ void search(void *stc, char *constr, sqlite3_value *val){
 
 
 
-int retrieve(void *stc, int n, sqlite3_context* con){
-    sqlite3_vtab_cursor *svc = (sqlite3_vtab_cursor *)stc;
-    stlTable *stl = (stlTable *)svc->pVtab;
+
+int account_retrieve(void *stc, int n, sqlite3_context *con){
+    sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;
+    stlTable *stl = (stlTable *)cur->pVtab;
     stlTableCursor *stcsr = (stlTableCursor *)stc;
     map<string,Account> *any_dstr = (map<string,Account> *)stl->data;
     map<string,Account>:: iterator iter;
@@ -176,21 +210,47 @@ int retrieve(void *stc, int n, sqlite3_context* con){
     }
 // int datatype;
 // datatype = stl->colDataType[n];
-    const char *pk = "id";
-    const char *fk = "FK";
+    const char *pk = "pk";
+    const char *fk = "fk";
     if ( (n==0) && (!strcmp(stl->azColumn[0], pk)) ){
 // attention!
         sqlite3_result_int(con, (int)&(*iter));
         printf("memory location of PK: %x\n", &(*iter));
     }else if( !strncmp(stl->azColumn[n], fk, 2) ){
         sqlite3_result_int(con, (int)&(*iter));
-// need work
     }else{
 // in automated code: "iter->get_" + col_name + "()" will work.safe?
 // no.doxygen.
         switch ( n ){
-// why necessarily iter->second in associative?
+            case 1:
+                    sqlite3_result_text(con, (const char *)iter->first.c_str(), -1, SQLITE_STATIC);
+                    break;
+            case 2:
+                    sqlite3_result_text(con, (const char *)iter->second.get_account_no(), -1, SQLITE_STATIC);
+                    break;
+            case 3:
+                    sqlite3_result_double(con, iter->second.get_balance());
+                    break;
+            case 4:
+                    sqlite3_result_int(con, iter->second.get_isbn());
+                    break;
         }
     }
     return SQLITE_OK;
 }
+
+
+void search(void* stc, char *constr, sqlite3_value *val){
+    sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;
+    stlTable *stl = (stlTable *)cur->pVtab;
+    if( !strcmp(stl->zName, "account") )
+        account_search(stc, constr, val);
+}
+
+int retrieve(void* stc, int n, sqlite3_context *con){
+    sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;
+    stlTable *stl = (stlTable *)cur->pVtab;
+    if( !strcmp(stl->zName, "account") )
+        account_retrieve(stc, n, con);
+}
+

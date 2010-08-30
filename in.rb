@@ -9,7 +9,8 @@ class Template
 
 end
       
-
+# used in Register to store the iam's of the data structure
+# as shown below
 class Data_structure_characteristics
 
       def initialize
@@ -30,32 +31,46 @@ class Input_Description
       def initialize(description="")
           @description=description
 	  @signature=""
-	  @table_columns=Array.new
+	  @column_traverse = ""
+	  @jump = 0
+	  @back = 0
+	  @follow_up = Array.new
 	  @data_structures_array=Array.new
-#	  @temp_type=""
-	  @key_class_type
-	  @key_class_attributes
-# make twodimensional and cancel columns array?
           @ds_nested_names = Array.new
-	  @classnames=Array.new
+	  @classnames=Hash.new
 	  @container_type=""
 	  @template_args=""
 	  @filename="main.template"
 	  @query=""
 	  @queries=Array.new
+	  @s = "        "
       end
 
 
-      def recursive_traversal(tmpr_class, attributes, at)
+
+
+# takes as input a template description and an array
+# containing attributes of a class. template description is a Hash
+# containing the class descriptions of a template instantiation.
+# (Hash<string(class name),Array of strings(attributes)>)
+# The method traverses all the class attributes.
+# if they are of primitive type it concats them to form a query string.
+# Otherwise there is either a nested class or an inheritance hierarchy
+# to be taken into account. A recursive call is carried out to
+# traverse the latter.
+
+      def recursive_traversal(tmpr_class, attributes)
+        at = 0
 	while at < attributes.length
 	  ret_attribute = neat_attributes(attributes[at])
 	  if ret_attribute.match(/jump/)
 	    split = ret_attribute.split(/ /)
 	    puts "split " + split[1]
 	    ret_attribute = recursive_traversal(tmpr_class,
-				tmpr_class.fetch(split[1]), 0)
+				tmpr_class.fetch(split[1]))
 	  else
 	    @query += ret_attribute + "," 
+	    puts @query
 	  end
 	  at += 1
 	end
@@ -63,7 +78,8 @@ class Input_Description
 
 
 # to construct the string of the query to be passed
-# to sqlite engine some attributes are not valid as stored in
+# to sqlite engine. some attributes are not of primitive type
+# and signify special semantics as stored in
 # @data_structures_array
 
 
@@ -80,8 +96,7 @@ class Input_Description
 	elsif name_type[1]=="reference"
 	  ret_attribute = "jump_to " + name_type[0]
 	elsif name_type[1].match(/inherits_from/)
-	  superclass = nametype[1].split(/inherits_from/)
-	  ret_attribute = "jump_to " + superclass
+	  ret_attribute = "jump_to " + name_type[2]
 	else
 	  ret_attribute = attribute
 # primitive type	
@@ -107,9 +122,9 @@ class Input_Description
 	template_class = Array.new
 	attributes = Array.new
 
-	if !@classnames.empty?
-	  @classnames.clear
-	end
+#	if !@classnames.empty?
+#	  @classnames.clear
+#	end
 
 
 	while q < @data_structures_array.length
@@ -121,8 +136,8 @@ class Input_Description
 	  tmpr_keys=tmpr_ds.keys
 	  tmpr_chars=tmpr_keys[0]
 
-          @query = "CREATE VIRTUAL TABLE " + tmpr_chars.name  + " USING stl("
-
+          @query = "CREATE VIRTUAL TABLE " + tmpr_chars.name  + " USING stl(" +
+	  "pk integer primary key,"
 # get template arguments from signature
 
 	  cleared = tmpr_chars.signature.split(/</)
@@ -156,12 +171,12 @@ class Input_Description
 	    puts "empty template"
 	  else
 	    recursive_traversal(tmpr_class,
-			tmpr_class.fetch(template_class[0]), 0)
+			tmpr_class.fetch(template_class[0]))
 	    puts "query " + @query
 	  end
 	  tmpr_class = tmpr_classes2.template_description
 	  recursive_traversal(tmpr_class,
-			tmpr_class.fetch(template_class[1]), 0)
+			tmpr_class.fetch(template_class[1]))
 	  @query = @query.chomp(",")
 	  @query += ")"
 	  puts "query final " + @query
@@ -171,11 +186,218 @@ class Input_Description
         end
       end
 
+
+# checks if a template is of type primitive
+
+
+      def primitive(template_no, tmpr_chars)
+        if (template_no == 1 && tmpr_chars.template1_type == "primitive") ||
+           (template_no == 2 && tmpr_chars.template2_type == "primitive")
+              return true
+        else
+              return false
+        end
+      end
+
+
+# returns the sqlite compatible data type for a given
+# data type given by user. also takes care of any type cast
+# necessary to conform to sqlite requirements
+
+      def which_datatype(user_datatype, operation)
+        if user_datatype=="int" || user_datatype=="integer" ||
+                user_datatype=="tinyint" ||
+                user_datatype=="smallint"||
+                user_datatype=="mediumint" ||
+                user_datatype=="bigint" ||
+                user_datatype=="unsigned bigint" ||
+                user_datatype=="int2" ||
+                user_datatype=="bool" || user_datatype=="boolean" ||
+                user_datatype=="int8" || user_datatype=="numeric"
+                  ret = "int"
+        elsif user_datatype=="blob"
+	          ret = "blob"
+                  if operation == "retrieve"
+		    @column_traverse += ", -1, SQLITE_STATIC"
+		  end
+		  @column_traverse = "(const void *)" +
+		          @column_traverse
+        elsif user_datatype=="float" ||
+              user_datatype=="double"  ||
+              user_datatype.match(/\idecimal/) ||
+              user_datatype=="double precision" ||
+              user_datatype=="real"
+                  ret = "double"
+        elsif user_datatype=="text" || user_datatype=="date" ||
+                user_datatype=="datetime" ||
+                user_datatype.match(/\icharacter/) ||
+                user_datatype.match(/\ivarchar/) ||
+                user_datatype.match(/\invarchar/) ||
+                user_datatype.match(/\ivarying character/) ||
+                user_datatype.match(/\inative character/) ||
+                user_datatype=="clob" ||
+                user_datatype.match(/\inchar/)
+                  ret = "text"
+                  if operation == "retrieve"
+		    @column_traverse += ", -1, SQLITE_STATIC"
+                    @column_traverse = "(const char *)" +
+        	  		   @column_traverse
+		  else
+		    @column_traverse = "(const unsigned char *)" +
+        	  		   @column_traverse
+		  end
+        elsif user_datatype=="string"
+		  ret = "text"
+		  @column_traverse = @column_traverse.chomp(".")
+                  @column_traverse += ".c_str()"
+                  if operation == "retrieve"
+		    @column_traverse += ", -1, SQLITE_STATIC"
+                    @column_traverse = "(const char *)" +
+        	  		   @column_traverse
+		  else
+		    @column_traverse = "(const unsigned char *)" +
+        	  		   @column_traverse
+		  end
+	elsif user_datatype=="references"
+# needs taken care of
+		  ret = "fk_column"
+		  @back = 1
+        end
+	return ret
+      end
+
+
+# returns the identifier matching the data structure class used
+
+      def tmpl_complexity(template_no, tmpr_chars, class_type)
+        ret = ""
+        if tmpr_chars.template1_type != "none"
+          if template_no == 1
+            ret = "first" + class_type
+          else
+            ret = "second" + class_type
+          end
+        end
+	return ret
+      end
+
+
+# takes as input a template description
+# (Hash<string(class name),Array of strings(attributes)>),
+# attributes of a class (Array), template_no(1 or 2),
+# tmpr_chars(internally used class containing the data structure
+# characteristics. fw is the opened stream which writes to the c file.
+# operation is either check or retrieve to signify which family of
+# methods is generated (search or retrieve).
+# Different statements are printed respectively.
+
+
+      def gen_col(template, attributes, template_no, tmpr_chars,
+      	  			  fw, operation)
+
+#HereDoc
+
+	gather_results = <<-rslt
+                        stcsr->resultSet[count++] = i;
+                    iter++;
+                }
+                stcsr->size += count;
+                break;
+rslt
+
+#	puts "gen_col"
+        at = 0
+        while at < attributes.length
+	  if @back > 0 
+	    @back = 0
+	  end
+          ret_attribute = neat_attributes(attributes[at])
+          class_name = template.index(attributes)
+	  if at == 0
+            @follow_up.insert(@follow_up.length,"get_")
+            if @classnames[class_name] == "pointer"
+	      class_type = "->"
+            else
+	      class_type = "."
+            end
+#	    puts "RECURSIVE"
+	  end
+          if ret_attribute.match(/jump/)
+	    @jump += 1
+            split = ret_attribute.split(/ /)
+            puts "split " + split[1]
+            @follow_up[@follow_up.length - 1] += split[1] + "()" + class_type
+	    puts "follow_up is " + @follow_up[@follow_up.length - 1]
+	    if operation == "check"
+            gen_col(template, template.fetch(split[1]),
+                                    template_no, tmpr_chars, fw, "check")
+	    else
+            gen_col(template, template.fetch(split[1]),
+                                    template_no, tmpr_chars, fw, "retrieve")
+	    end
+          else
+            @counter += 1
+            name_type = ret_attribute.split(/ /)
+            @column_traverse = "iter->"
+            compl = tmpl_complexity(template_no, tmpr_chars, class_type)
+	    @column_traverse += compl	    
+            if primitive(template_no, tmpr_chars)
+            else
+              f_ups = 0
+              while f_ups < @follow_up.length
+	        puts "follow_up : " + @follow_up[f_ups]
+                @column_traverse += @follow_up[f_ups]
+                f_ups += 1
+              end
+              @column_traverse += name_type[0] + "()"
+            end
+            datatype = which_datatype(name_type[1].downcase, operation)
+	    if operation == "check"
+              @column_traverse += ", op, sqlite3_value_" + datatype + "(val)"
+              @column_traverse = "if( traverse(" + @column_traverse + ") )"
+	    else
+	      @column_traverse = "sqlite3_result_" +
+			  datatype + "(con, "  + @column_traverse + ");"
+	    end
+          end
+# avoid duplicating statement
+	  if @back == 0
+	    puts @column_traverse
+            fw.puts @s + "    case " + @counter.to_s + ":"
+	    if operation == "check"
+              fw.puts @s + "        iter=any_dstr->begin();"
+              fw.puts @s + "        for(int i=0;i<(int)any_dstr->size();i++){"
+	    end
+            fw.puts @s + "            " + @column_traverse
+	    if operation == "check"
+	      fw.puts gather_results
+	    else 
+	      fw.puts @s + "            break;"
+	    end
+	  end
+          at += 1
+        end
+        @follow_up.delete_at(@follow_up.length - 1)
+	if @jump > 0
+	  if @follow_up[@follow_up.length - 1].match(class_name)
+	    reduce = @follow_up[@follow_up.length - 1].split(class_name)
+	    @follow_up[@follow_up.length - 1] = reduce[0]
+	  end
+	  @back = 1
+	  @jump -= 1
+	end
+	puts "deletion. now " + @follow_up.length.to_s + " records"
+      end
+
+
 # opens a new c source file and writes c code.
+# Specifically, it generates the main.template, the search.cpp
+# and the makefile.
+# All information about data structures to be registered to
+# sqlite is used (resides at Register) to generate the necessary
+# methods.
 # there for each query a call to register_table is done
 # to create the respective VT.
-# includes action to be taken in case a call fails.?
-# all created VTs at that point are dropped and program exits.?
 
 
       def write_to_file(db_name)
@@ -245,16 +467,6 @@ AG2
 
 	auto_gen3 = <<-AG3
 
-using namespace std;
-
-
-
-int get_datastructure_size(void *st){
-    stlTable *stl = (stlTable *)st;
-    #{@signature} *any_dstr = (#{@signature} *)stl->data;
-    return ((int)any_dstr->size());
-}
-
 
 int traverse(int dstr_value, int op, int value){
     switch( op ){
@@ -287,7 +499,7 @@ int traverse(double dstr_value, int op, double value){
     }
 }
 
-
+// compare addresses???
 int traverse(const void *dstr_value, int op, const void *value){
     switch( op ){
     case 0:
@@ -320,13 +532,12 @@ int traverse(const unsigned char *dstr_value, int op,
     }
 }
 
-	  
-void search(void *stc, char *constr, sqlite3_value *val){
-    sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;
-    stlTable *stl = (stlTable *)cur->pVtab;
-    stlTableCursor *stcsr = (stlTableCursor *)stc;
-    #{@signature} *any_dstr = (#{@signature} *)stl->data;
-    #{@signature}:: iterator iter;
+
+
+
+AG3
+
+	  auto_gen4 = <<-AG4 
     Type value;
     int op, count = 0;
 // val==NULL then constr==NULL also
@@ -364,7 +575,7 @@ void search(void *stc, char *constr, sqlite3_value *val){
         iCol = constr[1] - 'a' + 1;
         char *colName = stl->azColumn[iCol];
 // FK search
-        const char *fk = "FK";
+        const char *fk = "fk";
         if(!strcmp(colName, fk)){
             iter=any_dstr->begin();
             for(int i=0; i<(int)any_dstr->size(); i++){
@@ -374,12 +585,8 @@ void search(void *stc, char *constr, sqlite3_value *val){
             }
             stcsr->size += count;
         }else{
-
-
-// handle colName\n\n
-
+// handle colName
             switch( iCol ){
-
 // i=0. search using PK?memory location?or no PK?
 // no can't do.PK will be memory location. PK in every table
 // PK search
@@ -392,225 +599,10 @@ void search(void *stc, char *constr, sqlite3_value *val){
                 }
                 stcsr->size += count;
                 break;
-AG3
-
-	
-    #HereDoc4
-
-
-	trv111 = <<-T111
-                    if( traverse(iter->first.get_
-T111
+AG4
 
 	
     #HereDoc5
-
-
-	rtrv111 = <<-RT111
-(), op, sqlite3_value_int(val)) )
-RT111
-
-	
-    #HereDoc6
-
-
-	trv112 = <<-T112
-                   if( traverse(iter->first, op, sqlite3_value_int(val)) )
-T112
-
-	
-    #HereDoc7
-
-
-	trv113 = <<-T113
-                    if( traverse(iter->second.get_
-T113
-
-	
-    #HereDoc8
-
-
-	trv114 = <<-T114
-                    if( traverse(iter->get_
-T114
-
-	
-    #HereDoc9
-
-
-	trv121 = <<-T121
-                    if( traverse((const void*)iter->first.get_
-T121
-
-	
-    #HereDoc10
-
-
-	rtrv121 = <<-RT121
-(), op, sqlite3_value_blob(val)) )
-RT121
-
-	
-    #HereDoc11
-
-
-	trv122 = <<-T122
-                    if( traverse((const void*)iter->first, op, 
-		    	sqlite3_value_blob(val)) )
-T122
-
-	
-    #HereDoc12
-
-
-	trv123 = <<-T123
-                    if( traverse((const void*)iter->second.get_
-T123
-
-	
-    #HereDoc13
-
-
-	trv124 = <<-T124
-                    if( traverse((const void*)iter->get_
-T124
-
-	
-    #HereDoc14
-
-
-	trv131 = <<-T131
-                    if( traverse(iter->first.get_
-T131
-
-	
-    #HereDoc15
-
-
-	rtrv131 = <<-RT131
-(), op, sqlite3_value_double(val)) )
-RT131
-
-	
-    #HereDoc16
-
-
-	trv132 = <<-T132
-                    if( traverse(iter->first, op, sqlite3_value_double(val)) ) 
-T132
-
-	
-    #HereDoc17
-
-
-	trv133 = <<-T133
-                    if( traverse(iter->second.get_
-T133
-
-	
-    #HereDoc18
-
-
-	trv134 = <<-T134
-                    if( traverse(iter->get_
-T134
-
-	
-    #HereDoc19
-
-
-	trv141 = <<-T141
-                    if( traverse((const unsigned char *)iter->first.get_
-T141
-
-	
-    #HereDoc20
-
-
-	rtrv141 = <<-RT141
-(), op, sqlite3_value_text(val)) )
-RT141
-
-	
-    #HereDoc21
-
-
-	trv142 = <<-T142
-                    if( traverse((const unsigned char *)iter->first, op, 
-		    	sqlite3_value_text(val)) )
-T142
-
-	
-    #HereDoc22
-
-
-	trv143 = <<-T143
-                    if( traverse((const unsigned char *)iter->second.get_
-T143
-
-	
-    #HereDoc23
-
-
-	trv144 = <<-T144
-                    if( traverse((const unsigned char *)iter->get_
-T144
-
-	
-    #HereDoc24
-
-
-	trv151 = <<-T151
-                    if( traverse((const unsigned char *)iter->first.get_
-T151
-
-	
-    #HereDoc25
-
-
-	rtrv151 = <<-RT151
-().c_str(), op, sqlite3_value_text(val)) )
-RT151
-
-	
-    #HereDoc26
-
-
-	trv152 = <<-T152
-                    if( traverse((const unsigned char *)iter->first.c_str(), 
-		    	op, sqlite3_value_text(val)) )
-T152
-
-	
-    #HereDoc27
-
-
-	trv153 = <<-T153
-                    if( traverse((const unsigned char *)iter->second.get_
-T153
-
-		
-    #HereDoc28
-
-
-	trv154 = <<-T154
-                    if( traverse((const unsigned char *)iter->get_
-T154
-
-	
-    #HereDoc29
-
-
-	gather_results = <<-rslt
-                        stcsr->resultSet[count++] = i;
-                    iter++;
-                }
-                stcsr->size += count;
-                break;
-rslt
-
-	
-    #HereDoc30
 
 
 	cls_search_opn_retrieve = <<-cls_opn
@@ -621,13 +613,12 @@ rslt
 }
 
 
+cls_opn
 
-int retrieve(void *stc, int n, sqlite3_context* con){
-    sqlite3_vtab_cursor *svc = (sqlite3_vtab_cursor *)stc;
-    stlTable *stl = (stlTable *)svc->pVtab;
-    stlTableCursor *stcsr = (stlTableCursor *)stc;
-    #{@signature} *any_dstr = (#{@signature} *)stl->data;
-    #{@signature}:: iterator iter;
+
+    #HereDoc6
+
+	auto_gen5 = <<-AG5
     char *colName = stl->azColumn[n];
     int index = stcsr->current;
 // iterator implementation. serial traversing or hit?
@@ -638,197 +629,19 @@ int retrieve(void *stc, int n, sqlite3_context* con){
     }
 // int datatype;
 // datatype = stl->colDataType[n];
-    const char *pk = "id";
-    const char *fk = "FK";
+    const char *pk = "pk";
+    const char *fk = "fk";
     if ( (n==0) && (!strcmp(stl->azColumn[0], pk)) ){
 // attention!
         sqlite3_result_int(con, (int)&(*iter));
         printf(\"memory location of PK: %x\\n\", &(*iter));
     }else if( !strncmp(stl->azColumn[n], fk, 2) ){
         sqlite3_result_int(con, (int)&(*iter));
-// need work
     }else{
 // in automated code: \"iter->get_\" + col_name + \"()\" will work.safe?
 // no.doxygen.
-cls_opn
+AG5
 
-	
-    #HereDoc31
-
-
-	trv211 = <<-T211
-            sqlite3_result_int(con, iter->first.get_
-T211
-
-	
-    #HereDoc32
-
-
-	trv212 = <<-T212
-            sqlite3_result_int(con, iter->first);
-T212
-
-
-    #HereDoc33
-
-
-	trv213 = <<-T213
-            sqlite3_result_int(con, iter->second.get_
-T213
-
-
-    #HereDoc34
-
-
-	trv214 = <<-T214
-            sqlite3_result_int(con, iter->get_
-T214
-
-
-    #HereDoc35
-
-    
-	trv221 = <<-T221
-          sqlite3_result_blob(con, (const void *)iter->first.get_
-T221
-
-
-    #HereDoc36
-
-    
-	rtrv221 = <<-RT221
-(),-1,SQLITE_STATIC);
-RT221
-
-
-    #HereDoc37
-
-    
-	trv222 = <<-T222
-            sqlite3_result_blob(con, (const void *)iter->first,-1,
-	    			     SQLITE_STATIC);
-T222
-
-
-    #HereDoc38
-
-    
-	trv223 = <<-T223
-            sqlite3_result_blob(con, (const void *)iter->second.get_
-T223
-
-
-    #HereDoc39
-
-    
-	trv224 = <<-T224
-            sqlite3_result_blob(con, (const void *)iter->get_
-T224
-
-
-    #HereDoc40
-
-    
-	trv231 = <<-T231
-            sqlite3_result_double(con, iter->first.get_
-T231
-
-
-    #HereDoc41
-
-    
-	trv232 = <<-T232
-            sqlite3_result_double(con, iter->first);
-T232
-
-
-    #HereDoc42
-
-    
-	trv233 = <<-T233
-            sqlite3_result_double(con, iter->second.get_
-T233
-
-
-    #HereDoc43
-
-    
-	trv234 = <<-T234
-            sqlite3_result_double(con, iter->get_
-T234
-
-
-    #HereDoc44
-
-    
-	trv241 = <<-T241
-            sqlite3_result_text(con, (const char *)iter->first.get_
-T241
-
-
-    #HereDoc45
-
-    
-	trv242 = <<-T242
-            sqlite3_result_text(con, (const char *)iter->first,-1,
-	    			     SQLITE_STATIC);
-T242
-
-
-    #HereDoc46
-
-    
-	trv243 = <<-T243
-            sqlite3_result_text(con, (const char *)iter->second.get_
-T243
-
-
-    #HereDoc47
-
-    
-	trv244 = <<-T244
-            sqlite3_result_text(con, (const char *)iter->get_
-T244
-
-
-    #HereDoc48
-
-    
-	trv251 = <<-T251
-            sqlite3_result_text(con, (const char *)iter->first.get_
-T251
-
-
-    #HereDoc49
-
-    
-	rtrv251 = <<-RT251
-().c_str(),-1,SQLITE_STATIC);
-RT251
-
-
-    #HereDoc50
-
-    
-	trv252 = <<-T252
-            sqlite3_result_text(con, (const char *)iter->first.c_str(),-1,
-	    			     SQLITE_STATIC);
-T252
-
-
-    #HereDoc51
-
-    
-	trv253 = <<-T253
-            sqlite3_result_text(con, (const char *)iter->second.get_
-T253
-
-    #HereDoc52
-
-    
-	trv254 = <<-T254
-            sqlite3_result_text(con, (const char *)iter->get_
-T254
 
 # END OF HereDocs
 
@@ -837,25 +650,38 @@ T254
           fw.puts "\#include <string>"
           fw.puts "\#include \"stl_to_sql.h\""
           fw.puts "\#include <pthread.h>"
-	  c_type=@signature.split(/</)
-	  if c_type[0].match(/\imap/)
-	     c_type[0]="map"
-	  elsif c_type[0].match(/\iset/)
-	     c_type[0]="set"
-	  elsif (c_type[0].match(/\ihash/) && (c_type[0].match(/\set/)))
-	     c_type[0]="hash_set"
-	  elsif (c_type[0].match(/\ihash/) && (c_type[0].match(/\map/)))
-	     c_type[0]="hash_map"
-	  elsif c_type[0]=="hash"
-	     c_type[0]="hash_set"
+
+
+	  q = 0
+	  tmpr_ds = Hash.new
+	  tmpr_keys = Array.new
+	  tmpr_chars = Data_structure_characteristics.new
+
+          while q < @data_structures_array.length
+            tmpr_ds=@data_structures_array[q]
+
+# extract keys from original beasty hash
+# contains only one key of type Data_structure_characteristics
+
+            tmpr_keys=tmpr_ds.keys
+            tmpr_chars=tmpr_keys[0]
+	    c_type=tmpr_chars.signature.split(/</)
+	    if c_type[0].match(/\imap/)
+	      c_type[0]="map"
+	    elsif c_type[0].match(/\iset/)
+	      c_type[0]="set"
+	    elsif (c_type[0].match(/\ihash/) && (c_type[0].match(/\set/)))
+	      c_type[0]="hash_set"
+	    elsif (c_type[0].match(/\ihash/) && (c_type[0].match(/\map/)))
+	      c_type[0]="hash_map"
+	    elsif c_type[0]=="hash"
+	      c_type[0]="hash_set"
 # defined also in hash_map
-  	  end
-          fw.puts "\#include <" + c_type[0] + ">"
-	  k=0
-	  while (k<@classnames.length-1)
-            fw.puts "\#include \"" + @classnames[k] + ".h\""
-	    k+=1
+  	    end
+            fw.puts "\#include <" + c_type[0] + ">"
+	    q += 1
 	  end
+	  @classnames.each {|key,value| fw.puts "\#include \"#{key}.h\""}
 
 # call HereDoc1
 	  fw.puts auto_gen1
@@ -871,229 +697,229 @@ T254
         end
 
 	myfile=File.open("search.cpp", "w") do |fw|
-	  c_type=@signature.split(/</)
-	  if c_type[0].match(/\imap/)
-	     c_type[0]="map"
-	  elsif c_type[0].match(/\iset/)
-	     c_type[0]="set"
-	  elsif (c_type[0].match(/\ihash/) && (c_type[0].match(/\set/)))
-	     c_type[0]="hash_set"
-	  elsif (c_type[0].match(/\ihash/) && (c_type[0].match(/\map/)))
-	     c_type[0]="hash_map"
-	  elsif c_type[0]=="hash"
-	     c_type[0]="hash_set"
-# defined also in hash_map
-  	  end
-          fw.puts "\#include <" + c_type[0] + ">"
           fw.puts "\#include \"search.h\""
           fw.puts "\#include <string>"
           fw.puts "\#include \"Type.h\""
-	  k=0
-	  while (k<@classnames.length-1)
-            fw.puts "\#include \"" + @classnames[k] + ".h\""
-	    k+=1
+	  q = 0
+          while q < @data_structures_array.length
+            tmpr_ds=@data_structures_array[q]
+
+# extract keys from original beasty hash
+# contains only one key of type Data_structure_characteristics
+
+            tmpr_keys=tmpr_ds.keys
+            tmpr_chars=tmpr_keys[0]
+	    c_type=tmpr_chars.signature.split(/</)
+	    if c_type[0].match(/\imap/)
+	      c_type[0]="map"
+	    elsif c_type[0].match(/\iset/)
+	      c_type[0]="set"
+	    elsif (c_type[0].match(/\ihash/) && (c_type[0].match(/\set/)))
+	      c_type[0]="hash_set"
+	    elsif (c_type[0].match(/\ihash/) && (c_type[0].match(/\map/)))
+	      c_type[0]="hash_map"
+	    elsif c_type[0]=="hash"
+	      c_type[0]="hash_set"
+# defined also in hash_map
+  	    end
+            fw.puts "\#include <" + c_type[0] + ">"
+	    q += 1
 	  end
+	  @classnames.each{|key,value| fw.puts "\#include \"#{key}.h\""}
+
+	  fw.puts
+	  fw.puts "using namespace std;\n\n"
+
+	  
+
+
+	  fw.puts "int get_datastructure_size(void *st){"
+	  fw.puts "    stlTable *stl = (stlTable *)st;"
+	  q = 0
+          while q < @data_structures_array.length
+            tmpr_ds=@data_structures_array[q]
+
+# extract keys from original beasty hash
+# contains only one key of type Data_structure_characteristics
+
+            tmpr_keys=tmpr_ds.keys
+            tmpr_chars=tmpr_keys[0]
+	    fw.puts "    if( !strcmp(stl->zName, \"" + tmpr_chars.name + "\") ){"
+	    fw.puts "        " + tmpr_chars.signature + " *any_dstr = (" +
+              tmpr_chars.signature + " *)stl->data;"
+	    fw.puts "        return ((int)any_dstr->size());"
+	    fw.puts "    }"
+	  q += 1
+	  end
+	  fw.puts "}"
+
 
 # call HereDoc3	  
 	  fw.puts auto_gen3
-	  i=1
-	  while( i<@table_columns.length )
-	    split_column = @table_columns[i].split(/ /)
-	    fw.puts "            case " + i.to_s + ":" 
-	    fw.puts "// why necessarily iter->second in associative?"
-	    fw.puts "// if non pointer then second. else second->"
-	    fw.puts "                iter=any_dstr->begin();"
-	    fw.puts "                for(int i=0; i<(int)any_dstr->size(); i++){"
-	      split_column[1]=split_column[1].downcase
-              if split_column[1]=="int" || split_column[1]=="integer" ||
-		split_column[1]=="tinyint" || split_column[1]=="smallint"|| 
-		split_column[1]=="mediumint" || split_column[1]=="bigint" ||
-		split_column[1]=="unsigned bigint" ||
-		split_column[1]=="int2" ||
-                split_column[1]=="bool" || split_column[1]=="boolean" ||
-		split_column[1]=="int8" || split_column[1]=="numeric" 
-		  if @template_args=="double"
-		    if( (@key_class_type==1)&&(i<=@key_class_attributes) )
-		      fw.puts trv111.chomp + split_column[0] + rtrv111
-		    elsif( (@key_class_type==0)&&(i==1) )
-		      fw.puts trv112
-		    elsif( i>@key_class_attributes)
-		      fw.print trv113.chomp + split_column[0] + rtrv111
-	 	    end
-		  else
-		    fw.puts trv114.chomp + split_column[0] + rtrv111
-		  end
-	      elsif split_column[1]=="blob"
-	        if @template_args=="double"
-		  if( (@key_class_type==1)&&(i<=@key_class_attributes) )
-		    fw.puts trv121.chomp + split_column[0] + rtrv121
-		  elsif( (@key_class_type==0)&&(i==1) )
-		    fw.puts trv122
-		  elsif( i>@key_class_attributes )
-		    fw.puts trv123.chomp + split_column[0] + rtrv121
-		  end
-	      else
-		fw.puts trv124.chomp + split_column[0] + rtrv121
-	      end
-              elsif split_column[1]=="float" ||	split_column[1]=="double"  ||
-	        split_column[1].match(/\idecimal/) ||
-      	        split_column[1]=="double precision" || split_column[1]=="real"
-	          if @template_args=="double"
-		    if( (@key_class_type==1)&&(i<=@key_class_attributes) )
-		      fw.puts trv131.chomp + split_column[0] + rtrv131
-		    elsif( (@key_class_type==0)&&(i==1) )
-		      fw.puts trv132
-		    elsif( i>@key_class_attributes)
-		      fw.puts trv133.chomp + split_column[0] + rtrv131
-		    end
-		  else
-		    fw.puts trv134.chomp + split_column[0] + rtrv131
-		  end
-	      elsif split_column[1]=="text" || split_column[1]=="date" ||
-		split_column[1]=="datetime" ||
-                split_column[1].match(/\icharacter/) || 
-		split_column[1].match(/\ivarchar/) ||
-		split_column[1].match(/\invarchar/) || 
-		split_column[1].match(/\ivarying character/) ||
-		split_column[1].match(/\inative character/) || 
-		split_column[1]=="clob" ||
-		split_column[1].match(/\inchar/)
-		  if @template_args=="double"
-		    if( (@key_class_type==1)&&(i<=@key_class_attributes) )
-		      fw.puts trv141.chomp + split_column[0] + rtrv141
-		    elsif( (@key_class_type==0)&&(i==1) )
-		      fw.puts trv142
-		    elsif( i>@key_class_attributes)
-		      fw.puts trv143.chomp + split_column[0] + rtrv141
-		    end
-		  else
-		    fw.puts trv144.chomp + split_column[0] + rtrv141
-	 	  end
-	      elsif split_column[1]=="string"
-# need to use c_str() to convert string to char *
-	        if @template_args=="double"
-		  if( (@key_class_type==1)&&(i<=@key_class_attributes) )
-		    fw.puts trv151.chomp + split_column[0] + rtrv151
-		  elsif( (@key_class_type==0)&&(i==1) )
-		    fw.puts trv152
-		  elsif( i>@key_class_attributes )
-		    fw.puts trv153.chomp + split_column[0] + rtrv151
-		  end
-		else
-		  fw.puts trv154.chomp + split_column[0] + rtrv1
-		end
-	      end
+          q = 0
+#          tmpr_ds = Hash.new
+#          tmpr_chars=Data_structure_characteristics.new
+#          tmpr_keys=Array.new
+# created above
+          tmpr_template = Hash.new
+          tmpr_classes1 = Template.new
+          tmpr_classes2 = Template.new
+          tmpr_class = Hash.new
 
+          while q < @data_structures_array.length
+            tmpr_ds=@data_structures_array[q]
+
+# extract keys from original beasty hash
+# contains only one key of type Data_structure_characteristics
+
+            tmpr_keys=tmpr_ds.keys
+            tmpr_chars=tmpr_keys[0]
+            tmpr_template = tmpr_ds.fetch(tmpr_chars)
+# tmpr keys length should be one
+            tmpr_keys = tmpr_template.keys
+            tmpr_classes1 = tmpr_keys[0]
+            tmpr_classes2 = tmpr_template.fetch(tmpr_keys[0])
+
+
+	    fw.puts "void " + tmpr_chars.name +
+            	    "_search(void *stc, char *constr, sqlite3_value *val){"
+	    fw.puts "    sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;"
+	    fw.puts "    stlTable *stl = (stlTable *)cur->pVtab;"
+	    fw.puts "    stlTableCursor *stcsr = (stlTableCursor *)stc;"
+	    fw.puts "    " + tmpr_chars.signature +
+            	    " *any_dstr = (" + tmpr_chars.signature + " *)stl->data;"
+	    fw.puts "    " + tmpr_chars.signature + ":: iterator iter;"
+	    fw.puts auto_gen4
+
+#          i=1
+# bottom-up
+            spl = tmpr_chars.signature.split(/</)
+            tmpl_classes = spl[1].chomp(">")
+            @counter = 0
+            if tmpr_chars.template1_type != "none"
+              template_no = 1
+              sep_classes = tmpl_classes.split(/,/)
+              tmpr_class = tmpr_classes1.template_description
+              gen_col(tmpr_class, tmpr_class.fetch(sep_classes[0]),
+                                     template_no, tmpr_chars, fw, "check")
+              template_no = 2
+              tmpr_class = tmpr_classes2.template_description
+              gen_col(tmpr_class, tmpr_class.fetch(sep_classes[1]),
+                                    template_no, tmpr_chars, fw, "check")
+            else
+              template_no = 2
+              tmpr_class = tmpr_classes2.template_description
+              gen_col(tmpr_class, tmpr_class.fetch(tmpl_classes),
+                                     template_no, tmpr_chars, fw, "check")
+            end
 # call HereDoc29
-	      fw.puts gather_results
-	      i+=1
-	  end
+            q += 1
+            fw.puts cls_search_opn_retrieve
+          end
+	  
+	  fw.puts "\n\n"
 
-# call HereDoc30
-	  fw.puts cls_search_opn_retrieve
+	  q = 0
+          while q < @data_structures_array.length
+            tmpr_ds=@data_structures_array[q]
 
-	  i=1
-          fw.puts "        switch ( n ){"
-	  fw.puts "// why necessarily iter->second in associative?"
-# only for one-level description!!!
-	  while( i<@table_columns.length )
-	    split_column = @table_columns[i].split(/ /)
-	    split_column[1]=split_column[1].downcase
-	    fw.puts "        case " + i.to_s + ":" 
-            if split_column[1]=="int" || split_column[1]=="integer" ||
-	      split_column[1]=="tinyint" || split_column[1]=="smallint" || 
-	      split_column[1]=="mediumint" || split_column[1]=="bigint" ||
-	      split_column[1]=="unsigned bigint" || split_column[1]=="int2" ||
-              split_column[1]=="bool" || split_column[1]=="boolean" ||
-	      split_column[1]=="int8" || split_column[1]=="numeric" 
-		if @template_args=="double"
-		  if( (@key_class_type==1)&&(i<=@key_class_attributes) )
-          	    fw.puts trv211.chomp + split_column[0] + "());"
-		  elsif( (@key_class_type==0)&&(i==1) )
-          	    fw.puts trv212
-		  elsif( i>@key_class_attributes )
-          	    fw.puts trv213.chomp + split_column[0] + "());"
-		  end
-		else
-          	  fw.puts trv214.chomp + split_column[0] + "());"
-		end
-		fw.puts "            break;"
-	    elsif split_column[1]=="blob"
-	      if @template_args=="double"
-	        if( (@key_class_type==1)&&(i<=@key_class_attributes) )
-          	  fw.puts trv221.chomp + split_column[0] + rtrv221
-		elsif( (@key_class_type==0)&&(i==1) )
-          	  fw.puts trv222
-		elsif( i>@key_class_attributes)
-          	  fw.puts trv223.chomp + split_column[0] + rtrv221
-		end
-	      else
-      	        fw.puts trv224.chomp + split_column[0] + rtrv221
-	      end
-	      fw.puts "            break;"
-              elsif split_column[1]=="float" ||	split_column[1]=="double"  ||
-	      	split_column[1].match(/\idecimal/) ||
-      	  	split_column[1]=="double precision" || 
-		split_column[1]=="real"
-		  if @template_args=="double"
-		    if( (@key_class_type==1)&&(i<=@key_class_attributes) )
-          	      fw.puts trv231.chomp + split_column[0] + "());"
-		    elsif( (@key_class_type==0)&&(i==1) )
-          	      fw.puts trv232
-		    elsif( i>@key_class_attributes )
-          	      fw.puts trv233.chomp + split_column[0] + "());"
-		    end
-		  else
-          	    fw.puts trv234.chomp + split_column[0] + "());"
-		  end
-		  fw.puts "            break;"
-	      elsif split_column[1]=="text" || split_column[1]=="date" ||
-		  split_column[1]=="datetime" ||
-                  split_column[1].match(/\icharacter/) || 
-		  split_column[1].match(/\ivarchar/) ||
-		  split_column[1].match(/\invarchar/) || 
-		  split_column[1].match(/\ivarying character/) ||
-		  split_column[1].match(/\inative character/) || 
-		  split_column[1]=="clob" ||
-		  split_column[1].match(/\inchar/)
-		    if @template_args=="double"
-		      if( (@key_class_type==1)&&(i<=@key_class_attributes) )
-          		fw.puts trv241.chomp + split_column[0] + rtrv221
-# @key_class_attributes==1 instead?
-		      elsif( (@key_class_type==0)&&(i==1) )
-          		fw.puts trv242
-		      elsif( i>@key_class_attributes)
-          	        fw.puts trv243.chomp + split_column[0] + rtrv221
-		      end
-		    else
-          	      fw.puts trv244.chomp + split_column[0] + rtrv221
-		    end
-		    fw.puts "            break;"
-	      elsif split_column[1]=="string"
-# need to use c_str() to convert string to char *
-	        if @template_args=="double"
-		  if( (@key_class_type==1)&&(i<=@key_class_attributes) )
-          	    fw.puts trv251.chomp + split_column[0] + rtrv251
-		  elsif( (@key_class_type==0)&&(i==1) )
-          	    fw.puts trv252
-		  elsif( i>@key_class_attributes)
-          	    fw.puts trv253.chomp + split_column[0] + rtrv251
-		  end
-		else
-          	  fw.puts trv254.chomp + split_column[0] + rtrv251
-		end
-		fw.puts "            break;"
-	      end
-	      i+=1
-	  end
+# extract keys from original beasty hash
+# contains only one key of type Data_structure_characteristics
 
+            tmpr_keys=tmpr_ds.keys
+            tmpr_chars=tmpr_keys[0]
+            tmpr_template = tmpr_ds.fetch(tmpr_chars)
+# tmpr keys length should be one
+            tmpr_keys = tmpr_template.keys
+            tmpr_classes1 = tmpr_keys[0]
+            tmpr_classes2 = tmpr_template.fetch(tmpr_keys[0])
+
+	    fw.puts "int " + tmpr_chars.name +
+            	    "_retrieve(void *stc, int n, sqlite3_context *con){"
+	    fw.puts "    sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;"
+	    fw.puts "    stlTable *stl = (stlTable *)cur->pVtab;"
+	    fw.puts "    stlTableCursor *stcsr = (stlTableCursor *)stc;"
+	    fw.puts "    " + tmpr_chars.signature +
+            	    " *any_dstr = (" + tmpr_chars.signature + " *)stl->data;"
+	    fw.puts "    " + tmpr_chars.signature + ":: iterator iter;"
+	    fw.puts auto_gen5
+
+            fw.puts "        switch ( n ){"
+
+
+#          i=1
+# bottom-up
+            spl = tmpr_chars.signature.split(/</)
+            tmpl_classes = spl[1].chomp(">")
+            @counter = 0
+            if tmpr_chars.template1_type != "none"
+              template_no = 1
+              sep_classes = tmpl_classes.split(/,/)
+              tmpr_class = tmpr_classes1.template_description
+              gen_col(tmpr_class, tmpr_class.fetch(sep_classes[0]),
+                                     template_no, tmpr_chars, fw, "retrieve")
+              template_no = 2
+              tmpr_class = tmpr_classes2.template_description
+              gen_col(tmpr_class, tmpr_class.fetch(sep_classes[1]),
+                                    template_no, tmpr_chars, fw, "retrieve")
+            else
+              template_no = 2
+              tmpr_class = tmpr_classes2.template_description
+              gen_col(tmpr_class, tmpr_class.fetch(tmpl_classes),
+                                     template_no, tmpr_chars, fw, "retrieve")
+           end
+# call HereDoc29
+            q += 1
           fw.puts "        }"
           fw.puts "    }"
           fw.puts "    return SQLITE_OK;"
-          fw.puts "}"
-
+          fw.puts "}\n\n\n"
         end
+
+	fw.puts "void search(void* stc, char *constr, sqlite3_value *val){"
+	fw.puts "    sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;"
+	fw.puts "    stlTable *stl = (stlTable *)cur->pVtab;"
+	q = 0
+        while q < @data_structures_array.length
+          tmpr_ds=@data_structures_array[q]
+
+# extract keys from original beasty hash
+# contains only one key of type Data_structure_characteristics
+
+          tmpr_keys=tmpr_ds.keys
+          tmpr_chars=tmpr_keys[0]
+	  fw.puts "    if( !strcmp(stl->zName, \"" + tmpr_chars.name + "\") )"
+	  fw.puts "        " + tmpr_chars.name +
+	    	    "_search(stc, constr, val);"
+	  q += 1
+	end
+
+	fw.puts "}\n\n"
+
+
+	fw.puts "int retrieve(void* stc, int n, sqlite3_context *con){"
+	fw.puts "    sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;"
+	fw.puts "    stlTable *stl = (stlTable *)cur->pVtab;"
+	q = 0
+        while q < @data_structures_array.length
+          tmpr_ds=@data_structures_array[q]
+
+# extract keys from original beasty hash
+# contains only one key of type Data_structure_characteristics
+
+          tmpr_keys=tmpr_ds.keys
+          tmpr_chars=tmpr_keys[0]
+	  fw.puts "    if( !strcmp(stl->zName, \"" + tmpr_chars.name + "\") )"
+	  fw.puts "        " + tmpr_chars.name +
+	    	    "_retrieve(stc, n, con);"
+	  q += 1
+	end
+
+	fw.puts "}\n\n"
+
       end
+    end
+
 
 
 # GLOBAL HERE DOCUMENTS
@@ -1167,33 +993,30 @@ DT
 	      raise ArgumentError.new("expected pair name,type got " + 
 	      	    attributes[i] + "\n\n NOW EXITING. \n") 
 	    end
-	    name_type[1]=name_type[1].downcase
-            if name_type[1].match(/class/)
-	      k=0
-	      while k<@classnames.length
-		if @classnames[k]==name_type[0]
-		  puts $err_state
- 		  raise ArgumentError.new("Attempt to declare same class" +
-	 	  	" twice \n\n NOW EXITING. \n")
-		end
-		k+=1
+#	    name_type[1]=name_type[1].downcase
+            if name_type[1].downcase.match(/class/)
+	      if @classnames.has_key?(name_type[0])
+		puts $err_state
+ 		raise ArgumentError.new("Attempt to declare same class" +
+	 	      " twice \n\n NOW EXITING. \n")
 	      end
-	      @classnames.push(name_type[0])
-#              puts "table_name is " + name_type[0]
+	      @classnames[name_type[0]]=name_type[1]
+              puts "class_name is " + name_type[0]
+              puts "class_type is " + name_type[1]
+	      if name_type[1].downcase.match(/inherits_from/)
+	        superclass = name_type[1].split(/inherits_from/)
+	        argv.push(name_type[0] + " inherits_from " + superclass[1]) 
+	      end
 # top level tables won't go in this condition only intermediate ones.
 # table name is set as default so that it works for top level.
 # intermediate tables override default with respective class name.
 #	      argv.delete_at(2)
 #	      argv.insert(2,name_type[0])
 #	      argv.push("INTEGER PRIMARY KEY AUTOINCREMENT")
-	    elsif name_type[1]=="reference"
-	      k=0
-	      while k<@classnames.length
-		if @classnames[k]==name_type[0]
-		  pushed=true
-		end
-		k+=1
-              end
+	    elsif name_type[1].downcase=="reference"
+	      if @classnames.has_key?(name_type[0])
+		pushed=true
+	      end
 	      if pushed
 		argv.push(name_type[0] + " reference")
 	      else 
@@ -1201,7 +1024,7 @@ DT
 		raise ArgumentError.new(no_bind.chomp + name_type[0] + 
 		      "\n\n NOW EXITING. \n")
 	      end
-	    elsif name_type[1].match(/\ids/)
+	    elsif name_type[1].downcase.match(/ds/)
 	      e=0
 	      while e < @ds_nested_names.length
 	        if @ds_nested_names[e]==name_type[0]
@@ -1216,29 +1039,36 @@ DT
 		raise ArgumentError.new(no_bind.chomp + name_type[0] + 
 		      "\n\n NOW EXITING. \n")
 	      end	      
-	    elsif name_type[1].match(/inherits_from/)
-	      superclass = nametype[1].split(/inherits_from/)
-	      argv.push(name_type[0] + ",inherits_from," + superclass[1]) 
-            elsif name_type[1]=="int" || name_type[1]=="integer" ||
-	      name_type[1]=="tinyint" || name_type[1]=="smallint" || 
-	      name_type[1]=="mediumint" || name_type[1]=="bigint" ||
-	      name_type[1]=="unsigned bigint" || name_type[1]=="int2" ||
-	      name_type[1]=="int8" || name_type[1]=="blob" ||
-              name_type[1]=="float" || name_type[1]=="double"  ||
-      	      name_type[1]=="double precision" || name_type[1]=="real" ||
-	      name_type[1]=="numeric" || name_type[1]=="date" ||
-              name_type[1]=="bool" || name_type[1]=="boolean" ||
-	      name_type[1]=="datetime" || 
-	      name_type[1].match(/\idecimal/) ||
-	      name_type[1]=="text" || name_type[1]=="clob" ||
-              name_type[1].match(/\icharacter/) || 
-	      name_type[1].match(/\ivarchar/) ||
-	      name_type[1].match(/\invarchar/) || 
-	      name_type[1].match(/\ivarying character/) ||
-	      name_type[1].match(/\inative character/) || 
-	      name_type[1].match(/\inchar/)
+            elsif name_type[1].downcase=="int" || 
+	      name_type[1].downcase=="integer" ||
+	      name_type[1].downcase=="tinyint" ||
+	      name_type[1].downcase=="smallint" || 
+	      name_type[1].downcase=="mediumint" || 
+	      name_type[1].downcase=="bigint" ||
+	      name_type[1].downcase=="unsigned bigint" || 
+	      name_type[1].downcase=="int2" ||
+	      name_type[1].downcase=="int8" || 
+	      name_type[1].downcase=="blob" ||
+              name_type[1].downcase=="float" || 
+	      name_type[1].downcase=="double"  ||
+      	      name_type[1].downcase=="double precision" || 
+	      name_type[1].downcase=="real" ||
+	      name_type[1].downcase=="numeric" || 
+	      name_type[1].downcase=="date" ||
+              name_type[1].downcase=="bool" || 
+	      name_type[1].downcase=="boolean" ||
+	      name_type[1].downcase=="datetime" || 
+	      name_type[1].downcase.match(/\idecimal/) ||
+	      name_type[1].downcase=="text" || 
+	      name_type[1].downcase=="clob" ||
+              name_type[1].downcase.match(/\icharacter/) || 
+	      name_type[1].downcase.match(/\ivarchar/) ||
+	      name_type[1].downcase.match(/\invarchar/) || 
+	      name_type[1].downcase.match(/\ivarying character/) ||
+	      name_type[1].downcase.match(/\inative character/) || 
+	      name_type[1].downcase.match(/\inchar/)
 		argv.push(name_type[0] + " " + name_type[1].upcase)
-	    elsif name_type[1]=="string"
+	    elsif name_type[1].downcase=="string"
 	      argv.push(name_type[0] + " STRING")
 # STRING: was TEXT
             else
@@ -1345,7 +1175,7 @@ TA
 # for type validation
 	    columns = transform(attributes)
 	    name = my_array[index].split(/,/)
-# see to it
+# see to it: age INT
 	    columns[0] = name[0] + " " + name[1].upcase
 	    description[name[1]] = columns
 	  else
@@ -1607,9 +1437,12 @@ if __FILE__==$0
 
 =end
     input=Input_Description.new("foo .db!account;pointer;
-    map<string,Account>;
+    map< string,Account >;
     nick_name,string;Account,class-a ccount_no,text-balance,FLoat-isbn,
-    integer!persons;object;vector<Person>;Person,class-name,string-age,int")
+    integer")
+# -persons,ds!persons;object;vector<Person>;Person,
+# class_pointerinherits_fromAddress-name,string-age,int:
+# Address,class-street,string-number,int-postcode,int")
 =begin
     input=Input_Description.new("foo .db;account;
     deque<Account>;Account,class-a ccount_no,text-balance,FLoat-isbn,integer") 

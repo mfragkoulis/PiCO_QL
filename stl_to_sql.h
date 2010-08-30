@@ -63,4 +63,6 @@ typedef struct {sqlite3_vtab vtab; sqlite3 *db; const char *zDb;
 typedef struct {sqlite3_vtab_cursor vtab; int *resultSet; int size; 
   int current; int isEof;} stlTableCursor;
 
+typedef struct {int **memories; char** dsNames; int size;} dsCarrier;
+
 #endif

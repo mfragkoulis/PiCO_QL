@@ -62,6 +62,7 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc,
     memcpy(store[i-3], argv[i], t);
 
     // column name
+    
     result1 = strtok(store[i-3]," ");
     // column data type
     result2 = strtok(NULL, " ");
@@ -70,13 +71,14 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc,
     }
     if( !strcmp(result2, pkType) ){
       store[i-3] = (char *)sqlite3_realloc(store[i-3], 3*sizeof(char));
-      store[i-3] = "PK";
+      store[i-3] = "pk";
     }else if( !strcmp(result2, fkType) ) {
       store[i-3] = (char *)sqlite3_realloc(store[i-3],
 					   (4 + strlen(result1)) * sizeof(char));
-      store[i-3] = "FK "; 
+      store[i-3] = "fk "; 
       strcat(store[i-3], result1); 
-      }
+    }
+    
     nString += (int)strlen(store[i-3]) +1;
   }
   nCol = argc - 3;
@@ -89,7 +91,19 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc,
   }
   memset(stl, 0, nByte);
   stl->db = db;
-  stl->data = paux;
+
+  dsCarrier *dsC;
+  dsC = (dsCarrier *)paux;  
+  int q = 0;
+  char str[256];
+  while (q < dsC->size){
+    //    sprintf(str, "%x", dsC->memories[q]);
+    //    mem = atoi(str);
+    if( !strcmp(dsC->dsNames[q], argv[2]) )
+      stl->data = (void *)dsC->memories[q];
+    q += 1;
+  }
+
   stl->nColumn = nCol;
   stl->azColumn=(char **)&stl[1];
   temp=(char *)&stl->azColumn[nCol];
