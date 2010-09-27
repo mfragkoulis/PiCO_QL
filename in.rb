@@ -1,13 +1,15 @@
 # raise alarm if special characters are used in description
 
-class Template
+# what's the use of the class?
+ class Template
       
       def initialize
-        @template_description=Hash.new
+        @template1 = Hash.new
+	@template2 = Hash.new
       end
-      attr_accessor (:template_description)
+      attr_accessor(:template1,:template2)
 
-end
+ end
       
 # used in Register to store the iam's of the data structure
 # as shown below
@@ -15,14 +17,13 @@ class Data_structure_characteristics
 
       def initialize
       	  @name=""
-	  @type=""
 	  @signature=""	
 	  @nested="" 
 	  @template1_type="" 
 	  @template2_type=""
       end
-      attr_accessor (:name, :type, :signature, :nested,
-      		    :template1_type, :template2_type) 
+      attr_accessor(:name,:signature,:nested,
+      		    :template1_type,:template2_type) 
 
 end
 
@@ -58,6 +59,8 @@ class Input_Description
 # Otherwise there is either a nested class or an inheritance hierarchy
 # to be taken into account. A recursive call is carried out to
 # traverse the latter.
+
+# assumption: first attribute records class name and type
 
       def recursive_traversal(tmpr_class, attributes)
         at = 0
@@ -112,12 +115,12 @@ class Input_Description
         puts "create_vt"
 	puts ""
 	q = 0
-	tmpr_ds=Hash.new
-	tmpr_chars=Data_structure_characteristics.new
+	tmpr_ds = Hash.new
+	tmpr_chars = Data_structure_characteristics.new
 	tmpr_keys=Array.new
-	tmpr_template = Hash.new
-	tmpr_classes1 = Template.new	    
-	tmpr_classes2 = Template.new
+	tmpr_template = Template.new
+#	tmpr_classes1 = Hash.new	    
+#	tmpr_classes2 = Hash.new
 	tmpr_class = Hash.new
 	template_class = Array.new
 	attributes = Array.new
@@ -128,16 +131,16 @@ class Input_Description
 
 
 	while q < @data_structures_array.length
-	  tmpr_ds=@data_structures_array[q]
+	  tmpr_ds = @data_structures_array[q]
 
 # extract keys from original beasty hash
 # contains only one key of type Data_structure_characteristics
 
-	  tmpr_keys=tmpr_ds.keys
-	  tmpr_chars=tmpr_keys[0]
+	  tmpr_keys = tmpr_ds.keys
+	  tmpr_chars = tmpr_keys[0]
 
-          @query = "CREATE VIRTUAL TABLE " + tmpr_chars.name  + " USING stl(" +
-	  "pk integer primary key,"
+          @query = "CREATE VIRTUAL TABLE " + tmpr_chars.name  + 
+	  	 " USING stl(" + "pk integer primary key,"
 # get template arguments from signature
 
 	  cleared = tmpr_chars.signature.split(/</)
@@ -158,15 +161,15 @@ class Input_Description
 	  tmpr_template = tmpr_ds.fetch(tmpr_chars)
 
 # tmpr_keys length should be one
-	  tmpr_keys = tmpr_template.keys
-	  tmpr_classes1 = tmpr_keys[0]
-	  tmpr_classes2 = tmpr_template.fetch(tmpr_keys[0])
+#	  tmpr_keys = tmpr_template.keys
+#	  tmpr_classes1 = tmpr_keys[0]
+#	  tmpr_classes2 = tmpr_template.fetch(tmpr_keys[0])
 
 # extract keys from Hash template
 # contains only one key of type Array (template description)
 
 
-	  tmpr_class = tmpr_classes1.template_description
+	  tmpr_class = tmpr_template.template1
 	  if tmpr_class.has_key?("none") 
 	    puts "empty template"
 	  else
@@ -174,7 +177,7 @@ class Input_Description
 			tmpr_class.fetch(template_class[0]))
 	    puts "query " + @query
 	  end
-	  tmpr_class = tmpr_classes2.template_description
+	  tmpr_class = tmpr_template.template2
 	  recursive_traversal(tmpr_class,
 			tmpr_class.fetch(template_class[1]))
 	  @query = @query.chomp(",")
@@ -315,7 +318,7 @@ rslt
           class_name = template.index(attributes)
 	  if at == 0
             @follow_up.insert(@follow_up.length,"get_")
-            if @classnames[class_name] == "pointer"
+            if @classnames[class_name] == "class_pointer"
 	      class_type = "->"
             else
 	      class_type = "."
@@ -451,6 +454,15 @@ int main(){
 
   // declare and fill datastructure;
 
+
+  dsCarrier dsC;
+  dsC.memories = mem;
+  dsC.dsNames = names;
+
+  dsC.size = // input the number of data structures you are registering ;
+
+  data = (void *)&dsC;
+
   pthread_t sqlite_thread;
   re_sqlite = pthread_create(&sqlite_thread, NULL, thread_sqlite, data);
   pthread_join(sqlite_thread, NULL);
@@ -579,7 +591,7 @@ AG3
         if(!strcmp(colName, fk)){
             iter=any_dstr->begin();
             for(int i=0; i<(int)any_dstr->size(); i++){
-                if( traverse((int)&(*iter), op, sqlite3_value_int(val)) )
+                if( traverse((long int)&(*iter), op, sqlite3_value_int(val)) )
                     stcsr->resultSet[count++] = i;
                 iter++;
             }
@@ -593,7 +605,7 @@ AG3
             case 0: 
                 iter=any_dstr->begin();
                 for(int i=0; i<(int)any_dstr->size(); i++){
-                    if( traverse((int)&(*iter), op, sqlite3_value_int(val)) )
+                    if( traverse((long int)&(*iter), op, sqlite3_value_int(val)) )
                         stcsr->resultSet[count++] = i;
                     iter++;
                 }
@@ -633,15 +645,29 @@ cls_opn
     const char *fk = "fk";
     if ( (n==0) && (!strcmp(stl->azColumn[0], pk)) ){
 // attention!
-        sqlite3_result_int(con, (int)&(*iter));
+        sqlite3_result_int(con, (long int)&(*iter));
         printf(\"memory location of PK: %x\\n\", &(*iter));
     }else if( !strncmp(stl->azColumn[n], fk, 2) ){
-        sqlite3_result_int(con, (int)&(*iter));
+        sqlite3_result_int(con, (long int)&(*iter));
     }else{
 // in automated code: \"iter->get_\" + col_name + \"()\" will work.safe?
 // no.doxygen.
 AG5
 
+  makefile_part = <<-mkf
+
+main.o: main.cpp Account.h bridge.h
+        g++ -W -g -c main.cpp
+
+user_functions.o: user_functions.c bridge.h
+        gcc -W -g -c user_functions.c
+
+stl_to_sql.o: stl_to_sql.c stl_to_sql.h bridge.h
+        gcc -g -c stl_to_sql.c
+
+search.o: search.cpp bridge.h Account.h
+        g++ -W -g -c search.cpp
+mkf
 
 # END OF HereDocs
 
@@ -761,9 +787,9 @@ AG5
 #          tmpr_chars=Data_structure_characteristics.new
 #          tmpr_keys=Array.new
 # created above
-          tmpr_template = Hash.new
-          tmpr_classes1 = Template.new
-          tmpr_classes2 = Template.new
+          tmpr_template = Template.new
+#          tmpr_classes1 = Hash.new
+#          tmpr_classes2 = Hash.new
           tmpr_class = Hash.new
 
           while q < @data_structures_array.length
@@ -776,9 +802,9 @@ AG5
             tmpr_chars=tmpr_keys[0]
             tmpr_template = tmpr_ds.fetch(tmpr_chars)
 # tmpr keys length should be one
-            tmpr_keys = tmpr_template.keys
-            tmpr_classes1 = tmpr_keys[0]
-            tmpr_classes2 = tmpr_template.fetch(tmpr_keys[0])
+#            tmpr_keys = tmpr_template.keys
+#            tmpr_classes1 = tmpr_keys[0]
+#            tmpr_classes2 = tmpr_template.fetch(tmpr_keys[0])
 
 
 	    fw.puts "void " + tmpr_chars.name +
@@ -799,16 +825,16 @@ AG5
             if tmpr_chars.template1_type != "none"
               template_no = 1
               sep_classes = tmpl_classes.split(/,/)
-              tmpr_class = tmpr_classes1.template_description
+              tmpr_class = tmpr_template.template1
               gen_col(tmpr_class, tmpr_class.fetch(sep_classes[0]),
                                      template_no, tmpr_chars, fw, "check")
               template_no = 2
-              tmpr_class = tmpr_classes2.template_description
+              tmpr_class = tmpr_template.template2
               gen_col(tmpr_class, tmpr_class.fetch(sep_classes[1]),
                                     template_no, tmpr_chars, fw, "check")
             else
               template_no = 2
-              tmpr_class = tmpr_classes2.template_description
+              tmpr_class = tmpr_template.template2
               gen_col(tmpr_class, tmpr_class.fetch(tmpl_classes),
                                      template_no, tmpr_chars, fw, "check")
             end
@@ -830,9 +856,9 @@ AG5
             tmpr_chars=tmpr_keys[0]
             tmpr_template = tmpr_ds.fetch(tmpr_chars)
 # tmpr keys length should be one
-            tmpr_keys = tmpr_template.keys
-            tmpr_classes1 = tmpr_keys[0]
-            tmpr_classes2 = tmpr_template.fetch(tmpr_keys[0])
+#            tmpr_keys = tmpr_template.keys
+#            tmpr_classes1 = tmpr_keys[0]
+#            tmpr_classes2 = tmpr_template.fetch(tmpr_keys[0])
 
 	    fw.puts "int " + tmpr_chars.name +
             	    "_retrieve(void *stc, int n, sqlite3_context *con){"
@@ -855,16 +881,16 @@ AG5
             if tmpr_chars.template1_type != "none"
               template_no = 1
               sep_classes = tmpl_classes.split(/,/)
-              tmpr_class = tmpr_classes1.template_description
+              tmpr_class = tmpr_template.template1
               gen_col(tmpr_class, tmpr_class.fetch(sep_classes[0]),
                                      template_no, tmpr_chars, fw, "retrieve")
               template_no = 2
-              tmpr_class = tmpr_classes2.template_description
+              tmpr_class = tmpr_template.template2
               gen_col(tmpr_class, tmpr_class.fetch(sep_classes[1]),
                                     template_no, tmpr_chars, fw, "retrieve")
             else
               template_no = 2
-              tmpr_class = tmpr_classes2.template_description
+              tmpr_class = tmpr_template.template2
               gen_col(tmpr_class, tmpr_class.fetch(tmpl_classes),
                                      template_no, tmpr_chars, fw, "retrieve")
            end
@@ -917,6 +943,18 @@ AG5
 
 	fw.puts "}\n\n"
 
+      end
+
+      myfile = File.open("makefile.template","w") do |fw|
+        fw.print "test: main.o search.o stl_to_sql.o user_functions.o "
+	@classnames.each{|key,value| fw.print "#{key}.o "}
+	fw.puts
+        fw.print @s + "g++ -lswill -lsqlite3 -W -g main.o search.o stl_to_sql.o user_functions.o "
+	@classnames.each{|key,value| fw.print "#{key}.o "}
+	fw.puts "-o test"
+	fw.puts makefile_part	
+	fw.puts
+	@classnames.each{|key,value| fw.puts "#{key}.o: #{key}.cpp #{key}.h \n" + @s + "g++ -W -g -c #{key}.cpp \n"}
       end
     end
 
@@ -1112,7 +1150,7 @@ TA
 # END OF HEREDOCS
 
         columns=Array.new
-	template = Template.new
+#	template = Hash.new
 	description = Hash.new
 	if my_array[index].include?(":")
 	  if ds_chars_inst.template1_type == "none"
@@ -1184,8 +1222,8 @@ TA
 	end
  	description.each_pair { |key, value_array| 
 	   value_array.each {|value| puts "key is #{key} value is #{value}"}}  
-	template.template_description = description
-	return template
+#	template = description
+	return description
       end
 
 
@@ -1233,6 +1271,46 @@ NOW EXITING.
 
 NAR
 
+  generated_files = <<-fg
+
+--------------------------------------------------------------
+EXECUTION SUCCESSFUL!
+
+If you type "ls" you will notice three new files inside the 
+current directory namely:
+
+-> search.cpp
+-> main.template
+-> makefile.template
+
+The .template files need modification from you.
+
+Main.template expects from you one or more data structures to 
+be defined and filled with data.
+You will also need to fill in the number of data structures you have
+in the respective field.
+You can consult main.example for additional help.
+After you have completed the modifications type in command line
+"mv main.template main.cpp" to rename the file.
+
+In order to have access to the fields of your user defined classes
+we aaume that for each attribute, let's call it x, there is a get_x()
+function present.
+
+Makefile.template needs to be modified too so that S[Q->T]L can be 
+compiled together with your application code.
+Modifications involve relationships betwen classes in your code.
+The compile statements for each class file independently are 
+there.
+Also add the path to the sqlite3, swill libraries if you have them 
+installed locally.
+After you have completed the modifications type in command line
+"mv makefile.template makefile" to rename the file.
+
+Finally, type make to compile and then ./test to run the executable.
+
+fg
+
 # END OF HEREDOCS
 
         puts "description before whitespace cleanup " + @description
@@ -1245,8 +1323,8 @@ NAR
 	data_structure = Array.new
         templates_representation = Array.new
 	ds_chars = Array.new
-	template1 = Array.new
-	template2 = Array.new
+#	template1 = Array.new
+#	template2 = Array.new
 
 	w = - 1 + ds.length
 	l = - 1 + ds.length
@@ -1255,17 +1333,15 @@ NAR
 	  puts "\nDATA STRUCTURE DESCRIPTION No: " + w.to_s + "\n"
 
 	  data_structure[l-w] = Hash.new
-          templates_representation[l-w] = Hash.new
+          templates_representation[l-w] = Template.new
 	  ds_chars[l-w] = Data_structure_characteristics.new
-	  template1[l-w] = Template.new
-	  template2[l-w] = Template.new
+#	  template1[l-w] = Hash.new
+#	  template2[l-w] = Hash.new
 
 	  my_array = ds[w].split(/;/)
-
 # data structure name
 	  ds_chars[l-w].name=my_array[0]
 	  @ds_nested_names.push(my_array[0])
-	  ds_chars[l-w].type=my_array[1]
 
 # @classnames is used to keep track of classes contained
 # in a datastructure for avoidance of duplication
@@ -1276,11 +1352,11 @@ NAR
 	    @classnames.clear
 	  end
 
-	  if my_array[2].include?("<") && my_array[2].include?(">")
-	    container_split=my_array[2].split(/</)
+	  if my_array[1].include?("<") && my_array[1].include?(">")
+	    container_split=my_array[1].split(/</)
 	    container_class=container_split[0]
 	  else
-	    raise ArgumentError.new(class_sign + my_array[2] + 
+	    raise ArgumentError.new(class_sign + my_array[1] + 
 	     	     "\n\n NOW EXITING. \n") 
 	  end
 
@@ -1303,7 +1379,7 @@ NAR
 
 	  if (@template_args=="single" && container_split[1].include?(",")) || 
 	     (@template_args=="double" && !container_split[1].include?(","))
-	       raise ArgumentError.new(class_sign + my_array[2] + 
+	       raise ArgumentError.new(class_sign + my_array[1] + 
 	     	     "\n\n NOW EXITING. \n")
 	  end
 
@@ -1322,8 +1398,8 @@ NAR
 	  	       @container_type="bitset"
 	  end
 
-	  @signature=my_array[2]
-	  ds_chars[l-w].signature=my_array[2]
+	  @signature=my_array[1]
+	  ds_chars[l-w].signature=my_array[1]
 	  puts "container signature is: " + @signature
           puts "no of template args is: " + @template_args
 	  puts "container type is: " + @container_type
@@ -1334,26 +1410,29 @@ NAR
 	    i+=1
 	  end 
 
-	  if my_array.length==4
+	  if my_array.length==3
 	    unless @template_args=="single"
 	      puts $err_state
 	      raise ArgumentError.new(no_args)
 	    end
 	    ds_chars[l-w].template1_type="none"
 	    
-	    template2[l-w]=register_class(ds_chars[l-w], my_array, 3)
-	    template1[l-w].template_description["none"] = nil
-	    templates_representation[l-w].store(template1[l-w], 
-	    						template2[l-w])
-	  elsif my_array.length==5
+	    templates_representation[l-w].template2 = 
+	    			register_class(ds_chars[l-w], my_array, 2)
+	    templates_representation[l-w].template1["none"] = nil
+#	    templates_representation[l-w].store(template1[l-w], 
+#	    						template2[l-w])
+	  elsif my_array.length==4
 	    unless @template_args=="double"
 	      puts $err_state
 	      raise ArgumentError.new(col_args)
 	    end
-	    template1[l-w]=register_class(ds_chars[l-w], my_array, 3)
-	    template2[l-w]=register_class(ds_chars[l-w], my_array, 4)
-	    templates_representation[l-w].store(template1[l-w], 
-	    						template2[l-w])
+	    templates_representation[l-w].template1 = 
+	    			register_class(ds_chars[l-w], my_array, 2)
+	    templates_representation[l-w].template2 = 
+	    			register_class(ds_chars[l-w], my_array, 3)
+#	    templates_representation[l-w].store(template1[l-w], 
+#	    						template2[l-w])
 	  else
 	    puts $err_state
 	    raise ArgumentError.new(nargs)
@@ -1368,9 +1447,9 @@ NAR
 	tmpr_ds=Hash.new
 	tmpr_chars=Data_structure_characteristics.new
 	tmpr_keys=Array.new
-	tmpr_template = Hash.new
-	tmpr_classes1 = Template.new	    
-	tmpr_classes2 = Template.new
+	tmpr_template = Template.new
+#	tmpr_classes1 = Hash.new	    
+#	tmpr_classes2 = Hash.new
 	tmpr_class = Hash.new
 
 	puts "\n Data structures stored: " + 
@@ -1386,22 +1465,23 @@ NAR
 
 	  puts tmpr_chars.name
 	  puts tmpr_chars.signature
-	  puts tmpr_chars.type
 	  puts tmpr_chars.template1_type
 	  puts tmpr_chars.template2_type
 
 	  tmpr_template = tmpr_ds.fetch(tmpr_chars)
 
 # tmpr_keys length should be one
-	  tmpr_keys = tmpr_template.keys
-	  tmpr_classes1 = tmpr_keys[0]
-	  tmpr_classes2 = tmpr_template.fetch(tmpr_keys[0])
+#	  tmpr_keys = tmpr_template.keys
+#	  tmpr_classes1 = tmpr_keys[0]
+#	  tmpr_classes2 = tmpr_template.fetch(tmpr_keys[0])
 
 # extract keys from Hash template
 # contains only one key of type Array (template description)
 
+  	  
+
 	  tc = 0
-	  tmpr_class = tmpr_classes1.template_description
+#	  tmpr_class = tmpr_template.template1
 	  if tmpr_class.has_key?("none") 
 	    puts "empty template"
 	  else
@@ -1409,7 +1489,7 @@ NAR
 	    attribute_array.each{|attribute|
 	    puts "#{class_name}, #{attribute}"}}
 	  end
-	  tmpr_class = tmpr_classes2.template_description
+	  tmpr_class = tmpr_template.template2
 	  if tmpr_class.has_key?("none")
 	    puts "empty template"
 	  else
@@ -1422,28 +1502,349 @@ NAR
 	create_vt
 	write_to_file(ds[0])
 	puts "CONGRATS?"
+	puts generated_files
     end
 
 #=end
 
 end
 
-# test cases
+
+
+=begin
+
+user input
+
+automate makefile
+
+welcome bla bla 
+latin characters
+database name->.db extension
+useful information:
+if multiple ds embedded in one another start with base
+embedded ds will be input as an attribute ie its name followed by a
+keyword. detailed instructions follow.
+resetting the procedure will get you back to the immediate previous step. 
+to reset type reset
+ds loop:
+  data structure name keywords dependency? note:vt will be named after it
+  data structure signature with examples.template instantiation 
+       identical to class name
+  class loop:
+    class name. keywords dependency. identical
+    attribute loop:
+      attribute name. kd. identical. get_ convention
+      attribute type. show list. if not acceptable ask again and again
+      input another attribute?
+    end
+    input another class?
+  end
+input another data structure?
+end
+
+help
+reset
+construct description
+
+=end
 
 if __FILE__==$0
+
+# Main Heredocs
+
+  welcome = <<-wel
+
+Welcome to S[Q|T]L for C++ applications, an SQL query interface for in memory
+objects structured using an STL container.
+
+The way the interface works is by mapping the user defined data
+structure to a virtual table using the respective API of the Sqlite3 
+database engine.
+
+For this to happen we need from you to provide us with a description
+of the data structure content, namely the characteristics of the
+inherent object.
+
+We hope that the input handler will be of adequate help.
+Please use only latin letters in your description.
+Step by step instructions are provided.
+
+
+wel
+
+  ds_description = <<-dsd
+
+Now we will guide you through the process of checking in the
+descriprion of your data structures.
+You can check in any number of data structure descriptions.
+
+For additional information type "help".
+
+
+dsd
+
+  ds_help = <<-dsh
+
+If a data structure contains another (as attribute of a class), start
+ with the description of the base one.  
+You can pinpoint the embedded one as an attribute and provide its
+description as a separate data structure after finishing the first description.
+
+Please ensure that exactly the same name is used in order to perform
+the mapping between the data structure attribute and its description.
+
+
+dsh
+
+  init_datastr_des = <<-ind
+
+If you desire to check in a data structure description please
+   type "yes" and hit <return>: 
+
+note: Any other answer will be interpreted as no.
+
+
+ind
+
+  init_class_des = <<-inc
+
+For additional information type "help".
+
+If you desire to check in a class description please
+   type "yes" and hit <return>: 
+
+note: Any other answer will be interpreted as no.
+
+
+inc
+
+  class_help = <<-clh
+Please start with base class i.e. the one that appears in container
+signature and input embedded objects as attributes. 
+Specific keyword exists to pinpoint the special semantics.
+
+After you have finished with the first description you can check in
+the description for the embedded class.
+
+Please ensure that the name of the embedded attribute is identical to
+the name of the respective class desription.
+
+You can repeat this process as many times as you need.
+There is no restriction on the complexity of the class or classes
+contained in the data structure.
+
+They are used internally to direct operations towards the mapping to
+virtual tables.
+
+
+clh
+
+  init_attr_des = <<-inat
+
+For additional information type "help".
+
+If you desire to check in an attribute description please
+   type "yes" and hit <return>:
+
+note: Any other answer will be interpreted as no. 
+
+
+inat
+
+
+  attr_help = <<-ath
+
+If the attribute is an object then give as name the
+exact name of the class and as type either "class" or "class_pointer"
+depending on how it is provided in class definition.
+After you finish this class description start a new one for the
+embedded object.
+Please remember that the class name should match.
+
+If the attribute is a data structure, again, give as name the
+exact name of the data structure and as type either "ds" or "ds_pointer"
+depending on how it is provided in class definition.
+After you finish this class description start a new one for the
+embedded object.
+
+
+Available primitive data types are:
+int or integer, tinyint, smallint, mediumint, 
+bigint, unsigned bigint, int2, int8, 
+blob(no type.values stored exactly as input), 
+float, double, double precision, real, numeric, date, 
+datetime, bool or boolean, decimal(10,5), text, 
+clob(type text), character(20), varchar(255), varying 
+character(255), nchar(55), native character(70), 
+nvarchar(100), string
+
+
+ath
+
+# Please refrain from using as class or attribute names the following
+# words: "ds", "ds_pointer", "jump", "reference", "class", "inherits_from"
+
+# what happens with ds or ds pointer
+
+# multiple inheritance?e.g. Person, , Baker
+
+# You will always have the opportunity to go one step back by typing "reset".
+
+  description = ""
+# "foo!accounts;vector<Account>;Account,class-balance,float-account_no,text"
+
+   puts welcome
+   puts "Please input the database name(no extension needed) and hit <return>:"
+   puts "note:if a database file with that name does not exist in the 
+   	directory a new one will be created."
+   db_name = gets.chomp
+   description += db_name + "!"
+   puts ds_description
+   puts init_datastr_des
+   ds_des = gets.chomp     
+   while ds_des == "help"	   
+     puts ds_help
+     puts init_datastr_des
+     ds_des = gets.chomp
+   end
+#=begin
+   ds_counter = 0
+   while ds_des=="yes"
+     if ds_counter != 0
+       description += "!"
+     end
+     puts "Please input the data structure name: "
+     puts "note: the Virtual Table will be named after it."
+     ds_name = gets.chomp
+     description += ds_name + ";"
+     puts "Please input data structure signature: "
+     puts "note: signature consists of container class 
+     	  and template argument instantiation(s)"
+     puts "e.g. vector<Account> , map<int,Account>"
+     signature = gets.chomp
+     description += signature + ";" 
+     if signature.match(/,/)
+       template_args = 2
+     else 
+       template_args = 1
+     end
+     tmpl_counter = 0     
+     while tmpl_counter < template_args
+       if tmpl_counter != 0
+         description += ";"
+       end
+       if tmpl_counter==0 
+         if template_args==2
+           puts "Please check in first template argument description"
+         else template_args==1
+           puts "Please check in template argument description"       
+	 end
+       else
+         puts "Please check in second template argument description"
+       end
+       puts init_class_des
+       clas = gets.chomp
+       while clas == "help"	   
+         puts class_help
+     	 puts init_class_des
+     	 clas = gets.chomp
+       end
+       class_counter = 0
+       while clas == "yes"
+         if class_counter != 0
+           description += ":"
+         end
+         puts "Please input class name: "
+	 class_name = gets.chomp
+	 puts "Please input the way objects of the class can be accessed: "
+	 puts "Two possible answers expected: \"object\" or \"pointer\""
+	 class_type = gets.chomp
+	 if class_type == "object"
+	   class_type = "class"
+	 elsif class_type == "pointer"
+	   class_type = "class_pointer"
+	 else
+	   raise TypeError.new("expected \"object\" or \"pointer\" got " +
+   	   	 class_type + "\n")
+	 end
+	 puts "Does " + class_name + " class inherit from another class?"
+	 puts "If this is the case please type \"yes\"."	 
+	 puts "Any other answer will be interpreted as no."
+	 inh = gets.chomp
+	 if inh == "yes"
+	   puts "Please type the exact name of the super class:"
+	   super_class = gets.chomp
+	   super_class = " inherits_from " + super_class
+	 else
+	   super_class = ""
+	 end
+	 description += class_name + "," + class_type + super_class
+	 puts init_attr_des
+       	 attribute = gets.chomp
+       	 while attribute == "help"	   
+           puts attr_help
+     	   puts init_attr_des
+     	   attribute = gets.chomp
+         end
+	 attr_counter = 0
+	 while attribute == "yes"
+           description += "-"
+	   puts "Please type the attribute name: "
+	   attribute_name = gets.chomp
+	   puts "Please enter the attibute type: "
+	   puts "For additional information type \"help\"."
+	   attribute_type = gets.chomp
+	   while attribute_type == "help"	   
+	     puts attr_help
+	     puts "Please enter the attibute type: "
+	     puts "For additional information type \"help\"."
+	     attribute_type = gets.chomp
+	   end
+	   description += attribute_name + "," + attribute_type
+	   puts init_attr_des
+       	   attribute = gets.chomp
+       	   while attribute == "help"	   
+             puts attr_help
+     	     puts init_attr_des
+     	     attribute = gets.chomp
+           end
+	   attr_counter += 1
+	 end
+         puts init_class_des
+         clas = gets.chomp
+         while clas == "help"	   
+           puts class_help
+     	   puts init_class_des
+     	   clas = gets.chomp
+         end
+	 class_counter += 1
+       end
+       tmpl_counter += 1
+     end
+     puts init_datastr_des
+     ds_des = gets.chomp
+     while ds_des == "help"	   
+       puts ds_help
+       puts init_datastr_des
+       ds_des = gets.chomp
+     end
+     ds_counter += 1
+   end
+#=end
+input=Input_Description.new(description)
 =begin
     input=Input_Description.new("foo .db!account;
     vector<Account>;Account,class-a ccount_no,text-balance,FLoat")  
 
-=end
-    input=Input_Description.new("foo .db!account;pointer;
+#=end
+    input=Input_Description.new("foo .db!account;
     map< string,Account >;
     nick_name,string;Account,class-a ccount_no,text-balance,FLoat-isbn,
     integer")
 # -persons,ds!persons;object;vector<Person>;Person,
 # class_pointerinherits_fromAddress-name,string-age,int:
 # Address,class-street,string-number,int-postcode,int")
-=begin
+#=begin
     input=Input_Description.new("foo .db;account;
     deque<Account>;Account,class-a ccount_no,text-balance,FLoat-isbn,integer") 
 #=end
