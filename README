@@ -1,0 +1,63 @@
+Welcome to S[Q->T]L!
+An SQL query interface for STL data structures.
+
+Some information about your application code:
+In order to access your own defined classes we require a description
+of those. A program written in Ruby will facilitate this process and
+it will generate code accordingly. 
+The code generated follows certain guidelines.
+
+Specifically, we assume that there is a header file (.h) and an
+implemenattion file (.cpp) for each class.
+
+For each attribute x, there is a public method get_x() with this
+precise name, e.g. for attribute name there is public method
+get_name().
+
+What is more, if the class contains an attribute which is a reference
+to an object of another class, we also expect a method returning the
+attribute. For example for a reference to an object of the class
+Account that lies inside Person class we would expect to find a method
+get_Account() with this exact name. Description for the class Account
+can be given right after you finish describing Person.
+
+This is to account for one to many relationships too.
+In the case that a Person holds more than one Accounts, then Account
+would be a separate data structure. Description of Accounts data
+structure has to follow. Because Persons and Accounts will be
+represented as separate virtual tables a join will have to be realised
+to get Accounts information. Again there will have to be a method to
+return the address of Accounts data structure inside Person class,
+namely get_Accounts().
+
+
+You can notice four folders:
+
+DEPENDENCIES contain the dynamic libraries needed for application code
+to run namely SWILL library and SQLITE3. They have been compiled for
+MACOS X 10.6.4. Otherwise they can be easily installed from
+Sourceforge/SWILL and SQLITE3 site respectively (source code also
+exists in repository for sqlite3). Also you will need to have ruby
+installed in your system.
+
+EXAMPLES contains sample data to fill in main for each data structure 
+(data.txt, main.example). 
+Also sample implementations of user defined classes are included.
+
+DOCS contains some documentation about the application library
+(paper.tex) and also considerations about current implementation
+(docs.txt). bnf.txt contains a formal description of the domain
+specific language used used to get full information about data
+structure content.
+
+SOURCE contains the source code of the application.
+Of these in.rb is of interest to you.
+Once you are in the directory type "ruby in.rb".
+You will be instructed to give description of your data structure.
+Please make sure that you put your code is in this directory to
+allow for compilation.
+
+
+
+
+
