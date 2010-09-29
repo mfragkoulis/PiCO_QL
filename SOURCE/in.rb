@@ -1734,12 +1734,14 @@ ath
 
 # You will always have the opportunity to go one step back by typing "reset".
 
-  description =
+  description = ""
+=begin
   "foo.db!account;map<string,Account>;nick_name,string;Account,class
   inherits_from
   SuperAccount-account_no,text-balance,float-isbn,integer:SuperAccount,
   class-iba,text"
-=begin
+=end
+#=begin
    puts welcome
    puts "Please input the database name(no extension needed) and hit <return>:"
    puts "note:if a database file with that name does not exist in the 
@@ -1897,7 +1899,7 @@ ath
      end
      ds_counter += 1
    end
-=end
+#=end
 input=Input_Description.new(description)
 =begin
     input=Input_Description.new("foo .db!account;
