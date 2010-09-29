@@ -1,0 +1,491 @@
+31/5/2010
+
+1. void search(stl_table_cursor *, ...,stl_table *, ...) 
+
+   doesn't compile : syntax error before '*' token
+
+   needs:
+
+   void search(void *,...,void *,...)
+
+2. notes on mixing C/C++ 
+
+   main has to be compiled with g++
+
+   linking has to be performed with g++ so that it can use its special libraries
+
+
+
+1/6/2010
+
+1. fts3 setup wasn't created to keep integer primary key column, so
+   column 0 has name "integer" instead of "integer primary key
+   autoincrement"
+
+   proposed convention for input description: column 0 is "integer
+   primary key autoincrement"  -> no need. if "integer" then key else data.
+
+2. sqlite3_free complains about non-aligned pointer being freed
+   (attempting to free (int*)) while free does ok.
+
+-> should be ok now.hadn't allocated enough memory for
+   stl_table_cursor
+
+3. column names (char **azColumn field in stl_table doesn't behave as
+   should.
+   eg. stl->azColumn[0]="INTEGER"  tokenized key
+       stl->azColumn[1]="account_no"
+       stl->azColumn[2]="balance\b"  ??
+       if more columns then ok. (??)
+
+4. row manipulation
+
+- the fact that xnext( fetch next row) is called only once strikes
+  me as odd.
+
+->size was not set right so isEof was set.
+
+- operation returns error code in the end. code is SQLITE_ROW which
+  means another row of result is available but why is it terminating?
+  it should call xnext again. so I'm missing sth.
+
+->it is waiting for you to manage resultset. solved with
+  sqlite3_column family of routines. sqlite3_get_table magnificent wrapper.
+
+- gdb shows nothing unusual. SQLITE_ROW is set because there is still
+  work to be done, I didn't make out an error of some kind.
+  sqlite3VdbeExec and sqlite3Step is where it all happens.
+
+->see above.
+
+
+2/06/2010
+
+1. operation success. no output
+
+->see above. resultset is not handled.
+
+2. improve code quality
+
+   sqlite3_stmt is actually a Vdbe struct. in case needed in xcolumn
+
+3. output with sqlite3_column but found sqlite3_get_table very handy
+
+4. make a wrapper function for the select query.
+
+   arguments: module name, db name, void * pointer to data, sql query
+
+->done: query_table
+
+5. make prep_exec distinguish create calls from select calls
+   (register_stl_table / run_stl_query) so that sqlite3_get_table is incorporated
+
+
+
+3/06/2010
+
+1. have to have sqlite3_stmt available in retrieve so that to wrap all
+   column returns with sqlite3_column_text and return them with
+   sqlite3_result_text
+
+->can't do using sqlite3_get_table
+   Problem is sqlite3 (which has field vdbe * aka sqlite3_stmt *) is
+   only declared in sqlite3.h (typedef struct sqlite3 sqlite3;) and not defined hence trying to refer to
+   vdbe * fails as incomplete type.
+
+-> solved with adding int *colDataType in stl_table struct to keep the
+   data_type of each column
+
+2. simple constraint passed through and executed successfully.
+
+3. column names in azColumn are not accurate.
+
+->sometimes.see above.
+
+4/06/2010
+
+1. function to retrieve value from datastructure has to be generated
+   automatically. is it safe to suppose that this function will be
+   found under the name get_attribute() where attribute is the column
+   name?
+
+2. on accepted datatypes upon description..
+
+3. haven't used rowid
+
+4. automatic compilation?methods search, retrieve
+
+5. query-specific vs datastructure specific
+
+6. how about pk-fk relationship?
+   account.account_id=customer.account_id
+
+   left hand-side and operation coded in xbestindex(idxStr), right hand side
+   available in xfilter(setting argvindex in xbestindex).
+
+   pk-fk actually represent a nested structure (eg. Customer class has
+   Account attribute)
+
+   iter_nested->account_id->get_
+
+
+8/06/2010
+
+1. dynamically loading module succeeds but querying invokes bus error.
+
+2. tried to make exe (not library) with added routines, invoke from
+   main and debug but running it, I have trouble calling sqlite_API
+   functions (sqlite3_malloc, sqlite3_declare_vtab)
+   
+
+9/06/2010
+
+1. select statement path:
+
+   sqlite3Select   (master)
+   sqlite3SelectPrep
+
+   sqlite3SelectExpand
+   sqlite3ResolveSelectNames
+   resolveSelectStep
+
+2. two alternatives emerge:
+
+   a) in C++:
+      create datastructure
+      call register_table which will:
+      		     register module (includes passing address of datastrusture)
+		     create virtual table
+      	     	     call ruby's function to automatically generate:
+		     	    the data structure specific functions used in search and result set
+      make (together with any user supplied classes)
+
+      in sqlite3 command line client:
+      use same database connection (???) to query
+
+   b) in C++:
+      create datastructure
+      
+      build module as an extension meaning:
+      	    	     call ruby's function to generate:
+		     	    the data structure specific functions used in search and result set
+			    content of sqlite3_extension_init (called by sqlite3_load_extension):
+			    	    register_module (includes passing address of datastrusture???)
+      make (extension: g++ -bundle -fPIC...) (+ user supplied classes)
+      
+      in sqlite3 command line client should get:
+
+      sense-dhcp-2:trunk mfrag$ sqlite3 foo.db 
+      sqlite> .load stl_module
+      module registered successfully
+      virtual table declared successfully
+      sqlite> select * from account;
+
+12/06/2010
+
+1. files to be generated automatically: search.cpp, sql_calls.c
+   (copy_paste.c) ok
+
+2. remove call_swill and prep_exec from bridge.h (internal use only) ok
+
+3. swill needed index.html to work properly. ok
+
+4. register_table from thread in main. main does really work in
+   parallel with thread?
+
+14/06/2010
+
+- Issues in automatic code generation
+
+1.     multimap<string,Account> *any_dstr = (multimap<string,Account> *)stl->data;
+       can we do it for every STL class? ok
+
+2.     colName. need to address its content. its content is known in
+       the context of auto_search.cpp so cannot puts from ruby.
+       
+       in ruby you have all column names.use that info(@table_columns). ok
+
+3.     keeping datatype in init_vtable is useless. anyway, same idea
+       if applied in ruby will solve the problem.
+       one switch ( n ) in search.cpp.
+       cases in switch will be determined by datatype.
+       if column keeps int then sqlite3_result_int must be puts.
+       ok
+
+4.     what happens with multiple classes? 
+       all in one VT. ok
+
+
+16/06/2010
+
+1.     integer primary key for top level table too? 
+       no PK-FK needed.All in one VT. ok
+
+2.     datatypes and affinity need investigation-testing
+
+3.     operations in, between, like implementation
+
+4.     ruby needs refactoring?
+
+21/06/2010
+
+1.	multimap, multiset but include map,set respectively. ok
+
+2.	SGI extensions (hash like)? no. ok
+
+3.	bitset? no. ok
+
+4.	about comparison functions:
+	  need to address when defining the datastructure and write
+	  the appropriate struct(in main).ruby doesn't have to know about it
+	  so user should not include it in description.
+	  main will address the issue respectively. ok
+
+5.	make all get_ functions const. 
+	  a) good practice
+	  b) user defined comparison function requires const arguments
+	  (eg const Account&)
+	  A simple associative container(like set) provides constant iterators
+	  only,not mutable iterators.Keys are the elements themselves.
+	  Changing the elements would make the container inconsistent.
+	  this is why Account::get_balance() const;because it is used
+	  as key. In pair associative containers (eg. map) first field
+	  aka the key has to be immutable too. (Austern,STL, p.76) ok
+
+6.	mechanism for PK-FK. memory address of object.
+	not needed. ok.
+
+7.	searching for attributes of nested object(eg
+	Person-Address-Post code) which is
+	necessarily a virtual table on its own.
+	All in one VT. ok.
+
+23/06/2010
+
+1.	nested object in data structure (ds)?
+	couldn't care less
+	just enumerate columns and build a big flat VT.
+
+2.	more than one ds?
+	x ds, x VTs.
+	x descriptions have to be given at once.
+	module contains ds specific code.
+	therefore module has to know about every VT (ds) registered with it
+	otherwise it won't be able to search and retrieve results for
+	it.
+
+	Depending on table name, a different version of search,
+	retrieval will be called.
+
+	So ruby has to generate x {search, retrieval} for x
+	ds.To do that, it has to keep full trace of
+	table names, classes's names, classes's attributes, ds
+	signatures.
+
+	seperate addresses will have to be given.
+	let's suppose that we wrap void * around a struct containing
+	void ** (memory locations of data structures) and perhaps table
+	names (const char **) so that you can pair memory locations to
+	ds and of course n (total number of ds).
+
+
+	sqlite3_create_module only way to pass void pointer to data.
+	another reason why all descriptions must be given together.
+
+
+3.	data structure inside object inside data structure?
+	seperate VTs,PK-FK mechanism
+
+	embedded ds does not need seperate address, only seperate
+	description and of course auto-generation of search,
+	retrieval. 
+	careful reference of elements (iterators) in search, retrieval.
+
+1/7/2010
+
+1.	inheritance
+
+2.	associative data structure key complexity
+
+3.	same class in both templates?
+
+4.	two two-dimensional arrays to hold class attributes for both
+	templates
+
+5.	symbols to use as delimeters (5)
+
+6.	distinguish pointer from object
+
+7.	nested ds vs different ds's
+	pk-fk mechanism vs hand-joining columns in query time
+
+8.	register_class overload needed?
+
+10/7/2010
+
+1.	multithreaded application using C++ Standard Library
+	use pl's link
+
+2. 	pthread.h included in main but no -pthread directive
+	in makefile
+
+3. 	why did thread_mai not work for me?
+
+4.	locks in user level
+
+5.	keep refernces to object not index in search.cpp
+	make it select and return (loop), rather than
+	select all, return all
+
+6. 	ds_names, classnames
+
+7.	reference,class name store it as is
+	ignore when creating the vt
+	use when generating code respectively
+	->jump to class description and make calls
+	to instance functions
+
+8.	top down or bottom up traversal(ds, class)
+	bottom up
+
+9.	ds or ds_pointer in description
+
+
+29/9/2010
+
+FILE in.rb
+
+     METHOD register_datastructure
+
+     	    - strip all kinds of whitespace (space, tab, newline) from
+                  description
+	    - parse description, error recognition and handling
+	    - calls register_class for each template argument
+
+
+     METHOD register_class
+
+     	    - 
+
+inherits_from accessible in first attribute of each class
+class_name, class_type
+at=0
+neat_attributes(attributes[at])
+therefore it will be noticed
+
+gen_col documentation
+
+@back is needed when returning from recursive call for not printing in
+C++ file.
+return point gen_col. nothing to print for. information about
+attribute was actually a whole class served by the recursive call.
+At next loop first action is to zero @back so as to be able to print
+for next attribute. If it is an object a jump will be realised again.
+At the end of the jump @back will become 1 and so on.
+
+for inheritance:
+since inheritance info is in @classnames and we will not go through 
+neat_attributes a jump will not be realised. but we want one without
+it being a classic jump.
+
+we don't want @back to become one, so that we will always print. except if a
+jump is realised in superclass. also good.
+@back changes when jump > 0. we don't want @jump to change. cheat.
+
+at -= 1
+inherits_from is not part of an attribute but at += 1 will finally
+happen when returning from the recursive call. that's why we do at -= 1
+beforehand when we possess the information that an inheritance call
+will be under way.
+
+@operation is needed in order to be able to know from what recursive
+call we are returning, inheritance or nested structure.
+
+at == 0 && @inheritance < 2
+
+in successive inheritance calls
+you would be getting get_get_ and so on
+in @jump case you would be getting get_class1()./->get_class2() and so on
+
+multi layer inheritance? i think we can have.
+
+you will find yourself outside the loop either in a case of
+inheritance or nested structure. the two operations are enough for disambiguation.
+
+recursive call to gen_col can be optimized (double reference for jump, inheritance)
+
+@follow_up.insert(0,"") but we know it will be the first invocation
+there do we? yes, all inserts in jump case and deletion will be
+certainly preceded by an insertion even in inheritance case.
+
+@action is an Array monitoring actions (jump or inheritance) to be
+able to perform the correct steps when returning from a recursive
+call.
+
+gap in user guide concerning primitive classes. check
+
+gen_col is used to flush check and retrieve information in C++ file.
+template arguments of primitive type are not input in classnames and
+therefore can not be found there.
+
+@jump is utilised to keep track of navigations concerning nested
+objects and direct deletions in @follow_up respectively.
+
+pk, fk works?i.e. for nested data structure..
+
+how about inheritance?
+
+two drifts:
+- from description to code generation
+
+- code execution
+
+test it
+
+organise it or else panos will have a stroke.
+
+
+for inheritance:
+no unified way to handle it. you pass it in Register as an
+attribute. it isn't. it should be only in @classnames.
+so I think if you change the way inherits_from is retrieved
+i.e. from Register to @classnames it will be ok.
+
+better way:
+unify it. the problem is that when formulating query a nested object
+and an inheritance incur the same series of actions.
+in generating C++ code they don't.
+
+modify neat_attributes so that three spaces exist for inheritance and
+two for jump. use it to distinguish the case in gen_col.
+also make jump specific:
+    Account jump_inh SuperAccount vs
+    jump_nested Person
+
+how do you handle ds in code generation?
+all i see is a column fk..what if you have more than one fk's?
+
+you map datatypes to generic categories e.g. smallint and bigint to
+int..is that correct?
+
+at==0 in gen_col to put get_ inside @follow_up and get class_type
+
+          if at <= 1 && split.length == 2
+
+inheritance always in position 0 of attributes
+want to capture first attribute operations inside a class (nested
+objects included). at most these will happen in position 1.
+ could also do (at == 0 && split.length == 2) || at == 1
+
+
+primitive template argument class (e.g. nick_name string) doesn't go
+through @classnames..fortunately.
+@classnames is used to print the include .h's so it should have only
+user defined classes.
+
+also you should say in Readme that you expect a format like that in
+your code.each class to have a .h with the declarations of its
+characteristics and .cpp with the definitions.
+
+pointer vs object in signature?
+
