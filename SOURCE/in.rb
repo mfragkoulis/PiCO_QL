@@ -31,21 +31,23 @@ class Input_Description
 
       def initialize(description="")
           @description=description
-	  @signature=""
+	  @signature = ""
 	  @column_traverse = ""
 	  @jump = 0
 	  @back = 0
 	  @inheritance = 0
 	  @action = Array.new
 	  @follow_up = Array.new
-	  @data_structures_array=Array.new
+	  @data_structures_array = Array.new
           @ds_nested_names = Array.new
-	  @classnames=Hash.new
-	  @container_type=""
-	  @template_args=""
-	  @filename="main.template"
-	  @query=""
-	  @queries=Array.new
+	  @classnames = Hash.new
+	  @inheritance_struct = Hash.new
+	  @clone_inheritance_struct = Hash.new
+	  @container_type = ""
+	  @template_args = ""
+	  @filename = "main.template"
+	  @query = ""
+	  @queries = Array.new
 	  @s = "        "
       end
 
@@ -76,8 +78,27 @@ class Input_Description
 	  elsif ret_attribute.match(/jump_inh/)
 	    split = ret_attribute.split(/ /)
 	    puts "split " + split[2]
-	    ret_attribute = recursive_traversal(tmpr_class,
+# multiple inheritance?Account->Banking Product, SuperAccount
+# key split[0] + "_" + split[2]
+# for superclass duplication test split[2]
+# inheritance attributes starting a class description
+# would work otherwise but arrangement would mix different class attributes
+	    if (!@clone_inheritance_struct.has_key?(split[2])) || 
+	       			(@clone_inheritance_struct.has_key?(split[2]) && 
+	       			@clone_inheritance_struct[split[2]] != split[2])
+	      ret_attribute = recursive_traversal(tmpr_class,
 				tmpr_class.fetch(split[2]))
+	      @clone_inheritance_struct.delete(split[0])
+	    else
+	      @clone_inheritance_struct.delete(split[2])
+	    end
+	    while !@clone_inheritance_struct.empty?
+	      tmp_inh_array = @clone_inheritance_struct.keys
+	      @clone_inheritance_struct[split[2]] = split[2]
+	      @clone_inheritance_struct.delete(tmp_inh_array[0])
+	      ret_attribute = recursive_traversal(tmpr_class,
+				tmpr_class.fetch(tmp_inh_array[0]))	      	      
+	    end
 	  else
 	    @query += ret_attribute + "," 
 	    puts @query
@@ -146,6 +167,7 @@ class Input_Description
 	  tmpr_keys = tmpr_ds.keys
 	  tmpr_chars = tmpr_keys[0]
 
+
           @query = "CREATE VIRTUAL TABLE " + tmpr_chars.name  + 
 	  	 " USING stl(" + "pk integer primary key,"
 # get template arguments from signature
@@ -172,9 +194,13 @@ class Input_Description
 #	  tmpr_classes1 = tmpr_keys[0]
 #	  tmpr_classes2 = tmpr_template.fetch(tmpr_keys[0])
 
+# clone inheritance structure
+  	  @clone_inheritance_struct.update(@inheritance_struct)
+
 # extract keys from Hash template
 # contains only one key of type Array (template description)
 
+  	  
 
 	  tmpr_class = tmpr_template.template1
 	  if tmpr_class.has_key?("none") 
@@ -194,6 +220,9 @@ class Input_Description
 	  template_class.clear
 	  q += 1
         end
+# after constructing query reclone inheritance structure for use in gen_col
+  	@clone_inheritance_struct.update(@inheritance_struct)
+	puts @clone_inheritance_struct.length
       end
 
 
@@ -338,10 +367,17 @@ rslt
           split = ret_attribute.split(/ /)
 #	  end
 	  if ret_attribute.match(/jump_inh/)
-	    @action[@action.length] = "inheritance"
-	    puts "INHERITANCE"
-	    @inheritance += 1
-#	    at -= 1
+#	    if (!@clone_inheritance_struct.has_key?(split[2])) || 
+#	       			(@clone_inheritance_struct.has_key?(split[2]) && 
+#	       			@clone_inheritance_struct[split[2]] != split[2])
+	      @action[@action.length] = "inheritance"
+	      puts "INHERITANCE"
+	      @inheritance += 1
+#	      at -= 1
+#	    else
+#	      @action[@action.length] = "false_inheritance"
+#	      @back = -1
+#	    end
 	  end
 # datatypes?length 3?
 	  if at <= 1 && split.length == 2
@@ -369,14 +405,40 @@ rslt
 	    end
 	  elsif ret_attribute.match(/jump_inh/)
             puts "split " + split[2]
-	    if operation == "check"
-              gen_col(template, template.fetch(split[2]),
+	    if (!@clone_inheritance_struct.has_key?(split[2])) || 
+	       			(@clone_inheritance_struct.has_key?(split[2]) && 
+	       			@clone_inheritance_struct[split[2]] != split[2])
+				puts "bla"
+	      if operation == "check"
+                gen_col(template, template.fetch(split[2]),
                                     template_no, tmpr_chars, fw, "check")
-	    else
-              gen_col(template, template.fetch(split[2]),
+	      else
+                gen_col(template, template.fetch(split[2]),
                                     template_no, tmpr_chars, fw, "retrieve")
-	    end	    
+	      end	    
+	      @clone_inheritance_struct.delete(split[0])
+	    else
+	      @clone_inheritance_struct.delete(split[2])
+	      @back = -1
+	    end
+	    puts @clone_inheritance_struct.length
+	    while !@clone_inheritance_struct.empty?
+	    puts "inher"
+	      tmp_inh_array = @clone_inheritance_struct.keys
+	      @clone_inheritance_struct[split[2]] = split[2]
+	      @clone_inheritance_struct.delete(tmp_inh_array[0])
+#	      @inheritance += 1
+	      if operation == "check"
+                gen_col(template, template.fetch(tmp_inh_array[0]),
+                                    template_no, tmpr_chars, fw, "check")
+	      else
+                gen_col(template, template.fetch(tmp_inh_array[0]),
+                                    template_no, tmpr_chars, fw, "retrieve")
+	      end	    
+#	      @back = -1
+	    end
           else
+	    puts "else"
             @counter += 1
             name_type = ret_attribute.split(/ /)
             @column_traverse = "iter->"
@@ -403,6 +465,7 @@ rslt
           end
 # avoid duplicating statement
 	  if @back == 0
+	    puts "in back"
 	    puts @column_traverse
             fw.puts @s + "    case " + @counter.to_s + ":"
 	    if operation == "check"
@@ -420,6 +483,7 @@ rslt
         end
         @follow_up.delete_at(@follow_up.length - 1)
 	if @inheritance > 0 && @action[@action.length - 1] == "inheritance"
+	puts "finish inheritance"
 	  @back = -1
 	  @inheritance -= 1
 	  @action.delete_at(@action.length - 1)
@@ -435,6 +499,11 @@ rslt
 	    @action.delete_at(@action.length -1)
 	  end
 	end
+#	if @action[@action.length - 1] == "false_inheritance"
+#	  puts "delete false"
+#	  @action.delete_at(@action.length - 1)
+#	end
+	puts "END OF RECURSIVE"
       end
 
 
@@ -889,6 +958,9 @@ mkf
 	  
 	  fw.puts "\n\n"
 
+# refill clone inheritance struct
+  	  @clone_inheritance_struct.update(@inheritance_struct)
+
 	  q = 0
           while q < @data_structures_array.length
             tmpr_ds=@data_structures_array[q]
@@ -1088,6 +1160,7 @@ DT
 	      if name_type[1].downcase.match(/inherits_from/)
 	        superclass = name_type[1].split(/inherits_from/)
 	        argv.push(name_type[0] + " inherits_from " + superclass[1]) 
+		@inheritance_struct[name_type[0]] = superclass[1] 
 	      end
 # top level tables won't go in this condition only intermediate ones.
 # table name is set as default so that it works for top level.
@@ -1388,8 +1461,9 @@ fg
 	  @ds_nested_names.push(my_array[0])
 
 # @classnames is used to keep track of classes contained
-# in a datastructure for avoidance of duplication
-# and to help recognizing nested classes
+# in a datastructure for avoidance of duplication,
+# to help recognizing nested classes
+# and to handle inheritance
 # cleared to be reused
 
 	  if !@classnames.empty?
@@ -1734,14 +1808,14 @@ ath
 
 # You will always have the opportunity to go one step back by typing "reset".
 
-  description = ""
-=begin
+  description =
   "foo.db!account;map<string,Account>;nick_name,string;Account,class
   inherits_from
-  SuperAccount-account_no,text-balance,float-isbn,integer:SuperAccount,
-  class-iba,text"
-=end
-#=begin
+  SuperAccount-account_no,text-balance,float-isbn,integer:SpecialAccount,class
+  inherits_from
+  SuperAccount-special_no,text-special_balance,float-special_isbn,integer:SuperAccount,
+  class-iba,int"
+=begin
    puts welcome
    puts "Please input the database name(no extension needed) and hit <return>:"
    puts "note:if a database file with that name does not exist in the 
@@ -1899,7 +1973,7 @@ ath
      end
      ds_counter += 1
    end
-#=end
+=end
 input=Input_Description.new(description)
 =begin
     input=Input_Description.new("foo .db!account;
