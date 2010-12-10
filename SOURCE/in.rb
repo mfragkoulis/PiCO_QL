@@ -1,6 +1,6 @@
 # raise alarm if special characters are used in description
 
-# what's the use of the class?
+# what's the use of the class?holds template instantiation inside Register
  class Template
       
       def initialize
@@ -17,12 +17,17 @@ class Data_structure_characteristics
 
       def initialize
       	  @name=""
+
+# content: map<string,Truck*>
 	  @signature=""	
-	  @nested="" 
+
+# content: string,Truck
+	  @pure_signature=""
+	  @classnames=Hash.new 
 	  @template1_type="" 
 	  @template2_type=""
       end
-      attr_accessor(:name,:signature,:nested,
+      attr_accessor(:name,:signature,:pure_signature,:classnames,
       		    :template1_type,:template2_type) 
 
 end
@@ -31,23 +36,26 @@ class Input_Description
 
       def initialize(description="")
           @description=description
-	  @signature = ""
+#	  @signature=""
 	  @column_traverse = ""
 	  @jump = 0
 	  @back = 0
+# temp
+	  @was_inheritance = 0
+	  @iter_var = ""
+
 	  @inheritance = 0
 	  @action = Array.new
 	  @follow_up = Array.new
-	  @data_structures_array = Array.new
+	  @data_structures_array=Array.new
           @ds_nested_names = Array.new
-	  @classnames = Hash.new
-	  @inheritance_struct = Hash.new
-	  @clone_inheritance_struct = Hash.new
-	  @container_type = ""
-	  @template_args = ""
-	  @filename = "main.template"
-	  @query = ""
-	  @queries = Array.new
+	  @classnames=Hash.new
+	  @classes_inserted = Array.new
+	  @container_type=""
+	  @template_args=""
+	  @filename="main.template"
+	  @query=""
+	  @queries=Array.new
 	  @s = "        "
       end
 
@@ -78,27 +86,8 @@ class Input_Description
 	  elsif ret_attribute.match(/jump_inh/)
 	    split = ret_attribute.split(/ /)
 	    puts "split " + split[2]
-# multiple inheritance?Account->Banking Product, SuperAccount
-# key split[0] + "_" + split[2]
-# for superclass duplication test split[2]
-# inheritance attributes starting a class description
-# would work otherwise but arrangement would mix different class attributes
-	    if (!@clone_inheritance_struct.has_key?(split[2])) || 
-	       			(@clone_inheritance_struct.has_key?(split[2]) && 
-	       			@clone_inheritance_struct[split[2]] != split[2])
-	      ret_attribute = recursive_traversal(tmpr_class,
+	    ret_attribute = recursive_traversal(tmpr_class,
 				tmpr_class.fetch(split[2]))
-	      @clone_inheritance_struct.delete(split[0])
-	    else
-	      @clone_inheritance_struct.delete(split[2])
-	    end
-	    while !@clone_inheritance_struct.empty?
-	      tmp_inh_array = @clone_inheritance_struct.keys
-	      @clone_inheritance_struct[split[2]] = split[2]
-	      @clone_inheritance_struct.delete(tmp_inh_array[0])
-	      ret_attribute = recursive_traversal(tmpr_class,
-				tmpr_class.fetch(tmp_inh_array[0]))	      	      
-	    end
 	  else
 	    @query += ret_attribute + "," 
 	    puts @query
@@ -122,8 +111,8 @@ class Input_Description
 	else
 	  puts "error " + attribute
 	end
-	if name_type[1]=="ds" || name_type[1]=="ds_pointer"
-	  ret_attribute = "id references " + name_type[0]
+	if name_type[1].match(/ds/)
+	  ret_attribute = name_type[0] + "_id references " + name_type[0]
 	elsif name_type[1]=="reference"
 	  ret_attribute = "jump_nested " + name_type[0]
 	elsif name_type[1].match(/inherits_from/)
@@ -167,14 +156,20 @@ class Input_Description
 	  tmpr_keys = tmpr_ds.keys
 	  tmpr_chars = tmpr_keys[0]
 
-
           @query = "CREATE VIRTUAL TABLE " + tmpr_chars.name  + 
 	  	 " USING stl(" + "pk integer primary key,"
 # get template arguments from signature
 
 	  cleared = tmpr_chars.signature.split(/</)
 	  tml_arg = cleared[1].chomp(">")
+
+# purify template classes from pointer identifier
+	  if tml_arg.match(/\*/)
+	    tml_arg.gsub!(/\*/,"")
+	  end
+
 	  puts "tml_arg " + tml_arg
+	  tmpr_chars.pure_signature = tml_arg
 	  puts ""
 	  if tml_arg.match(/,/)
 	    cleared = tml_arg.split(/,/)	  
@@ -194,13 +189,9 @@ class Input_Description
 #	  tmpr_classes1 = tmpr_keys[0]
 #	  tmpr_classes2 = tmpr_template.fetch(tmpr_keys[0])
 
-# clone inheritance structure
-  	  @clone_inheritance_struct.update(@inheritance_struct)
-
 # extract keys from Hash template
 # contains only one key of type Array (template description)
 
-  	  
 
 	  tmpr_class = tmpr_template.template1
 	  if tmpr_class.has_key?("none") 
@@ -220,9 +211,6 @@ class Input_Description
 	  template_class.clear
 	  q += 1
         end
-# after constructing query reclone inheritance structure for use in gen_col
-  	@clone_inheritance_struct.update(@inheritance_struct)
-	puts @clone_inheritance_struct.length
       end
 
 
@@ -299,8 +287,10 @@ class Input_Description
 		  end
 	elsif user_datatype=="references"
 # needs taken care of
-		  ret = "fk_column"
-		  @back = 1
+		  ret = "int"
+		  @column_traverse = "(long int)" +
+        	  		   @column_traverse
+#		  @back = 1
         end
 	return ret
       end
@@ -349,10 +339,14 @@ rslt
 #	puts "gen_col"
         at = 0
         while at < attributes.length
-	  if @back > 0 || @back < 0
+	  if @back > 0
 	    @back = 0
+	  elsif @back < 0 
+	    @back = 0
+	    @was_inheritance = 1
 	  end
-          class_name = template.index(attributes)
+	  class_name = template.index(attributes)
+          @classes_inserted[@classes_inserted.length] = class_name
 
 #	  if @classnames.has_key?(class_name) && 
 #	       @classnames[class_name].match(/inherits_from/)
@@ -367,27 +361,25 @@ rslt
           split = ret_attribute.split(/ /)
 #	  end
 	  if ret_attribute.match(/jump_inh/)
-#	    if (!@clone_inheritance_struct.has_key?(split[2])) || 
-#	       			(@clone_inheritance_struct.has_key?(split[2]) && 
-#	       			@clone_inheritance_struct[split[2]] != split[2])
-	      @action[@action.length] = "inheritance"
-	      puts "INHERITANCE"
-	      @inheritance += 1
-#	      at -= 1
-#	    else
-#	      @action[@action.length] = "false_inheritance"
-#	      @back = -1
-#	    end
+	    @action[@action.length] = "inheritance"
+	    puts "INHERITANCE"
+	    @inheritance += 1
+#	    at -= 1
 	  end
 # datatypes?length 3?
-	  if at <= 1 && split.length == 2
+	  if at == 0 && !ret_attribute.match(/jump_inh/) || 
+	  at == 1 && @was_inheritance == 1
+	    if @was_inheritance == 1 
+	      @was_inheritance = 0
+	    end
             @follow_up.insert(@follow_up.length,"get_")	      
-            if @classnames[class_name] == "class_pointer"
+	    puts @follow_up.length.to_s
+            if tmpr_chars.classnames[class_name] == "class_pointer"
 	      class_type = "->"
             else
 	      class_type = "."
             end
-#	    puts "RECURSIVE"
+	    puts "RECURSIVE"
 	  end
           if ret_attribute.match(/jump_nested/)
 	    @action[@action.length] = "nested_structure"
@@ -405,43 +397,28 @@ rslt
 	    end
 	  elsif ret_attribute.match(/jump_inh/)
             puts "split " + split[2]
-	    if (!@clone_inheritance_struct.has_key?(split[2])) || 
-	       			(@clone_inheritance_struct.has_key?(split[2]) && 
-	       			@clone_inheritance_struct[split[2]] != split[2])
-				puts "bla"
-	      if operation == "check"
-                gen_col(template, template.fetch(split[2]),
+	    if @classes_inserted.include?(split[2])
+	      puts "Attempt to define same class\n"
+	    elsif operation == "check"
+              gen_col(template, template.fetch(split[2]),
                                     template_no, tmpr_chars, fw, "check")
-	      else
-                gen_col(template, template.fetch(split[2]),
-                                    template_no, tmpr_chars, fw, "retrieve")
-	      end	    
-	      @clone_inheritance_struct.delete(split[0])
 	    else
-	      @clone_inheritance_struct.delete(split[2])
-	      @back = -1
-	    end
-	    puts @clone_inheritance_struct.length
-	    while !@clone_inheritance_struct.empty?
-	    puts "inher"
-	      tmp_inh_array = @clone_inheritance_struct.keys
-	      @clone_inheritance_struct[split[2]] = split[2]
-	      @clone_inheritance_struct.delete(tmp_inh_array[0])
-#	      @inheritance += 1
-	      if operation == "check"
-                gen_col(template, template.fetch(tmp_inh_array[0]),
-                                    template_no, tmpr_chars, fw, "check")
-	      else
-                gen_col(template, template.fetch(tmp_inh_array[0]),
+              gen_col(template, template.fetch(split[2]),
                                     template_no, tmpr_chars, fw, "retrieve")
-	      end	    
-#	      @back = -1
-	    end
+	    end	    
           else
-	    puts "else"
             @counter += 1
             name_type = ret_attribute.split(/ /)
-            @column_traverse = "iter->"
+
+# name_type[0]->name, name_type[1]->type but after preparing column
+#          for a fk they come the other way around so:
+	    if ret_attribute.match(/_id references/)
+#	      temp = name_type[2]
+	      name_type[0] = name_type[2]
+	      puts name_type[0]
+	      puts name_type[1]
+	    end
+            @column_traverse = @iter_var  + "->"
             compl = tmpl_complexity(template_no, tmpr_chars, class_type)
 	    @column_traverse += compl	    
             if primitive(template_no, tmpr_chars)
@@ -465,7 +442,6 @@ rslt
           end
 # avoid duplicating statement
 	  if @back == 0
-	    puts "in back"
 	    puts @column_traverse
             fw.puts @s + "    case " + @counter.to_s + ":"
 	    if operation == "check"
@@ -483,7 +459,6 @@ rslt
         end
         @follow_up.delete_at(@follow_up.length - 1)
 	if @inheritance > 0 && @action[@action.length - 1] == "inheritance"
-	puts "finish inheritance"
 	  @back = -1
 	  @inheritance -= 1
 	  @action.delete_at(@action.length - 1)
@@ -499,11 +474,6 @@ rslt
 	    @action.delete_at(@action.length -1)
 	  end
 	end
-#	if @action[@action.length - 1] == "false_inheritance"
-#	  puts "delete false"
-#	  @action.delete_at(@action.length - 1)
-#	end
-	puts "END OF RECURSIVE"
       end
 
 
@@ -565,9 +535,16 @@ struct classcomp{
 int main(){
   int re_sqlite;
   void *data;
+  int **mem;
+  char **names;
+  mem = (int **)sqlite3_malloc(sizeof(int*));
+  names = (char **)sqlite3_malloc(sizeof(char *));
 
   // declare and fill datastructure;
+  mem[0] = (int *) // memory address of data structure;
+  names[0] = // name of data structure;
 
+// and so on for all data structures to be registered
 
   dsCarrier dsC;
   dsC.memories = mem;
@@ -774,17 +751,18 @@ main.o: main.cpp Account.h bridge.h
 	g++ -W -g -c main.cpp
 
 user_functions.o: user_functions.c bridge.h
-		  gcc -W -g -c user_functions.c
+	gcc -W -g -c user_functions.c
 
 stl_to_sql.o: stl_to_sql.c stl_to_sql.h bridge.h
-	      gcc -g -c stl_to_sql.c
+	gcc -g -c stl_to_sql.c
 
 search.o: search.cpp bridge.h Account.h
-	  g++ -W -g -c search.cpp
+	g++ -W -g -c search.cpp
 mkf
 
 # END OF HereDocs
-
+  
+	puts "in write_to_file"
         myfile=File.open(@filename, "w") do |fw|
           fw.puts "\#include <stdio.h>"
           fw.puts "\#include <string>"
@@ -821,7 +799,7 @@ mkf
             fw.puts "\#include <" + c_type[0] + ">"
 	    q += 1
 	  end
-	  @classnames.each {|key,value| fw.puts "\#include \"#{key}.h\""}
+	  tmpr_chars.classnames.each {|key,value| fw.puts "\#include \"#{key}.h\""}
 
 # call HereDoc1
 	  fw.puts auto_gen1
@@ -864,7 +842,7 @@ mkf
             fw.puts "\#include <" + c_type[0] + ">"
 	    q += 1
 	  end
-	  @classnames.each{|key,value| fw.puts "\#include \"#{key}.h\""}
+	  tmpr_chars.classnames.each{|key,value| fw.puts "\#include \"#{key}.h\""}
 
 	  fw.puts
 	  fw.puts "using namespace std;\n\n"
@@ -932,23 +910,44 @@ mkf
 
 #          i=1
 # bottom-up
-            spl = tmpr_chars.signature.split(/</)
-            tmpl_classes = spl[1].chomp(">")
             @counter = 0
             if tmpr_chars.template1_type != "none"
               template_no = 1
-              sep_classes = tmpl_classes.split(/,/)
+              sep_classes = tmpr_chars.pure_signature.split(/,/)
               tmpr_class = tmpr_template.template1
+
+	      if tmpr_chars.template1_type != "primitive" && 
+	      	 tmpr_chars.classnames[sep_classes[0]].match(/pointer/)
+	        @iter_var = "(*iter)"
+	      else
+	        @iter_var = "iter"
+	      end
               gen_col(tmpr_class, tmpr_class.fetch(sep_classes[0]),
                                      template_no, tmpr_chars, fw, "check")
               template_no = 2
               tmpr_class = tmpr_template.template2
+
+	      if tmpr_chars.template2_type != "primitive" && 
+	      	 tmpr_chars.classnames[sep_classes[1]].match(/pointer/)
+	        @iter_var = "(*iter)"
+	      else
+	        @iter_var = "iter"
+	      end
               gen_col(tmpr_class, tmpr_class.fetch(sep_classes[1]),
                                     template_no, tmpr_chars, fw, "check")
             else
               template_no = 2
               tmpr_class = tmpr_template.template2
-              gen_col(tmpr_class, tmpr_class.fetch(tmpl_classes),
+	      puts tmpr_chars.name
+	      puts tmpr_chars.pure_signature
+	      puts tmpr_chars.classnames.inspect
+	      if tmpr_chars.template2_type != "primitive" && 
+	      	 tmpr_chars.classnames[tmpr_chars.pure_signature].match(/pointer/)
+	        @iter_var = "(*iter)"
+	      else
+	        @iter_var = "iter"
+	      end
+              gen_col(tmpr_class, tmpr_class.fetch(tmpr_chars.pure_signature),
                                      template_no, tmpr_chars, fw, "check")
             end
 # call HereDoc29
@@ -958,8 +957,11 @@ mkf
 	  
 	  fw.puts "\n\n"
 
-# refill clone inheritance struct
-  	  @clone_inheritance_struct.update(@inheritance_struct)
+# empty helper structure to be reused in retrieve
+# keeps registered class so as not to be reinserted in inheritance
+# cases primarily
+	  @classes_inserted.clear
+
 
 	  q = 0
           while q < @data_structures_array.length
@@ -996,7 +998,7 @@ mkf
             @counter = 0
             if tmpr_chars.template1_type != "none"
               template_no = 1
-              sep_classes = tmpl_classes.split(/,/)
+              sep_classes = tmpr_chars.pure_signature.split(/,/)
               tmpr_class = tmpr_template.template1
               gen_col(tmpr_class, tmpr_class.fetch(sep_classes[0]),
                                      template_no, tmpr_chars, fw, "retrieve")
@@ -1007,7 +1009,7 @@ mkf
             else
               template_no = 2
               tmpr_class = tmpr_template.template2
-              gen_col(tmpr_class, tmpr_class.fetch(tmpl_classes),
+              gen_col(tmpr_class, tmpr_class.fetch(tmpr_chars.pure_signature),
                                      template_no, tmpr_chars, fw, "retrieve")
            end
 # call HereDoc29
@@ -1052,7 +1054,7 @@ mkf
           tmpr_keys=tmpr_ds.keys
           tmpr_chars=tmpr_keys[0]
 	  fw.puts "    if( !strcmp(stl->zName, \"" + tmpr_chars.name + "\") )"
-	  fw.puts "        " + tmpr_chars.name +
+	  fw.puts "        return " + tmpr_chars.name +
 	    	    "_retrieve(stc, n, con);"
 	  q += 1
 	end
@@ -1062,15 +1064,26 @@ mkf
       end
 
       myfile = File.open("makefile.template","w") do |fw|
-        fw.print "test: main.o search.o stl_to_sql.o user_functions.o "
-	@classnames.each{|key,value| fw.print "#{key}.o "}
-	fw.puts
-        fw.print "	g++ -lswill -lsqlite3 -W -g main.o search.o stl_to_sql.o user_functions.o "
-	@classnames.each{|key,value| fw.print "#{key}.o "}
-	fw.puts "-o test"
-	fw.puts makefile_part	
-	fw.puts
-	@classnames.each{|key,value| fw.puts "#{key}.o: #{key}.cpp #{key}.h \n" + "	g++ -W -g -c #{key}.cpp \n\n"}
+	q = 0
+        while q < @data_structures_array.length
+          tmpr_ds=@data_structures_array[q]
+
+# extract keys from original beasty hash
+# contains only one key of type Data_structure_characteristics
+
+          tmpr_keys=tmpr_ds.keys
+          tmpr_chars=tmpr_keys[0]
+          fw.print "test: main.o search.o stl_to_sql.o user_functions.o "
+	  tmpr_chars.classnames.each{|key,value| fw.print "#{key}.o "}
+	  fw.puts
+          fw.print "	g++ -lswill -lsqlite3 -W -g main.o search.o stl_to_sql.o user_functions.o "
+	  tmpr_chars.classnames.each{|key,value| fw.print "#{key}.o "}
+	  fw.puts "-o test"
+	  fw.puts makefile_part	
+	  fw.puts
+	  tmpr_chars.classnames.each{|key,value| fw.puts "#{key}.o: #{key}.cpp #{key}.h \n" + "	g++ -W -g -c #{key}.cpp \n\n"}
+	  q += 1
+	end
       end
     end
 
@@ -1160,7 +1173,6 @@ DT
 	      if name_type[1].downcase.match(/inherits_from/)
 	        superclass = name_type[1].split(/inherits_from/)
 	        argv.push(name_type[0] + " inherits_from " + superclass[1]) 
-		@inheritance_struct[name_type[0]] = superclass[1] 
 	      end
 # top level tables won't go in this condition only intermediate ones.
 # table name is set as default so that it works for top level.
@@ -1461,9 +1473,8 @@ fg
 	  @ds_nested_names.push(my_array[0])
 
 # @classnames is used to keep track of classes contained
-# in a datastructure for avoidance of duplication,
-# to help recognizing nested classes
-# and to handle inheritance
+# in a datastructure for avoidance of duplication
+# and to help recognizing nested classes
 # cleared to be reused
 
 	  if !@classnames.empty?
@@ -1516,9 +1527,9 @@ fg
 	  	       @container_type="bitset"
 	  end
 
-	  @signature=my_array[1]
+#	  @signature=my_array[1]
 	  ds_chars[l-w].signature=my_array[1]
-	  puts "container signature is: " + @signature
+	  puts "container signature is: " + ds_chars[l-w].signature
           puts "no of template args is: " + @template_args
 	  puts "container type is: " + @container_type
 
@@ -1555,6 +1566,8 @@ fg
 	    puts $err_state
 	    raise ArgumentError.new(nargs)
 	  end
+	  ds_chars[l-w].classnames.replace(@classnames)
+	  puts ds_chars[l-w].classnames.inspect
 	  data_structure[l-w].store(ds_chars[l-w],
 				templates_representation[l-w])
 	  @data_structures_array.push(data_structure[l-w])
@@ -1809,12 +1822,18 @@ ath
 # You will always have the opportunity to go one step back by typing "reset".
 
   description =
-  "foo.db!account;map<string,Account>;nick_name,string;Account,class
-  inherits_from
-  SuperAccount-account_no,text-balance,float-isbn,integer:SpecialAccount,class
-  inherits_from
-  SuperAccount-special_no,text-special_balance,float-special_isbn,integer:SuperAccount,
-  class-iba,int"
+  "foo.db!Trucks;vector<Truck*>;Truck,class_pointer
+  -cost,double-delcapacity,int-pickcapacity,int-rlpoint,int-Customers,ds_pointer!Customers;vector<Customer*>;Customer,class_pointer-demand,int-code,string-serviced,bool-pickdemand,int-starttime,int-servicetime,int-finishtime,int-revenue,int"
+
+#  description = "foo.db!account;vector<Account>;Account,class
+#  inherits_from
+#  SpecialAccount-account_no,text-balance,float-isbn,integer:SpecialAccount,class
+#  inherits_from
+#  SuperAccount-special_no,text-special_balance,float-special_isbn,integer:SuperAccount\
+#,
+#  class-iba,integer"
+
+#=end
 =begin
    puts welcome
    puts "Please input the database name(no extension needed) and hit <return>:"

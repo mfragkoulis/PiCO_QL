@@ -9,7 +9,7 @@
 
 
 // construct the sql query
-void create(sqlite3 *db, int argc, char **as, char *q){ 
+void create(sqlite3 *db, int argc, const char * const * as, char *q){ 
   int i;
 
   q[0] = '\0';
@@ -32,8 +32,8 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc,
 		char **pzErr){
   // printf("in init_vtable...\n");
   stlTable *stl;
-  int nDb, nName, nByte, nCol, nString, count, i, k, t;
-  char *temp, **store;
+  int nDb, nName, nByte, nCol, nString, count, i;
+  char *temp;
   nDb = (int)strlen(argv[1]) + 1;
   nName = (int)strlen(argv[2]) + 1;
   nString=0;
@@ -45,41 +45,11 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc,
   sqlite3 source code.
   */
   
-  store = (char **)sqlite3_malloc((argc-3) * sizeof(char *));
-  memset(store,0,(argc-3) * sizeof(char *));
 
   //to make column datatype available
-  char *result1 = NULL;
-  char *result2 = NULL;
 
-  const char *pkType = "primary";
-  const char *fkType = "references";
-
-  int l;
   for(i=3; i<argc; i++){
-    t = (strlen(argv[i])+1) * sizeof(char);
-    store[i-3] = (char *)sqlite3_malloc(t);
-    memcpy(store[i-3], argv[i], t);
-
-    // column name
-    
-    result1 = strtok(store[i-3]," ");
-    // column data type
-    result2 = strtok(NULL, " ");
-    for(l=0; l<(int)strlen(result2); l++){
-      result2[l] = tolower(result2[l]);
-    }
-    if( !strcmp(result2, pkType) ){
-      store[i-3] = (char *)sqlite3_realloc(store[i-3], 3*sizeof(char));
-      store[i-3] = "pk";
-    }else if( !strcmp(result2, fkType) ) {
-      store[i-3] = (char *)sqlite3_realloc(store[i-3],
-					   (4 + strlen(result1)) * sizeof(char));
-      store[i-3] = "fk "; 
-      strcat(store[i-3], result1); 
-    }
-    
-    nString += (int)strlen(store[i-3]) +1;
+    nString += (int)strlen(argv[i]) + 1;
   }
   nCol = argc - 3;
   assert( nCol > 0 );
@@ -95,7 +65,7 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc,
   dsCarrier *dsC;
   dsC = (dsCarrier *)paux;  
   int q = 0;
-  char str[256];
+  char str[1024];
   while (q < dsC->size){
     //    sprintf(str, "%x", dsC->memories[q]);
     //    mem = atoi(str);
@@ -117,11 +87,11 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc,
 
   int n;
   for(i=3; i<argc; i++){
-    n=(int)strlen(store[i-3])+1;
-    memcpy(temp, store[i-3], n);
-    temp[n] ='\0';
+    n = (int)strlen(argv[i]) + 1;
+    memcpy(temp, argv[i], n);
     stl->azColumn[i-3] = temp;
-    temp += n+1;
+    temp += n;
+    assert( temp <= &((char *)stl)[nByte] );
   }
 
   char query[arrange_size(argc, argv)];
@@ -143,7 +113,6 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc,
     *pzErr = sqlite3_mprintf("unknown error");
     printf("%s \n", *pzErr);
   } 
-  sqlite3_free(store);
 }
 
 //xConnect
@@ -195,7 +164,7 @@ int bestindex_vtable(sqlite3_vtab *pVtab, sqlite3_index_info *pInfo){
   stlTable *st=(stlTable *)pVtab;
   if ( pInfo->nConstraint>0 ){            // no constraint no setting up
     char op, iCol;
-    char nidxStr[pInfo->nConstraint*2];
+    char nidxStr[pInfo->nConstraint*2+1];
     memset(nidxStr, 0, sizeof(nidxStr));
 
     assert( pInfo->idxStr==0 );
@@ -222,13 +191,14 @@ int bestindex_vtable(sqlite3_vtab *pVtab, sqlite3_index_info *pInfo){
 	//    case SQLITE_INDEX_CONSTRAINT_MATCH: nidxStr[i]="F"; break;
       }
       iCol = pCons->iColumn - 1 + 'a';
-      
+
+      assert( j<sizeof(nidxStr)-1 );
       nidxStr[j++] = op;
       nidxStr[j++] = iCol;
       //    UNUSED_PARAMETER(pVtab);
-      
       pInfo->aConstraintUsage[i].argvIndex = 1;
       pInfo->aConstraintUsage[i].omit = 1;
+      
     }
     pInfo->needToFreeIdxStr = 1;
     if( (j>0) && 0==(pInfo->idxStr=sqlite3_mprintf("%s", nidxStr)) )
@@ -280,33 +250,43 @@ int filter_vtable(sqlite3_vtab_cursor *cur, int idxNum, const char *idxStr,
 int next_vtable(sqlite3_vtab_cursor *cur){
   stlTable *st=(stlTable *)cur->pVtab;
   stlTableCursor *stc=(stlTableCursor *)cur;
-  if ( stc->current>=stc->size-1 ) stc->isEof = 1;
-  else stc->current++;
+  if ( stc->current>=stc->size-1 ) 
+    stc->isEof = 1;
+  else
+    stc->current++;
   return SQLITE_OK;
 }
 
+
 // xOpen
 int open_vtable(sqlite3_vtab *pVtab, sqlite3_vtab_cursor **ppCsr){
+  stlTable *st=(stlTable *)pVtab;
+
+  // a data structure to hold index positions of resultset so that in the end
+  // of loops the remaining resultset is the wanted one.
+  // will need space at most equal to the data structure size
+  int arraySize=get_datastructure_size(st);
+
   sqlite3_vtab_cursor *pCsr;               /* Allocated cursor */
-    
+  //  int nByte = sizeof(stlTableCursor) + sizeof(int) * arraySize;
+
   *ppCsr = pCsr = 
     (sqlite3_vtab_cursor *)sqlite3_malloc(sizeof(stlTableCursor));
   if( !pCsr ){
     return SQLITE_NOMEM;
   }
+  
+  stlTableCursor *stc = (stlTableCursor *)pCsr;
   memset(pCsr, 0, sizeof(stlTableCursor));
 
-  stlTableCursor *stc=(stlTableCursor *)pCsr;
-  stlTable *st=(stlTable *)pVtab;
-
-  int arraySize=get_datastructure_size(st);
-
-  // a data structure to hold index positions of resultset so that in the end
-  // of loops the remaining resultset is the wanted one.
-  // will need space at most equal to the data structure size
-  stc->resultSet=(int *)sqlite3_malloc(sizeof(int) * arraySize);
-  memset(stc->resultSet, -1, sizeof(stc->resultSet));
-
+  //  stc->nByte = nByte;
+  //  stc->init_res_max_size = arraySize;
+  //  stc->resultSet = (int *)&stc[1];
+  stc->resultSet = (int *)sqlite3_malloc(sizeof(int) * arraySize);
+  if( !stc->resultSet ){
+    return SQLITE_NOMEM;
+  }
+  memset(stc->resultSet, -1, sizeof(int) * arraySize);
 
   return SQLITE_OK;
 }

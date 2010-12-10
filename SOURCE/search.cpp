@@ -1,19 +1,42 @@
 #include "search.h"
 #include <string>
-#include <map>
-#include "Account.h"
-#include "SuperAccount.h"
+#include <vector>
+#include <vector>
+#include "Truck.h"
 
 using namespace std;
 
+
+    
+
 int get_datastructure_size(void *st){
     stlTable *stl = (stlTable *)st;
-    if( !strcmp(stl->zName, "account") ){
-        map<string,Account> *any_dstr = (map<string,Account> *)stl->data;
+    if( !strcmp(stl->zName, "Customers") ){
+	
+        vector<Customer*> *any_dstr = (vector<Customer*> *)stl->data;
+        return ((int)any_dstr->size());
+    }
+    if( !strcmp(stl->zName, "Trucks") ){
+        vector<Truck*> *any_dstr = (vector<Truck*> *)stl->data;
         return ((int)any_dstr->size());
     }
 }
 
+
+int traverse(long int dstr_value, int op, sqlite3_int64 value){
+    switch( op ){
+    case 0:
+        return dstr_value<value;
+    case 1:
+        return dstr_value<=value;
+    case 2:
+        return dstr_value==value;
+    case 3:
+        return dstr_value>=value;
+    case 4:
+        return dstr_value>value;
+    }
+}
 
 int traverse(int dstr_value, int op, int value){
     switch( op ){
@@ -29,6 +52,7 @@ int traverse(int dstr_value, int op, int value){
         return dstr_value>value;
     }
 }
+
 
 
 int traverse(double dstr_value, int op, double value){
@@ -82,12 +106,161 @@ int traverse(const unsigned char *dstr_value, int op,
 
 
 
-void account_search(void *stc, char *constr, sqlite3_value *val){
+void Customers_search(void *stc, char *constr, sqlite3_value *val){
     sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;
     stlTable *stl = (stlTable *)cur->pVtab;
     stlTableCursor *stcsr = (stlTableCursor *)stc;
-    map<string,Account> *any_dstr = (map<string,Account> *)stl->data;
-    map<string,Account>:: iterator iter;
+    vector<Customer*> *any_dstr;
+    any_dstr = (vector<Customer*> *)stl->data;
+    vector<Customer*>:: iterator iter;
+    
+//    Type value;
+    int op, count = 0;
+// val==NULL then constr==NULL also
+        switch( constr[0] - 'A' ){
+        case 0:
+            op = 0;
+            break;
+        case 1:
+            op = 1;
+            break;
+        case 2:
+            op = 2;
+            break;
+        case 3:
+            op = 3;
+            break;
+        case 4:
+            op = 4;
+            break;
+        case 5:
+            op = 5;
+            break;
+        default:
+            break;
+        }
+
+        int iCol, arraySize; 
+// size, init_res_max_size, current, isEof, nByte;
+	int *res;
+	sqlite3_vtab_cursor *vtab_c;
+        iCol = constr[1] - 'a' + 1;
+            switch( iCol ){
+// i=0. search using PK?memory location?or no PK?
+// no can't do.PK will be memory location. PK in every table
+// PK search
+            case 0: 
+		stl->data = (void *)sqlite3_value_int64(val);
+		any_dstr = (vector<Customer*> *)stl->data;
+		arraySize=get_datastructure_size(stl);
+/*
+		vtab_c = stcsr->vtab;
+		nByte = stcsr->nByte;
+		size = stcsr->size;
+		current = stcsr->current;
+		isEof = stcsr->isEof;
+		init_res_max_size = stcsr->init_res_max_size;
+*/
+		res = (int *)sqlite3_realloc(stcsr->resultSet, sizeof(int) * arraySize);
+		if (res!=NULL){
+		    stcsr->resultSet = res;
+		    memset(stcsr->resultSet, -1, 
+			   sizeof(int) * arraySize);
+		}else{
+		    free(res);
+		    printf("Error (re)allocating memory\n");
+		    exit(1);
+		}
+                for(int i=0;i<(int)any_dstr->size();i++){
+		    stcsr->resultSet[count++] = i;
+                    iter++;
+                }
+                stcsr->size += count;
+		break;
+            case 1:
+                iter=any_dstr->begin();
+                for(int i=0;i<(int)any_dstr->size();i++){
+                    if( traverse((*iter)->get_demand(), op, sqlite3_value_int(val)) )
+                        stcsr->resultSet[count++] = i;
+                    iter++;
+                }
+                stcsr->size += count;
+                break;
+            case 2:
+                iter=any_dstr->begin();
+                for(int i=0;i<(int)any_dstr->size();i++){
+                    if( traverse((const unsigned char *)(*iter)->get_code().c_str(), op, sqlite3_value_text(val)) )
+                        stcsr->resultSet[count++] = i;
+                    iter++;
+                }
+                stcsr->size += count;
+                break;
+            case 3:
+                iter=any_dstr->begin();
+                for(int i=0;i<(int)any_dstr->size();i++){
+                    if( traverse((*iter)->get_serviced(), op, sqlite3_value_int(val)) )
+                        stcsr->resultSet[count++] = i;
+                    iter++;
+                }
+                stcsr->size += count;
+                break;
+            case 4:
+                iter=any_dstr->begin();
+                for(int i=0;i<(int)any_dstr->size();i++){
+                    if( traverse((*iter)->get_pickdemand(), op, sqlite3_value_int(val)) )
+                        stcsr->resultSet[count++] = i;
+                    iter++;
+                }
+                stcsr->size += count;
+                break;
+            case 5:
+                iter=any_dstr->begin();
+                for(int i=0;i<(int)any_dstr->size();i++){
+                    if( traverse((*iter)->get_starttime(), op, sqlite3_value_int(val)) )
+                        stcsr->resultSet[count++] = i;
+                    iter++;
+                }
+                stcsr->size += count;
+                break;
+            case 6:
+                iter=any_dstr->begin();
+                for(int i=0;i<(int)any_dstr->size();i++){
+                    if( traverse((*iter)->get_servicetime(), op, sqlite3_value_int(val)) )
+                        stcsr->resultSet[count++] = i;
+                    iter++;
+                }
+                stcsr->size += count;
+                break;
+            case 7:
+                iter=any_dstr->begin();
+                for(int i=0;i<(int)any_dstr->size();i++){
+                    if( traverse((*iter)->get_finishtime(), op, sqlite3_value_int(val)) )
+                        stcsr->resultSet[count++] = i;
+                    iter++;
+                }
+                stcsr->size += count;
+                break;
+            case 8:
+                iter=any_dstr->begin();
+                for(int i=0;i<(int)any_dstr->size();i++){
+                    if( traverse((*iter)->get_revenue(), op, sqlite3_value_int(val)) )
+                        stcsr->resultSet[count++] = i;
+                    iter++;
+                }
+                stcsr->size += count;
+                break;
+// more datatypes and ops exist
+         
+	    }
+}
+
+
+void Trucks_search(void *stc, char *constr, sqlite3_value *val){
+    sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;
+    stlTable *stl = (stlTable *)cur->pVtab;
+    stlTableCursor *stcsr = (stlTableCursor *)stc;
+    vector<Truck*> *any_dstr = (vector<Truck*> *)stl->data;
+    vector<Truck*>:: iterator iter;
 //    Type value;
     int op, count = 0;
 // val==NULL then constr==NULL also
@@ -117,24 +290,12 @@ void account_search(void *stc, char *constr, sqlite3_value *val){
             op = 5;
             break;
         default:
-            NULL;
             break;
         }
 
         int iCol;
         iCol = constr[1] - 'a' + 1;
         char *colName = stl->azColumn[iCol];
-// FK search
-        const char *fk = "fk";
-        if(!strcmp(colName, fk)){
-            iter=any_dstr->begin();
-            for(int i=0; i<(int)any_dstr->size(); i++){
-                if( traverse((long int)&(*iter), op, sqlite3_value_int(val)) )
-                    stcsr->resultSet[count++] = i;
-                iter++;
-            }
-            stcsr->size += count;
-        }else{
 // handle colName
             switch( iCol ){
 // i=0. search using PK?memory location?or no PK?
@@ -143,7 +304,7 @@ void account_search(void *stc, char *constr, sqlite3_value *val){
             case 0: 
                 iter=any_dstr->begin();
                 for(int i=0; i<(int)any_dstr->size(); i++){
-                    if( traverse((long int)&(*iter), op, sqlite3_value_int(val)) )
+                    if( traverse((long int)&(*iter), op, sqlite3_value_int64(val)) )
                         stcsr->resultSet[count++] = i;
                     iter++;
                 }
@@ -152,7 +313,7 @@ void account_search(void *stc, char *constr, sqlite3_value *val){
             case 1:
                 iter=any_dstr->begin();
                 for(int i=0;i<(int)any_dstr->size();i++){
-                    if( traverse((const unsigned char *)iter->first.c_str(), op, sqlite3_value_text(val)) )
+                    if( traverse((*iter)->get_cost(), op, sqlite3_value_double(val)) )
                         stcsr->resultSet[count++] = i;
                     iter++;
                 }
@@ -161,7 +322,7 @@ void account_search(void *stc, char *constr, sqlite3_value *val){
             case 2:
                 iter=any_dstr->begin();
                 for(int i=0;i<(int)any_dstr->size();i++){
-                    if( traverse((const unsigned char *)iter->second.get_iba(), op, sqlite3_value_text(val)) )
+                    if( traverse((*iter)->get_delcapacity(), op, sqlite3_value_int(val)) )
                         stcsr->resultSet[count++] = i;
                     iter++;
                 }
@@ -170,7 +331,7 @@ void account_search(void *stc, char *constr, sqlite3_value *val){
             case 3:
                 iter=any_dstr->begin();
                 for(int i=0;i<(int)any_dstr->size();i++){
-                    if( traverse((const unsigned char *)iter->second.get_account_no(), op, sqlite3_value_text(val)) )
+                    if( traverse((*iter)->get_pickcapacity(), op, sqlite3_value_int(val)) )
                         stcsr->resultSet[count++] = i;
                     iter++;
                 }
@@ -179,7 +340,7 @@ void account_search(void *stc, char *constr, sqlite3_value *val){
             case 4:
                 iter=any_dstr->begin();
                 for(int i=0;i<(int)any_dstr->size();i++){
-                    if( traverse(iter->second.get_balance(), op, sqlite3_value_double(val)) )
+                    if( traverse((*iter)->get_rlpoint(), op, sqlite3_value_int(val)) )
                         stcsr->resultSet[count++] = i;
                     iter++;
                 }
@@ -188,7 +349,7 @@ void account_search(void *stc, char *constr, sqlite3_value *val){
             case 5:
                 iter=any_dstr->begin();
                 for(int i=0;i<(int)any_dstr->size();i++){
-                    if( traverse(iter->second.get_isbn(), op, sqlite3_value_int(val)) )
+                    if( traverse((long int)(*iter)->get_Customers(), op, sqlite3_value_int64(val)) )
                         stcsr->resultSet[count++] = i;
                     iter++;
                 }
@@ -196,19 +357,71 @@ void account_search(void *stc, char *constr, sqlite3_value *val){
                 break;
 // more datatypes and ops exist
             }
-        }
+       
     }
 }
 
+// reallocate resultset for embedded
+// fill resultset in join and see what happens
+// might have to shrink resultset in next turns (further constraint dissatisfaction)
 
 
-
-int account_retrieve(void *stc, int n, sqlite3_context *con){
+int Customers_retrieve(void *stc, int n, sqlite3_context *con){
     sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;
     stlTable *stl = (stlTable *)cur->pVtab;
     stlTableCursor *stcsr = (stlTableCursor *)stc;
-    map<string,Account> *any_dstr = (map<string,Account> *)stl->data;
-    map<string,Account>:: iterator iter;
+    vector<Customer*> *any_dstr = (vector<Customer*> *)stl->data;
+    vector<Customer*>:: iterator iter;
+    char *colName = stl->azColumn[n];
+    int index = stcsr->current;
+// iterator implementation. serial traversing or hit?
+    iter = any_dstr->begin();
+// serial traversing. simple and generic. visitor pattern is next step.
+    for(int i=0; i<stcsr->resultSet[index]; i++){
+        iter++;
+    }
+// int datatype;
+// datatype = stl->colDataType[n];
+        switch ( n ){
+            case 0:
+//		sqlite3_result_int64(con, (sqlite3_int64)&(*iter));
+//		printf("memory location of Customer PK: %x\n", &(*iter));
+		break;
+            case 1:
+                    sqlite3_result_int(con, (*iter)->get_demand());
+                    break;
+            case 2:
+                    sqlite3_result_text(con, (const char *)(*iter)->get_code().c_str(), -1, SQLITE_STATIC);
+                    break;
+            case 3:
+                    sqlite3_result_int(con, (*iter)->get_serviced());
+                    break;
+            case 4:
+                    sqlite3_result_int(con, (*iter)->get_pickdemand());
+                    break;
+            case 5:
+                    sqlite3_result_int(con, (*iter)->get_starttime());
+                    break;
+            case 6:
+                    sqlite3_result_int(con, (*iter)->get_servicetime());
+                    break;
+            case 7:
+                    sqlite3_result_int(con, (*iter)->get_finishtime());
+                    break;
+            case 8:
+                    sqlite3_result_int(con, (*iter)->get_revenue());
+                    break;
+        }
+    return SQLITE_OK;
+}
+
+
+int Trucks_retrieve(void *stc, int n, sqlite3_context *con){
+    sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;
+    stlTable *stl = (stlTable *)cur->pVtab;
+    stlTableCursor *stcsr = (stlTableCursor *)stc;
+    vector<Truck*> *any_dstr = (vector<Truck*> *)stl->data;
+    vector<Truck*>:: iterator iter;
     char *colName = stl->azColumn[n];
     int index = stcsr->current;
 // iterator implementation. serial traversing or hit?
@@ -221,32 +434,26 @@ int account_retrieve(void *stc, int n, sqlite3_context *con){
 // datatype = stl->colDataType[n];
     const char *pk = "pk";
     const char *fk = "fk";
-    if ( (n==0) && (!strcmp(stl->azColumn[0], pk)) ){
-// attention!
-        sqlite3_result_int(con, (long int)&(*iter));
-        printf("memory location of PK: %x\n", &(*iter));
-    }else if( !strncmp(stl->azColumn[n], fk, 2) ){
-        sqlite3_result_int(con, (long int)&(*iter));
-    }else{
-// in automated code: "iter->get_" + col_name + "()" will work.safe?
-// no.doxygen.
-        switch ( n ){
-            case 1:
-                    sqlite3_result_text(con, (const char *)iter->first.c_str(), -1, SQLITE_STATIC);
-                    break;
-            case 2:
-                    sqlite3_result_text(con, (const char *)iter->second.get_iba(), -1, SQLITE_STATIC);
-                    break;
-            case 3:
-                    sqlite3_result_text(con, (const char *)iter->second.get_account_no(), -1, SQLITE_STATIC);
-                    break;
-            case 4:
-                    sqlite3_result_double(con, iter->second.get_balance());
-                    break;
-            case 5:
-                    sqlite3_result_int(con, iter->second.get_isbn());
-                    break;
-        }
+//    printf("%s\n",stl->azColumn[0]);
+    switch ( n ){
+    case 0:
+	sqlite3_result_int64(con, (sqlite3_int64)&(*iter));
+	break;
+    case 1:
+	sqlite3_result_double(con, (*iter)->get_cost());
+	break;
+    case 2:
+	sqlite3_result_int(con, (*iter)->get_delcapacity());
+	break;
+    case 3:
+	sqlite3_result_int(con, (*iter)->get_pickcapacity());
+	break;
+    case 4:
+	sqlite3_result_int(con, (*iter)->get_rlpoint());
+	break;
+    case 5:
+	sqlite3_result_int64(con, (sqlite3_int64)(*iter)->get_Customers());
+	break;
     }
     return SQLITE_OK;
 }
@@ -255,14 +462,18 @@ int account_retrieve(void *stc, int n, sqlite3_context *con){
 void search(void* stc, char *constr, sqlite3_value *val){
     sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;
     stlTable *stl = (stlTable *)cur->pVtab;
-    if( !strcmp(stl->zName, "account") )
-        account_search(stc, constr, val);
+    if( !strcmp(stl->zName, "Customers") )
+        Customers_search(stc, constr, val);
+    if( !strcmp(stl->zName, "Trucks") )
+        Trucks_search(stc, constr, val);
 }
 
 int retrieve(void* stc, int n, sqlite3_context *con){
     sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;
     stlTable *stl = (stlTable *)cur->pVtab;
-    if( !strcmp(stl->zName, "account") )
-        account_retrieve(stc, n, con);
+    if( !strcmp(stl->zName, "Customers") )
+        return Customers_retrieve(stc, n, con);
+    if( !strcmp(stl->zName, "Trucks") )
+        return Trucks_retrieve(stc, n, con);
 }
 

@@ -46,7 +46,7 @@ int eof_vtable(sqlite3_vtab_cursor *cur);
 
 int close_vtable(sqlite3_vtab_cursor *cur);
 
-void create(sqlite3 *db, int argc, char **as, char *q);
+void create(sqlite3 *db, int argc, const char * const * as, char *q);
 
 //int prep_exec(sqlite3 *db, char *query);
 
@@ -63,6 +63,8 @@ typedef struct {sqlite3_vtab vtab; sqlite3 *db; const char *zDb;
 typedef struct {sqlite3_vtab_cursor vtab; int *resultSet; int size; 
   int current; int isEof;} stlTableCursor;
 
-typedef struct {int **memories; char** dsNames; int size;} dsCarrier;
+//int nByte; int init_res_max_size;
+
+typedef struct {long int **memories; const char** dsNames; int size;} dsCarrier;
 
 #endif
