@@ -18,41 +18,38 @@ int prep_exec(FILE *f, sqlite3 *db, const char *q){
     printf("prepared ok (virtual)\n");  
     printf("\n NOW STEPPING... \n");
     if (f != NULL) 
-      alias_prep_exec(f, stmt);
+      result = alias_prep_exec(f, stmt);
     else{
-      result = sqlite3_step(stmt);
-      if( result==SQLITE_ROW ){
-	for (col = 0; col < sqlite3_column_count(stmt); col++){
-	  printf("%s ", sqlite3_column_name(stmt, col));
-	}
+      for (col = 0; col < sqlite3_column_count(stmt); col++){
+	printf("%s ", sqlite3_column_name(stmt, col));
+      }
+      printf("\n");
+      while ((result = sqlite3_step(stmt)) == SQLITE_ROW){
 	printf("\n");
-	while (sqlite3_step(stmt) == SQLITE_ROW){
-	  printf("\n");
-	  for (col = 0; col < sqlite3_column_count(stmt); col++){
-	    switch(sqlite3_column_type(stmt, col)) {
-	    case 1: 
-	      printf("%i ", sqlite3_column_int(stmt, col));
-	      break;
-	    case 2:
-	      printf("%f ", sqlite3_column_double(stmt, col));
-	      break;
-	    case 3:
-	      printf("%s ", sqlite3_column_text(stmt, col));
-	      break;
-	    case 4:
-	      printf("%s ", (char *)sqlite3_column_blob(stmt, col));
-	      break;
-	    case 5:
-	      printf("(null) ");
-	      break;
-	    }
+	for (col = 0; col < sqlite3_column_count(stmt); col++){
+	  switch(sqlite3_column_type(stmt, col)) {
+	  case 1: 
+	    printf("%i ", sqlite3_column_int(stmt, col));
+	    break;
+	  case 2:
+	    printf("%f ", sqlite3_column_double(stmt, col));
+	    break;
+	  case 3:
+	    printf("%s ", sqlite3_column_text(stmt, col));
+	    break;
+	  case 4:
+	    printf("%s ", (char *)sqlite3_column_blob(stmt, col));
+	    break;
+	  case 5:
+	    printf("(null) ");
+	    break;
 	  }
-	  printf("\n");
 	}
-      }else if( result==SQLITE_DONE ){
-	printf("perfecto!\n");
+      }
+      if( result==SQLITE_DONE ){
+	//	printf("perfecto!\n");
       }else if( result==SQLITE_OK ){
-	printf("ok!\n");
+	//	printf("ok!\n");
       }else if( result==SQLITE_ERROR ){
 	printf("error\n");
 	//      sqlite3_finalize(stmt);
@@ -81,59 +78,58 @@ int alias_prep_exec(FILE *f, sqlite3_stmt * stmt){
 
   int result, col;
 
-  result = sqlite3_step(stmt);
-  if( result==SQLITE_ROW ){
-    //    printf("row of resultset available\n");
-    fprintf(f, "<b>result table:\n\n</b><br><br>");
-    fprintf(f, "<table border=\"1\">");
-    fprintf(f, "</tr>");
-    
+  //    printf("row of resultset available\n");
+  fprintf(f, "<b>result table:\n\n</b><br><br>");
+  fprintf(f, "<table border=\"1\">");
+  fprintf(f, "</tr>");
+  
+  for (col = 0; col < sqlite3_column_count(stmt); col++){
+    fprintf(f, "<td><b>%s</td></b>", sqlite3_column_name(stmt, col));
+  }
+  fprintf(f, "</tr>");
+  while ((result = sqlite3_step(stmt)) == SQLITE_ROW){
+    fprintf(f, "<tr>");
     for (col = 0; col < sqlite3_column_count(stmt); col++){
-      fprintf(f, "<td><b>%s</td></b>", sqlite3_column_name(stmt, col));
+      switch(sqlite3_column_type(stmt, col)) {
+      case 1: 
+	fprintf(f, "<td><b>%i</b></td>", sqlite3_column_int(stmt, col));
+	break;
+      case 2:
+	fprintf(f, "<td><b>%f</b></td>", sqlite3_column_double(stmt, col));
+	break;
+      case 3:
+	fprintf(f, "<td><b>%s</b></td>", sqlite3_column_text(stmt, col));
+	break;
+      case 4:
+	fprintf(f, "<td><b>%s</b></td>", (char *)sqlite3_column_blob(stmt, col));
+	break;
+      case 5:
+	fprintf(f, "<td><b>(null)</td></b>");
+	break;
+      }
     }
     fprintf(f, "</tr>");
-    while (sqlite3_step(stmt) == SQLITE_ROW){
-      fprintf(f, "<tr>");
-      for (col = 0; col < sqlite3_column_count(stmt); col++){
-	switch(sqlite3_column_type(stmt, col)) {
-	case 1: 
-	  fprintf(f, "<td><b>%i</b></td>", sqlite3_column_int(stmt, col));
-	  break;
-	case 2:
-	  fprintf(f, "<td><b>%f</b></td>", sqlite3_column_double(stmt, col));
-	  break;
-	case 3:
-	  fprintf(f, "<td><b>%s</b></td>", sqlite3_column_text(stmt, col));
-	  break;
-	case 4:
-	  fprintf(f, "<td><b>%s</b></td>", (char *)sqlite3_column_blob(stmt, col));
-	  break;
-	case 5:
-	  fprintf(f, "<td><b>(null)</td></b>");
-	  break;
-	}
-      }
-      fprintf(f, "</tr>");
-    }
+  }
     fprintf(f,"</table>");
     fprintf(f, "<br>");
-  }else if( result==SQLITE_DONE ){
-    fprintf(f, "<b>perfecto!\n</b>");
+  if( result==SQLITE_DONE ){
+    //    fprintf(f, "<b>perfecto!<br></b>");
   }else if( result==SQLITE_OK ){
-    fprintf(f, "<b>ok!\n</b>");
+    //    fprintf(f, "<b>ok!<br></b>");
   }else if( result==SQLITE_ERROR ){
     fprintf(f, "<b>error\n</b>");
     sqlite3_finalize(stmt);
     //    exit(1);
   }else if( result==SQLITE_MISUSE ){
-    fprintf(f, "<b>inappropriate use\n</b>");
+    fprintf(f, "<b>inappropriate use<br></b>");
     sqlite3_finalize(stmt);
     //    exit(1); fix create
   }else {
-    fprintf(f, "<b>other\n</b>");
+    fprintf(f, "<b>other<br></b>");
     sqlite3_finalize(stmt);
     //    exit(1);
   }
+  return result;
 }
 
 
@@ -177,14 +173,15 @@ void serveQuery(FILE *f, sqlite3 *db){
     //    Timer t;
     //    t.start();
     int j=0;
-    while ( (rc = prep_exec(f, db, query)==SQLITE_OK) && j<10 ){
+    while ( j<1 && (rc = prep_exec(f, db, query)) == SQLITE_DONE){
       //      t.stop();
       //      printf("%i \n",j);
-      j++;}
-    if (rc==SQLITE_OK){
+      j++;
+    }
+    if (rc==SQLITE_DONE){
       finish_clock = clock();
       c_time = ((double)finish_clock - (double)start_clock)/CLOCKS_PER_SEC;
-      fprintf(f, "<b>\nQUERY SUCCESSFUL! &i\n\n</b><br><br><br>", j);
+      fprintf(f, "<b>\nQUERY SUCCESSFUL! \n\n</b><br><br><br>");
       //      fprintf(f,"\nQuery execution took <b>%f</b> seconds.\n\n",t);
       fprintf(f,"Ellapsed time given by c++ : <b>%f</b>s.<br><br>",c_time);
     }

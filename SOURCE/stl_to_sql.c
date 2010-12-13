@@ -119,7 +119,7 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc,
 int connect_vtable(sqlite3 *db, void *paux, int argc,
 		   const char * const * argv, sqlite3_vtab **ppVtab,
 		   char **pzErr){
-  //   printf("in connect_vtable... \n");
+  printf("Connecting vtable %s \n\n", argv[2]);
   return init_vtable(0, db, paux, argc, argv, ppVtab, pzErr);
 }
 
@@ -127,7 +127,7 @@ int connect_vtable(sqlite3 *db, void *paux, int argc,
 int create_vtable(sqlite3 *db, void *paux, int argc,
 		  const char * const * argv, sqlite3_vtab **ppVtab,
 		  char **pzErr){
-  // printf("in create_vtable... \n");
+  printf("Creating vtable %s \n\n", argv[2]);
   return init_vtable(1, db, paux, argc, argv, ppVtab, pzErr);
 }
 
@@ -141,7 +141,8 @@ int update_vtable(sqlite3_vtab *pVtab, int argc, sqlite3_value **argv,
 
 // xDestroy
 int destroy_vtable(sqlite3_vtab *ppVtab){
-  // printf("in destroy_vtable...\n");
+  stlTable *st = (stlTable *)ppVtab;
+  printf("Destroying vtable %s \n\n", st->zName);
   int result;
 
   /*    need to destroy additional storage structures. so far not any.
@@ -155,6 +156,8 @@ int destroy_vtable(sqlite3_vtab *ppVtab){
 // xDisconnect
 int disconnect_vtable(sqlite3_vtab *ppVtab){
   stlTable *s=(stlTable *)ppVtab;
+  printf("Disconnecting vtable %s \n\n", s->zName);
+
   sqlite3_free(s);
   return SQLITE_OK;
 }
@@ -196,7 +199,7 @@ int bestindex_vtable(sqlite3_vtab *pVtab, sqlite3_index_info *pInfo){
       nidxStr[j++] = op;
       nidxStr[j++] = iCol;
       //    UNUSED_PARAMETER(pVtab);
-      pInfo->aConstraintUsage[i].argvIndex = 1;
+      pInfo->aConstraintUsage[i].argvIndex = i+1;
       pInfo->aConstraintUsage[i].omit = 1;
       
     }
@@ -250,10 +253,10 @@ int filter_vtable(sqlite3_vtab_cursor *cur, int idxNum, const char *idxStr,
 int next_vtable(sqlite3_vtab_cursor *cur){
   stlTable *st=(stlTable *)cur->pVtab;
   stlTableCursor *stc=(stlTableCursor *)cur;
-  if ( stc->current>=stc->size-1 ) 
+  stc->current++;
+  printf("now stc->current: %i \n\n", stc->current);
+  if ( stc->current>=stc->size ) 
     stc->isEof = 1;
-  else
-    stc->current++;
   return SQLITE_OK;
 }
 
@@ -261,6 +264,7 @@ int next_vtable(sqlite3_vtab_cursor *cur){
 // xOpen
 int open_vtable(sqlite3_vtab *pVtab, sqlite3_vtab_cursor **ppCsr){
   stlTable *st=(stlTable *)pVtab;
+  printf("Opening vtable %s\n\n", st->zName);
 
   // a data structure to hold index positions of resultset so that in the end
   // of loops the remaining resultset is the wanted one.
@@ -280,13 +284,16 @@ int open_vtable(sqlite3_vtab *pVtab, sqlite3_vtab_cursor **ppCsr){
   memset(pCsr, 0, sizeof(stlTableCursor));
 
   //  stc->nByte = nByte;
-  //  stc->init_res_max_size = arraySize;
+  stc->max_size = arraySize;
+  printf("ppCsr = %lx, pCsr = %lx \n", (long unsigned int)ppCsr, (long unsigned int)pCsr);
+  printf("Original resultSet of vtable %s is %i \n\n", st->zName, stc->max_size);
   //  stc->resultSet = (int *)&stc[1];
   stc->resultSet = (int *)sqlite3_malloc(sizeof(int) * arraySize);
   if( !stc->resultSet ){
     return SQLITE_NOMEM;
   }
   memset(stc->resultSet, -1, sizeof(int) * arraySize);
+  assert(((char *)stc->resultSet)[sizeof(int) * arraySize] <= stc->resultSet[arraySize]);
 
   return SQLITE_OK;
 }
@@ -308,6 +315,9 @@ int rowid_vtable(sqlite3_vtab_cursor *cur, sqlite_int64 *pRowid){
 
 //xClose
 int close_vtable(sqlite3_vtab_cursor *cur){
+  stlTable *st=(stlTable *)cur->pVtab;
+  printf("Closing vtable %s \n\n",st->zName);
+
   stlTableCursor *stc=(stlTableCursor *)cur;
   sqlite3_free(stc->resultSet);
   sqlite3_free(stc);
