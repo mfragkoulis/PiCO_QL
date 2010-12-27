@@ -1,3 +1,21 @@
+=begin
+
+search:
+	have to distinguish between embedded and top data structures.
+
+	if (val==NULL) -- top not embedded. check
+	if (array... -- embedded not top. check
+	case 0: embedded and top different. wrong, same.check
+	int ia,ib embedded,top. check
+
+	iterative code in ruby requires stable changes (resultSet to
+	temp_res). check
+	
+retrieve intact I think. check.
+
+=end
+
+
 # raise alarm if special characters are used in description
 
 # what's the use of the class?holds template instantiation inside Register
@@ -17,7 +35,7 @@ class Data_structure_characteristics
 
       def initialize
       	  @name=""
-
+	  @level=""
 # content: map<string,Truck*>
 	  @signature=""	
 
@@ -27,7 +45,7 @@ class Data_structure_characteristics
 	  @template1_type="" 
 	  @template2_type=""
       end
-      attr_accessor(:name,:signature,:pure_signature,:classnames,
+      attr_accessor(:name,:level,:signature,:pure_signature,:classnames,
       		    :template1_type,:template2_type) 
 
 end
@@ -120,7 +138,7 @@ class Input_Description
 	else
 	  ret_attribute = attribute
 # primitive type	
-  	end  
+  	end
 	return ret_attribute
       end
 
@@ -329,11 +347,11 @@ class Input_Description
 #HereDoc
 
 	gather_results = <<-rslt
-                        stcsr->resultSet[count++] = i;
-                    iter++;
-                }
-                stcsr->size += count;
-                break;
+                    temp_res[count++] = i;
+                iter++;
+            }
+            assert(count <= stcsr->max_size);
+            break;
 rslt
 
 #	puts "gen_col"
@@ -443,16 +461,19 @@ rslt
 # avoid duplicating statement
 	  if @back == 0
 	    puts @column_traverse
-            fw.puts @s + "    case " + @counter.to_s + ":"
 	    if operation == "check"
-              fw.puts @s + "        iter=any_dstr->begin();"
-              fw.puts @s + "        for(int i=0;i<(int)any_dstr->size();i++){"
+              fw.puts @s + "case " + @counter.to_s + ":"
+              fw.puts @s + "    iter=any_dstr->begin();"
+              fw.puts @s + "    for(int i=0;i<(int)any_dstr->size();i++){"
+              fw.puts @s + "        " + @column_traverse
+	    else
+              fw.puts "    case " + @counter.to_s + ":"
+              fw.puts @s + @column_traverse
 	    end
-            fw.puts @s + "            " + @column_traverse
 	    if operation == "check"
 	      fw.puts gather_results
 	    else 
-	      fw.puts @s + "            break;"
+	      fw.puts @s + "break;"
 	    end
 	  end
           at += 1
@@ -479,7 +500,7 @@ rslt
 
 # opens a new c source file and writes c code.
 # Specifically, it generates the main.template, the search.cpp
-# and the makefile.
+# and the makefile.template.
 # All information about data structures to be registered to
 # sqlite is used (resides at Register) to generate the necessary
 # methods.
@@ -533,28 +554,51 @@ struct classcomp{
 
 
 int main(){
+// allocations and initialisations
   int re_sqlite;
   void *data;
-  int **mem;
-  char **names;
-  mem = (int **)sqlite3_malloc(sizeof(int*));
-  names = (char **)sqlite3_malloc(sizeof(char *));
+  char *helper;
 
-  // declare and fill datastructure;
-  mem[0] = (int *) // memory address of data structure;
-  names[0] = // name of data structure;
+  //names of data structures to be registered
+  const char *name1 = "to be filled_in";
+  int n_name1 = (int)strlen(name1) + 1;
+  // etc for subsequent data structures. eg:
+  // const char *name2 = "to be filled_in";
+  // int n_name2 = (int)strlen(name2) + 1;
+  // length of data structures names
 
-// and so on for all data structures to be registered
-
-  dsCarrier dsC;
-  dsC.memories = mem;
-  dsC.dsNames = names;
-
-  dsC.size = // input the number of data structures you are registering ;
-
-  data = (void *)&dsC;
-
+  dsCarrier *dsC;
+  int nByte = sizeof(dsCarrier) + sizeof(long int *) * 2 +
+    sizeof(const char *) * 2 + n_name1;
+  // etc for subsequent data structures. eg: + n_name2;
+  dsC = (dsCarrier *)sqlite3_malloc(nByte);
+  memset(dsC, 0, nByte);
   pthread_t sqlite_thread;
+
+// assignment of data structure characteristics to dsC
+  // number of data structures to register
+  dsC->size = to be filled_in;
+  dsC->dsNames = (const char **)&dsC[1];
+  dsC->memories = (long int **)&dsC->dsNames[dsC->size];
+  helper = (char *)&dsC->memories[dsC->size];
+
+  dsC->memories[0] = (long int *) to be filled in with memory address;
+  // etc for subsequent data structures. eg:
+  // dsC->memories[1] = (long int *) to be filled in with memory address;
+
+
+  dsC->dsNames[0] = helper;
+  memcpy(helper, name1, n_name1);
+  helper += n_name1;
+  // etc for subsequent data structures
+  // dsC->dsNames[1] = helper;
+  // memcpy(helper, name2, n_name2);
+  // helper += n_name2;
+
+  assert(helper <= &((char *)dsC)[nByte]);
+
+  data = (void *)dsC;
+
   re_sqlite = pthread_create(&sqlite_thread, NULL, thread_sqlite, data);
   pthread_join(sqlite_thread, NULL);
   printf(\"Thread sqlite returned %i\\n\", re_sqlite);
@@ -640,15 +684,7 @@ int traverse(const unsigned char *dstr_value, int op,
 
 AG3
 
-	  auto_gen4 = <<-AG4 
-//    Type value;
-    int op, count = 0;
-// val==NULL then constr==NULL also
-    if ( val==NULL ){
-        for (int j=0; j<get_datastructure_size((void *)stl); j++){
-            stcsr->resultSet[j] = j;
-            stcsr->size++;
-        }
+	  auto_gen35 = <<-AG35 
     }else{
         switch( constr[0] - 'A' ){
         case 0:
@@ -674,49 +710,103 @@ AG3
             break;
         }
 
-        int iCol;
         iCol = constr[1] - 'a' + 1;
-        char *colName = stl->azColumn[iCol];
-// FK search
-        const char *fk = "fk";
-        if(!strcmp(colName, fk)){
-            iter=any_dstr->begin();
-            for(int i=0; i<(int)any_dstr->size(); i++){
-                if( traverse((long int)&(*iter), op, sqlite3_value_int(val)) )
-                    stcsr->resultSet[count++] = i;
-                iter++;
+	int *temp_res;
+AG35
+
+	embedded_level1 = <<-eml1
+        int arraySize;
+        int *res;
+        if (iCol == 0){
+            stl->data = (void *)sqlite3_value_int64(val);
+eml1
+
+
+	    embedded_level2 = <<-eml2
+	}
+
+        arraySize=get_datastructure_size(stl);
+
+        if ( arraySize != stcsr->max_size ){
+            res = (int *)sqlite3_realloc(stcsr->resultSet, sizeof(int) * arraySize);
+            if (res!=NULL){
+                stcsr->resultSet = res;
+                memset(stcsr->resultSet, -1,
+                       sizeof(int) * arraySize);
+                stcsr->max_size = arraySize;
+                printf("\\nReallocating resultSet..now max size %i \\n\\n", stcsr->max_size);
+            }else{
+                free(res);
+                printf("Error (re)allocating memory\\n");
+                exit(1);
             }
-            stcsr->size += count;
-        }else{
-// handle colName
-            switch( iCol ){
+        }
+eml2
+
+
+	  auto_gen4 = <<-AG4
+	temp_res = (int *)sqlite3_malloc(sizeof(int)  * stcsr->max_size);
+        if ( !temp_res ){
+            printf("Error in allocating memory\\n");
+            exit(1);
+        }
+
+        switch( iCol ){
 // i=0. search using PK?memory location?or no PK?
 // no can't do.PK will be memory location. PK in every table
 // PK search
-            case 0: 
-                iter=any_dstr->begin();
-                for(int i=0; i<(int)any_dstr->size(); i++){
-                    if( traverse((long int)&(*iter), op, sqlite3_value_int(val)) )
-                        stcsr->resultSet[count++] = i;
-                    iter++;
-                }
-                stcsr->size += count;
-                break;
+        case 0: 
+            iter=any_dstr->begin();
+            for(int i=0; i<(int)any_dstr->size(); i++){
+                temp_res[count++] = i;
+                iter++;
+            }
+            assert(count <= stcsr->max_size);
+            break;
 AG4
 
 	
     #HereDoc5
 
 
-	cls_search_opn_retrieve = <<-cls_opn
+	cls_search = <<-cls
 // more datatypes and ops exist
-            }
         }
+        int ia, ib;
+        int *i_res;
+        int i_count = 0;
+        if (stcsr->size == 0){
+            memcpy(stcsr->resultSet, temp_res, sizeof(int) *
+	    			     stcsr->max_size);
+            stcsr->size = count;
+        }else{
+            i_res = (int *)sqlite3_malloc(sizeof(int) *
+	    	    	 		stcsr->max_size);
+            for(int a=0; a<stcsr->size; a++){
+                for(int b=0; b<count; b++){
+                    ia = stcsr->resultSet[a];
+                    ib = temp_res[b];
+                    if( ia==ib ){
+                        i_res[i_count++] = ia;
+                        b++;
+                    }else if( ia < ib )
+                        b = count;
+                    else
+                        b++;
+                }
+            }
+            assert( i_count <= stcsr->max_size );
+            memcpy(stcsr->resultSet, i_res, sizeof(int) *
+	    			     i_count);
+            stcsr->size = i_count;
+            sqlite3_free(i_res);
+	}
+        sqlite3_free(temp_res);
     }
 }
 
 
-cls_opn
+cls
 
 
     #HereDoc6
@@ -730,19 +820,6 @@ cls_opn
     for(int i=0; i<stcsr->resultSet[index]; i++){
         iter++;
     }
-// int datatype;
-// datatype = stl->colDataType[n];
-    const char *pk = "pk";
-    const char *fk = "fk";
-    if ( (n==0) && (!strcmp(stl->azColumn[0], pk)) ){
-// attention!
-        sqlite3_result_int(con, (long int)&(*iter));
-        printf(\"memory location of PK: %x\\n\", &(*iter));
-    }else if( !strncmp(stl->azColumn[n], fk, 2) ){
-        sqlite3_result_int(con, (long int)&(*iter));
-    }else{
-// in automated code: \"iter->get_\" + col_name + \"()\" will work.safe?
-// no.doxygen.
 AG5
 
   makefile_part = <<-mkf
@@ -759,6 +836,24 @@ stl_to_sql.o: stl_to_sql.c stl_to_sql.h bridge.h
 search.o: search.cpp bridge.h Account.h
 	g++ -W -g -c search.cpp
 mkf
+
+
+  top_level = <<-tpl
+        for (int j=0; j<get_datastructure_size((void *)stl); j++){
+            stcsr->resultSet[j] = j;
+            stcsr->size++;
+        }
+        assert(stcsr->size <= stcsr->max_size);
+        assert(&stcsr->resultSet[stcsr->size] <= &stcsr->resultSet[stcsr->max_size]);
+
+tpl
+
+
+  exit_search = <<-exs
+        printf("embedded data structure cannot be requested constraint-less.must be joined");
+        exit(1);
+exs
+
 
 # END OF HereDocs
   
@@ -906,6 +1001,20 @@ mkf
 	    fw.puts "    " + tmpr_chars.signature +
             	    " *any_dstr = (" + tmpr_chars.signature + " *)stl->data;"
 	    fw.puts "    " + tmpr_chars.signature + ":: iterator iter;"
+	    fw.puts "    int op, iCol, count = 0;"
+	    fw.puts "// val==NULL then constr==NULL also"
+	    fw.puts "    if ( val==NULL ){"
+	    if tmpr_chars.level=="top"
+	      fw.puts top_level
+	    else 
+	      fw.puts exit_search
+	    end
+	    fw.puts auto_gen35
+	    if tmpr_chars.level=="embedded"
+	      fw.puts embedded_level1
+	      fw.puts @s + "    any_dstr = (" + tmpr_chars.signature + " *)stl->data;"
+	      fw.puts embedded_level2
+	    end	    
 	    fw.puts auto_gen4
 
 #          i=1
@@ -952,7 +1061,7 @@ mkf
             end
 # call HereDoc29
             q += 1
-            fw.puts cls_search_opn_retrieve
+            fw.puts cls_search
           end
 	  
 	  fw.puts "\n\n"
@@ -988,8 +1097,10 @@ mkf
 	    fw.puts "    " + tmpr_chars.signature + ":: iterator iter;"
 	    fw.puts auto_gen5
 
-            fw.puts "        switch ( n ){"
-
+            fw.puts "    switch( n ){"
+	    fw.puts "    case 0:"
+	    fw.puts "        sqlite3_result_text(con, \"(null)\", -1, SQLITE_STATIC);"
+	    fw.puts "        break;"
 
 #          i=1
 # bottom-up
@@ -1011,10 +1122,9 @@ mkf
               tmpr_class = tmpr_template.template2
               gen_col(tmpr_class, tmpr_class.fetch(tmpr_chars.pure_signature),
                                      template_no, tmpr_chars, fw, "retrieve")
-           end
+            end
 # call HereDoc29
             q += 1
-          fw.puts "        }"
           fw.puts "    }"
           fw.puts "    return SQLITE_OK;"
           fw.puts "}\n\n\n"
@@ -1174,6 +1284,7 @@ DT
 	        superclass = name_type[1].split(/inherits_from/)
 	        argv.push(name_type[0] + " inherits_from " + superclass[1]) 
 	      end
+# the following are valid?
 # top level tables won't go in this condition only intermediate ones.
 # table name is set as default so that it works for top level.
 # intermediate tables override default with respective class name.
@@ -1181,6 +1292,7 @@ DT
 #	      argv.insert(2,name_type[0])
 #	      argv.push("INTEGER PRIMARY KEY AUTOINCREMENT")
 	    elsif name_type[1].downcase=="reference"
+# why pushed and not straight argv.push...?
 	      if @classnames.has_key?(name_type[0])
 		pushed=true
 	      end
@@ -1194,6 +1306,7 @@ DT
 	    elsif name_type[1].downcase.match(/ds/)
 	      e=0
 	      while e < @ds_nested_names.length
+# same here as in L1203
 	        if @ds_nested_names[e]==name_type[0]
 		  bind=true
 	        end
@@ -1205,7 +1318,7 @@ DT
 	        puts $err_state
 		raise ArgumentError.new(no_bind.chomp + name_type[0] + 
 		      "\n\n NOW EXITING. \n")
-	      end	      
+	      end
             elsif name_type[1].downcase=="int" || 
 	      name_type[1].downcase=="integer" ||
 	      name_type[1].downcase=="tinyint" ||
@@ -1340,6 +1453,7 @@ TA
 	  if my_array[index].include?(",")
 	    attributes.push(my_array[index])
 # for type validation
+# need to ush to attributes and call transform?
 	    columns = transform(attributes)
 	    name = my_array[index].split(/,/)
 # see to it: age INT
@@ -1471,6 +1585,7 @@ fg
 # data structure name
 	  ds_chars[l-w].name=my_array[0]
 	  @ds_nested_names.push(my_array[0])
+	  ds_chars[l-w].level=my_array[1]
 
 # @classnames is used to keep track of classes contained
 # in a datastructure for avoidance of duplication
@@ -1481,11 +1596,11 @@ fg
 	    @classnames.clear
 	  end
 
-	  if my_array[1].include?("<") && my_array[1].include?(">")
-	    container_split=my_array[1].split(/</)
+	  if my_array[2].include?("<") && my_array[2].include?(">")
+	    container_split=my_array[2].split(/</)
 	    container_class=container_split[0]
 	  else
-	    raise ArgumentError.new(class_sign + my_array[1] + 
+	    raise ArgumentError.new(class_sign + my_array[2] + 
 	     	     "\n\n NOW EXITING. \n") 
 	  end
 
@@ -1508,7 +1623,7 @@ fg
 
 	  if (@template_args=="single" && container_split[1].include?(",")) || 
 	     (@template_args=="double" && !container_split[1].include?(","))
-	       raise ArgumentError.new(class_sign + my_array[1] + 
+	       raise ArgumentError.new(class_sign + my_array[2] + 
 	     	     "\n\n NOW EXITING. \n")
 	  end
 
@@ -1527,8 +1642,8 @@ fg
 	  	       @container_type="bitset"
 	  end
 
-#	  @signature=my_array[1]
-	  ds_chars[l-w].signature=my_array[1]
+#	  @signature=my_array[2]
+	  ds_chars[l-w].signature=my_array[2]
 	  puts "container signature is: " + ds_chars[l-w].signature
           puts "no of template args is: " + @template_args
 	  puts "container type is: " + @container_type
@@ -1539,7 +1654,7 @@ fg
 	    i+=1
 	  end 
 
-	  if my_array.length==3
+	  if my_array.length==4
 	    unless @template_args=="single"
 	      puts $err_state
 	      raise ArgumentError.new(no_args)
@@ -1547,19 +1662,19 @@ fg
 	    ds_chars[l-w].template1_type="none"
 	    
 	    templates_representation[l-w].template2 = 
-	    			register_class(ds_chars[l-w], my_array, 2)
+	    			register_class(ds_chars[l-w], my_array, 3)
 	    templates_representation[l-w].template1["none"] = nil
 #	    templates_representation[l-w].store(template1[l-w], 
 #	    						template2[l-w])
-	  elsif my_array.length==4
+	  elsif my_array.length==5
 	    unless @template_args=="double"
 	      puts $err_state
 	      raise ArgumentError.new(col_args)
 	    end
 	    templates_representation[l-w].template1 = 
-	    			register_class(ds_chars[l-w], my_array, 2)
-	    templates_representation[l-w].template2 = 
 	    			register_class(ds_chars[l-w], my_array, 3)
+	    templates_representation[l-w].template2 = 
+	    			register_class(ds_chars[l-w], my_array, 4)
 #	    templates_representation[l-w].store(template1[l-w], 
 #	    						template2[l-w])
 	  else
@@ -1610,9 +1725,9 @@ fg
 # contains only one key of type Array (template description)
 
   	  
-
-	  tc = 0
-#	  tmpr_class = tmpr_template.template1
+# tc?
+#	  tc = 0
+	  tmpr_class = tmpr_template.template1
 	  if tmpr_class.has_key?("none") 
 	    puts "empty template"
 	  else
@@ -1822,8 +1937,8 @@ ath
 # You will always have the opportunity to go one step back by typing "reset".
 
   description =
-  "foo.db!Trucks;vector<Truck*>;Truck,class_pointer
-  -cost,double-delcapacity,int-pickcapacity,int-rlpoint,int-Customers,ds_pointer!Customers;vector<Customer*>;Customer,class_pointer-demand,int-code,string-serviced,bool-pickdemand,int-starttime,int-servicetime,int-finishtime,int-revenue,int"
+  "foo.db!Trucks;top;vector<Truck*>;Truck,class_pointer
+  -cost,double-delcapacity,int-pickcapacity,int-rlpoint,int-Customers,ds_pointer!Customers;embedded;vector<Customer*>;Customer,class_pointer-demand,int-code,string-serviced,bool-pickdemand,int-starttime,int-servicetime,int-finishtime,int-revenue,int"
 
 #  description = "foo.db!account;vector<Account>;Account,class
 #  inherits_from
