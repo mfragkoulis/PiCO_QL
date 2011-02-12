@@ -165,15 +165,29 @@ int disconnect_vtable(sqlite3_vtab *ppVtab){
 // xBestindex
 int bestindex_vtable(sqlite3_vtab *pVtab, sqlite3_index_info *pInfo){
   stlTable *st=(stlTable *)pVtab;
+  //  pInfo->estimatedCost = 1.0;
+
   if ( pInfo->nConstraint>0 ){            // no constraint no setting up
     char op, iCol;
     char nidxStr[pInfo->nConstraint*2+1];
     memset(nidxStr, 0, sizeof(nidxStr));
 
     assert( pInfo->idxStr==0 );
-    int i, j=0;
+    int i, j=0, k, join=0;
+    struct sqlite3_index_constraint *pCons = &pInfo->aConstraint[i];
+    
+    /*    for(i=0; i<pInfo->nConstraint; i++){
+      pCons = &pInfo->aConstraint[i];
+      if( pCons->iColumn==0 && pCons->usable==1 ){
+	join=1;
+	break;
+      }
+    }
+    */
+    
+
     for(i=0; i<pInfo->nConstraint; i++){
-      struct sqlite3_index_constraint *pCons = &pInfo->aConstraint[i];
+      pCons = &pInfo->aConstraint[i];
       if( pCons->usable==0 ) continue;
       switch ( pCons->op ){
       case SQLITE_INDEX_CONSTRAINT_LT:
@@ -199,13 +213,40 @@ int bestindex_vtable(sqlite3_vtab *pVtab, sqlite3_index_info *pInfo){
       nidxStr[j++] = op;
       nidxStr[j++] = iCol;
       //    UNUSED_PARAMETER(pVtab);
+
+
+      if ( pCons->iColumn==0 ){
+	for(k=0; k<i; k++){
+	  pInfo->aConstraintUsage[k].argvIndex = 0;
+	  pInfo->aConstraintUsage[k].omit = 0;
+	}
+      	pInfo->aConstraintUsage[k].argvIndex = 1;
+      	pInfo->aConstraintUsage[k].omit = 1;
+	while (j>0){
+	  nidxStr[--j];
+	}
+	memset(nidxStr, 0, sizeof(nidxStr));
+	nidxStr[j++] = op;
+	nidxStr[j++] = iCol;
+	nidxStr[j] = '\0';
+	pInfo->needToFreeIdxStr = 1;
+	pInfo->estimatedCost = 10.0;
+	if( (j>0) && 0==(pInfo->idxStr=sqlite3_mprintf("%s", nidxStr)) )
+	  return SQLITE_NOMEM;
+	return SQLITE_OK;
+      }
+	  //      if (join)
+	  //	pInfo->aConstraintUsage[i].argvIndex = 1;
+	  //      else
       pInfo->aConstraintUsage[i].argvIndex = i+1;
       pInfo->aConstraintUsage[i].omit = 1;
-      
+      pInfo->needToFreeIdxStr = 1;
+      pInfo->estimatedCost = (2000000 / (double)(j+1));
+    // all provided constraints non usable
+    //    if ( (j==0) && (pInfo->nConstraint>0) ) pInfo->estimatedCost = 1000000;
+      if( (j>0) && 0==(pInfo->idxStr=sqlite3_mprintf("%s", nidxStr)) )
+	return SQLITE_NOMEM;
     }
-    pInfo->needToFreeIdxStr = 1;
-    if( (j>0) && 0==(pInfo->idxStr=sqlite3_mprintf("%s", nidxStr)) )
-      return SQLITE_NOMEM;
   }
   return SQLITE_OK;
 }
@@ -223,7 +264,7 @@ int filter_vtable(sqlite3_vtab_cursor *cur, int idxNum, const char *idxStr,
   stc->size = 0;
 
   // initial cursor position
-  stc->current=-1;
+  stc->current = -1;
 
   // in case of a join xfilter will be called many times, x times for x 
   // eligible rows of the paired table in this case isEof will be set to 
@@ -284,16 +325,29 @@ int open_vtable(sqlite3_vtab *pVtab, sqlite3_vtab_cursor **ppCsr){
   memset(pCsr, 0, sizeof(stlTableCursor));
 
   //  stc->nByte = nByte;
+  stc->init_constr = 1;
   stc->max_size = arraySize;
   printf("ppCsr = %lx, pCsr = %lx \n", (long unsigned int)ppCsr, (long unsigned int)pCsr);
   printf("Original resultSet of vtable %s is %i \n\n", st->zName, stc->max_size);
   //  stc->resultSet = (int *)&stc[1];
-  stc->resultSet = (int *)sqlite3_malloc(sizeof(int) * arraySize);
+  int memory_size = (sizeof(char *) + sizeof(char) * 20) * arraySize;
+  stc->resultSet = (char **)sqlite3_malloc(memory_size);
+    //  stc->resultSet[0][0] = &stc->resultSet[arraySize];
   if( !stc->resultSet ){
     return SQLITE_NOMEM;
   }
-  memset(stc->resultSet, -1, sizeof(int) * arraySize);
-  assert(((char *)stc->resultSet)[sizeof(int) * arraySize] <= stc->resultSet[arraySize]);
+  memset(stc->resultSet, '\0', memory_size);
+  *stc->resultSet = (char *)&stc->resultSet[arraySize];
+  int i;
+  for (i=0; i<arraySize; i++){
+    stc->resultSet[i+1] = &stc->resultSet[i][20];
+  }
+  //  memset(*stc->resultSet, '\0', sizeof(char *) * arraySize);
+  printf("memory_size: %lx, arraySize: %lx", 
+	 (long unsigned int)&((char *)stc->resultSet)[memory_size], 
+	 (long unsigned int)&stc->resultSet[arraySize]);
+  //  assert(((char *)stc->resultSet)[memory_size] <= stc->resultSet[arraySize]);
+
 
   return SQLITE_OK;
 }

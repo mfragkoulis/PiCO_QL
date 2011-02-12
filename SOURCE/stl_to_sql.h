@@ -60,8 +60,8 @@ typedef struct {sqlite3_vtab vtab; sqlite3 *db; const char *zDb;
   const char *zName; int nColumn; char **azColumn; 
   void *data;} stlTable;
 
-typedef struct {sqlite3_vtab_cursor vtab; int *resultSet; int size; 
-  int current; int isEof;int max_size;} stlTableCursor;
+typedef struct {sqlite3_vtab_cursor vtab; char **resultSet; int init_constr; 
+  int size; int current; int isEof;int max_size;} stlTableCursor;
 
 //int nByte; int init_res_max_size;
 

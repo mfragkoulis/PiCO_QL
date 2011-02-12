@@ -8,7 +8,7 @@
 // prepare and execute an sql query
 
 int prep_exec(FILE *f, sqlite3 *db, const char *q){
-  // printf("in prep_exec...\n");
+  printf("in prep_exec...\n");
 
   sqlite3_stmt  *stmt;
   int result, col;

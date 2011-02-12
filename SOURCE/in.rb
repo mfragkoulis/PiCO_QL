@@ -1,20 +1,3 @@
-=begin
-
-search:
-	have to distinguish between embedded and top data structures.
-
-	if (val==NULL) -- top not embedded. check
-	if (array... -- embedded not top. check
-	case 0: embedded and top different. wrong, same.check
-	int ia,ib embedded,top. check
-
-	iterative code in ruby requires stable changes (resultSet to
-	temp_res). check
-	
-retrieve intact I think. check.
-
-=end
-
 
 # raise alarm if special characters are used in description
 
@@ -34,49 +17,159 @@ retrieve intact I think. check.
 class Data_structure_characteristics
 
       def initialize
-      	  @name=""
-	  @level=""
+      	  @name = ""
+	  @level = ""
+	  @used_create = 0
+	  @used_gen_size = 0
+	  @used_gen_def_sch = 0
+	  @used_gen_def_rtv = 0
+	  @used_check = 0
+	  @used_retrieve = 0
+	  @iter_var = ""
+	  @index_naked = ""
 # content: map<string,Truck*>
-	  @signature=""	
-
+	  @signature = ""	
 # content: string,Truck
-	  @pure_signature=""
-	  @classnames=Hash.new 
-	  @template1_type="" 
-	  @template2_type=""
+	  @pure_signature = ""
+	  @stl_class = ""
+	  @children = Hash.new
+	  @classnames = Hash.new 
+	  @template1_type = "" 
+	  @template1_name = ""
+	  @template2_type = ""
+	  @template2_name = ""
       end
-      attr_accessor(:name,:level,:signature,:pure_signature,:classnames,
-      		    :template1_type,:template2_type) 
+      
+      attr_accessor(:name,:level,:used_create,:used_gen_size,
+      :used_gen_def_sch,:used_gen_def_rtv,:used_check,:used_retrieve,
+      :iter_var,:index_naked,:signature,:pure_signature,:stl_class,:children,
+      :classnames,:template1_type,:template1_name,
+      :template2_type,:template2_name)
 
 end
 
 class Input_Description
 
       def initialize(description="")
-          @description=description
-#	  @signature=""
+          @description = description
 	  @column_traverse = ""
 	  @jump = 0
 	  @back = 0
 # temp
 	  @was_inheritance = 0
-	  @iter_var = ""
-
 	  @inheritance = 0
 	  @action = Array.new
 	  @follow_up = Array.new
+	  @embedded_loop = Array.new
+	  @embedded_index = Array.new
+	  @format = "\"%d."
+	  @index_vars = " i, "
+	  @def_children = ""
+	  @finish_string = ""
+
+
+# keep iter_var of parent data structure to refer to from embedded
+	  @parent_iter_var = ""
+
+# key: data_structure_name, value: position in @...array
+	  @data_structures_names=Hash.new
 	  @data_structures_array=Array.new
           @ds_nested_names = Array.new
+
+# key: class name, value: class type
 	  @classnames=Hash.new
 	  @classes_inserted = Array.new
 	  @container_type=""
 	  @template_args=""
-	  @filename="main.template"
 	  @query=""
 	  @queries=Array.new
 	  @s = "        "
       end
 
+
+      def ds_unravel(index, operation)
+        puts "ds_unravel"
+	tmpr_ds = Hash.new
+	tmpr_chars = Data_structure_characteristics.new
+	tmpr_keys = Array.new
+	tmpr_template = Template.new
+	tmpr_class1 = Hash.new
+	tmpr_class2 = Hash.new
+
+	puts "ds_un index: " + index.to_s
+	tmpr_ds = @data_structures_array[index]
+
+# extract keys from original beasty hash
+# should contain only one key of type Data_structure_characteristics
+	tmpr_keys = tmpr_ds.keys
+
+# tmpr_keys length should be one
+	tmpr_chars = tmpr_keys[0]
+
+# return nil when 
+# create & 1
+# create & embedded
+# create_embed & 1
+
+# so match-create & 1
+# =create & embedded & 0
+
+	if operation.match(/create/) 
+	  if tmpr_chars.used_create == 1 || 
+	       (operation == "create" && tmpr_chars.level == "embedded")
+	    return nil
+	  else
+	    tmpr_chars.used_create = 1
+	  end
+	elsif operation.match(/gen_size/) 
+# no generate_nested. we don't want to generate size information for
+# children data structures
+	  if tmpr_chars.used_gen_size == 1 || 
+	       (tmpr_chars.level == "embedded")
+	    return nil
+	  else
+	    tmpr_chars.used_gen_size = 1
+	  end
+	elsif operation.match(/gen_def_sch/) 
+	  if tmpr_chars.used_gen_def_sch == 1 || 
+	       (tmpr_chars.level == "top")
+	    return nil
+	  else
+	    tmpr_chars.used_gen_def_sch = 1
+	  end
+	elsif operation.match(/gen_def_rtv/) 
+	  if tmpr_chars.used_gen_def_rtv == 1 || 
+	       (tmpr_chars.level == "top")
+	    return nil
+	  else
+	    tmpr_chars.used_gen_def_rtv = 1
+	  end
+	elsif operation.match(/check/) 
+	  if tmpr_chars.used_check == 1 || 
+	       (operation == "check" && tmpr_chars.level == "embedded")
+	    return nil
+	  else
+	    tmpr_chars.used_check = 1
+	  end
+	elsif operation.match(/retrieve/) 
+	  if tmpr_chars.used_retrieve == 1 || 
+	       (operation == "retrieve" && tmpr_chars.level == "embedded")
+	    return nil
+	  else
+	    tmpr_chars.used_retrieve = 1
+	  end
+	end
+
+	tmpr_template = tmpr_ds.fetch(tmpr_chars)
+        if tmpr_chars.template1_type != "none"
+	  tmpr_class1 = tmpr_template.template1
+	else
+	  puts "ds_unravel: NO template 1"
+	  tmpr_class1 = nil
+        end        
+	tmpr_class2 = tmpr_template.template2
+	return tmpr_chars, tmpr_class1, tmpr_class2
+      end
 
 
 
@@ -87,7 +180,8 @@ class Input_Description
 # The method traverses all the class attributes.
 # if they are of primitive type it concats them to form a query string.
 # Otherwise there is either a nested class or an inheritance hierarchy
-# to be taken into account. A recursive call is carried out to
+# or a nested data structure to be taken into account. 
+# A recursive call is carried out to
 # traverse the latter.
 
 # assumption: first attribute records class name and type
@@ -96,19 +190,42 @@ class Input_Description
         at = 0
 	while at < attributes.length
 	  ret_attribute = neat_attributes(attributes[at])
-	  if ret_attribute.match(/jump_nested/)
+	  if ret_attribute.match(/jump_nested_class/)
 	    split = ret_attribute.split(/ /)
 	    puts "split " + split[1]
-	    ret_attribute = recursive_traversal(tmpr_class,
+	    recursive_traversal(tmpr_class,
 				tmpr_class.fetch(split[1]))
 	  elsif ret_attribute.match(/jump_inh/)
 	    split = ret_attribute.split(/ /)
 	    puts "split " + split[2]
-	    ret_attribute = recursive_traversal(tmpr_class,
+	    recursive_traversal(tmpr_class,
 				tmpr_class.fetch(split[2]))
+	  elsif ret_attribute.match(/jump_nested_ds/)
+	    split = ret_attribute.split(/ /)
+	    puts "split " + split[1]
+	    tmpr_chars = Data_structure_characteristics.new
+	    tmpr_class1 = Hash.new
+	    tmpr_class2 = Hash.new
+	    ds_index = @data_structures_names[split[1]]
+	    tmpr_chars, tmpr_class1, tmpr_class2 = 
+	    		ds_unravel(ds_index, "create_nested")
+	    if tmpr_chars == nil
+	      at += 1
+	      next
+	    end
+	    if tmpr_chars.template1_type != "none" 
+	      recursive_traversal(tmpr_class1,
+			tmpr_class1.fetch(tmpr_chars.template1_name))
+	    else
+	      puts "recursive traversal(rt): Empty_template"
+	    end
+	    puts "rt: query " + @query
+	    recursive_traversal(tmpr_class2,
+			tmpr_class2.fetch(tmpr_chars.template2_name))	    
+	    puts "rt: Back from recursion"
 	  else
 	    @query += ret_attribute + "," 
-	    puts @query
+	    puts "rt: " + @query
 	  end
 	  at += 1
 	end
@@ -122,62 +239,95 @@ class Input_Description
 
 
       def neat_attributes(attribute)
-        puts "neat_attributes"
+        puts "neat_attributes(nt)"
         puts attribute
       	if attribute.include?("\s")
 	  name_type = attribute.split(/ /)
 	else
-	  puts "error " + attribute
+	  puts "nt: Error " + attribute
 	end
 	if name_type[1].match(/ds/)
-	  ret_attribute = name_type[0] + "_id references " + name_type[0]
+	  ret_attribute = "jump_nested_ds " + name_type[0]
 	elsif name_type[1]=="reference"
-	  ret_attribute = "jump_nested " + name_type[0]
+	  ret_attribute = "jump_nested_class " + name_type[0]
 	elsif name_type[1].match(/inherits_from/)
 	  ret_attribute = name_type[0] + " jump_inh " + name_type[2]
 	else
-	  ret_attribute = attribute
 # primitive type	
+	  ret_attribute = attribute
   	end
 	return ret_attribute
       end
 
-# produces a valid sql query for creating a virtual table according to
-# the argument array columns
 
-      def create_vt()
+# visit a class attributes and fill in the data structure
+# characteristics children Hash with:
+# key: child data structure name "," index position in @...array
+# value: child data structure signature
+      
+      def traverse_attributes(tmpr_chars, attributes)
+        at = 0
+        while at < attributes.length
+	  if attributes[at].match(/ ds/)
+	    split = attributes[at].split(/ /)
+	    index = @data_structures_names[split[0]]	    
+	    tmpr_chars_ch, t1, t2 = ds_unravel(index, "setup")
+	    tmpr_chars.children[split[0] + "," + index.to_s] = 
+	    				 tmpr_chars_ch.signature	    
+	  end
+	  at += 1
+	end
+      end
 
-        puts "create_vt"
-	puts ""
+# fill in the iterator variable in Data structure characteristics
+# value depends on the type of the data structure (object or pointer)
+# and its level (top or embedded)
+
+      def fill_iter_var(tmpr_chars, template_class, template_no, index)
+      	if template_no == 1
+	  template_type = tmpr_chars.template1_type
+	else
+	  template_type = tmpr_chars.template2_type	
+	end  
+        if template_type != "primitive" && 
+	   		tmpr_chars.classnames[template_class].match(/pointer/)
+	  if tmpr_chars.level == "top"
+	    tmpr_chars.iter_var = "(*iter)"
+	  else
+	    tmpr_chars.iter_var = "(*iter" + index.to_s + ")"	        
+	    tmpr_chars.index_naked = index.to_s
+	  end
+	else
+	  if tmpr_chars.level == "top"
+	    tmpr_chars.iter_var = "iter"
+	  else
+	    tmpr_chars.iter_var = "iter" + index.to_s
+	    tmpr_chars.index_naked = index.to_s
+	  end
+	end
+      end
+
+
+      def setup_ds
 	q = 0
 	tmpr_ds = Hash.new
 	tmpr_chars = Data_structure_characteristics.new
 	tmpr_keys=Array.new
-	tmpr_template = Template.new
-#	tmpr_classes1 = Hash.new	    
-#	tmpr_classes2 = Hash.new
-	tmpr_class = Hash.new
-	template_class = Array.new
-	attributes = Array.new
-
-#	if !@classnames.empty?
-#	  @classnames.clear
-#	end
+	tmpr_class1 = Hash.new
+	tmpr_class2 = Hash.new
+	attributes1 = Array.new
+	attributes2 = Array.new
 
 
 	while q < @data_structures_array.length
-	  tmpr_ds = @data_structures_array[q]
+	  tmpr_chars, tmpr_class1, tmpr_class2 = ds_unravel(q, "setup")
+	  if tmpr_chars.used_create==1 || tmpr_chars.used_check==1 || 
+	     			       tmpr_chars.used_retrieve==1 
+	    puts "FATAL ERROR: corrupt used attributes"
+	    exit(1)
+	  end
 
-# extract keys from original beasty hash
-# contains only one key of type Data_structure_characteristics
-
-	  tmpr_keys = tmpr_ds.keys
-	  tmpr_chars = tmpr_keys[0]
-
-          @query = "CREATE VIRTUAL TABLE " + tmpr_chars.name  + 
-	  	 " USING stl(" + "pk integer primary key,"
 # get template arguments from signature
-
 	  cleared = tmpr_chars.signature.split(/</)
 	  tml_arg = cleared[1].chomp(">")
 
@@ -188,47 +338,238 @@ class Input_Description
 
 	  puts "tml_arg " + tml_arg
 	  tmpr_chars.pure_signature = tml_arg
-	  puts ""
 	  if tml_arg.match(/,/)
 	    cleared = tml_arg.split(/,/)	  
-	    template_class.push(cleared[0])
-	    template_class.push(cleared[1])
+	    tmpr_chars.template1_name = cleared[0]
+	    tmpr_chars.template2_name = cleared[1]
 	  else
-	    template_class.push("none")
-	    template_class.push(tml_arg)
+	    tmpr_chars.template1_name = "none"
+	    tmpr_chars.template2_name = tml_arg
 	  end
-	  puts "template_class1 " + template_class[0]
-	  puts "template_class2 " + template_class[1]
+	  puts "template_class1 " + tmpr_chars.template1_name
+	  puts "template_class2 " + tmpr_chars.template2_name
 	  puts ""
-	  tmpr_template = tmpr_ds.fetch(tmpr_chars)
 
-# tmpr_keys length should be one
-#	  tmpr_keys = tmpr_template.keys
-#	  tmpr_classes1 = tmpr_keys[0]
-#	  tmpr_classes2 = tmpr_template.fetch(tmpr_keys[0])
-
-# extract keys from Hash template
-# contains only one key of type Array (template description)
-
-
-	  tmpr_class = tmpr_template.template1
-	  if tmpr_class.has_key?("none") 
-	    puts "empty template"
-	  else
-	    recursive_traversal(tmpr_class,
-			tmpr_class.fetch(template_class[0]))
-	    puts "query " + @query
+  	  c_type=tmpr_chars.signature.split(/</)
+	  if c_type[0].match(/\imap/)
+	    tmpr_chars.stl_class="map"
+	  elsif c_type[0].match(/\iset/)
+	    tmpr_chars.stl_class="set"
+	  elsif (c_type[0].match(/\ihash/) && (c_type[0].match(/\set/)))
+	    tmpr_chars.stl_class="hash_set"
+	  elsif (c_type[0].match(/\ihash/) && (c_type[0].match(/\map/)))
+	    tmpr_chars.stl_class="hash_map"
+	  elsif c_type[0]=="hash"
+	    tmpr_chars.stl_class="hash_set"
+	  else 
+	    tmpr_chars.stl_class = c_type[0]
 	  end
-	  tmpr_class = tmpr_template.template2
-	  recursive_traversal(tmpr_class,
-			tmpr_class.fetch(template_class[1]))
+	  
+          if tmpr_chars.template1_type != "none"
+            sep_classes = tmpr_chars.pure_signature.split(/,/)
+	    fill_iter_var(tmpr_chars, sep_classes[0], 1, q)
+	    fill_iter_var(tmpr_chars, sep_classes[1], 2, q)
+	  else
+	    fill_iter_var(tmpr_chars, tmpr_chars.pure_signature, 2, q)
+	  end
+	  puts "ds_setup(d_s): ITER VAR = " + tmpr_chars.iter_var
+
+	  if tmpr_class1 != nil
+	    attributes1 = tmpr_class1.fetch(tmpr_chars.template1_name)
+	    traverse_attributes(tmpr_chars, attributes1)
+	  end
+	  attributes2 = tmpr_class2.fetch(tmpr_chars.template2_name)
+	  traverse_attributes(tmpr_chars, attributes2)
+	  q += 1
+	end
+      end
+
+# produces a valid sql query for creating a virtual table according to
+# the argument array columns
+
+      def create_vt()
+
+        puts "create_vt(cv)"
+	q = 0
+	tmpr_chars = Data_structure_characteristics.new
+	tmpr_class1 = Hash.new
+	tmpr_class2 = Hash.new
+
+	while q < @data_structures_array.length
+	  tmpr_chars, tmpr_class1, tmpr_class2=ds_unravel(q, "create")
+	  if tmpr_chars == nil
+	    puts "cv: NIL " + q.to_s
+	    q += 1
+	    next
+	  end
+
+          @query = "CREATE VIRTUAL TABLE " + tmpr_chars.name  + 
+	  	 " USING stl(" + "pk integer primary key,"
+
+	  if tmpr_chars.template1_type != "none"
+	    recursive_traversal(tmpr_class1,
+			tmpr_class1.fetch(tmpr_chars.template1_name))
+	  else
+	    puts "empty template"
+	  end
+	  puts "query " + @query
+	  recursive_traversal(tmpr_class2,
+			tmpr_class2.fetch(tmpr_chars.template2_name))
 	  @query = @query.chomp(",")
 	  @query += ")"
-	  puts "query final " + @query
+	  puts "cv: query final " + @query
 	  @queries.push(@query)
-	  template_class.clear
 	  q += 1
         end
+      end
+
+
+# not used. see line 1364 for explanation
+# traverses children data structures and prints size information
+
+=begin
+      def generate_size_children(fw, tmpr_chars)
+	children = tmpr_chars.children
+	ch = 0
+	key_array = children.keys
+	while ch < children.length
+	  split_key = key_array[ch].split(/,/)	      
+	  if ch == 0
+	    type_if = "if"
+	  else
+	    type_if = "elsif"
+	  end
+	  fw.puts @s + type_if + "( !strcmp(stl->children[" + ch.to_s +
+	      	      "], data_structure_name) ){"
+	  fw.puts @s + "    " + children.fetch(key_array[ch]) +
+            	    " *emb_dstr" + split_key[1] + 
+		    " = (" + children.fetch(key_array[ch]) + " *) " +
+		    tmpr_chars.iter_var + "->get_" + split_key[0] + "();"
+	  tmpr_chars_child, t1, t2 = 
+	  		    ds_unravel(@data_structures_names[split_key[0]], 
+			    "generate_nested")
+	  if tmpr_chars_child == nil
+	    ch += 1
+	    next
+	  end
+	  if tmpr_chars_child.children.length > 0
+	    generate_size_children(fw, tmpr_chars_child)
+#	    fw.puts @s + "{else"
+	  end
+	  fw.puts @s + "    return ((int)emb_dstr" + split_key[1] + 
+	      	    "->size());"
+	  fw.puts @s + "}"
+	  ch += 1
+	end
+      end
+=end
+
+
+      def gen_emb_def(fw, iter_var, children, operation, 
+      	  		  	    	      	index_vars, emb_def_array)
+        ch = 0
+	key_array = children.keys
+	while ch < children.length
+	  puts "ged: SPLIT_KEY whole is: " + key_array[ch] 
+	  split_key = key_array[ch].split(/,/)	      
+	  tmpr_chars, tmpr_class1, tmpr_class2 = 
+	  			ds_unravel(split_key[1].to_i, operation)
+	  if tmpr_chars == nil
+	    q += 1
+	    next
+	  end
+	  fw.puts "    " + children.fetch(key_array[ch]) +
+            	  " *emb_dstr" + split_key[1] + 
+		  ";"
+
+# = (" + children.fetch(key_array[ch]) + " *) " +
+#		    tmpr_chars.iter_var + "->get_" + split_key[0] + "();"
+
+	  fw.puts "    " + children.fetch(key_array[ch]) + 
+	    	  ":: iterator iter" + split_key[1] + ";"
+	  fw.puts "    int index" + split_key[1] + ";"
+          if operation.match(/rtv/)
+	    fw.puts "    char * emb_index" + split_key[1] +
+	    	    " = strtok( NULL, \".\");"
+#	    fw.puts "    index" + split_key[1] + ";"
+	    fw.puts "    if (emb_index" + split_key[1] + " != NULL)"
+	    fw.puts "        sscanf(emb_index" + split_key[1] + 
+	      	    ", \"%d\",&index" +
+	            split_key[1] + ");"
+	    fw.puts "    else"
+	    fw.puts "        printf(\"FAULT detokenising\\n\");"
+	    fw.puts "    "
+	    fw.puts "    emb_dstr" + split_key[1] +
+		    " = " + iter_var + "->" +
+		    "get_" + split_key[0] +
+		    "();\n"  + "    iter" + 
+		    split_key[1] +
+		    " = emb_dstr" + split_key[1] +
+		    "->begin();\n" + 
+		    "    for(int i" + split_key[1] +
+	    	    "=0; i" + split_key[1] + "<index" +
+	    	    split_key[1] + "; i" + split_key[1] + 
+		    "++){\n" + @s +
+		    "iter" + split_key[1] + "++;\n    }"
+	  else
+	    emb_def_array[emb_def_array.length] = 
+	    	    @s + "    emb_dstr" + split_key[1] +
+		    " = " + iter_var + "->" +
+		    "get_" + split_key[0] +
+		    "();\n" + @s  + "    index" + 
+		    split_key[1] +
+		    " = emb_dstr" + split_key[1] +
+		    "->size();\n" + @s + 
+		    "    for(int i" + split_key[1] +
+	    	    "=0; i" + split_key[1] + "<index" +
+	    	    split_key[1] + "; i" + split_key[1] + 
+		    "++){\n"
+	    index_vars[index_vars.length] = split_key[1]
+	  end
+	  if tmpr_chars.children.length > 0
+	    gen_emb_def(fw, tmpr_chars.iter_var, tmpr_chars.children, 
+	    		    operation, index_vars, emb_def_array)
+	  end
+	  ch += 1
+	end
+      end
+
+
+      def traverse_children(tmpr_chars)
+        puts "Travesre Children(tc)"
+	children = tmpr_chars.children
+	ch = 0
+	key_array = children.keys
+	while ch < children.length
+	  split_key = key_array[ch].split(/,/) 
+	  tmpr_chars_child, t1, t2 = ds_unravel(split_key[1].to_i, "child")
+	  if tmpr_chars_child == nil
+	    puts "tc: nil"
+	  end
+	  @def_children += "\n" + @s + @s +
+	  		 "    emb_dstr" + split_key[1] +
+		    " = " + tmpr_chars.iter_var + "->" +
+		    "get_" + split_key[0] +
+		    "();\n" + @s + @s + "    index" + 
+		    split_key[1] +
+		    " = emb_dstr" + split_key[1] +
+		    "->size();\n" + @s + @s + 
+		    "    for(int i" + split_key[1] +
+	    	    "=0; i" + split_key[1] + "<index" +
+	    	    split_key[1] + "; i" + split_key[1] +
+ 		    "++){"
+
+	  @finish_string = @s + @s + "    }\n" + @s + @s +
+	  		  "    iter" + split_key[1] +
+	  	        "++;\n" 
+
+	  @format += "%d."
+	  @index_vars += "i" + split_key[1] + ", "
+	  if tmpr_chars_child.children.length > 0
+	    traverse_children(tmpr_chars_child)
+	  end
+	  ch += 1
+	end
       end
 
 
@@ -262,7 +603,7 @@ class Input_Description
                   ret = "int"
         elsif user_datatype=="blob"
 	          ret = "blob"
-                  if operation == "retrieve"
+                  if operation.match(/retrieve/)
 		    @column_traverse += ", -1, SQLITE_STATIC"
 		  end
 		  @column_traverse = "(const void *)" +
@@ -283,7 +624,7 @@ class Input_Description
                 user_datatype=="clob" ||
                 user_datatype.match(/\inchar/)
                   ret = "text"
-                  if operation == "retrieve"
+                  if operation.match(/retrieve/)
 		    @column_traverse += ", -1, SQLITE_STATIC"
                     @column_traverse = "(const char *)" +
         	  		   @column_traverse
@@ -295,7 +636,7 @@ class Input_Description
 		  ret = "text"
 		  @column_traverse = @column_traverse.chomp(".")
                   @column_traverse += ".c_str()"
-                  if operation == "retrieve"
+                  if operation.match(/retrieve/)
 		    @column_traverse += ", -1, SQLITE_STATIC"
                     @column_traverse = "(const char *)" +
         	  		   @column_traverse
@@ -308,7 +649,6 @@ class Input_Description
 		  ret = "int"
 		  @column_traverse = "(long int)" +
         	  		   @column_traverse
-#		  @back = 1
         end
 	return ret
       end
@@ -347,16 +687,30 @@ class Input_Description
 #HereDoc
 
 	gather_results = <<-rslt
-                    temp_res[count++] = i;
+		}
                 iter++;
             }
             assert(count <= stcsr->max_size);
             break;
 rslt
 
-#	puts "gen_col"
+
+	gather_results_embedded = <<-rslt_em
+		    }
+rslt_em
+
+	close_embedded_loop = <<-cel
+	        iter++;
+            }
+            assert(count <= stcsr->max_size);
+            break;
+cel
+
+
+	puts "gen_col(gc): " + operation
         at = 0
         while at < attributes.length
+	  puts "gc at: " + at.to_s
 	  if @back > 0
 	    @back = 0
 	  elsif @back < 0 
@@ -366,23 +720,23 @@ rslt
 	  class_name = template.index(attributes)
           @classes_inserted[@classes_inserted.length] = class_name
 
-#	  if @classnames.has_key?(class_name) && 
-#	       @classnames[class_name].match(/inherits_from/)
-#	    split = @classnames[class_name].split(/inherits_from/)
-#	    @action[@action.length] = "inheritance"
-#	    puts "INHERITANCE"
-#	    ret_attribute = "inheritance"
-#	    @inheritance += 1
-#	    at -= 1
-
           ret_attribute = neat_attributes(attributes[at])
           split = ret_attribute.split(/ /)
-#	  end
+	  puts "gc: ret_attribute = " + ret_attribute
+	  if @action.length == 0
+	    puts "gc: action empty"
+	  else
+	    puts "gc: action: " + @action[@action.length - 1]
+	  end
+	  if @action.length > 0 && 
+	     		    @action[@action.length - 1].match(/nested_ds/)
+	    ds_name = @action[@action.length - 1].split(/ /)	    
+	    puts "gc: " + ds_name[0]
+	  end
 	  if ret_attribute.match(/jump_inh/)
 	    @action[@action.length] = "inheritance"
-	    puts "INHERITANCE"
+	    puts "gc: INHERITANCE"
 	    @inheritance += 1
-#	    at -= 1
 	  end
 # datatypes?length 3?
 	  if at == 0 && !ret_attribute.match(/jump_inh/) || 
@@ -397,37 +751,125 @@ rslt
             else
 	      class_type = "."
             end
-	    puts "RECURSIVE"
 	  end
-          if ret_attribute.match(/jump_nested/)
-	    @action[@action.length] = "nested_structure"
+          if ret_attribute.match(/jump_nested_class/)
+	    @action[@action.length] = "nested_class"
 	    @jump += 1
             @follow_up[@follow_up.length - 1] += split[1] + "()" + class_type
-	    puts "follow_up is " + @follow_up[@follow_up.length - 1]
+	    puts "gc_nc: follow_up is " + @follow_up[@follow_up.length - 1]
             split = ret_attribute.split(/ /)
-            puts "split " + split[1]
-	    if operation == "check"
+            puts "gc_nc: split " + split[1]
+	    if operation.match(/check/)
               gen_col(template, template.fetch(split[1]),
-                                    template_no, tmpr_chars, fw, "check")
+                                    template_no, tmpr_chars, fw, 
+				    "check_nested")
 	    else
               gen_col(template, template.fetch(split[1]),
-                                    template_no, tmpr_chars, fw, "retrieve")
+                                    template_no, tmpr_chars, fw, 
+				    "retrieve_nested")
+	    end
+	  elsif ret_attribute.match(/jump_nested_ds/)
+	    @jump += 1
+	    split = ret_attribute.split(/ /)	    
+	    puts "gc_nds: split " + split[1]
+	    @action[@action.length] = "nested_ds " + split[1]
+	    ds_index = @data_structures_names[split[1]]
+	    puts "gc_nds: ds_index = "+ ds_index.to_s
+            @follow_up[@follow_up.length - 1] += split[1] + "()" + class_type
+	    puts "gc_nds: follow_up is " + @follow_up[@follow_up.length - 1]
+
+	    @parent_iter_var = tmpr_chars.iter_var
+
+	    tmpr_chars = Data_structure_characteristics.new
+	    tmpr_class1 = Hash.new
+	    tmpr_class2 = Hash.new
+
+# patch: because we do not know what operation (nested or top) we are
+# currently in we check and make it a nested if it isn't.
+	    if !operation.match(/nested/)
+	      operation = operation + "nested"
+	    end
+	    tmpr_chars, tmpr_class1, tmpr_class2 = 
+	    		ds_unravel(ds_index,operation)
+	    if tmpr_chars == nil
+	      puts "gc_nds: UNRAVEL NIL"
+	      at += 1
+	      next
+	    end
+	    
+	    index_now = tmpr_chars.index_naked
+	    @embedded_index[@embedded_index.length] = index_now
+	    if operation.match(/check/)
+	      @embedded_loop[@embedded_loop.length] = 
+	    			 "emb_dstr" + index_now +
+				 " = " + 
+				 @parent_iter_var + "->" + 
+			@follow_up[@follow_up.length - 1].chomp("->") + 
+				 ";\n" + @s + @s + "iter" + 
+				 index_now +
+				  " = emb_dstr" + index_now +
+				  "->begin();\n" + @s + @s +  
+              			"for(int i" + index_now + 
+				"=0;i" + index_now + "<(int)emb_dstr" +
+				index_now +
+				"->size();i" + index_now + "++){\n"
+	    else 
+	      @embedded_loop[@embedded_loop.length] = 
+	    			 "emb_dstr" + index_now +
+				 " = " + 
+				 @parent_iter_var + "->" +
+			@follow_up[@follow_up.length - 1].chomp("->") + 
+				 ";\n" + @s  + "iter" + 
+				 index_now +
+				  " = emb_dstr" + index_now +
+				  "->begin();\n"
+	    end
+
+
+            if tmpr_chars.template1_type != "none"
+	      if operation.match(/check/)
+                gen_col(tmpr_class1, 
+			tmpr_class1.fetch(tmpr_chars.template1_name),
+                            1, tmpr_chars, fw, "check_nested")
+	      else
+                gen_col(tmpr_class1,
+		        tmpr_class.fetch(tmpr_chars.template1_name),
+                         1, tmpr_chars, fw, "retrieve_nested")
+	      end
+            else
+	      puts "gc_nds: " + tmpr_chars.name
+	      puts "gc_nds: " + tmpr_chars.pure_signature
+	      puts "gc_nds: " + tmpr_chars.classnames.inspect
+	      if operation.match(/check/)
+                gen_col(tmpr_class2,
+		        tmpr_class2.fetch(tmpr_chars.template2_name),
+                        2, tmpr_chars, fw, "check_nested")
+	      else
+                gen_col(tmpr_class2,
+		        tmpr_class2.fetch(tmpr_chars.template2_name),
+                        2, tmpr_chars, fw, "retrieve_nested")
+              end
 	    end
 	  elsif ret_attribute.match(/jump_inh/)
-            puts "split " + split[2]
+            puts "gc_inh: split " + split[2]
+
+# check correctness please
 	    if @classes_inserted.include?(split[2])
 	      puts "Attempt to define same class\n"
-	    elsif operation == "check"
+	    elsif operation.match(/check/)
               gen_col(template, template.fetch(split[2]),
-                                    template_no, tmpr_chars, fw, "check")
+                                    template_no, tmpr_chars, fw, 
+				    "check_nested")
 	    else
               gen_col(template, template.fetch(split[2]),
-                                    template_no, tmpr_chars, fw, "retrieve")
+                                    template_no, tmpr_chars, fw, 
+				    "retrieve_nested")
 	    end	    
           else
             @counter += 1
             name_type = ret_attribute.split(/ /)
 
+# check correctness please
 # name_type[0]->name, name_type[1]->type but after preparing column
 #          for a fk they come the other way around so:
 	    if ret_attribute.match(/_id references/)
@@ -436,7 +878,7 @@ rslt
 	      puts name_type[0]
 	      puts name_type[1]
 	    end
-            @column_traverse = @iter_var  + "->"
+            @column_traverse = tmpr_chars.iter_var  + "->"
             compl = tmpl_complexity(template_no, tmpr_chars, class_type)
 	    @column_traverse += compl	    
             if primitive(template_no, tmpr_chars)
@@ -450,18 +892,103 @@ rslt
               @column_traverse += name_type[0] + "()"
             end
             datatype = which_datatype(name_type[1].downcase, operation)
-	    if operation == "check"
-              @column_traverse += ", op, sqlite3_value_" + datatype + "(val)"
-              @column_traverse = "if( traverse(" + @column_traverse + ") )"
+	    if tmpr_chars.level == "embedded"
+	      split_string = "->get_" + name_type[0]
+#	      fw.puts split_string
+	      if @column_traverse.match(split_string)
+	      	emb_ds = @column_traverse.split(split_string)
+	      else
+		puts "gc_gencf: FATAL ERROR: undefined column data"
+		exit(1)
+	      end
+#		fw.puts emb_ds[0]
+# two mistakes, one correct. we require the parent iter var
+# but we have the embedded one's instead (l. 630)
+# we will correct it in time (l. 664)
+	      clean_ds = emb_ds[0].split(tmpr_chars.iter_var)
+	      if clean_ds.length == 0
+		puts "gc_gencf: FATAL ERROR: undefined column data"
+		exit(1)
+	      end
+	    end
+	    if operation.match(/check/)
+	      if tmpr_chars.level == "embedded"
+=begin
+printing definition of embedded data structure and signature
+now is outside cases with alternative design (children data structure
+in parent to enclose necessary info for the definitions
+tmpr_chars.signature + " *emb_dstr" + tmpr_chars.index_naked + "  = " + 
+				 @parent_iter_var + clean_ds[1] + 
+				 ";\n" + @s + @s +  
+				 tmpr_chars.signature + 
+				 ":: iterator iter" + tmpr_chars.index_naked + 
+				 ";\n"
+
+	        @column_traverse = "emb_dstr" + tmpr_chars.index_naked +
+				 " = " + 
+				 @parent_iter_var + clean_ds[1] + 
+				 ";\n" + @s + @s + "iter" + 
+				 tmpr_chars.index_naked +
+				  " = emb_dstr" + tmpr_chars.index_naked +
+				  "->begin();\n" + @s + @s +  
+              			"for(int k=0;k<(int)emb_dstr" +
+				tmpr_chars.index_naked +
+				"->size();k++){\n"
+=end
+		el = 0
+		embedded_loop_total = ""
+		resultset = "%d."
+		emb_index = ", i, "
+		while el < @embedded_loop.length 
+		  embedded_loop_total += @embedded_loop[el]
+		  emb_index += "i" + @embedded_index[el] + ", "
+		  resultset += "%d."
+		  el += 1
+		end
+		@column_traverse = embedded_loop_total + @s + @s + 
+				 "    if (traverse(" + clean_ds[0] + 
+				tmpr_chars.iter_var + 
+				split_string + emb_ds[1] +
+				", op, sqlite3_value_" + datatype + 
+				 "(val))){" + "\n" + @s + @s + @s + 
+				 "sprintf(temp_res[count++],\"" + 
+				 resultset.chomp(".") + 
+				 "\"" + emb_index.chomp(", ") + 
+				 ");"
+
+	      else
+                @column_traverse = "if( traverse(" + @column_traverse + 
+				 ", op, sqlite3_value_" + datatype + 
+				 "(val))){"
+		if tmpr_chars.children.length > 0
+		  traverse_children(tmpr_chars)
+		  @column_traverse += @def_children
+		end
+	      end
 	    else
-	      @column_traverse = "sqlite3_result_" +
+	      if tmpr_chars.level == "embedded"
+		el = 0
+		embedded_loop_total = ""
+		while el < @embedded_loop.length 
+		  embedded_loop_total += @embedded_loop[el]
+		  el += 1
+		end
+#	        @column_traverse = embedded_loop_total + @s +  
+	        @column_traverse =  
+				  "sqlite3_result_" + datatype +
+				"(con, " + clean_ds[0] + 
+				tmpr_chars.iter_var + 
+				split_string + emb_ds[1] + ");"
+	      else
+	        @column_traverse = "sqlite3_result_" +
 			  datatype + "(con, "  + @column_traverse + ");"
+	      end
 	    end
           end
 # avoid duplicating statement
 	  if @back == 0
 	    puts @column_traverse
-	    if operation == "check"
+	    if operation.match(/check/)
               fw.puts @s + "case " + @counter.to_s + ":"
               fw.puts @s + "    iter=any_dstr->begin();"
               fw.puts @s + "    for(int i=0;i<(int)any_dstr->size();i++){"
@@ -470,13 +997,35 @@ rslt
               fw.puts "    case " + @counter.to_s + ":"
               fw.puts @s + @column_traverse
 	    end
-	    if operation == "check"
-	      fw.puts gather_results
+	    if operation.match(/check/)
+	      if tmpr_chars.level == "embedded"
+	        fw.puts gather_results_embedded
+		ei = 0
+		while ei < @embedded_index.length
+		  fw.puts @s + @s + "    iter" + 
+		  	  @embedded_index[ei] + "++;\n"
+		  fw.puts @s + @s + "}"
+		  ei += 1
+		end
+		fw.puts close_embedded_loop
+	      else
+		fw.puts @s + @s + @s + 
+			"sprintf(temp_res[count++], " +
+      			@format.chomp(".") + "\", " + 
+			@index_vars.chomp(", ") + ");" 
+		fw.puts @finish_string
+	        fw.puts gather_results
+		
+	      end
 	    else 
 	      fw.puts @s + "break;"
 	    end
 	  end
           at += 1
+	  @def_children = ""
+	  @finish_string = ""
+	  @format = "\"%d."
+	  @index_vars = " i, "
         end
         @follow_up.delete_at(@follow_up.length - 1)
 	if @inheritance > 0 && @action[@action.length - 1] == "inheritance"
@@ -484,15 +1033,23 @@ rslt
 	  @inheritance -= 1
 	  @action.delete_at(@action.length - 1)
 	else 
-	  if @jump > 0 && @action == "nested_structure"
-	    if @follow_up[@follow_up.length - 1].match(class_name)
-	      reduce = @follow_up[@follow_up.length - 1].split(class_name)
+	  if @jump > 0 
+	    if @action[@action.length - 1] == "nested_class"
+	      structure = class_name
+	    elsif @action[@action.length - 1].match(/nested_ds/)
+	      structure = ds_name[1]
+	      @embedded_loop.delete_at(@embedded_loop.length - 1)
+	      @embedded_index.delete_at(@embedded_index.length - 1)
+	    end
+	    if @follow_up[@follow_up.length - 1].match(structure)
+	      reduce = @follow_up[@follow_up.length - 1].split(structure)
 	      @follow_up[@follow_up.length - 1] = reduce[0]
 	      puts "deletion. now " + @follow_up.length.to_s + " records"
+	      puts @follow_up[@follow_up.length - 1]
 	    end
 	    @back = 1
 	    @jump -= 1
-	    @action.delete_at(@action.length -1)
+	    @action.delete_at(@action.length - 1)
 	  end
 	end
       end
@@ -680,6 +1237,67 @@ int traverse(const unsigned char *dstr_value, int op,
 }
 
 
+int cmp_int(char *tok_tr, char *tok_res){
+    int index_tr, index_res;
+    sscanf( tok_tr, "%d", &index_tr);
+    sscanf( tok_res, "%d", &index_res);
+    if ( index_tr < index_res )
+        return -1;
+    else if (index_tr > index_res)
+    	return 1;
+    else
+	return 0;
+}
+
+
+int str_token(char *source, char *token, char dlm){
+    char * match;
+    char * copy = (char *)sqlite3_malloc(sizeof(char) * 20);
+    char * init_address;
+    int position = 0, k = 0;
+    strcpy(copy, source);
+    match = strchr( copy, dlm);
+    if ( match != NULL ){
+        position = match - copy;
+	strcpy(token, copy);
+	token[position] = '\\0';
+	printf("token: %s\\n", token);
+	init_address = copy;
+        while (k <= position){
+	    copy++;
+	    k += 1;
+	}
+	strcpy( source, copy);
+	printf("source: %s\\n", source);
+	sqlite3_free(init_address);
+	return 1;
+    }else{
+	sqlite3_free(copy);
+        return 0;
+    }
+}
+
+
+int cmp_str(char *str_tr, char *str_res){
+    int ci = 0, c_tr, c_res;
+    char copy_tr[20], copy_res[20], tok_tr[20], tok_res[20];
+    strcpy(copy_tr, str_tr);
+    strcpy(copy_res, str_res);
+    c_tr = str_token(copy_tr, tok_tr, '.');
+    c_res = str_token(copy_res, tok_res, '.');
+    if ( (!c_tr) && (!c_res) )
+        return cmp_int(copy_tr, copy_res);
+    else{
+	while ( (c_tr) && (c_res) && (ci == 0 ) ){
+	    ci = cmp_int(tok_tr, tok_res);
+    	    c_tr = str_token(copy_tr, tok_tr, '.');
+    	    c_res = str_token(copy_res, tok_res, '.');
+	}
+    	if ( (!c_tr) && (!c_res) )
+            ci = cmp_int(copy_tr, copy_res);
+	return ci;
+    }
+}
 
 
 AG3
@@ -711,8 +1329,8 @@ AG3
         }
 
         iCol = constr[1] - 'a' + 1;
-	int *temp_res;
 AG35
+#	int *temp_res;
 
 	embedded_level1 = <<-eml1
         int arraySize;
@@ -744,13 +1362,14 @@ eml1
 eml2
 
 
-	  auto_gen4 = <<-AG4
-	temp_res = (int *)sqlite3_malloc(sizeof(int)  * stcsr->max_size);
-        if ( !temp_res ){
-            printf("Error in allocating memory\\n");
-            exit(1);
-        }
+#	  auto_gen4 = <<-AG4
+#	temp_res = (int *)sqlite3_malloc(sizeof(int)  * stcsr->max_size);
+#        if ( !temp_res ){
+#            printf("Error in allocating memory\\n");
+#            exit(1);
+#        }
 
+	  auto_gen4 = <<-AG4
         switch( iCol ){
 // i=0. search using PK?memory location?or no PK?
 // no can't do.PK will be memory location. PK in every table
@@ -758,8 +1377,7 @@ eml2
         case 0: 
             iter=any_dstr->begin();
             for(int i=0; i<(int)any_dstr->size(); i++){
-                temp_res[count++] = i;
-                iter++;
+	        sprintf(temp_res[count++], "%d", i);
             }
             assert(count <= stcsr->max_size);
             break;
@@ -769,7 +1387,8 @@ AG4
     #HereDoc5
 
 
-	cls_search = <<-cls
+=begin	
+cls_search = <<-cls
 // more datatypes and ops exist
         }
         int ia, ib;
@@ -800,9 +1419,52 @@ AG4
 	    			     i_count);
             stcsr->size = i_count;
             sqlite3_free(i_res);
-	}
         sqlite3_free(temp_res);
+=end
+	cls_search = <<-cls
+	}
     }
+    if ( stcsr->init_constr ){
+	if ( count > 0 )
+	    memcpy(*stcsr->resultSet, *temp_res, 
+		sizeof(char) * 20 * total_size);
+	stcsr->init_constr = 0;
+	stcsr->size = count;
+    }else{
+	if ( count == 0 ){
+	    memset(stcsr->resultSet, '\\0', memory_size);
+	    stcsr->size = 0;
+	}else{
+	    char ** copy_res = (char **)sqlite3_malloc(memory_size); 
+	    memset(copy_res, '\\0', memory_size); 
+  	    *copy_res = (char *)&copy_res[total_size];
+  	    int cr;
+  	    for (cr=0; cr<total_size; cr++){
+    		copy_res[cr+1] = &copy_res[cr][20];
+  	    }
+	    int success = 0, ci;
+	    char  str_tr[20], str_res[20];
+	    for(int w=0; w<count; w++){
+		strcpy(str_tr, temp_res[w]);
+	        for (int k=0; k<stcsr->size; k++){
+		    strcpy(str_res, stcsr->resultSet[k]);
+		    printf("tr: %s, set: %s\\n", str_tr, 
+			   str_res);
+		    ci = cmp_str(str_tr, str_res);
+		    if (ci < 0)
+		        break;
+		    else if (ci == 0){
+			strcpy(copy_res[success++], temp_res[w]);
+			printf("Success\\n");
+		    }
+		}
+	    }
+	    memcpy(*stcsr->resultSet, *copy_res, memory_size);
+	    stcsr->size = success;
+	    sqlite3_free(copy_res);
+	}
+    }
+    sqlite3_free(temp_res);
 }
 
 
@@ -810,14 +1472,14 @@ cls
 
 
     #HereDoc6
+#    int index = stcsr->current;
 
 	auto_gen5 = <<-AG5
     char *colName = stl->azColumn[n];
-    int index = stcsr->current;
 // iterator implementation. serial traversing or hit?
     iter = any_dstr->begin();
 // serial traversing. simple and generic. visitor pattern is next step.
-    for(int i=0; i<stcsr->resultSet[index]; i++){
+    for(int i=0; i<index; i++){
         iter++;
     }
 AG5
@@ -837,15 +1499,47 @@ search.o: search.cpp bridge.h Account.h
 	g++ -W -g -c search.cpp
 mkf
 
+  realloc = <<-rlc
+    if (total_size > stcsr->max_size){
+        printf("TOTAL_SIZE: %d, stcsr->max_size: %d", 
+			    total_size, stcsr->max_size);
+        char **res;
+        int memory_size = (sizeof(char*) + sizeof(char) * 20) * total_size;
+        res = (char **)sqlite3_realloc(stcsr->resultSet, memory_size);
+        if (res!=NULL){
+            stcsr->resultSet = res;
+            memset(stcsr->resultSet, '\\0',
+                       memory_size);
+	    *stcsr->resultSet = (char *)&stcsr->resultSet[total_size];
+	    int i;
+	    for (i=0; i<total_size; i++){
+	        stcsr->resultSet[i+1] = &stcsr->resultSet[i][20];
+	    }
+            stcsr->max_size = total_size;
+            printf("\\nReallocating resultSet..now max size %i \\n\\n", 
+				stcsr->max_size);
+        }else{
+            free(res);
+            printf("Error (re)allocating memory\\n");
+            exit(1);
+        }
+    }
+rlc
+
+
+  top_level_no_constr = <<-tplnc
+	iter++;
+        assert(count <= stcsr->max_size);
+        assert(&stcsr->resultSet[count] <= &stcsr->resultSet[stcsr->max_size]);
+    }
+tplnc
+
 
   top_level = <<-tpl
-        for (int j=0; j<get_datastructure_size((void *)stl); j++){
-            stcsr->resultSet[j] = j;
-            stcsr->size++;
+	    iter++;
         }
-        assert(stcsr->size <= stcsr->max_size);
-        assert(&stcsr->resultSet[stcsr->size] <= &stcsr->resultSet[stcsr->max_size]);
-
+        assert(count <= stcsr->max_size);
+        assert(&stcsr->resultSet[count] <= &stcsr->resultSet[stcsr->max_size]);
 tpl
 
 
@@ -856,9 +1550,9 @@ exs
 
 
 # END OF HereDocs
-  
+#=begin
 	puts "in write_to_file"
-        myfile=File.open(@filename, "w") do |fw|
+        myfile=File.open("main.template", "w") do |fw|
           fw.puts "\#include <stdio.h>"
           fw.puts "\#include <string>"
           fw.puts "\#include \"stl_to_sql.h\""
@@ -872,26 +1566,9 @@ exs
 
           while q < @data_structures_array.length
             tmpr_ds=@data_structures_array[q]
-
-# extract keys from original beasty hash
-# contains only one key of type Data_structure_characteristics
-
             tmpr_keys=tmpr_ds.keys
             tmpr_chars=tmpr_keys[0]
-	    c_type=tmpr_chars.signature.split(/</)
-	    if c_type[0].match(/\imap/)
-	      c_type[0]="map"
-	    elsif c_type[0].match(/\iset/)
-	      c_type[0]="set"
-	    elsif (c_type[0].match(/\ihash/) && (c_type[0].match(/\set/)))
-	      c_type[0]="hash_set"
-	    elsif (c_type[0].match(/\ihash/) && (c_type[0].match(/\map/)))
-	      c_type[0]="hash_map"
-	    elsif c_type[0]=="hash"
-	      c_type[0]="hash_set"
-# defined also in hash_map
-  	    end
-            fw.puts "\#include <" + c_type[0] + ">"
+            fw.puts "\#include <" + tmpr_chars.stl_class + ">"
 	    q += 1
 	  end
 	  tmpr_chars.classnames.each {|key,value| fw.puts "\#include \"#{key}.h\""}
@@ -908,33 +1585,17 @@ exs
 # call HereDoc2
 	  fw.puts auto_gen2
         end
-
+#=begin
 	myfile=File.open("search.cpp", "w") do |fw|
           fw.puts "\#include \"search.h\""
           fw.puts "\#include <string>"
+	  fw.puts "\#include \"assert.h\""
 	  q = 0
           while q < @data_structures_array.length
             tmpr_ds=@data_structures_array[q]
-
-# extract keys from original beasty hash
-# contains only one key of type Data_structure_characteristics
-
             tmpr_keys=tmpr_ds.keys
             tmpr_chars=tmpr_keys[0]
-	    c_type=tmpr_chars.signature.split(/</)
-	    if c_type[0].match(/\imap/)
-	      c_type[0]="map"
-	    elsif c_type[0].match(/\iset/)
-	      c_type[0]="set"
-	    elsif (c_type[0].match(/\ihash/) && (c_type[0].match(/\set/)))
-	      c_type[0]="hash_set"
-	    elsif (c_type[0].match(/\ihash/) && (c_type[0].match(/\map/)))
-	      c_type[0]="hash_map"
-	    elsif c_type[0]=="hash"
-	      c_type[0]="hash_set"
-# defined also in hash_map
-  	    end
-            fw.puts "\#include <" + c_type[0] + ">"
+            fw.puts "\#include <" + tmpr_chars.stl_class + ">"
 	    q += 1
 	  end
 	  tmpr_chars.classnames.each{|key,value| fw.puts "\#include \"#{key}.h\""}
@@ -944,54 +1605,63 @@ exs
 
 	  
 
-
 	  fw.puts "int get_datastructure_size(void *st){"
 	  fw.puts "    stlTable *stl = (stlTable *)st;"
 	  q = 0
           while q < @data_structures_array.length
-            tmpr_ds=@data_structures_array[q]
+	    tmpr_chars, t1, t2 = ds_unravel(q, "gen_size")
+	    if tmpr_chars == nil
+	      q += 1
+	      next
+	    end
 
-# extract keys from original beasty hash
-# contains only one key of type Data_structure_characteristics
-
-            tmpr_keys=tmpr_ds.keys
-            tmpr_chars=tmpr_keys[0]
-	    fw.puts "    if( !strcmp(stl->zName, \"" + tmpr_chars.name + "\") ){"
+	    fw.puts "    if( !strcmp(stl->zName, \"" + 
+	      	      tmpr_chars.name + "\") ){"
 	    fw.puts "        " + tmpr_chars.signature + " *any_dstr = (" +
-              tmpr_chars.signature + " *)stl->data;"
+              	      tmpr_chars.signature + " *)stl->data;"
+
+=begin
+complex implementation in case we need to find the size of embedded
+	  	  data structures via the function
+	  	  get_datastructure_size.
+	    children = tmpr_chars.children
+
+	    if children.length > 0
+	      generate_size_children(fw, tmpr_chars)
+	    end
+	    ch = 0
+	    key_array = children.keys
+	    while ch < children.length
+	      split_key = key_array[ch].split(/,/)	      
+	      fw.puts @s + "if( !strcmp(stl->children[" + ch.to_s +
+	      	      "], \"" + split_key[0] + "\") ){"
+	      fw.puts @s + "    " + children.fetch(key_array[ch]) +
+            	    " *emb_dstr" + split_key[1] + 
+		    " = (" + children.fetch(key_array[ch]) + " *) " +
+		    tmpr_chars.iter_var + "->get_" + split_key[0] + "();"
+	      fw.puts @s + "    return ((int)emb_dstr" + split_key[1] + 
+	      	    "->size());"
+	      ch += 1
+	    end
+=end
 	    fw.puts "        return ((int)any_dstr->size());"
 	    fw.puts "    }"
-	  q += 1
+
+	    q += 1
 	  end
 	  fw.puts "}"
-
 
 # call HereDoc3	  
 	  fw.puts auto_gen3
           q = 0
-#          tmpr_ds = Hash.new
-#          tmpr_chars=Data_structure_characteristics.new
-#          tmpr_keys=Array.new
-# created above
-          tmpr_template = Template.new
-#          tmpr_classes1 = Hash.new
-#          tmpr_classes2 = Hash.new
-          tmpr_class = Hash.new
-
+          tmpr_class1 = Hash.new
+	  tmpr_class2 = Hash.new
           while q < @data_structures_array.length
-            tmpr_ds=@data_structures_array[q]
-
-# extract keys from original beasty hash
-# contains only one key of type Data_structure_characteristics
-
-            tmpr_keys=tmpr_ds.keys
-            tmpr_chars=tmpr_keys[0]
-            tmpr_template = tmpr_ds.fetch(tmpr_chars)
-# tmpr keys length should be one
-#            tmpr_keys = tmpr_template.keys
-#            tmpr_classes1 = tmpr_keys[0]
-#            tmpr_classes2 = tmpr_template.fetch(tmpr_keys[0])
-
+	    tmpr_chars,tmpr_class1,tmpr_class2=ds_unravel(q, "check")
+	    if tmpr_chars == nil
+	      q += 1
+	      next
+	    end
 
 	    fw.puts "void " + tmpr_chars.name +
             	    "_search(void *stc, char *constr, sqlite3_value *val){"
@@ -1001,64 +1671,124 @@ exs
 	    fw.puts "    " + tmpr_chars.signature +
             	    " *any_dstr = (" + tmpr_chars.signature + " *)stl->data;"
 	    fw.puts "    " + tmpr_chars.signature + ":: iterator iter;"
-	    fw.puts "    int op, iCol, count = 0;"
+
+	    children = tmpr_chars.children
+	    index_vars = Array.new
+	    emb_def_array = Array.new
+	    if children.length > 0
+	      gen_emb_def(fw, tmpr_chars.iter_var, children, 
+	      "gen_emb_def_sch", index_vars, emb_def_array)
+	    end
+
+=begin
+	    ch = 0
+	    key_array = children.keys
+	    while ch < children.length
+	      split_key = key_array[ch].split(/,/)	      
+	      fw.puts "    " + children.fetch(key_array[ch]) +
+            	    " *emb_dstr" + split_key[1] + 
+		    ";"
+
+# = (" + children.fetch(key_array[ch]) + " *) " +
+#		    tmpr_chars.iter_var + "->get_" + split_key[0] + "();"
+
+	      fw.puts "    " + children.fetch(key_array[ch]) + 
+	    	    ":: iterator iter" + split_key[1] + ";"
+	      ch += 1
+	    end
+=end
+	    fw.puts "    int op, iCol, count = 0, total_size = 0;"
+	    if children.length > 0
+	      fw.puts "    iter = any_dstr->begin();"
+              fw.puts "    for (int i=0; i<(int)any_dstr->size(); i++){"
+	      closing_all = ""
+	      ed = 0
+	      while ed < emb_def_array.length - 1
+	        fw.puts emb_def_array[ed]
+# are you sure [ed]?maybe "}" first?
+		closing_all += "   iter" + index_vars[ed] + "++;\n    }"
+		ed += 1
+	      end
+	      tokenize = emb_def_array[ed].split(@s)
+	      fw.puts "    " + tokenize[1] + "    " + tokenize[2]
+	      fw.puts @s + "total_size += index" + index_vars[ed] + ";"
+	      fw.puts closing_all
+	      fw.puts top_level_no_constr
+	    end
+	    
+	    fw.puts "    char **temp_res;"
+	    fw.puts "    int memory_size = (sizeof(char *) + 
+			 sizeof(char) * 20) * total_size;"
+	    fw.puts "    temp_res = (char**)sqlite3_malloc(memory_size);" 
+	    fw.puts "     memset(temp_res, '\\0', memory_size);" 
+	    fw.puts "     *temp_res = (char *)&temp_res[total_size];"
+	    fw.puts "     int tr;"
+  	    fw.puts "	  for (tr=0; tr<total_size; tr++){"
+	    fw.puts "         temp_res[tr+1] = &temp_res[tr][20];"
+	    fw.puts "	  }"
+
+	    fw.puts realloc
+
 	    fw.puts "// val==NULL then constr==NULL also"
 	    fw.puts "    if ( val==NULL ){"
+	    fw.puts @s + "iter = any_dstr->begin();"
+            fw.puts @s + "for (int i=0; i<(int)any_dstr->size(); i++){"
+
+	    if children.length > 0
+	      pl = 0
+	      sprintf = "sprintf(temp_res[count++], "
+	      format = "\"%d."
+	      iv = "i, i"
+	      closing_all = ""
+	      while pl < index_vars.length
+	        fw.puts emb_def_array[pl]
+	        format += "%d."
+		iv += index_vars[pl] + ", i"
+# further check
+		if ed > 0 
+		   closing_all += "   iter" + index_vars[ed - 1] +
+	      	   	       "++;\n" + @s + "}"
+		end
+		pl += 1
+	      end
+	      sprintf += format.chomp(".") + "\", " + iv.chomp(", i") + 
+	      	      	 ");"
+	      fw.puts @s + @s + sprintf + "\n" + @s + @s + closing_all + 
+	      	      "\n" + @s + "    }" 
+#	    else 
+#	      fw.puts @s + "sprintf(temp_res[i], \"%d\", i);"
+#	      fw.puts @s + "stcsr->size++;"
+	    end
+
 	    if tmpr_chars.level=="top"
 	      fw.puts top_level
 	    else 
 	      fw.puts exit_search
 	    end
 	    fw.puts auto_gen35
+=begin
 	    if tmpr_chars.level=="embedded"
 	      fw.puts embedded_level1
 	      fw.puts @s + "    any_dstr = (" + tmpr_chars.signature + " *)stl->data;"
 	      fw.puts embedded_level2
 	    end	    
+=end
 	    fw.puts auto_gen4
 
 #          i=1
 # bottom-up
             @counter = 0
             if tmpr_chars.template1_type != "none"
-              template_no = 1
-              sep_classes = tmpr_chars.pure_signature.split(/,/)
-              tmpr_class = tmpr_template.template1
-
-	      if tmpr_chars.template1_type != "primitive" && 
-	      	 tmpr_chars.classnames[sep_classes[0]].match(/pointer/)
-	        @iter_var = "(*iter)"
-	      else
-	        @iter_var = "iter"
-	      end
-              gen_col(tmpr_class, tmpr_class.fetch(sep_classes[0]),
-                                     template_no, tmpr_chars, fw, "check")
-              template_no = 2
-              tmpr_class = tmpr_template.template2
-
-	      if tmpr_chars.template2_type != "primitive" && 
-	      	 tmpr_chars.classnames[sep_classes[1]].match(/pointer/)
-	        @iter_var = "(*iter)"
-	      else
-	        @iter_var = "iter"
-	      end
-              gen_col(tmpr_class, tmpr_class.fetch(sep_classes[1]),
-                                    template_no, tmpr_chars, fw, "check")
-            else
-              template_no = 2
-              tmpr_class = tmpr_template.template2
+              gen_col(tmpr_class1, 
+	              tmpr_class1.fetch(tmpr_class1.template1_name),
+                      1, tmpr_chars, fw, "check")
+            end
 	      puts tmpr_chars.name
 	      puts tmpr_chars.pure_signature
 	      puts tmpr_chars.classnames.inspect
-	      if tmpr_chars.template2_type != "primitive" && 
-	      	 tmpr_chars.classnames[tmpr_chars.pure_signature].match(/pointer/)
-	        @iter_var = "(*iter)"
-	      else
-	        @iter_var = "iter"
-	      end
-              gen_col(tmpr_class, tmpr_class.fetch(tmpr_chars.pure_signature),
-                                     template_no, tmpr_chars, fw, "check")
-            end
+              gen_col(tmpr_class2, 
+	              tmpr_class2.fetch(tmpr_chars.template2_name),
+                      2, tmpr_chars, fw, "check")
 # call HereDoc29
             q += 1
             fw.puts cls_search
@@ -1071,22 +1801,13 @@ exs
 # cases primarily
 	  @classes_inserted.clear
 
-
 	  q = 0
           while q < @data_structures_array.length
-            tmpr_ds=@data_structures_array[q]
-
-# extract keys from original beasty hash
-# contains only one key of type Data_structure_characteristics
-
-            tmpr_keys=tmpr_ds.keys
-            tmpr_chars=tmpr_keys[0]
-            tmpr_template = tmpr_ds.fetch(tmpr_chars)
-# tmpr keys length should be one
-#            tmpr_keys = tmpr_template.keys
-#            tmpr_classes1 = tmpr_keys[0]
-#            tmpr_classes2 = tmpr_template.fetch(tmpr_keys[0])
-
+	    tmpr_chars,tmpr_class1,tmpr_class2=ds_unravel(q, "retrieve")
+	    if tmpr_chars == nil
+	      q += 1
+	      next
+	    end
 	    fw.puts "int " + tmpr_chars.name +
             	    "_retrieve(void *stc, int n, sqlite3_context *con){"
 	    fw.puts "    sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;"
@@ -1095,8 +1816,64 @@ exs
 	    fw.puts "    " + tmpr_chars.signature +
             	    " *any_dstr = (" + tmpr_chars.signature + " *)stl->data;"
 	    fw.puts "    " + tmpr_chars.signature + ":: iterator iter;"
+	    fw.puts "    char record[20];"
+	    fw.puts "    strcpy(record, stcsr->resultSet[stcsr->current]);"
+	    fw.puts "    char * top_index = strtok(record, \".\");"
+	    fw.puts "    int index;"
+	    fw.puts "    if (top_index != NULL)"
+	    fw.puts "        sscanf( top_index, \"%d\", &index);"      
+	    fw.puts "    else"
+	    fw.puts "        sscanf( record, \"%d\", &index);"
 	    fw.puts auto_gen5
 
+
+	    if tmpr_chars.children.length > 0
+	      gen_emb_def(fw, tmpr_chars.iter_var, tmpr_chars.children, 
+	      		      "gen_emb_def_rtv", nil, nil)
+	    end
+	    
+=begin
+	    ch = 0
+	    key_array = children.keys	    
+	    while ch < children.length
+	      split_key = key_array[ch].split(/,/)	      
+	      fw.puts "    " + children.fetch(key_array[ch]) +
+            	    " *emb_dstr" + split_key[1] + 
+		    ";"
+
+# = (" + children.fetch(key_array[ch]) + " *) " +
+#		    tmpr_chars.iter_var + "->get_" + split_key[0] + "();"
+
+	      fw.puts "    " + children.fetch(key_array[ch]) + 
+	    	    ":: iterator iter" + split_key[1] + ";"
+	      fw.puts "    char * emb_index" + split_key[1] +
+	    	    " = strtok( NULL, \".\");"
+	      fw.puts "    int index" + split_key[1] + ";"
+	      fw.puts "    if (emb_index" + split_key[1] + " != NULL)"
+	      fw.puts "        sscanf( emb_index" + split_key[1] + 
+	      	      ", \"%d\",&index" +
+	      split_key[1] + ");"
+	      fw.puts "    else"
+	      fw.puts "        printf(\"FAULT detokenising\\n\");"
+	      fw.puts "    "
+	      fw.puts "    emb_dstr" + split_key[1] +
+				 " = " + 
+				 tmpr_chars.iter_var + "->" +
+				 "get_" + split_key[0] +
+				 "();\n"  + "    iter" + 
+				 split_key[1] +
+				  " = emb_dstr" + split_key[1] +
+				  "->begin();\n" + 
+				  "    for(int i" + split_key[1] +
+	    	    		  "=0; i" + split_key[1] + 
+				  "<index" +
+	    	    		  split_key[1] + "; i" + split_key[1] + 
+		    		  "++){\n" + @s +
+				  "iter" + split_key[1] + "++;\n    }"
+				  
+	      ch += 1
+	    end
+=end
             fw.puts "    switch( n ){"
 	    fw.puts "    case 0:"
 	    fw.puts "        sqlite3_result_text(con, \"(null)\", -1, SQLITE_STATIC);"
@@ -1104,47 +1881,35 @@ exs
 
 #          i=1
 # bottom-up
-            spl = tmpr_chars.signature.split(/</)
-            tmpl_classes = spl[1].chomp(">")
             @counter = 0
             if tmpr_chars.template1_type != "none"
-              template_no = 1
-              sep_classes = tmpr_chars.pure_signature.split(/,/)
-              tmpr_class = tmpr_template.template1
-              gen_col(tmpr_class, tmpr_class.fetch(sep_classes[0]),
-                                     template_no, tmpr_chars, fw, "retrieve")
-              template_no = 2
-              tmpr_class = tmpr_template.template2
-              gen_col(tmpr_class, tmpr_class.fetch(sep_classes[1]),
-                                    template_no, tmpr_chars, fw, "retrieve")
-            else
-              template_no = 2
-              tmpr_class = tmpr_template.template2
-              gen_col(tmpr_class, tmpr_class.fetch(tmpr_chars.pure_signature),
-                                     template_no, tmpr_chars, fw, "retrieve")
+              gen_col(tmpr_class1, 
+	              tmpr_class1.fetch(tmpr_chars1.template1_name),
+                      1, tmpr_chars, fw, "retrieve")
             end
+              gen_col(tmpr_class2, 
+	              tmpr_class2.fetch(tmpr_chars.template2_name),
+                      2, tmpr_chars, fw, "retrieve")
 # call HereDoc29
             q += 1
           fw.puts "    }"
           fw.puts "    return SQLITE_OK;"
           fw.puts "}\n\n\n"
         end
-
 	fw.puts "void search(void* stc, char *constr, sqlite3_value *val){"
 	fw.puts "    sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;"
 	fw.puts "    stlTable *stl = (stlTable *)cur->pVtab;"
 	q = 0
         while q < @data_structures_array.length
           tmpr_ds=@data_structures_array[q]
-
-# extract keys from original beasty hash
-# contains only one key of type Data_structure_characteristics
-
           tmpr_keys=tmpr_ds.keys
           tmpr_chars=tmpr_keys[0]
-	  fw.puts "    if( !strcmp(stl->zName, \"" + tmpr_chars.name + "\") )"
-	  fw.puts "        " + tmpr_chars.name +
+	  if tmpr_chars.level == "top"
+	    fw.puts "    if( !strcmp(stl->zName, \"" + tmpr_chars.name + 
+	    	    "\") )"
+	    fw.puts "        " + tmpr_chars.name +
 	    	    "_search(stc, constr, val);"
+	  end
 	  q += 1
 	end
 
@@ -1157,30 +1922,24 @@ exs
 	q = 0
         while q < @data_structures_array.length
           tmpr_ds=@data_structures_array[q]
-
-# extract keys from original beasty hash
-# contains only one key of type Data_structure_characteristics
-
           tmpr_keys=tmpr_ds.keys
           tmpr_chars=tmpr_keys[0]
-	  fw.puts "    if( !strcmp(stl->zName, \"" + tmpr_chars.name + "\") )"
-	  fw.puts "        return " + tmpr_chars.name +
+	  if tmpr_chars.level == "top"
+	    fw.puts "    if( !strcmp(stl->zName, \"" + tmpr_chars.name + 
+	  	  "\") )"
+	    fw.puts "        return " + tmpr_chars.name +
 	    	    "_retrieve(stc, n, con);"
+	  end
 	  q += 1
 	end
 
 	fw.puts "}\n\n"
-
       end
 
       myfile = File.open("makefile.template","w") do |fw|
 	q = 0
         while q < @data_structures_array.length
           tmpr_ds=@data_structures_array[q]
-
-# extract keys from original beasty hash
-# contains only one key of type Data_structure_characteristics
-
           tmpr_keys=tmpr_ds.keys
           tmpr_chars=tmpr_keys[0]
           fw.print "test: main.o search.o stl_to_sql.o user_functions.o "
@@ -1256,11 +2015,6 @@ DT
 # END OF HEREDOCS
 
         argv=Array.new
-#	argv.push("stl")
-#	argv.push(my_array[0])
-#	argv.push(my_array[2])
-# PK for all tables (top level too)
-#	argv.push("id INTEGER PRIMARY KEY AUTOINCREMENT")
 	i=0
 	while i< attributes.length
 	  if attributes[i].include?(",")
@@ -1284,13 +2038,6 @@ DT
 	        superclass = name_type[1].split(/inherits_from/)
 	        argv.push(name_type[0] + " inherits_from " + superclass[1]) 
 	      end
-# the following are valid?
-# top level tables won't go in this condition only intermediate ones.
-# table name is set as default so that it works for top level.
-# intermediate tables override default with respective class name.
-#	      argv.delete_at(2)
-#	      argv.insert(2,name_type[0])
-#	      argv.push("INTEGER PRIMARY KEY AUTOINCREMENT")
 	    elsif name_type[1].downcase=="reference"
 # why pushed and not straight argv.push...?
 	      if @classnames.has_key?(name_type[0])
@@ -1392,7 +2139,6 @@ TA
 # END OF HEREDOCS
 
         columns=Array.new
-#	template = Hash.new
 	description = Hash.new
 	if my_array[index].include?(":")
 	  if ds_chars_inst.template1_type == "none"
@@ -1465,7 +2211,6 @@ TA
 	end
  	description.each_pair { |key, value_array| 
 	   value_array.each {|value| puts "key is #{key} value is #{value}"}}  
-#	template = description
 	return description
       end
 
@@ -1537,7 +2282,7 @@ After you have completed the modifications type in command line
 "mv main.template main.cpp" to rename the file.
 
 In order to have access to the fields of your user defined classes
-we aaume that for each attribute, let's call it x, there is a get_x()
+we assume that for each attribute, let's call it x, there is a get_x()
 function present.
 
 Makefile.template needs to be modified too so that S[Q->T]L can be 
@@ -1566,11 +2311,10 @@ fg
 	data_structure = Array.new
         templates_representation = Array.new
 	ds_chars = Array.new
-#	template1 = Array.new
-#	template2 = Array.new
 
-	w = - 1 + ds.length
-	l = - 1 + ds.length
+	w = -1 + ds.length
+	l = -1 + ds.length
+
 	while w > 0
 
 	  puts "\nDATA STRUCTURE DESCRIPTION No: " + w.to_s + "\n"
@@ -1578,13 +2322,12 @@ fg
 	  data_structure[l-w] = Hash.new
           templates_representation[l-w] = Template.new
 	  ds_chars[l-w] = Data_structure_characteristics.new
-#	  template1[l-w] = Hash.new
-#	  template2[l-w] = Hash.new
 
 	  my_array = ds[w].split(/;/)
 # data structure name
 	  ds_chars[l-w].name=my_array[0]
 	  @ds_nested_names.push(my_array[0])
+	  @data_structures_names[my_array[0]]=l-w
 	  ds_chars[l-w].level=my_array[1]
 
 # @classnames is used to keep track of classes contained
@@ -1642,7 +2385,6 @@ fg
 	  	       @container_type="bitset"
 	  end
 
-#	  @signature=my_array[2]
 	  ds_chars[l-w].signature=my_array[2]
 	  puts "container signature is: " + ds_chars[l-w].signature
           puts "no of template args is: " + @template_args
@@ -1664,8 +2406,6 @@ fg
 	    templates_representation[l-w].template2 = 
 	    			register_class(ds_chars[l-w], my_array, 3)
 	    templates_representation[l-w].template1["none"] = nil
-#	    templates_representation[l-w].store(template1[l-w], 
-#	    						template2[l-w])
 	  elsif my_array.length==5
 	    unless @template_args=="double"
 	      puts $err_state
@@ -1675,8 +2415,6 @@ fg
 	    			register_class(ds_chars[l-w], my_array, 3)
 	    templates_representation[l-w].template2 = 
 	    			register_class(ds_chars[l-w], my_array, 4)
-#	    templates_representation[l-w].store(template1[l-w], 
-#	    						template2[l-w])
 	  else
 	    puts $err_state
 	    raise ArgumentError.new(nargs)
@@ -1702,10 +2440,6 @@ fg
 	     @data_structures_array.length.to_s + "\n"
 	while q < @data_structures_array.length
 	  tmpr_ds=@data_structures_array[q]
-
-# extract keys from original beasty hash
-# contains only one key of type Data_structure_characteristics
-
 	  tmpr_keys=tmpr_ds.keys
 	  tmpr_chars=tmpr_keys[0]
 
@@ -1716,17 +2450,6 @@ fg
 
 	  tmpr_template = tmpr_ds.fetch(tmpr_chars)
 
-# tmpr_keys length should be one
-#	  tmpr_keys = tmpr_template.keys
-#	  tmpr_classes1 = tmpr_keys[0]
-#	  tmpr_classes2 = tmpr_template.fetch(tmpr_keys[0])
-
-# extract keys from Hash template
-# contains only one key of type Array (template description)
-
-  	  
-# tc?
-#	  tc = 0
 	  tmpr_class = tmpr_template.template1
 	  if tmpr_class.has_key?("none") 
 	    puts "empty template"
@@ -1736,22 +2459,18 @@ fg
 	    puts "#{class_name}, #{attribute}"}}
 	  end
 	  tmpr_class = tmpr_template.template2
-	  if tmpr_class.has_key?("none")
-	    puts "empty template"
-	  else
-	    tmpr_class.each_pair{|class_name, attribute_array|
-	     attribute_array.each{|attribute|
-	     puts "#{class_name}, #{attribute}"}}
-	  end
+	  tmpr_class.each_pair{|class_name, attribute_array|
+	  attribute_array.each{|attribute|
+	  puts "#{class_name}, #{attribute}"}}
 	  q += 1
 	end
+	setup_ds
 	create_vt
 	write_to_file(ds[0])
 	puts "CONGRATS?"
 	puts generated_files
     end
 
-#=end
 
 end
 
