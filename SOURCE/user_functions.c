@@ -3,23 +3,19 @@
 #include <swill.h>
 #include <time.h>
 
-
-
-// prepare and execute an sql query
-
+// Takes care of query preparation and execution
 int prep_exec(FILE *f, sqlite3 *db, const char *q){
-  printf("in prep_exec...\n");
-
   sqlite3_stmt  *stmt;
-  int result, col;
-
-  printf("\n NOW PREPARING...\n");
-  if( sqlite3_prepare_v2(db, q, -1, &stmt, 0)==SQLITE_OK ){
-    printf("prepared ok (virtual)\n");  
-    printf("\n NOW STEPPING... \n");
+  int result, col, prepare;
+  if( (prepare = sqlite3_prepare_v2(db, q, -1, &stmt, 0)) == SQLITE_OK ){
+#ifdef DEBUGGING
+    printf("Statement prepared.\n");  
+#endif
     if (f != NULL) 
-      result = alias_prep_exec(f, stmt);
+      result = file_prep_exec(f, stmt, q);
     else{
+      result = sqlite3_step(stmt);
+#ifdef DEBUGGING
       for (col = 0; col < sqlite3_column_count(stmt); col++){
 	printf("%s ", sqlite3_column_name(stmt, col));
       }
@@ -47,185 +43,209 @@ int prep_exec(FILE *f, sqlite3 *db, const char *q){
 	}
       }
       if( result==SQLITE_DONE ){
-	//	printf("perfecto!\n");
+	//	printf("Done\n");
       }else if( result==SQLITE_OK ){
-	//	printf("ok!\n");
+	//	printf("OK\n");
       }else if( result==SQLITE_ERROR ){
-	printf("error\n");
-	//      sqlite3_finalize(stmt);
+	printf("SQL error or missing database\n");
 	//    exit(1);
       }else if( result==SQLITE_MISUSE ){
-	printf("inappropriate use\n");
-	//      sqlite3_finalize(stmt);
+	printf("Library used incorrectly\n");
 	//    exit(1);
       }else {
-	printf("other\n");
-	//      sqlite3_finalize(stmt);
+	printf("Error code: %i.\nPlease advise Sqlite error codes (http://www.sqlite.org/c3ref/c_abort.html)", result);
 	//    exit(1);
       }
+#endif
     }
-  }else 
-    printf("Error in preparation of query\n");
+  }else
+    printf("Error in preparation of query: error no %i\n", prepare);
   printf("\n");
   sqlite3_finalize(stmt);
-  // printf("prep_exec finished exec query\n");
   return result;
 }
 
-
-int alias_prep_exec(FILE *f, sqlite3_stmt * stmt){
-  // printf("in prep_exec...\n");
-
-  int result, col;
-
-  //    printf("row of resultset available\n");
-  fprintf(f, "<b>result table:\n\n</b><br><br>");
-  fprintf(f, "<table border=\"1\">");
-  fprintf(f, "</tr>");
-  
+// Forwards  a query for execution to sqlite and 
+// presents the resultset of a query
+int step_query(FILE *f, sqlite3_stmt *stmt) {
+  int col, result;
+  swill_fprintf(f, "<table>");
+  swill_fprintf(f, "</tr>");
   for (col = 0; col < sqlite3_column_count(stmt); col++){
-    fprintf(f, "<td><b>%s</td></b>", sqlite3_column_name(stmt, col));
+    swill_fprintf(f, "<td><b>%s</td></b>", sqlite3_column_name(stmt, col));
   }
-  fprintf(f, "</tr>");
+  swill_fprintf(f, "</tr>");
   while ((result = sqlite3_step(stmt)) == SQLITE_ROW){
-    fprintf(f, "<tr>");
+    swill_fprintf(f, "<tr>");
     for (col = 0; col < sqlite3_column_count(stmt); col++){
       switch(sqlite3_column_type(stmt, col)) {
       case 1: 
-	fprintf(f, "<td><b>%i</b></td>", sqlite3_column_int(stmt, col));
+	swill_fprintf(f, "<td><b>%i</b></td>", sqlite3_column_int(stmt, col));
 	break;
       case 2:
-	fprintf(f, "<td><b>%f</b></td>", sqlite3_column_double(stmt, col));
+	swill_fprintf(f, "<td><b>%f</b></td>", sqlite3_column_double(stmt, col));
 	break;
       case 3:
-	fprintf(f, "<td><b>%s</b></td>", sqlite3_column_text(stmt, col));
+	swill_fprintf(f, "<td><b>%s</b></td>", sqlite3_column_text(stmt, col));
 	break;
       case 4:
-	fprintf(f, "<td><b>%s</b></td>", (char *)sqlite3_column_blob(stmt, col));
+	swill_fprintf(f, "<td><b>%s</b></td>", (char *)sqlite3_column_blob(stmt, col));
 	break;
       case 5:
-	fprintf(f, "<td><b>(null)</td></b>");
+	swill_fprintf(f, "<td><b>(null)</td></b>");
 	break;
       }
     }
-    fprintf(f, "</tr>");
+    swill_fprintf(f, "</tr>");
   }
-    fprintf(f,"</table>");
-    fprintf(f, "<br>");
+    swill_fprintf(f,"</table>");
+    swill_fprintf(f, "<br>");
+    return result;
+}
+
+int file_prep_exec(FILE *f, sqlite3_stmt *stmt, const char *q){
+  int result;
+  result = step_query(f, stmt);
   if( result==SQLITE_DONE ){
-    //    fprintf(f, "<b>perfecto!<br></b>");
+    //    swill_fprintf(f, "<b>DONE<br></b>");
   }else if( result==SQLITE_OK ){
-    //    fprintf(f, "<b>ok!<br></b>");
+    //    swill_fprintf(f, "<b>OK<br></b>");
   }else if( result==SQLITE_ERROR ){
-    fprintf(f, "<b>error\n</b>");
-    sqlite3_finalize(stmt);
+    swill_fprintf(f, "<b>SQL error or missing database.\n</b>");
     //    exit(1);
   }else if( result==SQLITE_MISUSE ){
-    fprintf(f, "<b>inappropriate use<br></b>");
-    sqlite3_finalize(stmt);
+    swill_fprintf(f, "<b>Library used incorrectly.<br></b>");
     //    exit(1); fix create
   }else {
-    fprintf(f, "<b>other<br></b>");
-    sqlite3_finalize(stmt);
     //    exit(1);
   }
   return result;
 }
 
 
-// register the module with an open database connection, prepare and execute
-
-// create table query.
-
-
-void querySqlite(FILE *f){
-
+// Builds the front page of the library's web interface, 
+// retrieves the database schema and promotes inputted queries 
+// to sqlite_engine.
+void app_index(FILE *f, sqlite3 *db){
   char *query="\0";
-
-  fprintf(f, "<HTML><BODY BGCOLOR=\"#ffffff\">\n");
-
-  fprintf(f,"<p><form action=\"serveQuery.html\" method=GET>\n");
-  fprintf(f,"Query : <input type=text name=query width=10 value=\"%s\"></input><br>\n", query);
-  fprintf(f,"<input type=submit value=\"Submit\"></input>\n");
-  fprintf(f,"</form>\n");
-  fprintf(f,"</body></html>\n");
-
-  fprintf(f, "<b>SAMPLE QUERIES:\n\n</b><br><br>");
-  fprintf(f, "<b>SELECT * FROM account;\n\n</b><br>");
-  fprintf(f, "<b>SELECT * FROM account WHERE account_no='10068';\n\n</b><br>");
-
-
+  swill_fprintf(f, "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"\n\"http://www.w3.org/TR/html4/loose.dtd\">");
+  swill_fprintf(f, "<html>");
+  swill_fprintf(f, "<head>");
+  swill_fprintf(f, "<style type=\"text/css\">");
+  swill_fprintf(f, "img{height:116px;width:109px;align:left}");
+  swill_fprintf(f, ".div_style{width:500px; border:2px solid; background-color:#ccc;margin:0px auto;margin-top:-40px;}");
+  swill_fprintf(f, ".top{border-bottom:1px solid;padding-top:10px;padding-left:10px;padding-bottom:2px;}");
+  swill_fprintf(f, ".middle{padding-top:5px;padding-left:9px; padding-bottom:5px;}");
+  swill_fprintf(f, ".bottom{border-top:1px solid;padding-top:5px; padding-bottom:10px; text-align:center;}");
+  swill_fprintf(f, ".button{height:7em; width:10em; font-size:22px;}");
+  swill_fprintf(f, ".style_text{font-family:Times New Roman;font-size:20px;}");
+  swill_fprintf(f, ".style_input{font-family:Times New Roman;font-size:15px;}");
+  swill_fprintf(f, "table,td{border:1px double;}");
+  swill_fprintf(f, ".div_tbl{margin-top:20px;}");
+  swill_fprintf(f, "</style>");
+  swill_fprintf(f, "</head>");
+  swill_fprintf(f, "<body>");
+  swill_file("sqtl.png", NULL);
+  swill_fprintf(f, "<img src=\"sqtl.png\" alt=\"SQTL logo\" />");
+  swill_fprintf(f, "<div class=\"div_style\">");
+  swill_fprintf(f, "<form action=\"serveQuery.html\" method=GET>");
+  swill_fprintf(f, "<div class=\"top\">");
+  swill_fprintf(f, "<span class=\"style_text\"><b>Input your SQL query:</b></span>");
+  swill_fprintf(f, "</div>");
+  swill_fprintf(f, "<div class=\"middle\">");
+  swill_fprintf(f, "<textarea name=\"query\" cols=\"72\" rows=\"10\" class=\"style_input\"></textarea><br>");
+  swill_fprintf(f, "</div>");
+  swill_fprintf(f, "<div class=\"bottom\">");
+  swill_fprintf(f, "<input type=\"submit\" value=\"Submit\" class=\"button\"></input>");
+  swill_fprintf(f, "</div>");
+  swill_fprintf(f, "</form>");
+  swill_fprintf(f, "</div>");
+  swill_fprintf(f, "<div class=\"div_tbl\">");
+  swill_fprintf(f, "<span class=\"style_text\"><b>Your database schema is:</b></span>");
+  prep_exec(f, db, "SELECT * FROM sqlite_master;");
+  swill_fprintf(f, "</div>");
+  swill_fprintf(f, "<br>");
+  swill_fprintf(f, "</body>");
+  swill_fprintf(f, "</html>");
 }
 
-void serveQuery(FILE *f, sqlite3 *db){
-
+// Builds the html page of the result set of a query 
+// along with the time it took
+// to execute and the query itself.
+void serve_query(FILE *f, sqlite3 *db){
   const char *query="\0";
-
-  fprintf(f, "<HTML><BODY BGCOLOR=\"#ffffff\">\n");
-
+  swill_fprintf(f, "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"\n\"http://www.w3.org/TR/html4/loose.dtd\">");
+  swill_fprintf(f, "<html>");
+  swill_fprintf(f, "<head>");
+  swill_fprintf(f, "<style type=\"text/css\">");
+  swill_fprintf(f, "body{bgcolor=\"#ffffff\";}");
+  swill_fprintf(f, "span.styled{color:blue;}");
+  swill_fprintf(f, "table, td{border:1px double;}");
+  swill_fprintf(f, "</style>");
+  swill_fprintf(f, "</head>");
+  swill_fprintf(f, "<body>");
   if( swill_getargs("s(query)", &query) ){
-  
     int rc, i;
     clock_t start_clock,finish_clock;
     double c_time;
     start_clock = clock();
-    // which of the two?                                                                               
+    // which of the two?
     //    Timer t;
     //    t.start();
     int j=0;
-    while ( j<1 && (rc = prep_exec(f, db, query)) == SQLITE_DONE){
+    swill_fprintf(f, "<b>For SQL query: ");
+    swill_fprintf(f, "<span class=\"styled\">%s</span><br><br>", query);
+    swill_fprintf(f, "Result set is:</b><br><br>");
+    // j for debugging, execute the query multiple times
+    while ( j<1 && (rc = prep_exec(f, db, query)) == SQLITE_DONE ){
       //      t.stop();
       //      printf("%i \n",j);
       j++;
     }
-    if (rc==SQLITE_DONE){
+    if (rc == SQLITE_DONE){
       finish_clock = clock();
       c_time = ((double)finish_clock - (double)start_clock)/CLOCKS_PER_SEC;
-      fprintf(f, "<b>\nQUERY SUCCESSFUL! \n\n</b><br><br><br>");
-      //      fprintf(f,"\nQuery execution took <b>%f</b> seconds.\n\n",t);
-      fprintf(f,"Ellapsed time given by c++ : <b>%f</b>s.<br><br>",c_time);
+      swill_fprintf(f, "<b>\nQUERY SUCCESSFUL! </b><br><br>");
+      //      swill_fprintf(f,"\nQuery execution took <b>%f</b> seconds.\n\n",t);
+      swill_fprintf(f,"Ellapsed time given by C++ : <b>%f</b>s.<br><br>",c_time);
+    } else {
+      system("wget -q www.sqlite.org/c3ref/c_abort.html -O ~/trunk/experimental/SQLite_error_codes.html");
+      swill_fprintf(f, "<b>Error code %i.<br>Please advise </b><a href=\"", rc);
+      swill_file("SQLite_error_codes.html", NULL);
+      swill_printurl(f, "SQLite_error_codes.html", "", 0);
+      swill_fprintf(f,"\">SQLite error codes</a>.<br><br>");
     }
-
-    fprintf(f,"<br><a href=\"");
-    swill_printurl(f,"querySqlite.html", "", 0);
-    fprintf(f,"\">[ Input new Query ]</a>");
-    
-    fprintf(f,"<a href=\"");
+    swill_fprintf(f,"<a href=\"");
+    swill_printurl(f,"index.html", "", 0);
+    swill_fprintf(f,"\">[ Input new Query ]</a>");
+    swill_fprintf(f,"<a href=\"");
     swill_printurl(f,"terminateConnection.html", "", 0);
-    fprintf(f,"\">[ Terminate Server Connection ]</a>");
-
+    swill_fprintf(f,"\">[ Terminate Server Connection ]</a>");
   }
-
 }
 
+// Terminates connection to the embedded web-server.
 void terminate(FILE *f, sqlite3 *db){
-  fprintf(f, "<b>TERMINATING CONNECTION...</b>");
+  swill_fprintf(f, "<b>TERMINATING CONNECTION...</b>");
   sqlite3_close(db);
   swill_close();
-}
-  
-
-void app_index(FILE *f){
-  fprintf(f,"<a href=\"");
-  swill_printurl(f,"querySqlite.html", "", 0);
-  fprintf(f,"\">[ Input Query ]</a>");
-
 }
 
 
 void call_swill(sqlite3 *db){
   swill_init(8080);
-  swill_handle("querySqlite.html", querySqlite, 0);
-  swill_handle("serveQuery.html", serveQuery, db);
+  swill_handle("index.html", app_index, db);
+  swill_handle("serveQuery.html", serve_query, db);
   swill_handle("terminateConnection.html", terminate, db);
-  swill_handle("index.html", app_index, 0);
   while( swill_serve() ){
 
   }
 }
 
-int register_table(const char *nDb, int argc, const char **q, void *data, int create){
-
+int register_table(const char *nDb, int argc, const char **q, const char **table_names, void *data){
+  // This definition implicitly constraints a table name to 140 characters.
+  // It should be more than enough
+  char table_query[200];
   int re, i=0;
   sqlite3 *db;
   re = sqlite3_open(nDb, &db);
@@ -235,28 +255,26 @@ int register_table(const char *nDb, int argc, const char **q, void *data, int cr
     exit(1);
   }
 
+#ifdef DEBUGGING
   for(i=0; i<argc; i++){
     printf("\nquery to be executed: %s\n in database: %s\n\n", q[i], nDb);
   }
-
+#endif
   sqlite3_module *mod;
   mod = (sqlite3_module *)sqlite3_malloc(sizeof(sqlite3_module));
   fill_module(mod);
-
   int output = sqlite3_create_module(db, "stl", mod, data);
   if( output==1 ) printf("Error while registering module\n");
+#ifdef DEBUGGING
   else if( output==0 ) printf("Module registered successfully\n");
-
-
-  if( create ){
-    for(i=0; i< argc; i++){
+#endif
+  for(i=0; i< argc; i++){
+    sprintf(table_query, "SELECT * FROM sqlite_master WHERE type='table' AND name='%s';", table_names[i]);
+    if (prep_exec(NULL, db, (const char *)table_query) != SQLITE_ROW)
       re = prep_exec(NULL, db, (const char *)q[i]);
-    }
   }
   printf("Please visit http://localhost:8080 to be served\n");
   call_swill(db);
-
-  //    re = prep_exec(NULL, db, "select * from Trucks,Customers as c,Customers as u where Trucks.Customers_id=c.pk and Trucks.Customers_id=u.pk and u.demand=c.demand order by c.code;");
-      sqlite3_free(mod);
-      return re;
+  sqlite3_free(mod);
+  return re;
 }

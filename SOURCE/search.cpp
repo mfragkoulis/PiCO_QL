@@ -1,18 +1,329 @@
 #include "search.h"
 #include <string>
-#include "assert.h"
+#include <stdio.h>
+#include <assert.h>
+#include <string>
 #include <vector>
-#include <vector>
+
 #include "Truck.h"
+#include "Customer.h"
 
 using namespace std;
+
+int set_dependencies(void *st, void *ds, const char *table_name) {
+    stlTable *stl = (stlTable *)st;
+    dsCarrier **ddsC = (dsCarrier **)ds;
+    dsCarrier *dsC = *ddsC;
+    int c = 0, ch, dc;
+    int dsC_size = dsC->size;
+    while (c < dsC_size) {
+	if ( !strcmp(table_name, dsC->dsNames[c]) )
+	    break;
+	c++;
+    }
+    if ( !strcmp(table_name, "Trucks") ) {
+        data *d = (data *)sqlite3_malloc(sizeof(data) + sizeof(dsCarrier) + 
+					 sizeof(long int *) * 1 + 
+					 sizeof(const char *) * 1);
+        d->children = (dsCarrier *)&d[1];
+        d->children->memories = (long int **)&d->children[1];
+        d->children->dsNames = (const char **)&d->children->memories[1];
+        d->mem = dsC->memories[c];
+        d->children->size = 1;
+
+	vector<Truck*> *any_dstr = (vector<Truck*> *)d->mem;
+	vector<Truck*>::iterator iter;
+	iter = any_dstr->begin();
+
+	ch = 0;
+	dc = 0;
+	while (dc < dsC_size) {
+	    if ( !strcmp(dsC->dsNames[dc], "Truck") )
+		break;
+	    dc++;
+	}
+	d->children->memories[ch] = (long int *)(*iter);
+	dsC->memories[dc] = (long int *)&d->children->memories[ch];
+	d->children->dsNames[ch] = dsC->dsNames[dc];
+	ch++;
+	assert (ch == d->children->size);
+
+        stl->data = (void *)d;
+    } else if ( !strcmp(table_name, "Truck") ) {
+        data *d = (data *)sqlite3_malloc(sizeof(data) + sizeof(dsCarrier) + 
+					 sizeof(long int *) * 1 + 
+					 sizeof(const char *) * 1);
+        d->children = (dsCarrier *)&d[1];
+        d->children->memories = (long int **)&d->children[1];
+        d->children->dsNames = (const char **)&d->children->memories[1];
+        d->mem = dsC->memories[c];
+        d->children->size = 1;
+
+	Truck *any_dstr = (Truck *)*d->mem;
+
+	ch = 0;
+	dc = 0;
+	while (dc < dsC_size) {
+	    if ( !strcmp(dsC->dsNames[dc], "Truck_Customers") )
+		break;
+	    dc++;
+	}
+	d->children->memories[ch] = (long int *)any_dstr;
+	dsC->memories[dc] = (long int *)&d->children->memories[ch];
+	d->children->dsNames[ch] = dsC->dsNames[dc];
+	ch++;
+	assert (ch = d->children->size);
+
+        stl->data = (void *)d;
+    } else if ( !strcmp(table_name, "Truck_Customers") ) {
+        data *d = (data *)sqlite3_malloc(sizeof(data) + sizeof(dsCarrier) + 
+					 sizeof(long int *) * 1 + 
+					 sizeof(const char *) * 1);
+        d->children = (dsCarrier *)&d[1];
+        d->children->memories = (long int **)&d->children[1];
+        d->children->dsNames = (const char **)&d->children->memories[1];
+        d->mem = dsC->memories[c];
+        d->children->size = 1;
+
+	Truck *dstr = (Truck *)*d->mem;
+	vector<Customer*> *any_dstr = (vector<Customer*> *)dstr->get_Customers();
+
+	ch = 0;
+	dc = 0;
+	while (dc < dsC_size) {
+	    if ( !strcmp(dsC->dsNames[dc], "Customers") )
+		break;
+	    dc++;
+	}
+	d->children->memories[ch] = (long int *)any_dstr;
+	dsC->memories[dc] = (long int *)&d->children->memories[ch];
+	d->children->dsNames[ch] = dsC->dsNames[dc];
+	ch++;
+	assert (ch = d->children->size);
+
+        stl->data = (void *)d;
+    } else if ( !strcmp(table_name, "Customers") ) {
+        data *d = (data *)sqlite3_malloc(sizeof(data) + sizeof(dsCarrier) + 
+					 sizeof(long int *) * 1 + 
+					 sizeof(const char *) * 1);
+        d->children = (dsCarrier *)&d[1];
+        d->children->memories = (long int **)&d->children[1];
+        d->children->dsNames = (const char **)&d->children->memories[1];
+        d->mem = dsC->memories[c];
+        d->children->size = 1;
+
+	vector<Customer*> *any_dstr = (vector<Customer*> *)*d->mem;
+	vector<Customer*>::iterator iter;
+	iter = any_dstr->begin();
+
+	ch = 0;
+	dc = 0;
+	while (dc < dsC_size) {
+	    if ( !strcmp(dsC->dsNames[dc], "Customer") )
+		break;
+	    dc++;
+	}
+	d->children->memories[ch] = (long int *)(*iter);
+	dsC->memories[dc] = (long int *)&d->children->memories[ch];
+	d->children->dsNames[ch] = dsC->dsNames[dc];
+	ch++;
+	assert (ch = d->children->size);
+
+        stl->data = (void *)d;
+    }else if ( !strcmp(table_name, "Customer") ) {
+        data *d = (data *)sqlite3_malloc(sizeof(data));
+        d->mem = dsC->memories[c];
+        d->children = NULL;
+        stl->data = (void *)d;
+    }
+}
+
+
+int realloc_carrier(void *st, void *ds, const char *tablename) {
+    dsCarrier **ddsC = (dsCarrier **)ds;
+    dsCarrier *dsC = *ddsC;
+    dsCarrier *tmp_dsC;
+    int x_size, nByte, c;
+    char *c_temp;
+#ifdef DEBUGGING
+    printf("dsC->size: %i\n", dsC->size);
+#endif
+    if (dsC->size != 5) {
+	x_size = dsC->size;
+	nByte = sizeof(dsCarrier) + sizeof(long int *) * 5 + 
+	    sizeof(const char *) * 5 + 49;
+// 49 sum of VT names
+	tmp_dsC = (dsCarrier *)sqlite3_malloc(nByte);
+	if (tmp_dsC != NULL){
+	    tmp_dsC->size = 5;
+	    tmp_dsC->dsNames = (const char **)&tmp_dsC[1];
+	    tmp_dsC->memories = (long int **)&tmp_dsC->dsNames[5];
+	    c_temp = (char *)&tmp_dsC->memories[5];
+	    c = 0;
+	    int len;
+	    while (c < x_size) {
+		tmp_dsC->dsNames[c] = c_temp;
+		len = (int)strlen(dsC->dsNames[c]) + 1;
+		memcpy(c_temp, dsC->dsNames[c], len);
+		c_temp += len;
+		tmp_dsC->memories[c] = dsC->memories[c];
+		c++;
+	    }
+	    tmp_dsC->dsNames[c] = c_temp;
+	    len = (int)strlen("Truck") + 1;
+	    memcpy(c_temp, "Truck", len);
+	    c_temp += len;
+	    c++;
+	    tmp_dsC->dsNames[c] = c_temp;
+	    len = (int)strlen("Truck_Customers") + 1;
+	    memcpy(c_temp, "Truck_Customers", len);
+	    c_temp += len;
+	    c++;
+	    tmp_dsC->dsNames[c] = c_temp;
+	    len = (int)strlen("Customers") + 1;
+	    memcpy(c_temp, "Customers", len);
+	    c_temp += len;
+	    c++;
+	    tmp_dsC->dsNames[c] = c_temp;
+	    len = (int)strlen("Customer") + 1;
+	    memcpy(c_temp, "Customer", len);
+	    c_temp += len;
+	    c++;
+	    assert(c == 5);
+#ifdef DEBUGGING
+	    printf("c_temp: %lx <= tmp_dsC: %lx \n", c_temp, &((char *)tmp_dsC)[nByte]);
+#endif
+	    assert(c_temp <= &((char *)tmp_dsC)[nByte]);
+	    sqlite3_free(dsC);
+	    *ddsC = tmp_dsC;
+#ifdef DEBUGGING
+	    printf("\nReallocating carrier..now size %i \n\n", tmp_dsC->size);
+#endif
+	}else{
+	    free(tmp_dsC);
+	    printf("Error (re)allocating memory\n");
+	    exit(1);
+	}
+    }
+    set_dependencies(st, ds, tablename);
+}
+
+int update_structures(void *cur) {
+    sqlite3_vtab_cursor *stc = (sqlite3_vtab_cursor *)cur;
+    stlTable *stl = (stlTable *)stc->pVtab;
+    const char *table_name = stl->zName;
+    data *d = (data *)stl->data;
+    stlTableCursor *stcsr = (stlTableCursor *)stc;
+    const char **names;
+    int dc, index, no_child;
+    if ( !strcmp(table_name, "Trucks") ) {
+	vector<Truck*> *any_dstr = (vector<Truck*> *)d->mem;
+	vector<Truck*>::iterator iter;
+	iter = any_dstr->begin();
+	index = stcsr->current;
+	for(int i=0; i<stcsr->resultSet[index]; i++){
+	    iter++;
+	}
+	dc = 0;
+	names = d->children->dsNames;
+	no_child = d->children->size;
+	while (dc < no_child) {
+	    if ( !strcmp(names[dc], "Truck") ){
+		d->children->memories[dc] = (long int *)(*iter);
+		break;
+	    }
+	    dc++;
+	}
+    } else if ( !strcmp(table_name, "Truck") ) {
+	Truck *any_dstr = (Truck *)*d->mem;
+	dc = 0;
+	names = d->children->dsNames;
+	no_child = d->children->size;
+	while (dc < no_child) {
+	    if ( !strcmp(names[dc], "Truck_Customers") ){
+		d->children->memories[dc] = (long int *)any_dstr;
+		break;
+	    }
+	    dc++;
+	}
+    } else if ( !strcmp(table_name, "Truck_Customers") ) {
+	Truck *dstr = (Truck *)*d->mem;
+	vector<Customer*> *any_dstr = (vector<Customer*> *)dstr->get_Customers();
+	dc = 0;
+	names = d->children->dsNames;
+	no_child = d->children->size;
+	while (dc < no_child) {
+	    if ( !strcmp(names[dc], "Customers") ){
+		d->children->memories[dc] = (long int *)any_dstr;
+		break;
+	    }
+	    dc++;
+	}
+    } else if ( !strcmp(table_name, "Customers") ) {
+	vector<Customer*> *any_dstr = (vector<Customer*> *)*d->mem;
+	vector<Customer*>::iterator iter;
+	iter = any_dstr->begin();
+	index = stcsr->current;
+	for(int i=0; i<stcsr->resultSet[index]; i++){
+	    iter++;
+	}
+	dc = 0;
+	names = d->children->dsNames;
+	no_child = d->children->size;
+	while (dc < no_child) {
+	    if ( !strcmp(names[dc], "Customer") ){
+		d->children->memories[dc] = (long int *)(*iter);
+		break;
+	    }
+	    dc++;
+	}
+    }else if ( !strcmp(table_name, "Customer") ) {
+	;
+    }
+}
+
 
 int get_datastructure_size(void *st){
     stlTable *stl = (stlTable *)st;
     if( !strcmp(stl->zName, "Trucks") ){
-        vector<Truck*> *any_dstr = (vector<Truck*> *)stl->data;
+	data *d = (data *)stl->data;
+        vector<Truck*> *any_dstr = (vector<Truck*> *)d->mem;
         return ((int)any_dstr->size());
     }
+    if( !strcmp(stl->zName, "Customers") ){
+	data *d = (data *)stl->data;
+        vector<Customer*> *any_dstr = (vector<Customer*> *)*d->mem;
+        return ((int)any_dstr->size());
+    }
+    return 1;
+// for objects
+}
+
+
+void realloc_resultset(void *stc) {
+    sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;
+    stlTable *stl = (stlTable *)cur->pVtab;
+    stlTableCursor *stcsr = (stlTableCursor *)stc;
+    int arraySize;
+    int *res;
+    arraySize = get_datastructure_size((void *)stl);
+    if ( arraySize != stcsr->max_size ){
+	res = (int *)sqlite3_realloc(stcsr->resultSet, sizeof(int) * arraySize);
+	if (res!=NULL){
+	    stcsr->resultSet = res;
+	    memset(stcsr->resultSet, -1,
+		   sizeof(int) * arraySize);
+	    stcsr->max_size = arraySize;
+#ifdef DEBUGGING
+	    printf("\nReallocating resultSet..now max size %i \n\n", stcsr->max_size);
+#endif
+	}else{
+	    free(res);
+	    printf("Error (re)allocating memory\n");
+	    exit(1);
+	}
+    }
+
 }
 
 
@@ -31,6 +342,20 @@ int traverse(int dstr_value, int op, int value){
     }
 }
 
+int traverse(long int dstr_value, int op, long int value){
+    switch( op ){
+    case 0:
+	return dstr_value<value;
+    case 1:
+        return dstr_value<=value;
+    case 2:
+        return dstr_value==value;
+    case 3:
+        return dstr_value>=value;
+    case 4:
+        return dstr_value>value;
+    }
+}
 
 int traverse(double dstr_value, int op, double value){
     switch( op ){
@@ -64,8 +389,8 @@ int traverse(const void *dstr_value, int op, const void *value){
 }
 
 
-int traverse(const unsigned char *dstr_value, int op, 
-    		   const unsigned char *value){
+int traverse(const unsigned char *dstr_value, int op,
+                   const unsigned char *value){
     switch( op ){
     case 0:
         return strcmp((const char *)dstr_value,(const char *)value)<0;
@@ -81,137 +406,25 @@ int traverse(const unsigned char *dstr_value, int op,
 }
 
 
-int cmp_int(char *tok_tr, char *tok_res){
-    int index_tr, index_res;
-    sscanf( tok_tr, "%d", &index_tr);
-    sscanf( tok_res, "%d", &index_res);
-    if ( index_tr < index_res )
-        return -1;
-    else if (index_tr > index_res)
-    	return 1;
-    else
-	return 0;
-}
-
-
-int str_token(char *source, char *token, char dlm){
-    char * match;
-    char * copy = (char *)sqlite3_malloc(sizeof(char) * 20);
-    char * init_address;
-    int position = 0, k = 0;
-    strcpy(copy, source);
-    match = strchr( copy, dlm);
-    if ( match != NULL ){
-        position = match - copy;
-	strcpy(token, copy);
-	token[position] = '\0';
-	printf("token: %s\n", token);
-	init_address = copy;
-        while (k <= position){
-	    copy++;
-	    k += 1;
-	}
-	strcpy( source, copy);
-	printf("source: %s\n", source);
-	sqlite3_free(init_address);
-	return 1;
-    }else{
-	sqlite3_free(copy);
-        return 0;
-    }
-}
-
-
-int cmp_str(char *str_tr, char *str_res){
-    int ci = 0, c_tr, c_res;
-    char copy_tr[20], copy_res[20], tok_tr[20], tok_res[20];
-    strcpy(copy_tr, str_tr);
-    strcpy(copy_res, str_res);
-    c_tr = str_token(copy_tr, tok_tr, '.');
-    c_res = str_token(copy_res, tok_res, '.');
-    if ( (!c_tr) && (!c_res) )
-        return cmp_int(copy_tr, copy_res);
-    else{
-	while ( (c_tr) && (c_res) && (ci == 0 ) ){
-	    ci = cmp_int(tok_tr, tok_res);
-    	    c_tr = str_token(copy_tr, tok_tr, '.');
-    	    c_res = str_token(copy_res, tok_res, '.');
-	}
-    	if ( (!c_tr) && (!c_res) )
-            ci = cmp_int(copy_tr, copy_res);
-	return ci;
-    }
-}
 
 
 void Trucks_search(void *stc, char *constr, sqlite3_value *val){
     sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;
     stlTable *stl = (stlTable *)cur->pVtab;
     stlTableCursor *stcsr = (stlTableCursor *)stc;
-    vector<Truck*> *any_dstr = (vector<Truck*> *)stl->data;
+    data *d = (data *)stl->data;
+    vector<Truck*> *any_dstr = (vector<Truck*> *)d->mem;
     vector<Truck*>:: iterator iter;
-    vector<Customer*> *emb_dstr0;
-    vector<Customer*>:: iterator iter0;
-    int index0;
-    int op, iCol, count = 0, total_size = 0;
-    iter = any_dstr->begin();
-    for (int i=0; i<(int)any_dstr->size(); i++){
-        emb_dstr0 = (*iter)->get_Customers();
-        index0 = emb_dstr0->size();
-        total_size += index0;
-
-	iter++;
-        assert(count <= stcsr->max_size);
-        assert(&stcsr->resultSet[count] <= &stcsr->resultSet[stcsr->max_size]);
-    }
-    char **temp_res;
-    int memory_size = (sizeof(char *) + 
-			 sizeof(char) * 20) * total_size;
-    temp_res = (char**)sqlite3_malloc(memory_size);
-     memset(temp_res, '\0', memory_size);
-     *temp_res = (char *)&temp_res[total_size];
-     int tr;
-	  for (tr=0; tr<total_size; tr++){
-         temp_res[tr+1] = &temp_res[tr][20];
-	  }
-    if (total_size > stcsr->max_size){
-        printf("TOTAL_SIZE: %d, stcsr->max_size: %d", 
-			    total_size, stcsr->max_size);
-        char **res;
-        int memory_size = (sizeof(char*) + sizeof(char) * 20) * total_size;
-        res = (char **)sqlite3_realloc(stcsr->resultSet, memory_size);
-        if (res!=NULL){
-            stcsr->resultSet = res;
-            memset(stcsr->resultSet, '\0',
-                       memory_size);
-	    *stcsr->resultSet = (char *)&stcsr->resultSet[total_size];
-	    int i;
-	    for (i=0; i<total_size; i++){
-	        stcsr->resultSet[i+1] = &stcsr->resultSet[i][20];
-	    }
-            stcsr->max_size = total_size;
-            printf("\nReallocating resultSet..now max size %i \n\n", 
-				stcsr->max_size);
-        }else{
-            free(res);
-            printf("Error (re)allocating memory\n");
-            exit(1);
-        }
-    }
+    int op, iCol, count = 0, i = 0;
+// !!!
 // val==NULL then constr==NULL also
     if ( val==NULL ){
-        iter = any_dstr->begin();
-        for (int i=0; i<(int)any_dstr->size(); i++){
-            emb_dstr0 = (*iter)->get_Customers();
-            index0 = emb_dstr0->size();
-            for(int i0=0; i0<index0; i0++){
-                sprintf(temp_res[count++], "%d.%d", i, i0);
-                
-            }
-	    iter++;
-        }
-        assert(count <= stcsr->max_size);
-        assert(&stcsr->resultSet[count] <= &stcsr->resultSet[stcsr->max_size]);
+        for (int j=0; j<get_datastructure_size((void *)stl); j++){
+            stcsr->resultSet[j] = j;
+            stcsr->size++;
+	}
+        assert(stcsr->size <= stcsr->max_size);
+        assert(&stcsr->resultSet[stcsr->size] <= &stcsr->resultSet[stcsr->max_size]);
     }else{
         switch( constr[0] - 'A' ){
         case 0:
@@ -233,327 +446,480 @@ void Trucks_search(void *stc, char *constr, sqlite3_value *val){
             op = 5;
             break;
         default:
-            NULL;
             break;
         }
 
         iCol = constr[1] - 'a' + 1;
+        int *temp_res;
+	temp_res = (int *)sqlite3_malloc(sizeof(int)  * stcsr->max_size);
+        if ( !temp_res ){
+            printf("Error in allocating memory\n");
+            exit(1);
+        }
+
         switch( iCol ){
-// i=0. search using PK?memory location?or no PK?
-// no can't do.PK will be memory location. PK in every table
-// PK search
-        case 0: 
+        case 0:
             iter=any_dstr->begin();
             for(int i=0; i<(int)any_dstr->size(); i++){
-	        sprintf(temp_res[count++], "%d", i);
-            }
-            assert(count <= stcsr->max_size);
-            break;
-        case 1:
-            iter=any_dstr->begin();
-            for(int i=0;i<(int)any_dstr->size();i++){
-                if( traverse((*iter)->get_cost(), op, sqlite3_value_double(val))){
-                    emb_dstr0 = (*iter)->get_Customers();
-                    index0 = emb_dstr0->size();
-                    for(int i0=0; i0<index0; i0++){
-                        sprintf(temp_res[count++], "%d.%d",  i, i0);
-                    }
-                    iter0++;
-		}
+                temp_res[count++] = i;
                 iter++;
             }
             assert(count <= stcsr->max_size);
             break;
-        case 2:
-            iter=any_dstr->begin();
-            for(int i=0;i<(int)any_dstr->size();i++){
-                if( traverse((*iter)->get_delcapacity(), op, sqlite3_value_int(val))){
-                    emb_dstr0 = (*iter)->get_Customers();
-                    index0 = emb_dstr0->size();
-                    for(int i0=0; i0<index0; i0++){
-                        sprintf(temp_res[count++], "%d.%d",  i, i0);
-                    }
-                    iter0++;
+// more datatypes and ops exist
+        }
+        int ia, ib;
+        int *i_res;
+        int i_count = 0;
+        if ( (stcsr->size == 0) && (stcsr->first_constr == 1) ){
+            memcpy(stcsr->resultSet, temp_res, sizeof(int) *
+                                     stcsr->max_size);
+            stcsr->size = count;
+	    stcsr->first_constr = 0;
+        }else if (stcsr->size > 0){
+            i_res = (int *)sqlite3_malloc(sizeof(int) *
+                                        stcsr->max_size);
+            for(int a=0; a<stcsr->size; a++){
+                for(int b=0; b<count; b++){
+                    ia = stcsr->resultSet[a];
+                    ib = temp_res[b];
+                    if( ia==ib ){
+                        i_res[i_count++] = ia;
+                    }else if( ia < ib )
+                        b = count;
 		}
-                iter++;
             }
-            assert(count <= stcsr->max_size);
-            break;
-        case 3:
-            iter=any_dstr->begin();
-            for(int i=0;i<(int)any_dstr->size();i++){
-                if( traverse((*iter)->get_pickcapacity(), op, sqlite3_value_int(val))){
-                    emb_dstr0 = (*iter)->get_Customers();
-                    index0 = emb_dstr0->size();
-                    for(int i0=0; i0<index0; i0++){
-                        sprintf(temp_res[count++], "%d.%d",  i, i0);
-                    }
-                    iter0++;
-		}
-                iter++;
-            }
-            assert(count <= stcsr->max_size);
-            break;
-        case 4:
-            iter=any_dstr->begin();
-            for(int i=0;i<(int)any_dstr->size();i++){
-                if( traverse((*iter)->get_rlpoint(), op, sqlite3_value_int(val))){
-                    emb_dstr0 = (*iter)->get_Customers();
-                    index0 = emb_dstr0->size();
-                    for(int i0=0; i0<index0; i0++){
-                        sprintf(temp_res[count++], "%d.%d",  i, i0);
-                    }
-                    iter0++;
-		}
-                iter++;
-            }
-            assert(count <= stcsr->max_size);
-            break;
-        case 5:
-            iter=any_dstr->begin();
-            for(int i=0;i<(int)any_dstr->size();i++){
-                emb_dstr0 = (*iter)->get_Customers();
-                iter0 = emb_dstr0->begin();
-                for(int i0=0;i0<(int)emb_dstr0->size();i0++){
-                    if (traverse((*iter0)->get_demand(), op, sqlite3_value_int(val))){
-                        sprintf(temp_res[count++],"%d.%d", i, i0);
-		    }
-                    iter0++;
-                }
-	        iter++;
-            }
-            assert(count <= stcsr->max_size);
-            break;
-        case 6:
-            iter=any_dstr->begin();
-            for(int i=0;i<(int)any_dstr->size();i++){
-                emb_dstr0 = (*iter)->get_Customers();
-                iter0 = emb_dstr0->begin();
-                for(int i0=0;i0<(int)emb_dstr0->size();i0++){
-                    if (traverse((const unsigned char *)(*iter0)->get_code().c_str(), op, sqlite3_value_text(val))){
-                        sprintf(temp_res[count++],"%d.%d", i, i0);
-		    }
-                    iter0++;
-                }
-	        iter++;
-            }
-            assert(count <= stcsr->max_size);
-            break;
-        case 7:
-            iter=any_dstr->begin();
-            for(int i=0;i<(int)any_dstr->size();i++){
-                emb_dstr0 = (*iter)->get_Customers();
-                iter0 = emb_dstr0->begin();
-                for(int i0=0;i0<(int)emb_dstr0->size();i0++){
-                    if (traverse((*iter0)->get_serviced(), op, sqlite3_value_int(val))){
-                        sprintf(temp_res[count++],"%d.%d", i, i0);
-		    }
-                    iter0++;
-                }
-	        iter++;
-            }
-            assert(count <= stcsr->max_size);
-            break;
-        case 8:
-            iter=any_dstr->begin();
-            for(int i=0;i<(int)any_dstr->size();i++){
-                emb_dstr0 = (*iter)->get_Customers();
-                iter0 = emb_dstr0->begin();
-                for(int i0=0;i0<(int)emb_dstr0->size();i0++){
-                    if (traverse((*iter0)->get_pickdemand(), op, sqlite3_value_int(val))){
-                        sprintf(temp_res[count++],"%d.%d", i, i0);
-		    }
-                    iter0++;
-                }
-	        iter++;
-            }
-            assert(count <= stcsr->max_size);
-            break;
-        case 9:
-            iter=any_dstr->begin();
-            for(int i=0;i<(int)any_dstr->size();i++){
-                emb_dstr0 = (*iter)->get_Customers();
-                iter0 = emb_dstr0->begin();
-                for(int i0=0;i0<(int)emb_dstr0->size();i0++){
-                    if (traverse((*iter0)->get_starttime(), op, sqlite3_value_int(val))){
-                        sprintf(temp_res[count++],"%d.%d", i, i0);
-		    }
-                    iter0++;
-                }
-	        iter++;
-            }
-            assert(count <= stcsr->max_size);
-            break;
-        case 10:
-            iter=any_dstr->begin();
-            for(int i=0;i<(int)any_dstr->size();i++){
-                emb_dstr0 = (*iter)->get_Customers();
-                iter0 = emb_dstr0->begin();
-                for(int i0=0;i0<(int)emb_dstr0->size();i0++){
-                    if (traverse((*iter0)->get_servicetime(), op, sqlite3_value_int(val))){
-                        sprintf(temp_res[count++],"%d.%d", i, i0);
-		    }
-                    iter0++;
-                }
-	        iter++;
-            }
-            assert(count <= stcsr->max_size);
-            break;
-        case 11:
-            iter=any_dstr->begin();
-            for(int i=0;i<(int)any_dstr->size();i++){
-                emb_dstr0 = (*iter)->get_Customers();
-                iter0 = emb_dstr0->begin();
-                for(int i0=0;i0<(int)emb_dstr0->size();i0++){
-                    if (traverse((*iter0)->get_finishtime(), op, sqlite3_value_int(val))){
-                        sprintf(temp_res[count++],"%d.%d", i, i0);
-		    }
-                    iter0++;
-                }
-	        iter++;
-            }
-            assert(count <= stcsr->max_size);
-            break;
-        case 12:
-            iter=any_dstr->begin();
-            for(int i=0;i<(int)any_dstr->size();i++){
-                emb_dstr0 = (*iter)->get_Customers();
-                iter0 = emb_dstr0->begin();
-                for(int i0=0;i0<(int)emb_dstr0->size();i0++){
-                    if (traverse((*iter0)->get_revenue(), op, sqlite3_value_int(val))){
-                        sprintf(temp_res[count++],"%d.%d", i, i0);
-		    }
-                    iter0++;
-                }
-	        iter++;
-            }
-            assert(count <= stcsr->max_size);
-            break;
-	}
+            assert( i_count <= stcsr->max_size );
+            memcpy(stcsr->resultSet, i_res, sizeof(int) *
+                                     i_count);
+            stcsr->size = i_count;
+            sqlite3_free(i_res);
+        }
+        sqlite3_free(temp_res);
     }
-    if ( stcsr->init_constr ){
-	if ( count > 0 )
-	    memcpy(*stcsr->resultSet, *temp_res, 
-		sizeof(char) * 20 * total_size);
-	stcsr->init_constr = 0;
-	stcsr->size = count;
-    }else{
-	if ( count == 0 ){
-	    memset(stcsr->resultSet, '\0', memory_size);
-	    stcsr->size = 0;
-	}else{
-	    char ** copy_res = (char **)sqlite3_malloc(memory_size); 
-	    memset(copy_res, '\0', memory_size); 
-  	    *copy_res = (char *)&copy_res[total_size];
-  	    int cr;
-  	    for (cr=0; cr<total_size; cr++){
-    		copy_res[cr+1] = &copy_res[cr][20];
-  	    }
-	    int success = 0, ci;
-	    char  str_tr[20], str_res[20];
-	    for(int w=0; w<count; w++){
-		strcpy(str_tr, temp_res[w]);
-	        for (int k=0; k<stcsr->size; k++){
-		    strcpy(str_res, stcsr->resultSet[k]);
-		    printf("tr: %s, set: %s\n", str_tr, 
-			   str_res);
-		    ci = cmp_str(str_tr, str_res);
-		    if (ci < 0)
-		        break;
-		    else if (ci == 0){
-			strcpy(copy_res[success++], temp_res[w]);
-			printf("Success\n");
-		    }
-		}
-	    }
-	    memcpy(*stcsr->resultSet, *copy_res, memory_size);
-	    stcsr->size = success;
-	    sqlite3_free(copy_res);
-	}
-    }
-    sqlite3_free(temp_res);
 }
 
 
-
-
-int Trucks_retrieve(void *stc, int n, sqlite3_context *con){
+void Truck_search(void *stc, char *constr, sqlite3_value *val){
     sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;
     stlTable *stl = (stlTable *)cur->pVtab;
     stlTableCursor *stcsr = (stlTableCursor *)stc;
-    vector<Truck*> *any_dstr = (vector<Truck*> *)stl->data;
-    vector<Truck*>:: iterator iter;
-    char record[20];
-    strcpy(record, stcsr->resultSet[stcsr->current]);
-    char * top_index = strtok(record, ".");
-    int index;
-    if (top_index != NULL)
-        sscanf( top_index, "%d", &index);
-    else
-        sscanf( record, "%d", &index);
-    char *colName = stl->azColumn[n];
-// iterator implementation. serial traversing or hit?
-    iter = any_dstr->begin();
-// serial traversing. simple and generic. visitor pattern is next step.
-    for(int i=0; i<index; i++){
-        iter++;
+    data *d = (data *)stl->data;
+    Truck *any_dstr = (Truck *)*d->mem;
+// !!!
+    int i = 0;
+// !!!
+    int op, iCol, count = 0;
+// val==NULL then constr==NULL also
+    if ( val==NULL ){
+	stcsr->resultSet[count++] = i;
+	stcsr->size++;
+// !!!
+    }else{
+        switch( constr[0] - 'A' ){
+        case 0:
+            op = 0;
+            break;
+        case 1:
+            op = 1;
+            break;
+        case 2:
+            op = 2;
+            break;
+        case 3:
+            op = 3;
+            break;
+        case 4:
+            op = 4;
+            break;
+        case 5:
+            op = 5;
+            break;
+        default:
+            break;
+        }
+
+        iCol = constr[1] - 'a' + 1;
+        int *temp_res;
+	temp_res = (int *)sqlite3_malloc(sizeof(int)  * stcsr->max_size);
+        if ( !temp_res ){
+            printf("Error in allocating memory\n");
+            exit(1);
+        }
+
+        switch( iCol ){
+        case 0:
+	    temp_res[count++] = i;
+// !!!
+            assert(count <= stcsr->max_size);
+            break;
+        case 1:
+            if (traverse(any_dstr->get_cost(), op, sqlite3_value_double(val)) )
+// !!!
+                temp_res[count++] = i;
+            assert(count <= stcsr->max_size);
+            break;
+        case 2:
+            if (traverse(any_dstr->get_delcapacity(), op, sqlite3_value_int(val)) )
+                temp_res[count++] = i;
+            assert(count <= stcsr->max_size);
+            break;
+        case 3:
+            if (traverse(any_dstr->get_pickcapacity(), op, sqlite3_value_int(val)) )
+                temp_res[count++] = i;
+            assert(count <= stcsr->max_size);
+            break;
+        case 4:
+            if (traverse(any_dstr->get_rlpoint(), op, sqlite3_value_int(val)) )
+                temp_res[count++] = i;
+            assert(count <= stcsr->max_size);
+            break;
+// more datatypes and ops exist
+        }
+        int ia, ib;
+        int *i_res;
+        int i_count = 0;
+        if ((stcsr->size == 0) && (stcsr->first_constr == 1)){
+            memcpy(stcsr->resultSet, temp_res, sizeof(int) *
+		   stcsr->max_size);
+// !!!
+            stcsr->size = count;
+	    stcsr->first_constr = 0;
+// !!!
+        }else if (stcsr->size > 0){
+// !!!
+            i_res = (int *)sqlite3_malloc(sizeof(int) *
+                                        stcsr->max_size);
+            for(int a=0; a<stcsr->size; a++){
+                for(int b=0; b<count; b++){
+                    ia = stcsr->resultSet[a];
+                    ib = temp_res[b];
+                    if( ia==ib ){
+                        i_res[i_count++] = ia;
+		    }else if( ia < ib )
+                        b = count;
+// !!!
+		}
+            }
+            assert( i_count <= stcsr->max_size );
+            memcpy(stcsr->resultSet, i_res, sizeof(int) *
+                                     i_count);
+            stcsr->size = i_count;
+            sqlite3_free(i_res);
+        }
+        sqlite3_free(temp_res);
     }
-    vector<Customer*> *emb_dstr0;
-    vector<Customer*>:: iterator iter0;
-    int index0;
-    char * emb_index0 = strtok( NULL, ".");
-    if (emb_index0 != NULL)
-        sscanf(emb_index0, "%d",&index0);
-    else
-        printf("FAULT detokenising\n");
-    
-    emb_dstr0 = (*iter)->get_Customers();
-    iter0 = emb_dstr0->begin();
-    for(int i0=0; i0<index0; i0++){
-        iter0++;
+}
+
+
+void Truck_Customers_search(void *stc, char *constr, sqlite3_value *val){
+    sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;
+    stlTableCursor *stcsr = (stlTableCursor *)stc;
+//    stlTable *stl = (stlTable *)cur->pVtab;
+//    data *d = (data *)stl->data;
+//    Truck *dstr = (Truck *)*d->mem;
+    int i = 0;
+// see how it is implemented
+//    vector<Customer*> *any_dstr = (vector<Customer*> *)dstr->get_Customers();
+    int op, iCol, count = 0;
+// val==NULL then constr==NULL also
+    if ( val==NULL ){
+	stcsr->resultSet[count++] = i;
+	stcsr->size++;
+    }else{
+        switch( constr[0] - 'A' ){
+        case 0:
+            op = 0;
+            break;
+        case 1:
+            op = 1;
+            break;
+        case 2:
+            op = 2;
+            break;
+        case 3:
+            op = 3;
+            break;
+        case 4:
+            op = 4;
+            break;
+        case 5:
+            op = 5;
+            break;
+        default:
+            break;
+        }
+
+        iCol = constr[1] - 'a' + 1;
+        int *temp_res;
+	temp_res = (int *)sqlite3_malloc(sizeof(int)  * stcsr->max_size);
+        if ( !temp_res ){
+            printf("Error in allocating memory\n");
+            exit(1);
+        }
+
+// CAREFUL
+        switch( iCol ){
+        case 0:
+	    temp_res[count++] = i;
+            assert(count <= stcsr->max_size);
+            break;
+        case 1:
+	    temp_res[count++] = i;
+            assert(count <= stcsr->max_size);
+	    break;
+// more datatypes and ops exist
+        }
+        int ia, ib;
+        int *i_res;
+        int i_count = 0;
+        if ((stcsr->size == 0) && (stcsr->first_constr == 1)){
+            memcpy(stcsr->resultSet, temp_res, sizeof(int) *
+                                     stcsr->max_size);
+            stcsr->size = count;
+	    stcsr->first_constr = 0;
+        }else if (stcsr->size > 0){
+            i_res = (int *)sqlite3_malloc(sizeof(int) *
+                                        stcsr->max_size);
+            for(int a=0; a<stcsr->size; a++){
+                for(int b=0; b<count; b++){
+                    ia = stcsr->resultSet[a];
+                    ib = temp_res[b];
+                    if( ia==ib ){
+                        i_res[i_count++] = ia;
+		    }else if( ia < ib )
+                        b = count;
+		}
+            }
+            assert( i_count <= stcsr->max_size );
+            memcpy(stcsr->resultSet, i_res, sizeof(int) *
+                                     i_count);
+            stcsr->size = i_count;
+            sqlite3_free(i_res);
+        }
+        sqlite3_free(temp_res);
     }
-    switch( n ){
-    case 0:
-        sqlite3_result_text(con, "(null)", -1, SQLITE_STATIC);
-        break;
-    case 1:
-        sqlite3_result_double(con, (*iter)->get_cost());
-        break;
-    case 2:
-        sqlite3_result_int(con, (*iter)->get_delcapacity());
-        break;
-    case 3:
-        sqlite3_result_int(con, (*iter)->get_pickcapacity());
-        break;
-    case 4:
-        sqlite3_result_int(con, (*iter)->get_rlpoint());
-        break;
-    case 5:
-        sqlite3_result_int(con, (*iter0)->get_demand());
-        break;
-    case 6:
-        sqlite3_result_text(con, (const char *)(*iter0)->get_code().c_str(), -1, SQLITE_STATIC);
-        break;
-    case 7:
-        sqlite3_result_int(con, (*iter0)->get_serviced());
-        break;
-    case 8:
-        sqlite3_result_int(con, (*iter0)->get_pickdemand());
-        break;
-    case 9:
-        sqlite3_result_int(con, (*iter0)->get_starttime());
-        break;
-    case 10:
-        sqlite3_result_int(con, (*iter0)->get_servicetime());
-        break;
-    case 11:
-        sqlite3_result_int(con, (*iter0)->get_finishtime());
-        break;
-    case 12:
-        sqlite3_result_int(con, (*iter0)->get_revenue());
-        break;
+}
+
+
+void Customers_search(void *stc, char *constr, sqlite3_value *val){
+    sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;
+    stlTable *stl = (stlTable *)cur->pVtab;
+    stlTableCursor *stcsr = (stlTableCursor *)stc;
+    data *d = (data *)stl->data;
+    vector<Customer*> *any_dstr = (vector<Customer*> *)*d->mem;
+    vector<Customer*>:: iterator iter;
+    int op, iCol, count = 0;
+    realloc_resultset(stc);
+/// !!!
+// val==NULL then constr==NULL also
+    if ( val==NULL ){
+        for (int j=0; j<get_datastructure_size((void *)stl); j++){
+            stcsr->resultSet[j] = j;
+            stcsr->size++;
+	}
+        assert(stcsr->size <= stcsr->max_size);
+        assert(&stcsr->resultSet[stcsr->size] <= &stcsr->resultSet[stcsr->max_size]);
+    }else{
+        switch( constr[0] - 'A' ){
+        case 0:
+            op = 0;
+            break;
+        case 1:
+            op = 1;
+            break;
+        case 2:
+	    op = 2;
+	    break;
+	case 3:
+	    op = 3;
+	    break;
+	case 4:
+	    op = 4;
+	    break;
+	case 5:
+	    op = 5;
+	    break;
+	default:
+	    break;
+	}
+	iCol = constr[1] - 'a' + 1;
+	int *temp_res;
+	temp_res = (int *)sqlite3_malloc(sizeof(int)  * stcsr->max_size);
+	if ( !temp_res ){
+	    printf("Error in allocating memory\n");
+	    exit(1);
+	}
+	switch( iCol ){
+	case 0:
+            iter=any_dstr->begin();
+            for(int i=0; i<(int)any_dstr->size(); i++){
+                temp_res[count++] = i;
+                iter++;
+            }
+            assert(count <= stcsr->max_size);
+            break;
+	case 1:
+            iter=any_dstr->begin();
+            for(int i=0; i<(int)any_dstr->size(); i++){
+                temp_res[count++] = i;
+                iter++;
+            }
+            assert(count <= stcsr->max_size);
+            break;
+// more datatypes and ops exist
+	}
+	int ia, ib;
+	int *i_res;
+	int i_count = 0;
+        if ( (stcsr->size == 0) && (stcsr->first_constr == 1) ){
+            memcpy(stcsr->resultSet, temp_res, sizeof(int) *
+                                     stcsr->max_size);
+            stcsr->size = count;
+	    stcsr->first_constr = 0;
+        }else if (stcsr->size > 0){
+            i_res = (int *)sqlite3_malloc(sizeof(int) *
+                                        stcsr->max_size);
+            for(int a=0; a<stcsr->size; a++){
+                for(int b=0; b<count; b++){
+                    ia = stcsr->resultSet[a];
+                    ib = temp_res[b];
+                    if( ia==ib ){
+                        i_res[i_count++] = ia;
+                    }else if( ia < ib )
+                        b = count;
+		}
+            }
+	    assert( i_count <= stcsr->max_size );
+	    memcpy(stcsr->resultSet, i_res, sizeof(int) *
+		   i_count);
+	    stcsr->size = i_count;
+	    sqlite3_free(i_res);
+	}
+	sqlite3_free(temp_res);
     }
-    return SQLITE_OK;
+}
+
+void Customer_search(void *stc, char *constr, sqlite3_value *val){
+    sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;
+    stlTable *stl = (stlTable *)cur->pVtab;
+    stlTableCursor *stcsr = (stlTableCursor *)stc;
+    data *d = (data *)stl->data;
+    Customer *any_dstr = (Customer *)*d->mem;
+    int i = 0;
+    int op, iCol, count = 0;
+// val==NULL then constr==NULL also
+    if ( val==NULL ){
+	stcsr->resultSet[count++] = i;
+	stcsr->size++;
+    }else{
+        switch( constr[0] - 'A' ){
+        case 0:
+            op = 0;
+            break;
+        case 1:
+            op = 1;
+            break;
+        case 2:
+            op = 2;
+            break;
+        case 3:
+            op = 3;
+            break;
+        case 4:
+            op = 4;
+            break;
+        case 5:
+            op = 5;
+            break;
+        default:
+            break;
+        }
+
+        iCol = constr[1] - 'a' + 1;
+        int *temp_res;
+	temp_res = (int *)sqlite3_malloc(sizeof(int)  * stcsr->max_size);
+        if ( !temp_res ){
+            printf("Error in allocating memory\n");
+            exit(1);
+        }
+
+        switch( iCol ){
+        case 0:
+	    temp_res[count++] = i;
+            assert(count <= stcsr->max_size);
+            break;
+        case 1:
+            if (traverse(any_dstr->get_demand(), op, sqlite3_value_int(val)) )
+                temp_res[count++] = i;
+            assert(count <= stcsr->max_size);
+            break;
+        case 2:
+            if (traverse((const unsigned char *)any_dstr->get_code().c_str(), op, sqlite3_value_text(val)) )
+                temp_res[count++] = i;
+            assert(count <= stcsr->max_size);
+            break;
+        case 3:
+            if (traverse(any_dstr->get_serviced(), op, sqlite3_value_int(val)) )
+                temp_res[count++] = i;
+            assert(count <= stcsr->max_size);
+            break;
+        case 4:
+            if (traverse(any_dstr->get_pickdemand(), op, sqlite3_value_int(val)) )
+                temp_res[count++] = i;
+            assert(count <= stcsr->max_size);
+            break;
+        case 5:
+            if (traverse(any_dstr->get_starttime(), op, sqlite3_value_int(val)) )
+                temp_res[count++] = i;
+            assert(count <= stcsr->max_size);
+            break;
+        case 6:
+            if (traverse(any_dstr->get_servicetime(), op, sqlite3_value_int(val)) )
+                temp_res[count++] = i;
+            assert(count <= stcsr->max_size);
+            break;
+        case 7:
+            if (traverse(any_dstr->get_finishtime(), op, sqlite3_value_int(val)) )
+                temp_res[count++] = i;
+            assert(count <= stcsr->max_size);
+            break;
+        case 8:
+            if (traverse(any_dstr->get_revenue(), op, sqlite3_value_int(val)) )
+                temp_res[count++] = i;
+            assert(count <= stcsr->max_size);
+            break;
+// more datatypes and ops exist
+        }
+        int ia, ib;
+        int *i_res;
+        int i_count = 0;
+        if ( (stcsr->size == 0) && (stcsr->first_constr == 1) ){
+            memcpy(stcsr->resultSet, temp_res, sizeof(int) *
+                                     stcsr->max_size);
+            stcsr->size = count;
+	    stcsr->first_constr = 0;
+        }else if (stcsr->size > 0){
+            i_res = (int *)sqlite3_malloc(sizeof(int) *
+                                        stcsr->max_size);
+            for(int a=0; a<stcsr->size; a++){
+                for(int b=0; b<count; b++){
+                    ia = stcsr->resultSet[a];
+                    ib = temp_res[b];
+                    if( ia==ib ){
+                        i_res[i_count++] = ia;
+                    }else if( ia < ib )
+                        b = count;
+		}
+            }
+            assert( i_count <= stcsr->max_size );
+            memcpy(stcsr->resultSet, i_res, sizeof(int) *
+                                     i_count);
+            stcsr->size = i_count;
+            sqlite3_free(i_res);
+        }
+        sqlite3_free(temp_res);
+    }
 }
 
 
@@ -562,12 +928,168 @@ void search(void* stc, char *constr, sqlite3_value *val){
     stlTable *stl = (stlTable *)cur->pVtab;
     if( !strcmp(stl->zName, "Trucks") )
         Trucks_search(stc, constr, val);
+    if( !strcmp(stl->zName, "Truck") )
+        Truck_search(stc, constr, val);
+    if( !strcmp(stl->zName, "Truck_Customers") )
+        Truck_Customers_search(stc, constr, val);
+    if( !strcmp(stl->zName, "Customers") )
+        Customers_search(stc, constr, val);
+    if( !strcmp(stl->zName, "Customer") )
+        Customer_search(stc, constr, val);
 }
+
+int Trucks_retrieve(void *stc, int n, sqlite3_context *con){
+    sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;
+    stlTable *stl = (stlTable *)cur->pVtab;
+    stlTableCursor *stcsr = (stlTableCursor *)stc;
+    data *d = (data *)stl->data;
+    vector<Truck*> *any_dstr = (vector<Truck*> *)d->mem;
+    vector<Truck*>:: iterator iter;
+    char *colName = stl->azColumn[n];
+    int index = stcsr->current;
+// iterator implementation. serial traversing or hit?
+    iter = any_dstr->begin();
+// serial traversing. simple and generic. visitor pattern is next step.
+    for(int i=0; i<stcsr->resultSet[index]; i++){        
+	iter++;
+    }
+    switch( n ){
+    case 0:
+        sqlite3_result_int64(con, (long int)(*iter));
+        break;
+    }
+    return SQLITE_OK;
+}
+
+
+int Truck_retrieve(void *stc, int n, sqlite3_context *con){
+    sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;
+    stlTable *stl = (stlTable *)cur->pVtab;
+    stlTableCursor *stcsr = (stlTableCursor *)stc;
+    data *d = (data *)stl->data;
+    Truck *any_dstr = (Truck *)*d->mem;
+    char *colName = stl->azColumn[n];
+    switch( n ){
+    case 0:
+        sqlite3_result_int64(con, (long int)any_dstr);
+        break;
+    case 1:
+        sqlite3_result_double(con, any_dstr->get_cost());
+        break;
+    case 2:
+        sqlite3_result_int(con, any_dstr->get_delcapacity());
+        break;
+    case 3:
+        sqlite3_result_int(con, any_dstr->get_pickcapacity());
+        break;
+    case 4:
+        sqlite3_result_int(con, any_dstr->get_rlpoint());
+        break;
+    }
+    return SQLITE_OK;
+}
+
+
+int Truck_Customers_retrieve(void *stc, int n, sqlite3_context *con){
+    sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;
+    stlTable *stl = (stlTable *)cur->pVtab;
+    stlTableCursor *stcsr = (stlTableCursor *)stc;
+    data *d = (data *)stl->data;
+    Truck *dstr = (Truck *)*d->mem;
+    vector<Customer*> *any_dstr = (vector<Customer*> *)dstr->get_Customers();
+// !!!
+    char *colName = stl->azColumn[n];
+    switch( n ){
+    case 0:
+        sqlite3_result_int64(con, (long int)dstr);
+        break;
+    case 1:
+        sqlite3_result_int64(con, (long int)any_dstr);
+        break;
+    }
+    return SQLITE_OK;
+}
+
+
+int Customers_retrieve(void *stc, int n, sqlite3_context *con){
+    sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;
+    stlTable *stl = (stlTable *)cur->pVtab;
+    stlTableCursor *stcsr = (stlTableCursor *)stc;
+    data *d = (data *)stl->data;
+    vector<Customer*> *any_dstr = (vector<Customer*> *)*d->mem;
+    vector<Customer*>:: iterator iter;
+    char *colName = stl->azColumn[n];
+    int index = stcsr->current;
+// iterator implementation. serial traversing or hit?
+    iter = any_dstr->begin();
+// serial traversing. simple and generic. visitor pattern is next step.
+    for(int i=0; i<stcsr->resultSet[index]; i++){
+        iter++;
+    }
+    switch( n ){
+    case 0:
+        sqlite3_result_int64(con, (long int)any_dstr);
+        break;
+    case 1:
+        sqlite3_result_int64(con, (long int)(*iter));
+        break;
+    }
+    return SQLITE_OK;
+}
+
+
+int Customer_retrieve(void *stc, int n, sqlite3_context *con){
+    sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;
+    stlTable *stl = (stlTable *)cur->pVtab;
+    stlTableCursor *stcsr = (stlTableCursor *)stc;
+    data *d = (data *)stl->data;
+    Customer *any_dstr = (Customer *)*d->mem;
+    char *colName = stl->azColumn[n];
+    switch( n ){
+    case 0:
+        sqlite3_result_int64(con, (long int)any_dstr);
+        break;
+    case 1:
+        sqlite3_result_int(con, any_dstr->get_demand());
+        break;
+    case 2:
+        sqlite3_result_text(con, (const char *)any_dstr->get_code().c_str(), -1, SQLITE_STATIC);
+        break;
+    case 3:
+        sqlite3_result_int(con, any_dstr->get_serviced());
+        break;
+    case 4:
+        sqlite3_result_int(con, any_dstr->get_pickdemand());
+        break;
+    case 5:
+        sqlite3_result_int(con, any_dstr->get_starttime());
+        break;
+    case 6:
+        sqlite3_result_int(con, any_dstr->get_servicetime());
+        break;
+    case 7:
+        sqlite3_result_int(con, any_dstr->get_finishtime());
+        break;
+    case 8:
+        sqlite3_result_int(con, any_dstr->get_revenue());
+        break;
+    }
+    return SQLITE_OK;
+}
+
 
 int retrieve(void* stc, int n, sqlite3_context *con){
     sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;
     stlTable *stl = (stlTable *)cur->pVtab;
     if( !strcmp(stl->zName, "Trucks") )
         return Trucks_retrieve(stc, n, con);
+    if( !strcmp(stl->zName, "Truck") )
+        return Truck_retrieve(stc, n, con);
+    if( !strcmp(stl->zName, "Truck_Customers") )
+        return Truck_Customers_retrieve(stc, n, con);
+    if( !strcmp(stl->zName, "Customers") )
+        return Customers_retrieve(stc, n, con);
+    if( !strcmp(stl->zName, "Customer") )
+        return Customer_retrieve(stc, n, con);
 }
 
