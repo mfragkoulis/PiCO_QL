@@ -241,6 +241,7 @@ class Data_structure_characteristics
   end
   attr_accessor(:name,:db,:signature,:stl_class,:object_class,:inherits,:type,:template1_type,:template2_type,:template1_name,:template2_name,:template_args,:parent,:access,:columns,:s)
 
+# Generates cast to match each VT data type given certain paramaters.
   def print_cast(fw, cast, op_sign, op_relationship, access_path)
     if op_relationship == "standard"
       if op_sign == "stl"
@@ -274,6 +275,7 @@ class Data_structure_characteristics
         puts "ERROR: op_sign"
         exit(1)
       end
+# obsolete
     elsif @object_class.match(/^relationship_table/i)
       # op_sign needless
       if op_sign == "stl"
@@ -315,6 +317,8 @@ class Data_structure_characteristics
     end
   end
 
+# Examines signature and returns it together with the VT type 
+# (stl container or object).
   def examine_sign(parent_name)
     if @name == parent_name
       if @signature.length > 0
@@ -417,6 +421,8 @@ class Data_structure_characteristics
     end
   end
 
+# Generates code to retrieve each VT struct.
+# Each retrieve case matches a specific column of the VT.
   def retrieve_columns(fw)
     col = 0
     while col < @columns.length
@@ -905,6 +911,8 @@ class Input_Description
     @s = "        "
   end
 
+# Processes and generates the directives 
+# (helper functions, user-defined classes) for the makefile
   def print_directives(fw, op)
     td = 0
     while td < @tokenised_dir.length
@@ -921,8 +929,9 @@ class Input_Description
     end
   end
 
+# Distinguishes between directives for helper classes 
+# and directives for user defined classes (empty line between the two)
   def tokenise_directive()
-    # to distinguish between directives for helper classes and directives for user defined classes (empty line between the two)
     if @directives.match(/\n\n/)
       directives = @directives.split(/\n\n/)
       if directives[1].match(/\n/)
