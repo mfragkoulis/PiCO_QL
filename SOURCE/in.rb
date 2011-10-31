@@ -199,7 +199,16 @@ class Column
     end
     return count_primitive
   end
-  
+
+# Checks if the col is a foreign key to a given table 
+# and returns the access path if that is the case
+  def search_fk_col(table_name_id)
+    if @type == "foreign_key" && @related_to == table_name_id
+      return true, @access_path
+    end
+    return false
+  end
+
 # Returns valid column format for use in VT create queries.
   def print_col_info()
 #    puts "type is " + @type
@@ -225,21 +234,14 @@ class Data_structure_characteristics
     @signature = ""
     @stl_class = ""
     @object_class = ""
-    @inherits = ""
-# not needed. Always a pointer since we receive its address
-#    @type = ""
-# templatex_type: -1-nested, 1-pointer(not needed maybe), 2-primitive, 3-both
-    @template1_type = 0
-    @template2_type = 0
-    @template1_name = ""
-    @template2_name = ""
     @template_args = ""
     @parent = ""
-#    @access = ""
+    @children = Array.new
+    @access = ""
     @columns = Array.new
     @s = "        "
   end
-  attr_accessor(:name,:db,:signature,:stl_class,:object_class,:inherits,:type,:template1_type,:template2_type,:template1_name,:template2_name,:template_args,:parent,:access,:columns,:s)
+  attr_accessor(:name,:db,:signature,:stl_class,:object_class,:template_args,:parent,:children,:access,:columns,:s)
 
 # Generates cast to match each VT data type given certain paramaters.
   def print_cast(fw, cast, op_sign, op_relationship, access_path)
@@ -663,29 +665,6 @@ AG4
   end
 
 
-# needed?
-  def process_template_name(template_name)
-# C++ primitive types
-    template_name.downcase!
-    if template_name == "int" ||
-        template_name=="float" ||
-        template_name=="double"  ||
-        template_name=="bool" ||
-        template_name == "string"
-      return 1
-    else
-      return 0
-    end
-  end
-
-#needed?
-  def process_template_names()
-    if @template_args == "double"
-      @template1_type += process_template_name(@template1_name)
-    end
-    @template2_type += process_template_name(@template2_name)
-  end
-
 # Constructs VT create queries.
   def gen_create_query()
 # <db>.<table> always valid?
@@ -701,6 +680,21 @@ AG4
     return query
   end
 
+# Searches each column of a VT to find a specific FK and 
+# return its access statement
+  def search_fk(table_name_id)
+    col = 0
+    found = false
+    while col < @columns.length && !found
+      found, access = @columns[col].search_fk_col(table_name_id)
+      col += 1
+    end
+    if !found
+      access = nil
+    end
+    return access
+  end
+
 # Stores column information in a specific data structure
   def register_columns(columns)
     col = 0
@@ -709,9 +703,6 @@ AG4
       @columns[col] = Column.new
       count_primitive += @columns[col].set(columns[col])
       col += 1
-    end
-    if count_primitive > 0
-      process_template_names()
     end
   end
 
@@ -737,8 +728,7 @@ AG4
     matchdata = pattern.match(vt_description)
     if matchdata
       # First record of table_data contains the whole description of the virtual table
-      # Second record contains the directives to .h files needed to link with. -> obsolete
-      #      @directive = matchdata[1]
+      # Second record contains the directives to .h files needed to link with. -> Already handled.
       # Third record contains the database name in which the virtual table will be created
       @db = matchdata[2]
       # Fourth record contains the virtual table name
@@ -754,21 +744,14 @@ AG4
     end
     if matchdata
       # First record of table_data contains the whole description of the virtual table
-      # Second record contains the directives to .h files needed to link with. -> obselete
-      #      @directive = matchdata[1]
+      # Second record contains the directives to .h files needed to link with. -> already handled.
       # Third record contains the database name in which the virtual table will be created
       @db = matchdata[2]
       # Fourth record contains the virtual table name
       @name = matchdata[3]
       # Seventh record contains the signature, call to gsub to strip any whitespaces
       table_signature = matchdata[6].gsub(/\s/,"")
-      # Typically, it is an embedded table, 
-      # so applicable only in "FROM" cases.
-      if matchdata[6].match(/^relationship_table/i)
-        @signature = matchdata[6]
-      else
-        verify_signature(table_signature)
-      end
+      verify_signature(table_signature)
       # Ninth record contains the parent table name
       @parent = matchdata[8]
       process_columns(matchdata[11], columns)
@@ -785,11 +768,7 @@ AG4
       @name = matchdata[2]
       # Sixth record contains the signature, call to gsub to strip any whitespaces
       table_signature = matchdata[5].gsub(/\s/,"")
-      if matchdata[5].match(/^relationship_table/i)
-        @object_class = matchdata[5]
-      else
-        verify_signature(table_signature)
-      end
+      verify_signature(table_signature)
       # Eighth record contains the parent table name
       @parent = matchdata[7]
       process_columns(matchdata[10], columns)
@@ -881,18 +860,8 @@ CS
         puts "Template instantiation identifier '<' or '>' missing\n"
         exit(1)
       end
-      # Transparent inheritance
-
-      #      if table_signature.match(/extends/i)
-      #        classname_inherits = table_signature.split(/extends/i)
-      #        @object_class = classname_inherits[0]
-      #        @inherits = classname_inherits[1]
-      #        puts "Class name : " + @object_class
-      #        puts "Inherits from : " + @inherits
-      #      else
       @object_class = table_signature
       puts "Class name : " + @object_class
-      #      end
     end
   end
 
@@ -1298,6 +1267,43 @@ mkf
     end
   end
 
+# Processes each pair of parent and child structures and stores the 
+# child's name to parent and the access statement for the child 
+# table to child.
+  def process_hierarchy()
+    w = 0
+    while w < @ds_chars.length
+      parent = @ds_chars[w].parent
+      if parent.length > 0
+        pr = 0
+        while parent != @ds_chars[pr].name
+          pr += 1
+        end
+        if pr == @ds_chars.length
+          puts "No such data structure recorded: " + parent + 
+            " parent of " + @ds_chars[w].name
+          exit(1)
+        else
+          @ds_chars[pr].children[@ds_chars[pr].children.length] = @ds_chars[w].name
+          puts "Child name: " + @ds_chars[pr].children[@ds_chars[pr].children.length - 1] + " in parent: " +
+            @ds_chars[pr].name
+        end
+        access_stmt = @ds_chars[pr].search_fk(@ds_chars[w].name)
+        if access_stmt == nil
+          access_stmt = @ds_chars[w].search_fk(@ds_chars[pr].name)
+        end
+        if access_stmt == nil
+          puts "Relationship between tables " + @ds_chars[pr].name + 
+            " and " + @ds_chars[w].name + " not recorded correctly."
+          exit(1)
+        end
+        @ds_chars[w].access.replace(access_stmt)
+        puts "Access statement: " + @ds_chars[w].access
+      end
+      w += 1
+    end
+  end
+
 # User description first comes here. Description is cleaned from 
 # surplus spaces and is split to extract directives to external 
 # application and library files. 
@@ -1333,6 +1339,7 @@ mkf
       @ds_chars[w].register_columns(columns)
       w += 1
     end
+    process_hierarchy()
     generate()
   end
 end
@@ -1349,8 +1356,7 @@ if __FILE__==$0
 #include \"Customer.h\"
 TABLE foo.Trucks : vector<Truck*> {truck_id INT FROM &Truck}
 TABLE foo.Truck : Truck FROM Trucks {truck_id INT FROM &, cost DOUBLE FROM get_cost(), delcapacity INT FROM get_delcapacity(), pickcapacity INT FROM get_pickcapacity(), rlpoint INT FROM get_rlpoint()}
-TABLE foo.Truck_Customers : RELATIONSHIP_TABLE FROM Truck {truck_id INT FROM &Truck, customers_id INT FROM &Customers get_customers()}
-TABLE foo.Customers : vector<Customer *> FROM Truck_Customers {customers_id INT FROM &, customer_id INT FROM &Customer}
+TABLE foo.Customers : vector<Customer *> FROM Truck {truck_id INT FROM &Truck get_Customers(), customer_id INT FROM &Customer}
 TABLE foo.Customer : Customer FROM Customers {customer_id INT FROM &, demand INT FROM get_demand(), code STRING from get_code(), serviced INT from get_serviced(), pickdemand INT FROM get_pickdemand(), starttime INT FROM get_starttime(), servicetime INT FROM get_servicetime(), finishtime INT FROM get_finishtime(), revenue INT FROM get_revenue()}"
   input = Input_Description.new(description)
   input.register_datastructure
