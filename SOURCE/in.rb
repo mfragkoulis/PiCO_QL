@@ -1029,6 +1029,258 @@ cls
     fw.puts "}"
   end
 
+# Generates function to update the related structs of a struct 
+# when the latter is updated. This is how our virtual join mechanism 
+# is generated
+  def print_update_structures(fw)
+    setting_up = <<-SS
+    sqlite3_vtab_cursor *stc = (sqlite3_vtab_cursor *)cur;
+    stlTable *stl = (stlTable *)stc->pVtab;
+    const char *table_name = stl->zName;
+    data *d = (data *)stl->data;
+    stlTableCursor *stcsr = (stlTableCursor *)stc;
+    const char **names;
+    int dc, index, no_child;
+SS
+
+    current_position = <<-CP
+        iter = any_dstr->begin();
+        index = stcsr->current;
+        for(int i=0; i<stcsr->resultSet[index]; i++){
+            iter++;
+        }
+CP
+
+    setting_up_children = <<-SUC
+        dc = 0;
+        names = d->children->dsNames;
+        no_child = d->children->size;
+SUC
+
+    fw.puts "int update_structures(void *cur) {"
+    fw.puts setting_up
+    w = 0
+    while w < @ds_chars.length
+      curr_ds = @ds_chars[w]
+      if w == 0
+        fw.puts "    if( !strcmp(table_name, \"" + curr_ds.name + "\") ) {"
+      else
+        fw.puts "    } else if( !strcmp(table_name, \"" + curr_ds.name + "\") ) {"
+      end
+      children_no = curr_ds.children.length
+      children = curr_ds.children
+      if children_no > 0
+        if curr_ds.parent.length > 0
+          dereference = "*"
+        else
+          dereference = ""
+        end
+        if curr_ds.signature.length > 0
+          form = "(*iter)"
+          access_bridge = "."
+          signature = curr_ds.signature
+          fw.puts @s + signature + " *any_dstr = (" + signature + " *)" + 
+            dereference + "d->mem;"
+          fw.puts @s + signature + "::iterator iter;"
+          fw.puts current_position
+        else
+          form = "any_dstr"
+          access_bridge = "->"
+          signature = curr_ds.object_class
+          fw.puts @s + signature + " *any_dstr = (" + signature + " *)" + 
+            dereference + "d->mem;"
+        end
+        fw.puts setting_up_children
+        ch = 0
+        while ch < children_no
+          children = curr_ds.children
+          trv = 0
+          while trv < @ds_chars.length
+#            puts "Checking child: " + children[ch] + " against VT: " + 
+#              @ds_chars[trv].name
+            if children[ch] == @ds_chars[trv].name
+              break
+            end
+            trv += 1
+          end
+#          puts "VT: " + @ds_chars[w].name + " related to child: " + 
+#            @ds_chars[trv].name + " by means of access: " + 
+#            @ds_chars[trv].access
+          if @ds_chars[trv].access.length == 0
+            access = ""
+          else
+            access = access_bridge + @ds_chars[trv].access
+          end
+          fw.puts @s + "while (dc < no_child) {"
+          fw.puts @s + "    if ( !strcmp(dsC->dsNames[dc], \"" + 
+            children[ch] + "\") ) {"
+          fw.puts @s + @s + "d->children->memories[dc] = (long int *)" +
+            form + access + ";"
+          fw.puts @s + @s + "break;"
+          fw.puts @s + "    }"
+          fw.puts @s + "    dc++;"
+          fw.puts @s + "}"
+          ch += 1
+        end
+      else
+        fw.puts @s + ";"
+      end      
+      w += 1
+    end
+    fw.puts "    }"
+    fw.puts "}"
+  end
+
+# Generates the function to reallocate space for the struct 
+# that carries info for the user defined structs of the 
+# application registered with SQTL.
+  def print_realloc_carrier(fw)
+    
+    setting_up = <<-SS
+    dsCarrier **ddsC = (dsCarrier **)ds;
+    dsCarrier *dsC = *ddsC;
+    dsCarrier *tmp_dsC;
+    int x_size, nByte, c;
+    char *c_temp;
+#ifdef DEBUGGING
+    printf("dsC->size: %i\\n", dsC->size);
+#endif
+SS
+
+    copy_structs_registered = <<-CSR
+            c = 0;
+            int len;
+            while (c < x_size) {
+                tmp_dsC->dsNames[c] = c_temp;
+                len = (int)strlen(dsC->dsNames[c]) + 1;
+                memcpy(c_temp, dsC->dsNames[c], len);
+                c_temp += len;
+                tmp_dsC->memories[c] = dsC->memories[c];
+                c++;
+            }
+CSR
+
+    exception_handlingExiting = <<-EXE
+#ifdef DEBUGGING
+            printf("c_temp: %lx <= tmp_dsC: %lx \\n", c_temp, &((char *)tmp_dsC)[nByte]);
+#endif
+            assert(c_temp <= &((char *)tmp_dsC)[nByte]);
+            sqlite3_free(dsC);
+            *ddsC = tmp_dsC;
+#ifdef DEBUGGING
+            printf("\\nReallocating carrier..now size %i \\n\\n", tmp_dsC->size);
+#endif
+        }else{
+            free(tmp_dsC);
+            printf("Error (re)allocating memory\\n");
+            exit(1);
+        }
+    }
+    set_dependencies(st, ds, tablename);
+}
+EXE
+
+    fw.puts "int realloc_carrier(void *st, void *ds, const char *tablename) {"
+    fw.puts setting_up
+    structs_no = @ds_chars.length
+    fw.puts "    if (dsC->size != " + structs_no.to_s + ") {"
+    fw.puts @s + "x_size = dsC->size;"
+    w = 0
+    names_total = 0
+    while w < structs_no
+      names_total += @ds_chars[w].name.length + 1
+      w += 1
+    end
+    fw.puts @s + "nByte = sizeof(dsCarrier) + sizeof(long int *) * " + 
+      structs_no.to_s + " + sizeof(const char *) * " + structs_no.to_s + " + " + 
+      names_total.to_s + ";"
+    fw.puts @s + "tmp_dsC = (dsCarrier *)sqlite3_malloc(nByte);"
+    fw.puts @s + "if (tmp_dsC != NULL) {"
+    fw.puts @s + "    tmp_dsC->size = " + structs_no.to_s + ";"
+    fw.puts @s + "    tmp_dsC->dsNames = (const char **)&tmp_dsC[1];"
+    fw.puts @s + "    tmp_dsC->memories = (long int **)&tmp_dsC->dsNames[" + structs_no.to_s + "];"
+    fw.puts @s + "    c_temp = (char *)&tmp_dsC->memories[" + structs_no.to_s + "];"
+    fw.puts copy_structs_registered
+    w = 0
+    while w < structs_no
+      curr_ds = @ds_chars[w]
+      if curr_ds.parent.length > 0
+        fw.puts @s + "    tmp_dsC->dsNames[c] = c_temp;"
+        fw.puts @s + "    len = (int)strlen(\"" + curr_ds.name + "\") + 1;"
+        fw.puts @s + "    memcpy(c_temp, \"" + curr_ds.name + "\", len);"
+        fw.puts @s + "    c_temp += len;"
+        fw.puts @s + "    c++;"
+      end
+      w += 1
+    end
+    fw.puts @s + "    assert(c == " + structs_no.to_s + ");"
+    fw.puts exception_handlingExiting
+  end
+
+
+# Generates the function which sets up the references 
+# between related VT constructs.
+  def print_set_dependencies(fw)
+
+    setup_setting = <<-SS
+    stlTable *stl = (stlTable *)st;
+    dsCarrier **ddsC = (dsCarrier **)ds;
+    dsCarrier *dsC = *ddsC;
+    int c = 0, ch, dc;
+    int dsC_size = dsC->size;
+    while (c < dsC_size) {
+        if ( !strcmp(table_name, dsC->dsNames[c]) )
+            break;
+        c++;
+    }
+SS
+
+    fw.puts "int set_dependencies(void *st, void *ds, const char *table_name) {"
+    fw.puts setup_setting
+    w = 0
+    while w < @ds_chars.length
+      curr_ds = @ds_chars[w]
+      children_no = curr_ds.children.length
+      if w == 0
+        fw.puts "    if( !strcmp(table_name, \"" + curr_ds.name + "\") ) {"
+      else
+        fw.puts "    } else if( !strcmp(table_name, \"" + curr_ds.name + "\") ) {"
+      end
+      if children_no > 0
+        fw.puts @s + "data *d = sqlite3_malloc(sizeof(data) + sizeof(dsCarrier) + sizeof(long int *) * " + children_no.to_s + " + sizeof(const char *) * " + children_no.to_s + ");"
+        fw.puts @s + "d->children = (dsCarrier *)&d[1];"
+        fw.puts @s + "d->children->memories = (long int **)&d->children[1];"
+        fw.puts @s + "d->children->dsNames = (const char **)&d->children->memories[1];"
+        fw.puts @s + "d->children->size = " + children_no.to_s + ";"
+        fw.puts @s + "ch = 0;"
+        fw.puts @s + "dc = 0;"
+        ch = 0
+        while ch < children_no
+          children = curr_ds.children
+          fw.puts @s + "while (dc < dsC_size) {"
+          fw.puts @s + "    if ( !strcmp(dsC->dsNames[dc], \"" + 
+            children[ch] + "\") )"
+          fw.puts @s + @s + "break;"
+          fw.puts @s + "    dc++;"
+          fw.puts @s + "}"
+          fw.puts @s + "dsC->memories[dc] = (long int *)&d->children->memories[ch];"
+          fw.puts @s + "d->children->dsNames[ch] = dsC->dsnames[dc];"
+          fw.puts @s + "ch++;"
+          fw.puts @s + "assert (ch == d->children->size);"
+          ch += 1
+        end
+      else
+        fw.puts @s + "data *d = sqlite3_malloc(sizeof(data));"
+        fw.puts @s + "d->children = NULL;"
+      end
+      fw.puts @s + "d->mem = dsC->memories[c];"
+      fw.puts @s + "stl->data = (void *)d;"
+      w += 1
+    end
+    fw.puts "    }"
+    fw.puts "}"
+  end
+
 
 # Generates application-specific code to complement the SQTL library.
   def generate()
@@ -1040,21 +1292,20 @@ cls
 using namespace std;
 
 
-
 void * thread_sqlite(void *data){
-  const char **queries;
+  const char **queries, **table_names;
   queries = (const char **)sqlite3_malloc(sizeof(char *) *
                    #{@ds_chars.length.to_s});
   int failure = 0;
 AG1
 
    #HereDoc2
-
+# maybe adjust so that create queries are grouped by database.
       auto_gen2 = <<-AG2
-  failure = register_table( "#{@ds_chars[0].db}" ,  #{@ds_chars.length.to_s}, queries,
-           data, enter 1 if table is to be created 0 if already created);
+  failure = register_table( "#{@ds_chars[0].db}" ,  #{@ds_chars.length.to_s}, queries, table_names, data);
   printf(\"Thread sqlite returning..\\n\");
   sqlite3_free(queries);
+  sqlite3_free(table_names);
   return (void *)failure;
 }
 
@@ -1073,7 +1324,7 @@ int main(){
 // allocations and initialisations
   int re_sqlite;
   void *data;
-  char *helper;
+  char *c_temp;
 
   //names of data structures to be registered
   const char *name1 = "to be filled_in";
@@ -1084,8 +1335,7 @@ int main(){
   // length of data structures names
 
   dsCarrier *dsC;
-  int nByte = sizeof(dsCarrier) + sizeof(long int *) * 2 +
-    sizeof(const char *) * 2 + n_name1;
+  int nByte = sizeof(dsCarrier) + sizeof(long int *) * <number of stl structures to register> + sizeof(const char *) * <number of stl structures to register> + n_name1;
   // etc for subsequent data structures. eg: + n_name2;
   dsC = (dsCarrier *)sqlite3_malloc(nByte);
   memset(dsC, 0, nByte);
@@ -1093,33 +1343,29 @@ int main(){
 
 // assignment of data structure characteristics to dsC
   // number of data structures to register
-  dsC->size = to be filled_in;
+  dsC->size = <number of stl structures to register>;
   dsC->dsNames = (const char **)&dsC[1];
   dsC->memories = (long int **)&dsC->dsNames[dsC->size];
-  helper = (char *)&dsC->memories[dsC->size];
+  c_temp = (char *)&dsC->memories[dsC->size];
 
-  dsC->memories[0] = (long int *) to be filled in with memory address;
+  dsC->memories[0] = (long int *) <address of stl structure to register first>;
   // etc for subsequent data structures. eg:
-  // dsC->memories[1] = (long int *) to be filled in with memory address;
+  // dsC->memories[1] = (long int *) <address of stl structure to register first>;
 
-
-  dsC->dsNames[0] = helper;
-  memcpy(helper, name1, n_name1);
-  helper += n_name1;
+  dsC->dsNames[0] = c_temp;
+  memcpy(c_temp, name1, n_name1);
+  c_temp += n_name1;
   // etc for subsequent data structures
-  // dsC->dsNames[1] = helper;
-  memcpy(helper, name1, n_name1);
-  helper += n_name1;
-  // etc for subsequent data structures
-  // dsC->dsNames[1] = helper;
-  // memcpy(helper, name2, n_name2);
-  // helper += n_name2;
+  // dsC->dsNames[1] = c_temp;
+  memcpy(c_temp, name2, n_name2);
+  c_temp += n_name2;
 
-  assert(helper <= &((char *)dsC)[nByte]);
+  assert(c_temp <= &((char *)dsC)[nByte]);
 
-  data = (void *)dsC;
+  dat = (void *)dsC;
 
-  re_sqlite = pthread_create(&sqlite_thread, NULL, thread_sqlite, data);
+  signal(SIGPIPE, SIG_IGN);
+  re_sqlite = pthread_create(&sqlite_thread, NULL, thread_sqlite, dat);
   pthread_join(sqlite_thread, NULL);
   printf(\"Thread sqlite returned %i\\n\", re_sqlite);
 }
@@ -1223,10 +1469,10 @@ search.o: search.cpp bridge.h Account.h
 mkf
 
     myfile = File.open("main_v2.template", "w") do |fw|
-      fw.puts "\#include <stdio.h>"
-      fw.puts "\#include <string>"
+      fw.puts "\#include <stdlib.h>"
       fw.puts "\#include \"stl_to_sql.h\""
       fw.puts "\#include <pthread.h>"
+      fw.puts "\#include <assert.h>"
       fw.puts @directives
       fw.puts auto_gen1
       w = 0
@@ -1234,23 +1480,32 @@ mkf
         curr_ds = @ds_chars[w]
         # probably needs processing
         fw.puts "  queries[" + w.to_s + "] = \"" + curr_ds.gen_create_query() + "\";"
+        fw.puts "  table_names[" + w.to_s + "] = \"" + curr_ds.name + "\";"
         w += 1
       end
       fw.puts auto_gen2
     end
+
     myfile = File.open("search_v2.cpp", "w") do |fw|
       fw.puts "\#include \"search.h\""
       fw.puts "\#include <string>"
+      fw.puts "\#include <assert.h>"
+      fw.puts "\#include <stdio.h>"
       fw.puts @directives
       #can be made faster. call once, store in string and fw.puts string
       fw.puts
-      fw.puts "using namespace std;\n\n"      
-# print_set_dependencies
-# print_realloc_carrier
-# print_update_structures
+      fw.puts "using namespace std;\n\n"
+      print_set_dependencies(fw)
+      fw.puts "\n\n"
+      print_realloc_carrier(fw)
+      fw.puts "\n\n"
+      print_update_structures(fw)
+      fw.puts "\n\n"
+=begin
       print_ds_size_functions(fw)
 # print_realloc_resultset
       fw.puts auto_gen3
+
       print_search_functions(fw)
       print_retrieve_functions(fw)
     end
@@ -1264,6 +1519,7 @@ mkf
       fw.puts makefile_part
       fw.puts
       print_directives(fw, 2)
+=end
     end
   end
 
@@ -1347,9 +1603,7 @@ end
 
 
 if __FILE__==$0
-  description = "#include <stdio.h>
-#include <assert.h>
-#include <string>
+  description = "#include <string>
 #include <vector>
 
 #include \"Truck.h\"
