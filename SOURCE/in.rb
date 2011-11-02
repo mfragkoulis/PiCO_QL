@@ -8,23 +8,16 @@ class Column
   end
   attr_accessor(:name,:data_type,:related_to,:access_path,:type)
 
-  # If there is an access path on foreign key, the method returns it.
-  def examine_fk()
-    if @type == "foreign_key"
-      if @access_path.length > 0
-        return @access_path, @related_to
-      else
-        return nil
-      end
-    else
-      return nil
-    end
-  end
 
 # Performs case analysis with respect to the column_data type (class value)
 # and fills the variables with necessary values.
   def bind_datatypes(sqlite3_type, column_cast, sqlite3_parameters, 
                      column_cast_back, access_path)
+    if @type == "foreign_key" || @type == "primary_key"
+      sqlite3_type.replace("text")
+      sqlite3_parameters.replace(", -1, SQLITE_STATIC")
+      return "fill in"
+    end
     if @data_type == "int" || 
         @data_type == "integer" ||
         @data_type == "tinyint" ||
@@ -39,7 +32,7 @@ class Column
         @data_type == "numeric"
       sqlite3_type.replace("int")
     elsif @data_type == "blob"
-      sqlite3_type = "blob"
+      sqlite3_type.replace("blob")
       column_cast.replace("(const void *)")
       sqlite3_parameters.replace(", -1, SQLITE_STATIC")
     elsif @data_type == "float" ||
@@ -60,29 +53,16 @@ class Column
         @data_type.match(/nchar/i)
       sqlite3_type.replace("text")
       column_cast.replace("(const unsigned char *)")
+      column_cast_back.replace(".c_str()")
       sqlite3_parameters.replace(", -1, SQLITE_STATIC")
     elsif @data_type == "string"
       sqlite3_type.replace("text")
       column_cast.replace("(const unsigned char *)")
       column_cast_back.replace(".c_str()")
       sqlite3_parameters.replace(", -1, SQLITE_STATIC")
-    elsif @data_type == "references"
-      # needs taken care of
-      sqlite3_type.replace("int")
-      column_cast.replace("(long int)&")
     end
     access_path.replace(@access_path)
-=begin
-    if column_cast == nil
-      column_cast = ""
-    end
-    if sqlite3_parameters == nil
-      sqlite3_parameters = ""
-    end
-    if column_cast_back == nil
-      column_cast_back = ""
-    end
-=end
+    return "compare"
   end
 
 # Validates a column data type
@@ -133,7 +113,6 @@ class Column
 # column traits.
   def set(column)
     pattern = Regexp.new(/(\w+) (\w+)(\s*)from(\s*)&(\w*)(\s*)(\S*)|(\w+) (\w+)(\s*)from(\s*)(\S+)/i)
-    count_primitive = 0
     column.lstrip!
     column.rstrip!
     if column.match(/&\w/)
@@ -143,7 +122,6 @@ class Column
     end
     if column.match(/self/i)
       @type += "primitive"
-      count_primitive += 1
     end
     if @type.length == 0
       @type = "standard"
@@ -175,13 +153,16 @@ class Column
         @access_path = column_data[4]
         if @access_path.match(/\$/)
           puts "$"
+# have to enrich for dirty, fast version to be able to represent 
+# access from pointer (->).
           @access_path.gsub!(/\$/,".")
         end
       elsif column_data.length == 4
         if @type == "foreign_key"
           @related_to = column_data[3]
         else
-# if @type == "primary_key" or @type not key(!&) but data column then..
+# if @type not key(!&) but data column then..
+# note: no access path on primary key.
           @access_path = column_data[3]
         end
       elsif column_data.length == 3
@@ -197,7 +178,6 @@ class Column
       puts "Invalid format. One or more of identifiers 'FROM''(space)' missing\n"
       exit(1)
     end
-    return count_primitive
   end
 
 # Checks if the col is a foreign key to a given table 
@@ -243,185 +223,6 @@ class Data_structure_characteristics
   end
   attr_accessor(:name,:db,:signature,:stl_class,:object_class,:template_args,:parent,:children,:access,:columns,:s)
 
-# Generates cast to match each VT data type given certain paramaters.
-  def print_cast(fw, cast, op_sign, op_relationship, access_path)
-    if op_relationship == "standard"
-      if op_sign == "stl"
-        fw.puts "    " + cast +
-          " *any_dstr = (" + cast + " *)stl->data;"
-        fw.puts "    " + cast + ":: iterator iter;"
-      elsif op_sign == "object"
-        # maybe need to chomp possible '*'
-        fw.puts "    " + cast +
-          " *any_dstr = (" + cast + " *)stl->data;"
-      else
-        puts "ERROR: op_sign"
-        exit(1)
-      end
-    elsif op_relationship == "cast"
-      if op_sign == "stl"
-        fw.puts "    " + cast +
-          " *any_dstr = (" + cast + " *)stl->data;"
-        fw.puts "    " + @signature +
-          " *any_dstr = (" + @signature + " *)any_dstr->" + 
-          access_path + ";"
-        fw.puts "    " + @signature + ":: iterator iter;"
-      elsif op_sign == "object"
-        # maybe need to chomp possible '*'
-        fw.puts "    " + cast +
-          " *any_dstr = (" + cast + " *)stl->data;"
-        fw.puts "    " + @object_class +
-          " *any_dstr = (" + @object_class + " *)any_dstr->" +
-          access_path + ";"
-      else
-        puts "ERROR: op_sign"
-        exit(1)
-      end
-# obsolete
-    elsif @object_class.match(/^relationship_table/i)
-      # op_sign needless
-      if op_sign == "stl"
-        fw.puts "    " + cast +
-          " *any_dstr = (" + cast + " *)stl->data;"
-        fw.puts "    " + op_relationship +
-          " *any_dstr = (" + op_relationship + " *)any_dstr->" + 
-          access_path + ";"
-      elsif op_sign == "object"
-        # maybe need to chomp possible '*'
-        fw.puts "    " + cast +
-          " *any_dstr = (" + cast + " *)stl->data;"
-        fw.puts "    " + op_relationship +
-          " *any_dstr = (" + op_relationship + " *)any_dstr->" +
-          access_path + ";"
-      end
-    else
-      puts "ERROR: op_relationship"
-      exit(1)
-    end
-  end
-
-  # Invokes 'examine_fk' method for each column of the virtual table and 
-  # returns the return value.
-  def traverse_columns(path, related_to)
-    col = 0
-    p = 0
-    while col < @columns.length
-      # when pk?never access path?
-      tmp_path, tmp_rel = @columns[col].examine_fk()
-      if tmp_path != nil
-        path[p] = ""
-        path[p].replace(tmp_path)
-        related_to[p] = ""
-        related_to[p].replace(tmp_rel)
-        p += 1
-      end
-      col += 1
-    end
-  end
-
-# Examines signature and returns it together with the VT type 
-# (stl container or object).
-  def examine_sign(parent_name)
-    if @name == parent_name
-      if @signature.length > 0
-        return @signature, "stl"
-      elsif @object_class.length > 0
-        return @object_class, "object"
-      else
-        puts "ERROR: unspecified signature"
-        exit(1)
-      end
-    else
-      return nil, nil
-    end
-  end
-
-# relationship table obsolete
-  # Manages the casts on entrance of the virtual tables search and 
-  # retrieve methods. If access path is nil then the standard cast is
-  # performed, the backpointer in the stl->data is cast to the entity
-  # represented by the virtual table.
-  # If access path is not nil, the method helps prepare an explicit cast 
-  # from the 
-  # type of the parent virtual table, carried by the backpointer, to 
-  # the type of the current virtual table.
-  def manage_casts(fw, ds_array)
-    cast = nil
-    op_sign = nil
-    access_path = Array.new
-    related_to = Array.new
-    traverse_columns(access_path, related_to)
-    if @object_class.match(/^relationship_table/i)
-      ds = 0
-      while ds < ds_array.length && cast == nil
-        curr_ds = ds_array[ds]
-        cast, op_sign = curr_ds.examine_sign(@parent)
-        ds += 1
-      end
-      if cast == nil
-        puts "ERROR: Relationship not recorded"
-        exit(1)
-      end
-      # Need to cast to the parent VT which does not have an access path.
-      # The fk column of the relationship with the access path matches the 
-      # child VT and will pass the address to it via backpointer.
-      # child_signature holds the signature of the child VT that 
-      # participates in the relationship.
-      if access_path.length == 1
-        ds = 0
-        child_signature = nil
-        while ds < ds_array.length && child_signature == nil
-          curr_ds = ds_array[ds]
-          child_signature, useless = curr_ds.examine_sign(related_to[0])
-          ds += 1
-        end
-        if child_signature == nil
-          puts "ERROR: RELATIONSHIP not recorded"
-          exit(1)
-        end
-        print_cast(fw, cast, op_sign, child_signature, access_path[0])
-      else
-        puts "Unknown format of RELATIONSHIP_TABLE"
-        exit(1)
-      end
-    else
-      rt = 0
-      stop = nil
-      while rt < related_to.length && !stop
-        puts "STOP"
-        op_relationship = "cast"
-        if related_to[rt] == @parent
-          stop = true
-        end
-        rt += 1
-      end
-      # if an access path in fk has been found and the related_to table 
-      # matches the parent table
-      if stop
-        puts "!STOP"
-        ds = 0
-        while ds < ds_array.length && cast == nil
-          curr_ds = ds_array[ds]
-          cast, op_sign = curr_ds.examine_sign(@parent)
-          ds += 1
-        end
-        if cast == nil
-          puts "ERROR: relationship not recorded"
-          exit(1)
-        end
-      else
-        op_relationship = "standard"
-        if @signature.length > 0
-          cast = @signature
-          op_sign = "stl"
-        else
-          cast = @object_class
-          op_sign = "object"
-        end
-      end
-      print_cast(fw, cast, op_sign, op_relationship, access_path[rt])
-    end
-  end
 
 # Generates code to retrieve each VT struct.
 # Each retrieve case matches a specific column of the VT.
@@ -434,23 +235,27 @@ class Data_structure_characteristics
       sqlite3_parameters = ""
       column_cast_back = ""
       access_path = ""
-      @columns[col].bind_datatypes(sqlite3_type, column_cast, 
+      op = @columns[col].bind_datatypes(sqlite3_type, column_cast, 
                                    sqlite3_parameters, column_cast_back, 
                                    access_path)
-      if @signature.length > 0
-        if access_path.length == 0
-          iden = "(*iter)"
+      if op == "fill in"
+        iden = "\"N/A\""
+      elsif op == "compare"
+        if @signature.length > 0
+          if access_path.length == 0
+            iden = "(*iter)"
+          else
+            iden = "(*iter)."
+          end
         else
-          iden = "(*iter)."
-        end
-      else
-        if access_path.length == 0
-          iden = "any_dstr"
-        else
-          iden = "any_dstr->"
+          if access_path.length == 0
+            iden = "any_dstr"
+          else
+            iden = "any_dstr->"
+          end
         end
       end
-# too little exception in bind_datatypes to spoil code reuse
+# Patch. Too little exception in bind_datatypes to spoil code reuse
       if column_cast_back == ".c_str()"
         column_cast = "(const char *)"
       end
@@ -469,11 +274,8 @@ class Data_structure_characteristics
     #HereDoc1
 
         auto_gen5 = <<-AG5
-    char *colName = stl->azColumn[n];
     int index = stcsr->current;
-// iterator implementation. serial traversing or hit?
     iter = any_dstr->begin();
-// serial traversing. simple and generic. visitor pattern is next step.
     for(int i=0; i<stcsr->resultSet[index]; i++){
         iter++;
     }
@@ -483,12 +285,24 @@ AG5
 "
     fw.puts "    stlTable *stl = (stlTable *)cur->pVtab;"
     fw.puts "    stlTableCursor *stcsr = (stlTableCursor *)stc;"
-    manage_casts(fw, ds_array)
-    if @signature.length > 0
-      fw.puts auto_gen5
-    else
-      fw.puts "    char *colName = stl->azColumn[n];"
+    fw.puts "    data *d = (data *)stl->data;"
+    dereference = ""
+    if @parent.length > 0
+      dereference = "*"
     end
+    if @signature.length > 0
+      fw.puts "    " + @signature +
+        " *any_dstr = (" + @signature + " *)" + dereference + "d->mem;"
+      fw.puts "    " + @signature + ":: iterator iter;"
+      fw.puts auto_gen5
+    elsif @object_class.length > 0
+      fw.puts "    " + @object_class +
+        " *any_dstr = (" + @object_class + " *)" + dereference + "d->mem;"
+    else
+      puts "ERROR: not recorded structure type: stl or object"
+      exit(1)
+    end
+    fw.puts "    char *colName = stl->azColumn[n];"
     fw.puts "    switch( n ){"
   end
 
@@ -508,7 +322,7 @@ AG5
       sqlite3_parameters = ""
       column_cast_back = ""
       access_path = ""
-      @columns[col].bind_datatypes(sqlite3_type, column_cast, 
+      op = @columns[col].bind_datatypes(sqlite3_type, column_cast, 
                                    sqlite3_parameters, column_cast_back, 
                                    access_path)
       if @signature.length > 0
@@ -530,19 +344,27 @@ AG5
       #      puts "column_cast_back: " + column_cast_back
       #      puts "access_path: " + access_path
       if @signature.length > 0
-        fw.puts @s + @s + "if (traverse(" + column_cast + iden + 
-          access_path + column_cast_back + ", op, sqlite3_value_" + 
-          sqlite3_type + "(val)) )"
-        fw.puts @s + @s + "    stcsr->resultSet[count++] = i;"
+        if op == "compare"
+          fw.puts @s + @s + "if (compare(" + column_cast + iden + 
+            access_path + column_cast_back + ", op, sqlite3_value_" + 
+            sqlite3_type + "(val)) )"
+          fw.puts @s + @s + "    temp_res[count++] = i;"
+        elsif op == "fill in"
+          fw.puts @s + @s + "temp_res[count++] = i;"
+        end
         fw.puts @s + @s + "iter++;"
         fw.puts @s + "    }"
       else
-        fw.puts @s + "    if (traverse(" + column_cast + iden + 
-          access_path + column_cast_back + ", op, sqlite3_value_" + 
-          sqlite3_type + "(val)) )"
-        fw.puts @s + @s + "stcsr->resultSet[count++] = i;"        
+        if op == "compare"
+          fw.puts @s + "    if (compare(" + column_cast + iden + 
+            access_path + column_cast_back + ", op, sqlite3_value_" + 
+            sqlite3_type + "(val)) )"
+          fw.puts @s + @s + "temp_res[count++] = i;"        
+        elsif op == "fill in"
+          fw.puts @s + "    temp_res[count++] = i;"
+        end
       end
-      fw.puts @s + "    stcsr->size += count;"
+      fw.puts @s + "    assert(count <= stcsr->max_size);"
       fw.puts @s + "    break;"
       col += 1
     end
@@ -552,30 +374,31 @@ AG5
 # for search to happen successfully (condition checks, reallocation)
   def setup_search(fw, ds_array)
 
+# optimisation: refrain from calling get_datastructure_size in each call.
+# However for real time apps this is necessary.
     #HereDoc1
 
-  top_level = <<-tpl
+  stl_fill_resultset = <<-SFR
         for (int j=0; j<get_datastructure_size((void *)stl); j++){
             stcsr->resultSet[j] = j;
             stcsr->size++;
 	}
         assert(stcsr->size <= stcsr->max_size);
         assert(&stcsr->resultSet[stcsr->size] <= &stcsr->resultSet[stcsr->max_size]);
-
-tpl
+SFR
 
 
     #HereDoc2
 
-  exit_search = <<-exs
-        printf("embedded data structure cannot be requested constraint-less.must be joined");
-        exit(1);
-exs
+  object_match = <<-OM
+        stcsr->resultSet[count++] = i;
+        stcsr->size++;
+OM
 
 
     #HereDoc3
 
-          auto_gen35 = <<-AG35
+          constraint_match = <<-CM
     }else{
         switch( constr[0] - 'A' ){
         case 0:
@@ -597,70 +420,53 @@ exs
             op = 5;
             break;
         default:
-            NULL;
             break;
         }
-
         iCol = constr[1] - 'a' + 1;
-        int *temp_res;
-AG35
-
-
-    #HereDoc4
-
-
-    embedded_level2 = <<-eml2
-        int arraySize;
-        int *res;
-        arraySize=get_datastructure_size(stl);
-
-        if ( arraySize != stcsr->max_size ){
-            res = (int *)sqlite3_realloc(stcsr->resultSet, sizeof(int) * arraySize);
-            if (res!=NULL){
-                stcsr->resultSet = res;
-                memset(stcsr->resultSet, -1,
-                       sizeof(int) * arraySize);
-                stcsr->max_size = arraySize;
-                printf("\\nReallocating resultSet..now max size %i \\n\\n", stcsr->max_size);
-            }else{
-                free(res);
-                printf("Error (re)allocating memory\\n");
-                exit(1);
-            }
-        }
-eml2
-
+CM
 
     #HereDoc5
 
     auto_gen4 = <<-AG4
+        int *temp_res;
 	temp_res = (int *)sqlite3_malloc(sizeof(int)  * stcsr->max_size);
         if ( !temp_res ){
             printf("Error in allocating memory\\n");
             exit(1);
         }
-
         switch( iCol ){
 AG4
 
     fw.puts "    sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;"
     fw.puts "    stlTable *stl = (stlTable *)cur->pVtab;"
     fw.puts "    stlTableCursor *stcsr = (stlTableCursor *)stc;"
-    manage_casts(fw, ds_array)
-    fw.puts "    int op, iCol, count = 0;"
-    fw.puts "// val==NULL then constr==NULL also"
-    fw.puts "    if ( val==NULL ){"
-    if @parent.length == 0 && @signature.length > 0
-      fw.puts top_level
-    else
-      fw.puts exit_search
-    end
-    fw.puts auto_gen35
+    fw.puts "    data *d = (data *)stl->data;"
+    dereference = ""
     if @parent.length > 0
-      if @signature.length > 0
-        fw.puts embedded_level2
-      end
+      dereference = "*"
     end
+    if @signature.length > 0
+      fw.puts "    " + @signature +
+        " *any_dstr = (" + @signature + " *)" + dereference + "d->mem;"
+      fw.puts "    " + @signature + ":: iterator iter;"
+    elsif @object_class.length > 0
+      fw.puts "    " + @object_class +
+        " *any_dstr = (" + @object_class + " *)" + dereference + "d->mem;"
+    else
+      puts "ERROR: not recorded structure type: stl or object"
+      exit(1)
+    end
+    fw.puts "    int op, iCol, count = 0, i = 0;"
+    if @parent.length > 0 && @signature.length > 0
+      fw.puts "    realloc_resultset(stc);"
+    end
+    fw.puts "    if ( val==NULL ){"
+    if @signature.length > 0
+      fw.puts stl_fill_resultset
+    else
+      fw.puts object_match
+    end
+    fw.puts constraint_match
     fw.puts auto_gen4
   end
 
@@ -698,10 +504,9 @@ AG4
 # Stores column information in a specific data structure
   def register_columns(columns)
     col = 0
-    count_primitive = 0
     while col < columns.length
       @columns[col] = Column.new
-      count_primitive += @columns[col].set(columns[col])
+      @columns[col].set(columns[col])
       col += 1
     end
   end
@@ -893,6 +698,8 @@ class Input_Description
         fw.print current + ".o: " + current + 
           ".cpp " + current + ".h \n" + 
           "\tg++ -W -g -c " + current + ".cpp \n\n"
+      elsif op == 3
+        fw.print current + ".h "
       end
       td += 1
     end
@@ -936,7 +743,7 @@ class Input_Description
         "_retrieve(stc, n, con);"
       w += 1
     end
-    fw.puts "}\n\n"
+    fw.puts "}"
   end
 
 # Generates the application-specific search method for each VT struct.
@@ -945,16 +752,16 @@ class Input_Description
     #HereDoc1
 
        cls_search = <<-cls
-// more datatypes and ops exist
         }
         int ia, ib;
         int *i_res;
         int i_count = 0;
-        if (stcsr->size == 0){
+        if ( (stcsr->size == 0) && (stcsr->first_constr == 1) ){
             memcpy(stcsr->resultSet, temp_res, sizeof(int) *
                                      stcsr->max_size);
             stcsr->size = count;
-        }else{
+            stcsr->first_constr = 0;
+        }else if (stcsr->size > 0){
             i_res = (int *)sqlite3_malloc(sizeof(int) *
                                         stcsr->max_size);
             for(int a=0; a<stcsr->size; a++){
@@ -963,16 +770,13 @@ class Input_Description
                     ib = temp_res[b];
                     if( ia==ib ){
                         i_res[i_count++] = ia;
-                        b++;
                     }else if( ia < ib )
                         b = count;
-                    else
-                        b++;
-		}
+                }
             }
             assert( i_count <= stcsr->max_size );
             memcpy(stcsr->resultSet, i_res, sizeof(int) *
-                                     i_count);
+                   i_count);
             stcsr->size = i_count;
             sqlite3_free(i_res);
         }
@@ -1005,7 +809,7 @@ cls
         "_search(stc, constr, val);"
       w += 1
     end
-    fw.puts "}\n\n"
+    fw.puts "}"
   end
 
 # Generates method that returns size of each VT struct.
@@ -1015,17 +819,23 @@ cls
     w = 0
     while w < @ds_chars.length
       curr_ds = @ds_chars[w]
-# if not a shared object print:
       if curr_ds.signature.length > 0
+        if curr_ds.parent.length > 0
+          dereference = "*"
+        else
+          dereference = ""
+        end
         fw.puts "    if( !strcmp(stl->zName, \"" + curr_ds.name + "\") )\
 {"
-        fw.puts "        " + curr_ds.signature + " *any_dstr = (" +
-          curr_ds.signature + " *)stl->data;"
+        fw.puts @s + "data *d = (data *)stl->data;"
+        fw.puts @s + curr_ds.signature + " *any_dstr = (" +
+          curr_ds.signature + " *)" + dereference + "d->mem;"
         fw.puts "        return ((int)any_dstr->size());"
         fw.puts "    }"
       end
       w += 1
     end
+    fw.puts "    return 1;"
     fw.puts "}"
   end
 
@@ -1033,6 +843,7 @@ cls
 # when the latter is updated. This is how our virtual join mechanism 
 # is generated
   def print_update_structures(fw)
+
     setting_up = <<-SS
     sqlite3_vtab_cursor *stc = (sqlite3_vtab_cursor *)cur;
     stlTable *stl = (stlTable *)stc->pVtab;
@@ -1112,7 +923,7 @@ SUC
             access = access_bridge + @ds_chars[trv].access
           end
           fw.puts @s + "while (dc < no_child) {"
-          fw.puts @s + "    if ( !strcmp(dsC->dsNames[dc], \"" + 
+          fw.puts @s + "    if ( !strcmp(names[dc], \"" + 
             children[ch] + "\") ) {"
           fw.puts @s + @s + "d->children->memories[dc] = (long int *)" +
             form + access + ";"
@@ -1247,7 +1058,7 @@ SS
         fw.puts "    } else if( !strcmp(table_name, \"" + curr_ds.name + "\") ) {"
       end
       if children_no > 0
-        fw.puts @s + "data *d = sqlite3_malloc(sizeof(data) + sizeof(dsCarrier) + sizeof(long int *) * " + children_no.to_s + " + sizeof(const char *) * " + children_no.to_s + ");"
+        fw.puts @s + "data *d = (data *)sqlite3_malloc(sizeof(data) + sizeof(dsCarrier) + sizeof(long int *) * " + children_no.to_s + " + sizeof(const char *) * " + children_no.to_s + ");"
         fw.puts @s + "d->children = (dsCarrier *)&d[1];"
         fw.puts @s + "d->children->memories = (long int **)&d->children[1];"
         fw.puts @s + "d->children->dsNames = (const char **)&d->children->memories[1];"
@@ -1264,13 +1075,13 @@ SS
           fw.puts @s + "    dc++;"
           fw.puts @s + "}"
           fw.puts @s + "dsC->memories[dc] = (long int *)&d->children->memories[ch];"
-          fw.puts @s + "d->children->dsNames[ch] = dsC->dsnames[dc];"
+          fw.puts @s + "d->children->dsNames[ch] = dsC->dsNames[dc];"
           fw.puts @s + "ch++;"
           fw.puts @s + "assert (ch == d->children->size);"
           ch += 1
         end
       else
-        fw.puts @s + "data *d = sqlite3_malloc(sizeof(data));"
+        fw.puts @s + "data *d = (data *)sqlite3_malloc(sizeof(data));"
         fw.puts @s + "d->children = NULL;"
       end
       fw.puts @s + "d->mem = dsC->memories[c];"
@@ -1293,20 +1104,22 @@ using namespace std;
 
 
 void * thread_sqlite(void *data){
-  const char **queries, **table_names;
-  queries = (const char **)sqlite3_malloc(sizeof(char *) *
+    const char **queries, **table_names;
+    queries = (const char **)sqlite3_malloc(sizeof(char *) *
                    #{@ds_chars.length.to_s});
-  int failure = 0;
+    table_names = (const char **)sqlite3_malloc(sizeof(char *) *
+                   #{@ds_chars.length.to_s});
+    int failure = 0;
 AG1
 
    #HereDoc2
 # maybe adjust so that create queries are grouped by database.
       auto_gen2 = <<-AG2
-  failure = register_table( "#{@ds_chars[0].db}" ,  #{@ds_chars.length.to_s}, queries, table_names, data);
-  printf(\"Thread sqlite returning..\\n\");
-  sqlite3_free(queries);
-  sqlite3_free(table_names);
-  return (void *)failure;
+    failure = register_table( "#{@ds_chars[0].db}" ,  #{@ds_chars.length.to_s}, queries, table_names, data);
+    printf(\"Thread sqlite returning..\\n\");
+    sqlite3_free(queries);
+    sqlite3_free(table_names);
+    return (void *)failure;
 }
 
 
@@ -1380,7 +1193,33 @@ AG2
         auto_gen3 = <<-AG3
 
 
-int traverse(int dstr_value, int op, int value){
+void realloc_resultset(void *stc) {
+    sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;
+    stlTable *stl = (stlTable *)cur->pVtab;
+    stlTableCursor *stcsr = (stlTableCursor *)stc;
+    int arraySize;
+    int *res;
+    arraySize = get_datastructure_size((void *)stl);
+    if ( arraySize != stcsr->max_size ){
+        res = (int *)sqlite3_realloc(stcsr->resultSet, sizeof(int) * arraySize);
+        if (res!=NULL){
+            stcsr->resultSet = res;
+            memset(stcsr->resultSet, -1,
+                   sizeof(int) * arraySize);
+            stcsr->max_size = arraySize;
+#ifdef DEBUGGING
+            printf("\\nReallocating resultSet..now max size %i \\n\\n", stcsr->max_size);
+#endif
+        }else{
+            free(res);
+            printf("Error (re)allocating memory\\n");
+            exit(1);
+        }
+    }
+}
+
+
+int compare(int dstr_value, int op, int value){
     switch( op ){
     case 0:
         return dstr_value<value;
@@ -1396,23 +1235,7 @@ int traverse(int dstr_value, int op, int value){
 }
 
 
-int traverse(double dstr_value, int op, double value){
-    switch( op ){
-    case 0:
-        return dstr_value<value;
-    case 1:
-        return dstr_value<=value;
-    case 2:
-        return dstr_value==value;
-    case 3:
-        return dstr_value>=value;
-    case 4:
-        return dstr_value>value;
-    }
-}
-
-// compare addresses???
-int traverse(const void *dstr_value, int op, const void *value){
+int compare(long int dstr_value, int op, long int value){
     switch( op ){
     case 0:
         return dstr_value<value;
@@ -1428,7 +1251,39 @@ int traverse(const void *dstr_value, int op, const void *value){
 }
 
 
-int traverse(const unsigned char *dstr_value, int op,
+int compare(double dstr_value, int op, double value){
+    switch( op ){
+    case 0:
+        return dstr_value<value;
+    case 1:
+        return dstr_value<=value;
+    case 2:
+        return dstr_value==value;
+    case 3:
+        return dstr_value>=value;
+    case 4:
+        return dstr_value>value;
+    }
+}
+
+
+int compare(const void *dstr_value, int op, const void *value){
+    switch( op ){
+    case 0:
+        return dstr_value<value;
+    case 1:
+        return dstr_value<=value;
+    case 2:
+        return dstr_value==value;
+    case 3:
+        return dstr_value>=value;
+    case 4:
+        return dstr_value>value;
+    }
+}
+
+
+int compare(const unsigned char *dstr_value, int op,
                    const unsigned char *value){
     switch( op ){
     case 0:
@@ -1445,8 +1300,6 @@ int traverse(const unsigned char *dstr_value, int op,
 }
 
 
-
-
 AG3
 
 
@@ -1455,16 +1308,13 @@ AG3
 
   makefile_part = <<-mkf
 
-main.o: main.cpp Account.h bridge.h
-        g++ -W -g -c main.cpp
-
 user_functions.o: user_functions.c bridge.h
         gcc -W -g -c user_functions.c
 
 stl_to_sql.o: stl_to_sql.c stl_to_sql.h bridge.h
         gcc -g -c stl_to_sql.c
 
-search.o: search.cpp bridge.h Account.h
+search.o: search.cpp bridge.h
         g++ -W -g -c search.cpp
 mkf
 
@@ -1479,14 +1329,14 @@ mkf
       while w < @ds_chars.length
         curr_ds = @ds_chars[w]
         # probably needs processing
-        fw.puts "  queries[" + w.to_s + "] = \"" + curr_ds.gen_create_query() + "\";"
-        fw.puts "  table_names[" + w.to_s + "] = \"" + curr_ds.name + "\";"
+        fw.puts "    queries[" + w.to_s + "] = \"" + curr_ds.gen_create_query() + "\";"
+        fw.puts "    table_names[" + w.to_s + "] = \"" + curr_ds.name + "\";"
         w += 1
       end
       fw.puts auto_gen2
     end
 
-    myfile = File.open("search_v2.cpp", "w") do |fw|
+    myfile = File.open("search.cpp", "w") do |fw|
       fw.puts "\#include \"search.h\""
       fw.puts "\#include <string>"
       fw.puts "\#include <assert.h>"
@@ -1501,12 +1351,10 @@ mkf
       fw.puts "\n\n"
       print_update_structures(fw)
       fw.puts "\n\n"
-=begin
       print_ds_size_functions(fw)
-# print_realloc_resultset
       fw.puts auto_gen3
-
       print_search_functions(fw)
+      fw.puts "\n\n"
       print_retrieve_functions(fw)
     end
     myFile = File.open("makefile_v2", "w") do |fw|
@@ -1515,11 +1363,13 @@ mkf
       print_directives(fw, 1)
       fw.print "\n    g++ -lswill -lsqlite3 -W -g main.o search.o stl_to_sql.o user_functions.o "
       print_directives(fw, 1)
-      fw.puts "-o test"
+      fw.puts "-o test\n\n"
+      fw.print "main.o: main.cpp bridge.h "
+      print_directives(fw, 3)
+      fw.puts "\n\tg++ -W -g -c main.cpp"
       fw.puts makefile_part
       fw.puts
       print_directives(fw, 2)
-=end
     end
   end
 
@@ -1611,7 +1461,8 @@ if __FILE__==$0
 TABLE foo.Trucks : vector<Truck*> {truck_id INT FROM &Truck}
 TABLE foo.Truck : Truck FROM Trucks {truck_id INT FROM &, cost DOUBLE FROM get_cost(), delcapacity INT FROM get_delcapacity(), pickcapacity INT FROM get_pickcapacity(), rlpoint INT FROM get_rlpoint()}
 TABLE foo.Customers : vector<Customer *> FROM Truck {truck_id INT FROM &Truck get_Customers(), customer_id INT FROM &Customer}
-TABLE foo.Customer : Customer FROM Customers {customer_id INT FROM &, demand INT FROM get_demand(), code STRING from get_code(), serviced INT from get_serviced(), pickdemand INT FROM get_pickdemand(), starttime INT FROM get_starttime(), servicetime INT FROM get_servicetime(), finishtime INT FROM get_finishtime(), revenue INT FROM get_revenue()}"
+TABLE foo.Customer : Customer FROM Customers {customer_id INT FROM &, demand INT FROM get_demand(), code STRING from get_code(), serviced INT from get_serviced(), pickdemand INT FROM get_pickdemand(), starttime INT FROM get_starttime(), servicetime INT FROM get_servicetime(), finishtime INT FROM get_finishtime(), revenue INT FROM get_revenue(), position_id INT FROM &Position get_pos()}
+TABLE foo.Position : Position FROM Customer {position_id INT FROM &, x_coord INT FROM get_x(), y_coord INT FROM get_y()}"
   input = Input_Description.new(description)
   input.register_datastructure
 end
