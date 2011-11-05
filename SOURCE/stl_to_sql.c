@@ -1,5 +1,4 @@
 #include "stl_to_sql.h"
-#include "bridge.h"
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
@@ -29,7 +28,7 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc,
 		const char * const * argv, sqlite3_vtab **ppVtab,
 		char **pzErr){
   stlTable *stl;
-  int nDb, nName, nByte, nCol, nString, count, i;
+  int nDb, nName, nByte, nCol, nString, count, i, re;
   char *temp;
   nDb = (int)strlen(argv[1]) + 1;
   nName = (int)strlen(argv[2]) + 1;
@@ -50,7 +49,8 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc,
   stl->db = db;
   int q = 0;
   char str[1024];
-  realloc_carrier((void *)stl, paux, argv[2]);
+  if ( (re = realloc_carrier((void *)stl, paux, argv[2], pzErr)) != SQLITE_OK )
+    return re;
   stl->nColumn = nCol;
   stl->azColumn=(char **)&stl[1];
   temp=(char *)&stl->azColumn[nCol];
@@ -230,6 +230,7 @@ int filter_vtable(sqlite3_vtab_cursor *cur, int idxNum, const char *idxStr,
 
 //xNext
 int next_vtable(sqlite3_vtab_cursor *cur){
+  int re;
   stlTable *st=(stlTable *)cur->pVtab;
   stlTableCursor *stc=(stlTableCursor *)cur;
   stc->current++;
@@ -239,7 +240,8 @@ int next_vtable(sqlite3_vtab_cursor *cur){
   if ( stc->current>=stc->size )
     stc->isEof = 1;
   else
-    update_structures((void *)cur);    
+    if ( (re = update_structures((void *)cur)) != SQLITE_OK )
+      return re;    
   return SQLITE_OK;
 }
 

@@ -10,7 +10,7 @@
 
 using namespace std;
 
-int set_dependencies(void *st, void *ds, const char *table_name) {
+int set_dependencies(void *st, void *ds, const char *table_name, char **pzErr) {
     stlTable *stl = (stlTable *)st;
     dsCarrier **ddsC = (dsCarrier **)ds;
     dsCarrier *dsC = *ddsC;
@@ -22,11 +22,18 @@ int set_dependencies(void *st, void *ds, const char *table_name) {
         c++;
     }
     if( !strcmp(table_name, "Trucks") ) {
-        data *d = (data *)sqlite3_malloc(sizeof(data) + sizeof(dsCarrier) + sizeof(long int *) * 1 + sizeof(const char *) * 1);
+        data *d = (data *)sqlite3_malloc(sizeof(data) + sizeof(dsCarrier) + (sizeof(long int *) + sizeof(const char *) + sizeof(int *)) * 1);
+        d->set_mem = dsC->set_memories[c];
+        *d->set_mem = 0;
         d->children = (dsCarrier *)&d[1];
         d->children->memories = (long int **)&d->children[1];
         d->children->dsNames = (const char **)&d->children->memories[1];
+        d->children->set_memories = (int **)&d->children->dsNames[1];
+        d->mem = dsC->memories[c];
         d->children->size = 1;
+        vector<Truck*> *any_dstr = (vector<Truck*> *)d->mem;
+        vector<Truck*>::iterator iter;
+        iter = any_dstr->begin();
         ch = 0;
         dc = 0;
         while (dc < dsC_size) {
@@ -34,18 +41,29 @@ int set_dependencies(void *st, void *ds, const char *table_name) {
                 break;
             dc++;
         }
-        dsC->memories[dc] = (long int *)&d->children->memories[ch];
+        d->children->memories[ch] = (long int *)(*iter);
+	dsC->memories[dc] = (long int *)&d->children->memories[ch];
+	d->children->set_memories[ch] = dsC->set_memories[dc];
+        *d->children->set_memories[ch] = 1;
         d->children->dsNames[ch] = dsC->dsNames[dc];
         ch++;
         assert (ch == d->children->size);
-        d->mem = dsC->memories[c];
         stl->data = (void *)d;
     } else if( !strcmp(table_name, "Truck") ) {
-        data *d = (data *)sqlite3_malloc(sizeof(data) + sizeof(dsCarrier) + sizeof(long int *) * 1 + sizeof(const char *) * 1);
+        if ( *dsC->set_memories[c] == 0 ) {
+            *pzErr = sqlite3_mprintf("Attempted to open the VT %s before its ancestor forgot to include ancestor in FROM clause. Please pay attention to the order of VTs in the FROM clause.\n", table_name);
+            return SQLITE_MISUSE;
+        }
+        data *d = (data *)sqlite3_malloc(sizeof(data) + sizeof(dsCarrier) + (sizeof(long int *) + sizeof(const char *) + sizeof(int *)) * 1);
+        d->set_mem = dsC->set_memories[c];
+        *d->set_mem = 0;
         d->children = (dsCarrier *)&d[1];
         d->children->memories = (long int **)&d->children[1];
         d->children->dsNames = (const char **)&d->children->memories[1];
+        d->children->set_memories = (int **)&d->children->dsNames[1];
+        d->mem = dsC->memories[c];
         d->children->size = 1;
+        Truck *any_dstr = (Truck *)*d->mem;
         ch = 0;
         dc = 0;
         while (dc < dsC_size) {
@@ -53,18 +71,31 @@ int set_dependencies(void *st, void *ds, const char *table_name) {
                 break;
             dc++;
         }
-        dsC->memories[dc] = (long int *)&d->children->memories[ch];
+        d->children->memories[ch] = (long int *)any_dstr->get_Customers();
+	dsC->memories[dc] = (long int *)&d->children->memories[ch];
+	d->children->set_memories[ch] = dsC->set_memories[dc];
+        *d->children->set_memories[ch] = 1;
         d->children->dsNames[ch] = dsC->dsNames[dc];
         ch++;
         assert (ch == d->children->size);
-        d->mem = dsC->memories[c];
         stl->data = (void *)d;
     } else if( !strcmp(table_name, "Customers") ) {
-        data *d = (data *)sqlite3_malloc(sizeof(data) + sizeof(dsCarrier) + sizeof(long int *) * 1 + sizeof(const char *) * 1);
+        if ( *dsC->set_memories[c] == 0 ) {
+            *pzErr = sqlite3_mprintf("Attempted to open the VT %s before its ancestor forgot to include ancestor in FROM clause. Please pay attention to the order of VTs in the FROM clause.\n", table_name);
+            return SQLITE_MISUSE;
+        }
+        data *d = (data *)sqlite3_malloc(sizeof(data) + sizeof(dsCarrier) + (sizeof(long int *) + sizeof(const char *) + sizeof(int *)) * 1);
+        d->set_mem = dsC->set_memories[c];
+        *d->set_mem = 0;
         d->children = (dsCarrier *)&d[1];
         d->children->memories = (long int **)&d->children[1];
         d->children->dsNames = (const char **)&d->children->memories[1];
+        d->children->set_memories = (int **)&d->children->dsNames[1];
+        d->mem = dsC->memories[c];
         d->children->size = 1;
+        vector<Customer*> *any_dstr = (vector<Customer*> *)*d->mem;
+        vector<Customer*>::iterator iter;
+        iter = any_dstr->begin();
         ch = 0;
         dc = 0;
         while (dc < dsC_size) {
@@ -72,18 +103,29 @@ int set_dependencies(void *st, void *ds, const char *table_name) {
                 break;
             dc++;
         }
-        dsC->memories[dc] = (long int *)&d->children->memories[ch];
+        d->children->memories[ch] = (long int *)(*iter);
+	dsC->memories[dc] = (long int *)&d->children->memories[ch];
+	d->children->set_memories[ch] = dsC->set_memories[dc];
+        *d->children->set_memories[ch] = 1;
         d->children->dsNames[ch] = dsC->dsNames[dc];
         ch++;
         assert (ch == d->children->size);
-        d->mem = dsC->memories[c];
         stl->data = (void *)d;
     } else if( !strcmp(table_name, "Customer") ) {
-        data *d = (data *)sqlite3_malloc(sizeof(data) + sizeof(dsCarrier) + sizeof(long int *) * 1 + sizeof(const char *) * 1);
+        if ( *dsC->set_memories[c] == 0 ) {
+            *pzErr = sqlite3_mprintf("Attempted to open the VT %s before its ancestor forgot to include ancestor in FROM clause. Please pay attention to the order of VTs in the FROM clause.\n", table_name);
+            return SQLITE_MISUSE;
+        }
+        data *d = (data *)sqlite3_malloc(sizeof(data) + sizeof(dsCarrier) + (sizeof(long int *) + sizeof(const char *) + sizeof(int *)) * 1);
+        d->set_mem = dsC->set_memories[c];
+        *d->set_mem = 0;
         d->children = (dsCarrier *)&d[1];
         d->children->memories = (long int **)&d->children[1];
         d->children->dsNames = (const char **)&d->children->memories[1];
+        d->children->set_memories = (int **)&d->children->dsNames[1];
+        d->mem = dsC->memories[c];
         d->children->size = 1;
+        Customer *any_dstr = (Customer *)*d->mem;
         ch = 0;
         dc = 0;
         while (dc < dsC_size) {
@@ -91,39 +133,53 @@ int set_dependencies(void *st, void *ds, const char *table_name) {
                 break;
             dc++;
         }
-        dsC->memories[dc] = (long int *)&d->children->memories[ch];
+        d->children->memories[ch] = (long int *)any_dstr->get_pos();
+	dsC->memories[dc] = (long int *)&d->children->memories[ch];
+	d->children->set_memories[ch] = dsC->set_memories[dc];
+        *d->children->set_memories[ch] = 1;
         d->children->dsNames[ch] = dsC->dsNames[dc];
         ch++;
         assert (ch == d->children->size);
-        d->mem = dsC->memories[c];
         stl->data = (void *)d;
     } else if( !strcmp(table_name, "Position") ) {
+        if ( *dsC->set_memories[c] == 0 ) {
+            *pzErr = sqlite3_mprintf("Attempted to open the VT %s before its ancestor forgot to include ancestor in FROM clause. Please pay attention to the order of VTs in the FROM clause.\n", table_name);
+            return SQLITE_MISUSE;
+        }
         data *d = (data *)sqlite3_malloc(sizeof(data));
-        d->children = NULL;
+        d->set_mem = dsC->set_memories[c];
+        *d->set_mem = 0;
         d->mem = dsC->memories[c];
+        d->children = NULL;
         stl->data = (void *)d;
     }
+    return SQLITE_OK;
 }
 
 
-int realloc_carrier(void *st, void *ds, const char *tablename) {
+int realloc_carrier(void *st, void *ds, const char *tablename, char **pzErr) {
     dsCarrier **ddsC = (dsCarrier **)ds;
     dsCarrier *dsC = *ddsC;
     dsCarrier *tmp_dsC;
-    int x_size, nByte, c;
+    int x_size, nByte, c, i;
     char *c_temp;
 #ifdef DEBUGGING
     printf("dsC->size: %i\n", dsC->size);
 #endif
     if (dsC->size != 5) {
         x_size = dsC->size;
-        nByte = sizeof(dsCarrier) + sizeof(long int *) * 5 + sizeof(const char *) * 5 + 41;
+        nByte = sizeof(dsCarrier) + (sizeof(long int *) + sizeof(const char *) + sizeof(int *) + sizeof(int)) * 5 + 41;
         tmp_dsC = (dsCarrier *)sqlite3_malloc(nByte);
         if (tmp_dsC != NULL) {
+            memset(tmp_dsC, 0, nByte);
             tmp_dsC->size = 5;
             tmp_dsC->dsNames = (const char **)&tmp_dsC[1];
             tmp_dsC->memories = (long int **)&tmp_dsC->dsNames[5];
-            c_temp = (char *)&tmp_dsC->memories[5];
+            tmp_dsC->set_memories = (int **)&tmp_dsC->memories[5];
+            tmp_dsC->set_memories[0] = (int *)&tmp_dsC->set_memories[5];
+            for (i = 1; i < tmp_dsC->size; i++)
+                tmp_dsC->set_memories[i] = &tmp_dsC->set_memories[i-1][1];
+            c_temp = (char *)&tmp_dsC->set_memories[i-1][1];
             c = 0;
             int len;
             while (c < x_size) {
@@ -166,11 +222,11 @@ int realloc_carrier(void *st, void *ds, const char *tablename) {
 #endif
         }else{
             free(tmp_dsC);
-            printf("Error (re)allocating memory\n");
-            exit(1);
+            *pzErr = sqlite3_mprintf("Error (re)allocating memory\n");
+            return SQLITE_NOMEM;
         }
     }
-    set_dependencies(st, ds, tablename);
+    return set_dependencies(st, ds, tablename, pzErr);
 }
 
 
@@ -183,10 +239,10 @@ int update_structures(void *cur) {
     const char **names;
     int dc, index, no_child;
     if( !strcmp(table_name, "Trucks") ) {
+        index = stcsr->current;
         vector<Truck*> *any_dstr = (vector<Truck*> *)d->mem;
         vector<Truck*>::iterator iter;
         iter = any_dstr->begin();
-        index = stcsr->current;
         for(int i=0; i<stcsr->resultSet[index]; i++){
             iter++;
         }
@@ -196,11 +252,16 @@ int update_structures(void *cur) {
         while (dc < no_child) {
             if ( !strcmp(names[dc], "Truck") ) {
                 d->children->memories[dc] = (long int *)(*iter);
+                *d->children->set_memories[dc] = 1;
                 break;
             }
             dc++;
         }
     } else if( !strcmp(table_name, "Truck") ) {
+        index = stcsr->current;
+        if ( (index == 0) && (*d->set_mem == 0) )
+            return SQLITE_MISUSE;
+        *d->set_mem = 0;
         Truck *any_dstr = (Truck *)*d->mem;
         dc = 0;
         names = d->children->dsNames;
@@ -208,15 +269,19 @@ int update_structures(void *cur) {
         while (dc < no_child) {
             if ( !strcmp(names[dc], "Customers") ) {
                 d->children->memories[dc] = (long int *)any_dstr->get_Customers();
+                *d->children->set_memories[dc] = 1;
                 break;
             }
             dc++;
         }
     } else if( !strcmp(table_name, "Customers") ) {
+        index = stcsr->current;
+        if ( (index == 0) && (*d->set_mem == 0) )
+            return SQLITE_MISUSE;
+        *d->set_mem = 0;
         vector<Customer*> *any_dstr = (vector<Customer*> *)*d->mem;
         vector<Customer*>::iterator iter;
         iter = any_dstr->begin();
-        index = stcsr->current;
         for(int i=0; i<stcsr->resultSet[index]; i++){
             iter++;
         }
@@ -226,11 +291,16 @@ int update_structures(void *cur) {
         while (dc < no_child) {
             if ( !strcmp(names[dc], "Customer") ) {
                 d->children->memories[dc] = (long int *)(*iter);
+                *d->children->set_memories[dc] = 1;
                 break;
             }
             dc++;
         }
     } else if( !strcmp(table_name, "Customer") ) {
+        index = stcsr->current;
+        if ( (index == 0) && (*d->set_mem == 0) )
+            return SQLITE_MISUSE;
+        *d->set_mem = 0;
         Customer *any_dstr = (Customer *)*d->mem;
         dc = 0;
         names = d->children->dsNames;
@@ -238,13 +308,18 @@ int update_structures(void *cur) {
         while (dc < no_child) {
             if ( !strcmp(names[dc], "Position") ) {
                 d->children->memories[dc] = (long int *)any_dstr->get_pos();
+                *d->children->set_memories[dc] = 1;
                 break;
             }
             dc++;
         }
     } else if( !strcmp(table_name, "Position") ) {
-        ;
+        index = stcsr->current;
+        if ( (index == 0) && (*d->set_mem == 0) )
+            return SQLITE_MISUSE;
+        *d->set_mem = 0;
     }
+    return SQLITE_OK;
 }
 
 

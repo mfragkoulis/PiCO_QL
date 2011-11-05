@@ -854,9 +854,15 @@ cls
     int dc, index, no_child;
 SS
 
+    catch_illegal_query = <<-CIQ
+        index = stcsr->current;
+        if ( (index == 0) && (*d->set_mem == 0) )
+            return SQLITE_MISUSE;
+        *d->set_mem = 0;
+CIQ
+
     current_position = <<-CP
         iter = any_dstr->begin();
-        index = stcsr->current;
         for(int i=0; i<stcsr->resultSet[index]; i++){
             iter++;
         }
@@ -883,8 +889,10 @@ SUC
       if children_no > 0
         if curr_ds.parent.length > 0
           dereference = "*"
+          fw.puts catch_illegal_query
         else
           dereference = ""
+        fw.puts @s + "index = stcsr->current;"
         end
         if curr_ds.signature.length > 0
           form = "(*iter)"
@@ -927,6 +935,7 @@ SUC
             children[ch] + "\") ) {"
           fw.puts @s + @s + "d->children->memories[dc] = (long int *)" +
             form + access + ";"
+          fw.puts @s + @s + "*d->children->set_memories[dc] = 1;"
           fw.puts @s + @s + "break;"
           fw.puts @s + "    }"
           fw.puts @s + "    dc++;"
@@ -934,11 +943,16 @@ SUC
           ch += 1
         end
       else
-        fw.puts @s + ";"
-      end      
+        if curr_ds.parent.length > 0
+          fw.puts catch_illegal_query
+        else
+          fw.puts @s + ";"
+        end
+      end
       w += 1
     end
     fw.puts "    }"
+    fw.puts "    return SQLITE_OK;"
     fw.puts "}"
   end
 
@@ -951,14 +965,17 @@ SUC
     dsCarrier **ddsC = (dsCarrier **)ds;
     dsCarrier *dsC = *ddsC;
     dsCarrier *tmp_dsC;
-    int x_size, nByte, c;
+    int x_size, nByte, c, i;
     char *c_temp;
 #ifdef DEBUGGING
     printf("dsC->size: %i\\n", dsC->size);
 #endif
 SS
 
-    copy_structs_registered = <<-CSR
+    curve_copy_structs = <<-CCS
+            for (i = 1; i < tmp_dsC->size; i++)
+                tmp_dsC->set_memories[i] = &tmp_dsC->set_memories[i-1][1];
+            c_temp = (char *)&tmp_dsC->set_memories[i-1][1];
             c = 0;
             int len;
             while (c < x_size) {
@@ -969,7 +986,7 @@ SS
                 tmp_dsC->memories[c] = dsC->memories[c];
                 c++;
             }
-CSR
+CCS
 
     exception_handlingExiting = <<-EXE
 #ifdef DEBUGGING
@@ -983,15 +1000,15 @@ CSR
 #endif
         }else{
             free(tmp_dsC);
-            printf("Error (re)allocating memory\\n");
-            exit(1);
+            *pzErr = sqlite3_mprintf("Error (re)allocating memory\\n");
+            return SQLITE_NOMEM;
         }
     }
-    set_dependencies(st, ds, tablename);
+    return set_dependencies(st, ds, tablename, pzErr);
 }
 EXE
 
-    fw.puts "int realloc_carrier(void *st, void *ds, const char *tablename) {"
+    fw.puts "int realloc_carrier(void *st, void *ds, const char *tablename, char **pzErr) {"
     fw.puts setting_up
     structs_no = @ds_chars.length
     fw.puts "    if (dsC->size != " + structs_no.to_s + ") {"
@@ -1002,16 +1019,17 @@ EXE
       names_total += @ds_chars[w].name.length + 1
       w += 1
     end
-    fw.puts @s + "nByte = sizeof(dsCarrier) + sizeof(long int *) * " + 
-      structs_no.to_s + " + sizeof(const char *) * " + structs_no.to_s + " + " + 
-      names_total.to_s + ";"
+    fw.puts @s + "nByte = sizeof(dsCarrier) + (sizeof(long int *) + sizeof(const char *) + sizeof(int *) + sizeof(int)) * " + 
+      structs_no.to_s + " + " + names_total.to_s + ";"
     fw.puts @s + "tmp_dsC = (dsCarrier *)sqlite3_malloc(nByte);"
     fw.puts @s + "if (tmp_dsC != NULL) {"
+    fw.puts @s + "    memset(tmp_dsC, 0, nByte);"
     fw.puts @s + "    tmp_dsC->size = " + structs_no.to_s + ";"
     fw.puts @s + "    tmp_dsC->dsNames = (const char **)&tmp_dsC[1];"
     fw.puts @s + "    tmp_dsC->memories = (long int **)&tmp_dsC->dsNames[" + structs_no.to_s + "];"
-    fw.puts @s + "    c_temp = (char *)&tmp_dsC->memories[" + structs_no.to_s + "];"
-    fw.puts copy_structs_registered
+    fw.puts @s + "    tmp_dsC->set_memories = (int **)&tmp_dsC->memories[" + structs_no.to_s + "];"
+    fw.puts @s + "    tmp_dsC->set_memories[0] = (int *)&tmp_dsC->set_memories[" + structs_no.to_s + "];"
+    fw.puts curve_copy_structs
     w = 0
     while w < structs_no
       curr_ds = @ds_chars[w]
@@ -1046,49 +1064,119 @@ EXE
     }
 SS
 
-    fw.puts "int set_dependencies(void *st, void *ds, const char *table_name) {"
+    catch_illegal_query = <<-CIQ
+        if ( *dsC->set_memories[c] == 0 ) {
+            *pzErr = sqlite3_mprintf("Attempted to open the VT %s before its ancestor forgot to include ancestor in FROM clause. Please pay attention to the order of VTs in the FROM clause.\\n", table_name);
+            return SQLITE_MISUSE;
+        }
+CIQ
+
+    curve_set = <<-CS
+        d->set_mem = dsC->set_memories[c];
+        *d->set_mem = 0;
+        d->children = (dsCarrier *)&d[1];
+        d->children->memories = (long int **)&d->children[1];
+CS
+
+    set_references = <<-SR
+	dsC->memories[dc] = (long int *)&d->children->memories[ch];
+	d->children->set_memories[ch] = dsC->set_memories[dc];
+        *d->children->set_memories[ch] = 1;
+        d->children->dsNames[ch] = dsC->dsNames[dc];
+        ch++;
+SR
+
+    fw.puts "int set_dependencies(void *st, void *ds, const char *table_name, char **pzErr) {"
     fw.puts setup_setting
     w = 0
     while w < @ds_chars.length
       curr_ds = @ds_chars[w]
       children_no = curr_ds.children.length
+      children = curr_ds.children
       if w == 0
         fw.puts "    if( !strcmp(table_name, \"" + curr_ds.name + "\") ) {"
       else
         fw.puts "    } else if( !strcmp(table_name, \"" + curr_ds.name + "\") ) {"
       end
       if children_no > 0
-        fw.puts @s + "data *d = (data *)sqlite3_malloc(sizeof(data) + sizeof(dsCarrier) + sizeof(long int *) * " + children_no.to_s + " + sizeof(const char *) * " + children_no.to_s + ");"
-        fw.puts @s + "d->children = (dsCarrier *)&d[1];"
-        fw.puts @s + "d->children->memories = (long int **)&d->children[1];"
-        fw.puts @s + "d->children->dsNames = (const char **)&d->children->memories[1];"
-        fw.puts @s + "d->children->size = " + children_no.to_s + ";"
+        if curr_ds.parent.length > 0
+          dereference = "*"
+          fw.puts catch_illegal_query
+        else
+          dereference = ""
+        end
+        fw.puts @s + "data *d = (data *)sqlite3_malloc(sizeof(data) + sizeof(dsCarrier) + (sizeof(long int *) + sizeof(const char *) + sizeof(int *)) * " + children_no.to_s + ");"
+        fw.puts curve_set
+        fw.puts @s + "d->children->dsNames = (const char **)&d->children->memories[" + children_no.to_s + "];"
+        fw.puts @s + "d->children->set_memories = (int **)&d->children->dsNames[" + children_no.to_s + "];"
+        fw.puts @s + "d->mem = dsC->memories[c];"
+        fw.puts @s + "d->children->size = " + children_no.to_s + ";"    
+        if curr_ds.signature.length > 0
+          form = "(*iter)"
+          access_bridge = "."
+          signature = curr_ds.signature
+          fw.puts @s + signature + " *any_dstr = (" + signature + " *)" + 
+            dereference + "d->mem;"
+          fw.puts @s + signature + "::iterator iter;"
+          fw.puts @s + "iter = any_dstr->begin();"
+        else
+          form = "any_dstr"
+          access_bridge = "->"
+          signature = curr_ds.object_class
+          fw.puts @s + signature + " *any_dstr = (" + signature + " *)" + 
+            dereference + "d->mem;"
+        end
         fw.puts @s + "ch = 0;"
         fw.puts @s + "dc = 0;"
         ch = 0
         while ch < children_no
-          children = curr_ds.children
+          trv = 0
+          while trv < @ds_chars.length
+#            puts "Checking child: " + children[ch] + " against VT: " + 
+#              @ds_chars[trv].name
+            if children[ch] == @ds_chars[trv].name
+              break
+            end
+            trv += 1
+          end
+          child_ds = @ds_chars[trv]
           fw.puts @s + "while (dc < dsC_size) {"
           fw.puts @s + "    if ( !strcmp(dsC->dsNames[dc], \"" + 
-            children[ch] + "\") )"
+            child_ds.name + "\") )"
           fw.puts @s + @s + "break;"
           fw.puts @s + "    dc++;"
           fw.puts @s + "}"
-          fw.puts @s + "dsC->memories[dc] = (long int *)&d->children->memories[ch];"
-          fw.puts @s + "d->children->dsNames[ch] = dsC->dsNames[dc];"
-          fw.puts @s + "ch++;"
-          fw.puts @s + "assert (ch == d->children->size);"
+#          puts "VT: " + curr_ds.name + " related to child: " + 
+#            child_ds.name + " by means of access: " + 
+#            child_ds.access
+          if child_ds.access.length == 0
+            access = ""
+          else
+            access = access_bridge + child_ds.access
+          end
+          fw.puts @s + "d->children->memories[ch] = (long int *)" +
+            form + access + ";"
+          fw.puts set_references
           ch += 1
         end
+        fw.puts @s + "assert (ch == d->children->size);"
       else
+        if curr_ds.parent.length > 0
+          fw.puts catch_illegal_query
+        end
         fw.puts @s + "data *d = (data *)sqlite3_malloc(sizeof(data));"
+        if curr_ds.parent.length > 0
+          fw.puts @s + "d->set_mem = dsC->set_memories[c];"
+          fw.puts @s + "*d->set_mem = 0;"
+        end
+        fw.puts @s + "d->mem = dsC->memories[c];"
         fw.puts @s + "d->children = NULL;"
       end
-      fw.puts @s + "d->mem = dsC->memories[c];"
       fw.puts @s + "stl->data = (void *)d;"
       w += 1
     end
     fw.puts "    }"
+    fw.puts "    return SQLITE_OK;"
     fw.puts "}"
   end
 

@@ -209,7 +209,7 @@ void serve_query(FILE *f, sqlite3 *db){
       //      swill_fprintf(f,"\nQuery execution took <b>%f</b> seconds.\n\n",t);
       swill_fprintf(f,"Ellapsed time given by C++ : <b>%f</b>s.<br><br>",c_time);
     } else {
-      system("wget -q www.sqlite.org/c3ref/c_abort.html -O ~/trunk/experimental/SQLite_error_codes.html");
+      //system("wget -q www.sqlite.org/c3ref/c_abort.html -O ~/trunk/experimental/SQLite_error_codes.html");
       swill_fprintf(f, "<b>Error code %i.<br>Please advise </b><a href=\"", rc);
       swill_file("SQLite_error_codes.html", NULL);
       swill_printurl(f, "SQLite_error_codes.html", "", 0);

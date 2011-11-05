@@ -12,7 +12,7 @@ extern "C" {
   //  int prep_exec(sqlite3 *db, char * q);
   void fill_module(sqlite3_module *stl);
   int register_table(const char *nDb, int argc, const char **queries, const char **table_names, void *data);
-  int realloc_carrier(void *st, void *ds, const char *tablename);
+  int realloc_carrier(void *st, void *ds, const char *tablename, char **pzErr);
   void realloc_resultset(void *cur);
   int update_structures(void *cur);
   int get_datastructure_size(void *st);

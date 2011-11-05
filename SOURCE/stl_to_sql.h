@@ -2,15 +2,7 @@
 #define STL_TO_SQL_H
 
 #include "sqlite3.h"
-//#include "search.h"
 #include "bridge.h"
-
-
-typedef unsigned char boolean;
-#define true (0==0)
-#define false (!true)
-
-//int register_table(char *ndb, char *query, void *data);
 
 int create_vtable(sqlite3 *db, void *paux, int argc, 
 		  const char * const * argv, sqlite3_vtab **ppVtab, 
@@ -48,11 +40,7 @@ int close_vtable(sqlite3_vtab_cursor *cur);
 
 void create(sqlite3 *db, int argc, const char * const * as, char *q);
 
-//int prep_exec(sqlite3 *db, char *query);
-
 int disconnect_vtable(sqlite3_vtab *ppVtab);
-
-//void fill_module(sqlite3_module *m);
 
 int arrange_size(int argc, const char * const * argv);
 
@@ -63,9 +51,8 @@ typedef struct {sqlite3_vtab vtab; sqlite3 *db; const char *zDb;
 typedef struct {sqlite3_vtab_cursor vtab; int *resultSet; int size; 
   int current; int isEof;int max_size; int first_constr;} stlTableCursor;
 
-//int nByte; int init_res_max_size;
+typedef struct {long int **memories; const char** dsNames; int **set_memories; int size;} dsCarrier;
 
-typedef struct {long int **memories; const char** dsNames; int size;} dsCarrier;
-typedef struct {long int *mem; dsCarrier *children;} data;
+typedef struct {long int *mem; int *set_mem; dsCarrier *children;} data;
 
 #endif
