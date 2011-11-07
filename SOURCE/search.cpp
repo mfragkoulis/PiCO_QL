@@ -10,6 +10,11 @@
 
 using namespace std;
 
+
+/*
+#define DEBUGGING
+*/
+
 int set_dependencies(void *st, void *ds, const char *table_name, char **pzErr) {
     stlTable *stl = (stlTable *)st;
     dsCarrier **ddsC = (dsCarrier **)ds;
@@ -157,6 +162,23 @@ int set_dependencies(void *st, void *ds, const char *table_name, char **pzErr) {
 }
 
 
+void copy_structs(void *ds, int &c, char **c_temp, const char *name, long int *mem) {
+    dsCarrier **ddsC = (dsCarrier **)ds;
+    dsCarrier *dsC = *ddsC;
+    int len;
+    dsC->dsNames[c] = *c_temp;
+    len = (int)strlen(name) + 1;
+    memcpy(*c_temp, name, len);
+    *c_temp += len;
+    if ( mem != NULL ) {
+        dsC->memories[c] = mem;
+        *dsC->set_memories[c] = 1;
+    }
+    c++;
+    *ddsC = dsC;
+}
+
+
 int realloc_carrier(void *st, void *ds, const char *tablename, char **pzErr) {
     dsCarrier **ddsC = (dsCarrier **)ds;
     dsCarrier *dsC = *ddsC;
@@ -181,35 +203,11 @@ int realloc_carrier(void *st, void *ds, const char *tablename, char **pzErr) {
                 tmp_dsC->set_memories[i] = &tmp_dsC->set_memories[i-1][1];
             c_temp = (char *)&tmp_dsC->set_memories[i-1][1];
             c = 0;
-            int len;
-            while (c < x_size) {
-                tmp_dsC->dsNames[c] = c_temp;
-                len = (int)strlen(dsC->dsNames[c]) + 1;
-                memcpy(c_temp, dsC->dsNames[c], len);
-                c_temp += len;
-                tmp_dsC->memories[c] = dsC->memories[c];
-                c++;
-            }
-            tmp_dsC->dsNames[c] = c_temp;
-            len = (int)strlen("Truck") + 1;
-            memcpy(c_temp, "Truck", len);
-            c_temp += len;
-            c++;
-            tmp_dsC->dsNames[c] = c_temp;
-            len = (int)strlen("Customers") + 1;
-            memcpy(c_temp, "Customers", len);
-            c_temp += len;
-            c++;
-            tmp_dsC->dsNames[c] = c_temp;
-            len = (int)strlen("Customer") + 1;
-            memcpy(c_temp, "Customer", len);
-            c_temp += len;
-            c++;
-            tmp_dsC->dsNames[c] = c_temp;
-            len = (int)strlen("Position") + 1;
-            memcpy(c_temp, "Position", len);
-            c_temp += len;
-            c++;
+            copy_structs(&tmp_dsC, c, &c_temp, dsC->dsNames[c], dsC->memories[c]);
+            copy_structs(&tmp_dsC, c, &c_temp, "Truck", NULL);
+            copy_structs(&tmp_dsC, c, &c_temp, "Customers", NULL);
+            copy_structs(&tmp_dsC, c, &c_temp, "Customer", NULL);
+            copy_structs(&tmp_dsC, c, &c_temp, "Position", NULL);
             assert(c == 5);
 #ifdef DEBUGGING
             printf("c_temp: %lx <= tmp_dsC: %lx \n", c_temp, &((char *)tmp_dsC)[nByte]);

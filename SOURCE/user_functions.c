@@ -1,9 +1,13 @@
-#include "bridge.h"
+#include "search.h"
 #include <stdlib.h>
 #include <swill.h>
 #include <time.h>
 
-// Takes care of query preparation and execution
+/*
+#define DEBUGGING
+*/
+
+// Takes care of query preparation and execution.
 int prep_exec(FILE *f, sqlite3 *db, const char *q){
   sqlite3_stmt  *stmt;
   int result, col, prepare;
@@ -43,18 +47,15 @@ int prep_exec(FILE *f, sqlite3 *db, const char *q){
 	}
       }
       if( result==SQLITE_DONE ){
-	//	printf("Done\n");
+	printf("Done\n");
       }else if( result==SQLITE_OK ){
-	//	printf("OK\n");
+	printf("OK\n");
       }else if( result==SQLITE_ERROR ){
 	printf("SQL error or missing database\n");
-	//    exit(1);
       }else if( result==SQLITE_MISUSE ){
 	printf("Library used incorrectly\n");
-	//    exit(1);
       }else {
 	printf("Error code: %i.\nPlease advise Sqlite error codes (http://www.sqlite.org/c3ref/c_abort.html)", result);
-	//    exit(1);
       }
 #endif
     }
@@ -66,7 +67,7 @@ int prep_exec(FILE *f, sqlite3 *db, const char *q){
 }
 
 // Forwards  a query for execution to sqlite and 
-// presents the resultset of a query
+// presents the resultset of a query.
 int step_query(FILE *f, sqlite3_stmt *stmt) {
   int col, result;
   swill_fprintf(f, "<table>");
@@ -112,12 +113,9 @@ int file_prep_exec(FILE *f, sqlite3_stmt *stmt, const char *q){
     //    swill_fprintf(f, "<b>OK<br></b>");
   }else if( result==SQLITE_ERROR ){
     swill_fprintf(f, "<b>SQL error or missing database.\n</b>");
-    //    exit(1);
   }else if( result==SQLITE_MISUSE ){
     swill_fprintf(f, "<b>Library used incorrectly.<br></b>");
-    //    exit(1); fix create
   }else {
-    //    exit(1);
   }
   return result;
 }
@@ -142,6 +140,7 @@ void app_index(FILE *f, sqlite3 *db){
   swill_fprintf(f, ".style_input{font-family:Times New Roman;font-size:15px;}");
   swill_fprintf(f, "table,td{border:1px double;}");
   swill_fprintf(f, ".div_tbl{margin-top:20px;}");
+  swill_fprintf(f, "p.aligned{text-align:left;}");
   swill_fprintf(f, "</style>");
   swill_fprintf(f, "</head>");
   swill_fprintf(f, "<body>");
@@ -165,6 +164,11 @@ void app_index(FILE *f, sqlite3 *db){
   prep_exec(f, db, "SELECT * FROM sqlite_master;");
   swill_fprintf(f, "</div>");
   swill_fprintf(f, "<br>");
+  swill_fprintf(f, "<p class=\"aligned\">");
+  swill_fprintf(f,"<a href=\"");
+  swill_printurl(f,"terminateConnection.html", "", 0);
+  swill_fprintf(f,"\">[ Terminate Server Connection ]</a>");
+  swill_fprintf(f, "</p>");
   swill_fprintf(f, "</body>");
   swill_fprintf(f, "</html>");
 }
@@ -181,6 +185,7 @@ void serve_query(FILE *f, sqlite3 *db){
   swill_fprintf(f, "body{bgcolor=\"#ffffff\";}");
   swill_fprintf(f, "span.styled{color:blue;}");
   swill_fprintf(f, "table, td{border:1px double;}");
+  swill_fprintf(f, "p.aligned{text-align:left;}");
   swill_fprintf(f, "</style>");
   swill_fprintf(f, "</head>");
   swill_fprintf(f, "<body>");
@@ -189,45 +194,52 @@ void serve_query(FILE *f, sqlite3 *db){
     clock_t start_clock,finish_clock;
     double c_time;
     start_clock = clock();
-    // which of the two?
-    //    Timer t;
-    //    t.start();
     int j=0;
     swill_fprintf(f, "<b>For SQL query: ");
     swill_fprintf(f, "<span class=\"styled\">%s</span><br><br>", query);
     swill_fprintf(f, "Result set is:</b><br><br>");
-    // j for debugging, execute the query multiple times
+    // j for debugging, execute the query multiple times.
     while ( j<1 && (rc = prep_exec(f, db, query)) == SQLITE_DONE ){
-      //      t.stop();
-      //      printf("%i \n",j);
       j++;
     }
     if (rc == SQLITE_DONE){
       finish_clock = clock();
       c_time = ((double)finish_clock - (double)start_clock)/CLOCKS_PER_SEC;
       swill_fprintf(f, "<b>\nQUERY SUCCESSFUL! </b><br><br>");
-      //      swill_fprintf(f,"\nQuery execution took <b>%f</b> seconds.\n\n",t);
       swill_fprintf(f,"Ellapsed time given by C++ : <b>%f</b>s.<br><br>",c_time);
     } else {
-      //system("wget -q www.sqlite.org/c3ref/c_abort.html -O ~/trunk/experimental/SQLite_error_codes.html");
       swill_fprintf(f, "<b>Error code %i.<br>Please advise </b><a href=\"", rc);
       swill_file("SQLite_error_codes.html", NULL);
       swill_printurl(f, "SQLite_error_codes.html", "", 0);
       swill_fprintf(f,"\">SQLite error codes</a>.<br><br>");
     }
+    swill_fprintf(f, "<p class=\"aligned\">");
     swill_fprintf(f,"<a href=\"");
     swill_printurl(f,"index.html", "", 0);
     swill_fprintf(f,"\">[ Input new Query ]</a>");
     swill_fprintf(f,"<a href=\"");
     swill_printurl(f,"terminateConnection.html", "", 0);
     swill_fprintf(f,"\">[ Terminate Server Connection ]</a>");
+    swill_fprintf(f, "</p>");
+    swill_fprintf(f, "</body>");
+    swill_fprintf(f, "</html>");
   }
 }
 
 // Terminates connection to the embedded web-server.
 void terminate(FILE *f, sqlite3 *db){
-  swill_fprintf(f, "<b>TERMINATING CONNECTION...</b>");
+  swill_fprintf(f, "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"\n\"http://www.w3.org/TR/html4/loose.dtd\">");
+  swill_fprintf(f, "<html>");
+  swill_fprintf(f, "<head>");
+  swill_fprintf(f, "<style type=\"text/css\">");
+  swill_fprintf(f, "body{bgcolor=\"#ffffff\";}");
+  swill_fprintf(f, "</style>");
+  swill_fprintf(f, "</head>");
+  swill_fprintf(f, "<body>");
   sqlite3_close(db);
+  swill_fprintf(f, "<b>TERMINATED CONNECTION...</b>");
+  swill_fprintf(f, "</body>");
+  swill_fprintf(f, "</html>");
   swill_close();
 }
 
@@ -244,7 +256,7 @@ void call_swill(sqlite3 *db){
 
 int register_table(const char *nDb, int argc, const char **q, const char **table_names, void *data){
   // This definition implicitly constraints a table name to 140 characters.
-  // It should be more than enough
+  // It should be more than enough.
   char table_query[200];
   int re, i=0;
   sqlite3 *db;

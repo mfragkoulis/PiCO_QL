@@ -2,7 +2,7 @@
 #define STL_TO_SQL_H
 
 #include "sqlite3.h"
-#include "bridge.h"
+#include "search.h"
 
 int create_vtable(sqlite3 *db, void *paux, int argc, 
 		  const char * const * argv, sqlite3_vtab **ppVtab, 

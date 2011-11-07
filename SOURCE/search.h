@@ -1,20 +1,24 @@
 #ifndef SEARCH_H
 #define SEARCH_H
 
-//#include "stl_to_sql.h"
-#include "sqlite3.h"
-#include "bridge.h"
+#include "stl_to_sql.h"
 
-
-//extern "C" int register_table(char *db, char * query, void *data);
-//int get_data_structure_size(void *st);
-//void search(void *stc, int *initial, char *constr, sqlite3_value *val);
-//int retrieve(void *stc, int n, sqlite3_context * con);
-//int traverse(const unsigned char *col_name, int op, const unsigned char *value);
-//int traverse(int col_name, int op, int value);
-//int traverse(double col_name, int op, double value);
-//int traverse(const void *col_name, int op, const void *value);
-
-
+#ifdef __cplusplus
+extern "C" {
 #endif
 
+  void fill_module(sqlite3_module *stl);
+  int register_table(const char *nDb, int argc, const char **queries, const char **table_names, void *data);
+  int realloc_carrier(void *st, void *ds, const char *tablename, char **pzErr);
+  void realloc_resultset(void *cur);
+  int update_structures(void *cur);
+  int get_datastructure_size(void *st);
+  void search(void *stc, char *constraint, sqlite3_value *val);
+  int retrieve(void *stc, int n, sqlite3_context *con);
+
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

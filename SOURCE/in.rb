@@ -427,7 +427,7 @@ CM
 
     #HereDoc5
 
-    auto_gen4 = <<-AG4
+    resultset_alloc = <<-RAL
         int *temp_res;
 	temp_res = (int *)sqlite3_malloc(sizeof(int)  * stcsr->max_size);
         if ( !temp_res ){
@@ -435,7 +435,7 @@ CM
             exit(1);
         }
         switch( iCol ){
-AG4
+RAL
 
     fw.puts "    sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;"
     fw.puts "    stlTable *stl = (stlTable *)cur->pVtab;"
@@ -467,7 +467,7 @@ AG4
       fw.puts object_match
     end
     fw.puts constraint_match
-    fw.puts auto_gen4
+    fw.puts resultset_alloc
   end
 
 
@@ -794,7 +794,6 @@ cls
         "_search(void *stc, char *constr, sqlite3_value *val){"
       curr_ds.setup_search(fw, @ds_chars)
       curr_ds.search_columns(fw)
-# Needs update I think.
       fw.puts cls_search
       w += 1
     end
@@ -961,6 +960,26 @@ SUC
 # application registered with SQTL.
   def print_realloc_carrier(fw)
     
+    copy_structs = <<-CS
+void copy_structs(void *ds, int &c, char **c_temp, const char *name, long int *mem) {
+    dsCarrier **ddsC = (dsCarrier **)ds;
+    dsCarrier *dsC = *ddsC;
+    int len;
+    dsC->dsNames[c] = *c_temp;
+    len = (int)strlen(name) + 1;
+    memcpy(*c_temp, name, len);
+    *c_temp += len;
+    if ( mem != NULL ) {
+        dsC->memories[c] = mem;
+        *dsC->set_memories[c] = 1;
+    }
+    c++;
+    *ddsC = dsC;
+}
+
+
+CS
+
     setting_up = <<-SS
     dsCarrier **ddsC = (dsCarrier **)ds;
     dsCarrier *dsC = *ddsC;
@@ -972,21 +991,11 @@ SUC
 #endif
 SS
 
-    curve_copy_structs = <<-CCS
+    curve_struct = <<-CS
             for (i = 1; i < tmp_dsC->size; i++)
                 tmp_dsC->set_memories[i] = &tmp_dsC->set_memories[i-1][1];
             c_temp = (char *)&tmp_dsC->set_memories[i-1][1];
-            c = 0;
-            int len;
-            while (c < x_size) {
-                tmp_dsC->dsNames[c] = c_temp;
-                len = (int)strlen(dsC->dsNames[c]) + 1;
-                memcpy(c_temp, dsC->dsNames[c], len);
-                c_temp += len;
-                tmp_dsC->memories[c] = dsC->memories[c];
-                c++;
-            }
-CCS
+CS
 
     exception_handlingExiting = <<-EXE
 #ifdef DEBUGGING
@@ -1008,6 +1017,7 @@ CCS
 }
 EXE
 
+    fw.puts copy_structs
     fw.puts "int realloc_carrier(void *st, void *ds, const char *tablename, char **pzErr) {"
     fw.puts setting_up
     structs_no = @ds_chars.length
@@ -1029,16 +1039,18 @@ EXE
     fw.puts @s + "    tmp_dsC->memories = (long int **)&tmp_dsC->dsNames[" + structs_no.to_s + "];"
     fw.puts @s + "    tmp_dsC->set_memories = (int **)&tmp_dsC->memories[" + structs_no.to_s + "];"
     fw.puts @s + "    tmp_dsC->set_memories[0] = (int *)&tmp_dsC->set_memories[" + structs_no.to_s + "];"
-    fw.puts curve_copy_structs
+    fw.puts curve_struct
     w = 0
+    fw.puts @s + "    c = 0;"
+# curr_ds, dsC are necessarily in agreement becuase generator 
+# knows the order of VT descriptions and performs processing 
+# given that order.
     while w < structs_no
       curr_ds = @ds_chars[w]
       if curr_ds.parent.length > 0
-        fw.puts @s + "    tmp_dsC->dsNames[c] = c_temp;"
-        fw.puts @s + "    len = (int)strlen(\"" + curr_ds.name + "\") + 1;"
-        fw.puts @s + "    memcpy(c_temp, \"" + curr_ds.name + "\", len);"
-        fw.puts @s + "    c_temp += len;"
-        fw.puts @s + "    c++;"
+        fw.puts @s + "    copy_structs(&tmp_dsC, c, &c_temp, \"" + curr_ds.name + "\", NULL);"
+      else
+        fw.puts @s + "    copy_structs(&tmp_dsC, c, &c_temp, dsC->dsNames[c], dsC->memories[c]);"
       end
       w += 1
     end
@@ -1185,7 +1197,6 @@ SR
   def generate()
 
    #HereDoc1
-
       auto_gen1 = <<-AG1
 
 using namespace std;
@@ -1274,10 +1285,18 @@ int main(){
 
 AG2
 
-
     #HereDoc3
+    directives = <<-dir
+using namespace std;
 
 
+/*
+#define DEBUGGING
+*/
+
+dir
+
+    #HereDoc4
         auto_gen3 = <<-AG3
 
 
@@ -1390,19 +1409,16 @@ int compare(const unsigned char *dstr_value, int op,
 
 AG3
 
-
-    #HereDoc4
-
-
+    #HereDoc5
   makefile_part = <<-mkf
 
-user_functions.o: user_functions.c bridge.h
+user_functions.o: user_functions.c search.h
         gcc -W -g -c user_functions.c
 
-stl_to_sql.o: stl_to_sql.c stl_to_sql.h bridge.h
+stl_to_sql.o: stl_to_sql.c stl_to_sql.h search.h
         gcc -g -c stl_to_sql.c
 
-search.o: search.cpp bridge.h
+search.o: search.cpp search.h
         g++ -W -g -c search.cpp
 mkf
 
@@ -1430,9 +1446,8 @@ mkf
       fw.puts "\#include <assert.h>"
       fw.puts "\#include <stdio.h>"
       fw.puts @directives
-      #can be made faster. call once, store in string and fw.puts string
       fw.puts
-      fw.puts "using namespace std;\n\n"
+      fw.puts directives
       print_set_dependencies(fw)
       fw.puts "\n\n"
       print_realloc_carrier(fw)
@@ -1452,7 +1467,7 @@ mkf
       fw.print "\n    g++ -lswill -lsqlite3 -W -g main.o search.o stl_to_sql.o user_functions.o "
       print_directives(fw, 1)
       fw.puts "-o test\n\n"
-      fw.print "main.o: main.cpp bridge.h "
+      fw.print "main.o: main.cpp search.h "
       print_directives(fw, 3)
       fw.puts "\n\tg++ -W -g -c main.cpp"
       fw.puts makefile_part
