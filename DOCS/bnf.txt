@@ -1,24 +1,43 @@
-<input_description> ::= <db_name> ';' <container_name> ';' <container_class> ';' <template_arg> [ ';' <template_arg> ]
+<stl_grammar> ::= <table_def> '{' <column_def> {'\n' <column_def>} '}'
 
-<db_name> ::= 'whatever.db'
+<table_def> ::= 'TABLE' <db_name>.<table_name> ':' ( <container> | 
+		<object> ) ['*']
 
-<container_name> ::= 'any_name'
+<db_name> ::= 'identifier'
 
-<container_class> ::= 'list' | 'vector' | 'deque' | 'set' | 'multiset' | 'hash_set' | 'hash_multiset' | 'map' | 'multimap' | 'hash_map' | 'hash_multimap'
+<table_name> ::= 'identifier'
 
-<template_arg> ::=  <class_definition> { ':' <class_definition> }
+<container> ::= <stl_class> '<' <type>
+<--if associative container-->
+	    [',' <type>] '>'
 
-<class_definition> ::= <attribute_name> ',' <primitive> | 
-		   <class_name> ',' 'class' '-' <attribute_name> ',' <type> { '-' <attribute_name> ',' <type> }
+<stl_class> ::= 'list' | 'vector' | 'deque' | 'set' | 
+		  'multiset' | 'hash_set' | 'hash_multiset' |
+		   'map' | 'multimap' | 'hash_map' | 'hash_multimap'
 
-<!-- don't know how to include the information that after 'reference'
-(but probably not immediately after) a class definition is expected -->
+<container_name> ::= 'identifier'
 
-<class_name> ::= 'my_class_name'     
-	     	 		     <!-- for clarity -->
-<attribute_name> ::= 'my_attribute_name'
- 
-<type> ::= <primitive> | 'reference'
+<type> ::= <struct> | <primitive_data_type> ['*']
 
-<primitive> ::= 'int' | 'string' | 'double' | 'char' | 'float' | 'real' | 'bool'
+<struct> ::= <container> | <object>
 
+<object> ::= <class_name>
+
+<class_name> ::= 'identifier'
+
+<primitive_data_type> ::= 'int' | 'string' | 'double' | 'char' |
+	    	 'float' | 'real' | 'bool'
+
+<parent_container_name> ::= 'identifier'
+
+<access_statement> ::= 'how_access_eg_function_name()'
+
+<column_def> ::= <column_name>
+			( <primitive_column_def> | <struct_column_def> ) 
+
+<primitive_column_def> ::=  <primitive_data_type> 			'FROM' (<access_statement> | 'self')
+
+<column_name> ::= 'identifier'
+
+<struct_column_def> ::= 'int' 'FROM' '&'[<parent_table_name>
+			[<access_statement>]] 
