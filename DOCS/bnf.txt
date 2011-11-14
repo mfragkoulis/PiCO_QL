@@ -1,43 +1,43 @@
-<stl_grammar> ::= <table_def> '{' <column_def> {'\n' <column_def>} '}'
+<stl_grammar> ::= <table_def> '{' <column_def> {',' <column_def>} '}'
 
-<table_def> ::= 'TABLE' <db_name>.<table_name> ':' ( <container> | 
-		<object> ) ['*']
+<table_def> ::= 'TABLE' <db_name>.<vtable_name> ':' <struct> 
+	    	['FROM' <parent_vtable_name> {','
+		<parent_vtable_name>}]
 
 <db_name> ::= 'identifier'
 
-<table_name> ::= 'identifier'
+<vtable_name> ::= 'identifier'
+
+<struct> ::= <container> | <object>
 
 <container> ::= <stl_class> '<' <type>
 <--if associative container-->
-	    [',' <type>] '>'
+	    [',' <type>] '>' ['*']
 
 <stl_class> ::= 'list' | 'vector' | 'deque' | 'set' | 
 		  'multiset' | 'hash_set' | 'hash_multiset' |
 		   'map' | 'multimap' | 'hash_map' | 'hash_multimap'
 
-<container_name> ::= 'identifier'
-
 <type> ::= <struct> | <primitive_data_type> ['*']
 
-<struct> ::= <container> | <object>
-
-<object> ::= <class_name>
+<object> ::= <class_name> ['*']
 
 <class_name> ::= 'identifier'
 
 <primitive_data_type> ::= 'int' | 'string' | 'double' | 'char' |
 	    	 'float' | 'real' | 'bool'
 
-<parent_container_name> ::= 'identifier'
-
-<access_statement> ::= 'how_access_eg_function_name()'
+<parent_vtable_name> ::= 'identifier'
 
 <column_def> ::= <column_name>
 			( <primitive_column_def> | <struct_column_def> ) 
 
-<primitive_column_def> ::=  <primitive_data_type> 			'FROM' (<access_statement> | 'self')
-
 <column_name> ::= 'identifier'
 
-<struct_column_def> ::= 'int' 'FROM' '&'[<parent_table_name>
+<primitive_column_def> ::=  <primitive_data_type> 'FROM' 
+		       (<access_statement> | 'self')
+
+<access_statement> ::= 'how_access:eg_function_name()'
+
+<struct_column_def> ::= 'int' 'FROM' '&'[<parent_vtable_name>
 			[<access_statement>]] 

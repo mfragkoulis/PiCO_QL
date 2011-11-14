@@ -157,6 +157,34 @@ int set_dependencies(void *st, void *ds, const char *table_name, char **pzErr) {
         d->mem = dsC->memories[c];
         d->children = NULL;
         stl->data = (void *)d;
+    } else if( !strcmp(table_name, "MapIndex") ) {
+        data *d = (data *)sqlite3_malloc(sizeof(data) + sizeof(dsCarrier) + (sizeof(long int *) + sizeof(const char *) + sizeof(int *)) * 1);
+        d->set_mem = dsC->set_memories[c];
+        *d->set_mem = 0;
+        d->children = (dsCarrier *)&d[1];
+        d->children->memories = (long int **)&d->children[1];
+        d->children->dsNames = (const char **)&d->children->memories[1];
+        d->children->set_memories = (int **)&d->children->dsNames[1];
+        d->mem = dsC->memories[c];
+        d->children->size = 1;
+        map<int,Customer*> *any_dstr = (map<int,Customer*> *)d->mem;
+        map<int,Customer*>::iterator iter;
+        iter = any_dstr->begin();
+        ch = 0;
+        dc = 0;
+        while (dc < dsC_size) {
+            if ( !strcmp(dsC->dsNames[dc], "Customer") )
+                break;
+            dc++;
+        }
+        d->children->memories[ch] = (long int *)(*iter).second;
+	dsC->memories[dc] = (long int *)&d->children->memories[ch];
+	d->children->set_memories[ch] = dsC->set_memories[dc];
+        *d->children->set_memories[ch] = 1;
+        d->children->dsNames[ch] = dsC->dsNames[dc];
+        ch++;
+        assert (ch == d->children->size);
+        stl->data = (void *)d;
     }
     return SQLITE_OK;
 }
@@ -188,27 +216,28 @@ int realloc_carrier(void *st, void *ds, const char *tablename, char **pzErr) {
 #ifdef DEBUGGING
     printf("dsC->size: %i\n", dsC->size);
 #endif
-    if (dsC->size != 5) {
+    if (dsC->size != 6) {
         x_size = dsC->size;
-        nByte = sizeof(dsCarrier) + (sizeof(long int *) + sizeof(const char *) + sizeof(int *) + sizeof(int)) * 5 + 41;
+        nByte = sizeof(dsCarrier) + (sizeof(long int *) + sizeof(const char *) + sizeof(int *) + sizeof(int)) * 6 + 50;
         tmp_dsC = (dsCarrier *)sqlite3_malloc(nByte);
         if (tmp_dsC != NULL) {
             memset(tmp_dsC, 0, nByte);
-            tmp_dsC->size = 5;
+            tmp_dsC->size = 6;
             tmp_dsC->dsNames = (const char **)&tmp_dsC[1];
-            tmp_dsC->memories = (long int **)&tmp_dsC->dsNames[5];
-            tmp_dsC->set_memories = (int **)&tmp_dsC->memories[5];
-            tmp_dsC->set_memories[0] = (int *)&tmp_dsC->set_memories[5];
+            tmp_dsC->memories = (long int **)&tmp_dsC->dsNames[6];
+            tmp_dsC->set_memories = (int **)&tmp_dsC->memories[6];
+            tmp_dsC->set_memories[0] = (int *)&tmp_dsC->set_memories[6];
             for (i = 1; i < tmp_dsC->size; i++)
                 tmp_dsC->set_memories[i] = &tmp_dsC->set_memories[i-1][1];
             c_temp = (char *)&tmp_dsC->set_memories[i-1][1];
             c = 0;
             copy_structs(&tmp_dsC, c, &c_temp, dsC->dsNames[c], dsC->memories[c]);
+            copy_structs(&tmp_dsC, c, &c_temp, dsC->dsNames[c], dsC->memories[c]);
             copy_structs(&tmp_dsC, c, &c_temp, "Truck", NULL);
             copy_structs(&tmp_dsC, c, &c_temp, "Customers", NULL);
             copy_structs(&tmp_dsC, c, &c_temp, "Customer", NULL);
             copy_structs(&tmp_dsC, c, &c_temp, "Position", NULL);
-            assert(c == 5);
+            assert(c == 6);
 #ifdef DEBUGGING
             printf("c_temp: %lx <= tmp_dsC: %lx \n", c_temp, &((char *)tmp_dsC)[nByte]);
 #endif
@@ -316,6 +345,25 @@ int update_structures(void *cur) {
         if ( (index == 0) && (*d->set_mem == 0) )
             return SQLITE_MISUSE;
         *d->set_mem = 0;
+    } else if( !strcmp(table_name, "MapIndex") ) {
+        index = stcsr->current;
+        map<int,Customer*> *any_dstr = (map<int,Customer*> *)d->mem;
+        map<int,Customer*>::iterator iter;
+        iter = any_dstr->begin();
+        for(int i=0; i<stcsr->resultSet[index]; i++){
+            iter++;
+        }
+        dc = 0;
+        names = d->children->dsNames;
+        no_child = d->children->size;
+        while (dc < no_child) {
+            if ( !strcmp(names[dc], "Customer") ) {
+                d->children->memories[dc] = (long int *)(*iter).second;
+                *d->children->set_memories[dc] = 1;
+                break;
+            }
+            dc++;
+        }
     }
     return SQLITE_OK;
 }
@@ -331,6 +379,11 @@ int get_datastructure_size(void *st){
     if( !strcmp(stl->zName, "Customers") ){
         data *d = (data *)stl->data;
         vector<Customer*> *any_dstr = (vector<Customer*> *)*d->mem;
+        return ((int)any_dstr->size());
+    }
+    if( !strcmp(stl->zName, "MapIndex") ){
+        data *d = (data *)stl->data;
+        map<int,Customer*> *any_dstr = (map<int,Customer*> *)d->mem;
         return ((int)any_dstr->size());
     }
     return 1;
@@ -935,6 +988,102 @@ void Position_search(void *stc, char *constr, sqlite3_value *val){
 }
 
 
+void MapIndex_search(void *stc, char *constr, sqlite3_value *val){
+    sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;
+    stlTable *stl = (stlTable *)cur->pVtab;
+    stlTableCursor *stcsr = (stlTableCursor *)stc;
+    data *d = (data *)stl->data;
+    map<int,Customer*> *any_dstr = (map<int,Customer*> *)d->mem;
+    map<int,Customer*>:: iterator iter;
+    int op, iCol, count = 0, i = 0;
+    if ( val==NULL ){
+        for (int j=0; j<get_datastructure_size((void *)stl); j++){
+            stcsr->resultSet[j] = j;
+            stcsr->size++;
+	}
+        assert(stcsr->size <= stcsr->max_size);
+        assert(&stcsr->resultSet[stcsr->size] <= &stcsr->resultSet[stcsr->max_size]);
+    }else{
+        switch( constr[0] - 'A' ){
+        case 0:
+            op = 0;
+            break;
+        case 1:
+            op = 1;
+            break;
+        case 2:
+            op = 2;
+            break;
+        case 3:
+            op = 3;
+            break;
+        case 4:
+            op = 4;
+            break;
+        case 5:
+            op = 5;
+            break;
+        default:
+            break;
+        }
+        iCol = constr[1] - 'a' + 1;
+        int *temp_res;
+	temp_res = (int *)sqlite3_malloc(sizeof(int)  * stcsr->max_size);
+        if ( !temp_res ){
+            printf("Error in allocating memory\n");
+            exit(1);
+        }
+        switch( iCol ){
+        case 0:
+            iter = any_dstr->begin();
+            for(int i=0; i<(int)any_dstr->size();i++){
+                if (compare((*iter).first, op, sqlite3_value_int(val)) )
+                    temp_res[count++] = i;
+                iter++;
+            }
+            assert(count <= stcsr->max_size);
+            break;
+        case 1:
+            iter = any_dstr->begin();
+            for(int i=0; i<(int)any_dstr->size();i++){
+                temp_res[count++] = i;
+                iter++;
+            }
+            assert(count <= stcsr->max_size);
+            break;
+        }
+        int ia, ib;
+        int *i_res;
+        int i_count = 0;
+        if ( (stcsr->size == 0) && (stcsr->first_constr == 1) ){
+            memcpy(stcsr->resultSet, temp_res, sizeof(int) *
+                                     stcsr->max_size);
+            stcsr->size = count;
+            stcsr->first_constr = 0;
+        }else if (stcsr->size > 0){
+            i_res = (int *)sqlite3_malloc(sizeof(int) *
+                                        stcsr->max_size);
+            for(int a=0; a<stcsr->size; a++){
+                for(int b=0; b<count; b++){
+                    ia = stcsr->resultSet[a];
+                    ib = temp_res[b];
+                    if( ia==ib ){
+                        i_res[i_count++] = ia;
+                    }else if( ia < ib )
+                        b = count;
+                }
+            }
+            assert( i_count <= stcsr->max_size );
+            memcpy(stcsr->resultSet, i_res, sizeof(int) *
+                   i_count);
+            stcsr->size = i_count;
+            sqlite3_free(i_res);
+        }
+        sqlite3_free(temp_res);
+    }
+}
+
+
 void search(void* stc, char *constr, sqlite3_value *val){
     sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;
     stlTable *stl = (stlTable *)cur->pVtab;
@@ -948,6 +1097,8 @@ void search(void* stc, char *constr, sqlite3_value *val){
         Customer_search(stc, constr, val);
     if( !strcmp(stl->zName, "Position") )
         Position_search(stc, constr, val);
+    if( !strcmp(stl->zName, "MapIndex") )
+        MapIndex_search(stc, constr, val);
 }
 
 
@@ -1091,6 +1242,31 @@ int Position_retrieve(void *stc, int n, sqlite3_context *con){
 }
 
 
+int MapIndex_retrieve(void *stc, int n, sqlite3_context *con){
+    sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;
+    stlTable *stl = (stlTable *)cur->pVtab;
+    stlTableCursor *stcsr = (stlTableCursor *)stc;
+    data *d = (data *)stl->data;
+    map<int,Customer*> *any_dstr = (map<int,Customer*> *)d->mem;
+    map<int,Customer*>:: iterator iter;
+    int index = stcsr->current;
+    iter = any_dstr->begin();
+    for(int i=0; i<stcsr->resultSet[index]; i++){
+        iter++;
+    }
+    char *colName = stl->azColumn[n];
+    switch( n ){
+    case 0:
+        sqlite3_result_int(con, (*iter).first);
+        break;
+    case 1:
+        sqlite3_result_text(con, "N/A", -1, SQLITE_STATIC);
+        break;
+    }
+    return SQLITE_OK;
+}
+
+
 int retrieve(void* stc, int n, sqlite3_context *con){
     sqlite3_vtab_cursor *cur = (sqlite3_vtab_cursor *)stc;
     stlTable *stl = (stlTable *)cur->pVtab;
@@ -1104,4 +1280,6 @@ int retrieve(void* stc, int n, sqlite3_context *con){
         return Customer_retrieve(stc, n, con);
     if( !strcmp(stl->zName, "Position") )
         return Position_retrieve(stc, n, con);
+    if( !strcmp(stl->zName, "MapIndex") )
+        return MapIndex_retrieve(stc, n, con);
 }

@@ -121,7 +121,7 @@ class Column
       @type = "primary_key"
     end
     if column.match(/self/i)
-      @type += "primitive"
+      @type = "primitive"
     end
     if @type.length == 0
       @type = "standard"
@@ -151,12 +151,6 @@ class Column
       if column_data.length == 5
         @related_to = column_data[3]
         @access_path = column_data[4]
-        if @access_path.match(/\$/)
-          puts "$"
-# have to enrich for dirty, fast version to be able to represent 
-# access from pointer (->).
-          @access_path.gsub!(/\$/,".")
-        end
       elsif column_data.length == 4
         if @type == "foreign_key"
           @related_to = column_data[3]
@@ -164,8 +158,14 @@ class Column
 # if @type not key(!&) but data column then..
 # note: no access path on primary key.
           @access_path = column_data[3]
+          if @type == "primitive"
+            @access_path.gsub!(/self\$|self/,"")
+          end
+          if @access_path.match(/\$/)
+            puts "$"
+            @access_path.gsub!(/\$/,".")
+          end
         end
-      elsif column_data.length == 3
       else
         puts "Invalid format.\n"  
       end
@@ -206,6 +206,17 @@ class Column
 
 end
 
+
+class Child
+  def initialize
+    @name = ""
+    @access = ""
+  end
+  attr_accessor(:name, :access)
+
+end
+
+
 class Data_structure_characteristics
   def initialize
     @name = ""
@@ -215,13 +226,12 @@ class Data_structure_characteristics
     @stl_class = ""
     @object_class = ""
     @template_args = ""
-    @parent = ""
+    @parents = Array.new
     @children = Array.new
-    @access = ""
     @columns = Array.new
     @s = "        "
   end
-  attr_accessor(:name,:db,:signature,:stl_class,:object_class,:template_args,:parent,:children,:access,:columns,:s)
+  attr_accessor(:name,:db,:signature,:stl_class,:object_class,:template_args,:parents,:children,:access,:columns,:s)
 
 
 # Generates code to retrieve each VT struct.
@@ -287,7 +297,7 @@ AG5
     fw.puts "    stlTableCursor *stcsr = (stlTableCursor *)stc;"
     fw.puts "    data *d = (data *)stl->data;"
     dereference = ""
-    if @parent.length > 0
+    if @parents.length > 0
       dereference = "*"
     end
     if @signature.length > 0
@@ -442,7 +452,7 @@ RAL
     fw.puts "    stlTableCursor *stcsr = (stlTableCursor *)stc;"
     fw.puts "    data *d = (data *)stl->data;"
     dereference = ""
-    if @parent.length > 0
+    if @parents.length > 0
       dereference = "*"
     end
     if @signature.length > 0
@@ -457,7 +467,7 @@ RAL
       exit(1)
     end
     fw.puts "    int op, iCol, count = 0, i = 0;"
-    if @parent.length > 0 && @signature.length > 0
+    if @parents.length > 0 && @signature.length > 0
       fw.puts "    realloc_resultset(stc);"
     end
     fw.puts "    if ( val==NULL ){"
@@ -527,6 +537,23 @@ RAL
     end
   end  
 
+# Extracts parent information for a VT
+  def process_parents(parents)
+    parents.gsub!(/\s/,"")
+    split_parents = Array.new
+    if parents.match(/,/)
+      split_parents = parents.split(/,/)
+    else 
+      split_parents[0] = parents
+    end
+    @parents.replace(split_parents)
+    p = 0
+    while p < @parents.length
+      puts "parents[" + p.to_s + "] = " + @parents[p]
+      p += 1
+    end
+  end
+
 # Matches a VT description against a pattern and extracts VT traits
   def match_pattern(vt_description, columns)
     pattern = Regexp.new(/^(.+)table (\w+)\.(\w+)(\s*):(\s*)(.+)(\s*)\{(\s*)(.+)/im)
@@ -544,7 +571,7 @@ RAL
       process_columns(matchdata[9], columns)
       return
     else
-      pattern = /^(.+)table (\w+)\.(\w+)(\s*):(\s*)(.+)(\s*)from (\w+)(\s*)\{(\s*)(.+)/im
+      pattern = /^(.+)table (\w+)\.(\w+)(\s*):(\s*)(.+)(\s*)from (.+)(\s*)\{(\s*)(.+)/im
       matchdata = pattern.match(vt_description)
     end
     if matchdata
@@ -558,11 +585,12 @@ RAL
       table_signature = matchdata[6].gsub(/\s/,"")
       verify_signature(table_signature)
       # Ninth record contains the parent table name
-      @parent = matchdata[8]
+      parents = matchdata[8]
+      process_parents(parents)
       process_columns(matchdata[11], columns)
       return
     else
-      pattern = /^table (\w+)\.(\w+)(\s*):(\s*)(.+)(\s*)from (\w+)(\s*)\{(\s*)(.+)/im
+      pattern = /^table (\w+)\.(\w+)(\s*):(\s*)(.+)(\s*)from (.+)(\s*)\{(\s*)(.+)/im
       matchdata = pattern.match(vt_description)
     end
     if matchdata
@@ -575,7 +603,8 @@ RAL
       table_signature = matchdata[5].gsub(/\s/,"")
       verify_signature(table_signature)
       # Eighth record contains the parent table name
-      @parent = matchdata[7]
+      parents = matchdata[7]
+      process_parents(parents)
       process_columns(matchdata[10], columns)
       return
     else
@@ -819,7 +848,7 @@ cls
     while w < @ds_chars.length
       curr_ds = @ds_chars[w]
       if curr_ds.signature.length > 0
-        if curr_ds.parent.length > 0
+        if curr_ds.parents.length > 0
           dereference = "*"
         else
           dereference = ""
@@ -886,7 +915,7 @@ SUC
       children_no = curr_ds.children.length
       children = curr_ds.children
       if children_no > 0
-        if curr_ds.parent.length > 0
+        if curr_ds.parents.length > 0
           dereference = "*"
           fw.puts catch_illegal_query
         else
@@ -911,27 +940,14 @@ SUC
         fw.puts setting_up_children
         ch = 0
         while ch < children_no
-          children = curr_ds.children
-          trv = 0
-          while trv < @ds_chars.length
-#            puts "Checking child: " + children[ch] + " against VT: " + 
-#              @ds_chars[trv].name
-            if children[ch] == @ds_chars[trv].name
-              break
-            end
-            trv += 1
-          end
-#          puts "VT: " + @ds_chars[w].name + " related to child: " + 
-#            @ds_chars[trv].name + " by means of access: " + 
-#            @ds_chars[trv].access
-          if @ds_chars[trv].access.length == 0
+          if children[ch].access.length == 0
             access = ""
           else
-            access = access_bridge + @ds_chars[trv].access
+            access = access_bridge + children[ch].access
           end
           fw.puts @s + "while (dc < no_child) {"
           fw.puts @s + "    if ( !strcmp(names[dc], \"" + 
-            children[ch] + "\") ) {"
+            children[ch].name + "\") ) {"
           fw.puts @s + @s + "d->children->memories[dc] = (long int *)" +
             form + access + ";"
           fw.puts @s + @s + "*d->children->set_memories[dc] = 1;"
@@ -942,7 +958,7 @@ SUC
           ch += 1
         end
       else
-        if curr_ds.parent.length > 0
+        if curr_ds.parents.length > 0
           fw.puts catch_illegal_query
         else
           fw.puts @s + ";"
@@ -1042,15 +1058,22 @@ EXE
     fw.puts curve_struct
     w = 0
     fw.puts @s + "    c = 0;"
-# curr_ds, dsC are necessarily in agreement becuase generator 
-# knows the order of VT descriptions and performs processing 
-# given that order.
+# Duplicate effort below necessary to achieve simplicity.
+# We are copying autonomous structs first, registered by user in main.
+# Afterwards, we are copying the nested, registered in description.
+# Verify that order does indeed not matter from now on.
     while w < structs_no
       curr_ds = @ds_chars[w]
-      if curr_ds.parent.length > 0
-        fw.puts @s + "    copy_structs(&tmp_dsC, c, &c_temp, \"" + curr_ds.name + "\", NULL);"
-      else
+      if curr_ds.parents.length == 0
         fw.puts @s + "    copy_structs(&tmp_dsC, c, &c_temp, dsC->dsNames[c], dsC->memories[c]);"
+      end
+      w += 1
+    end
+    w = 0
+    while w < structs_no
+      curr_ds = @ds_chars[w]
+      if curr_ds.parents.length > 0
+        fw.puts @s + "    copy_structs(&tmp_dsC, c, &c_temp, \"" + curr_ds.name + "\", NULL);"
       end
       w += 1
     end
@@ -1111,7 +1134,7 @@ SR
         fw.puts "    } else if( !strcmp(table_name, \"" + curr_ds.name + "\") ) {"
       end
       if children_no > 0
-        if curr_ds.parent.length > 0
+        if curr_ds.parents.length > 0
           dereference = "*"
           fw.puts catch_illegal_query
         else
@@ -1142,29 +1165,19 @@ SR
         fw.puts @s + "dc = 0;"
         ch = 0
         while ch < children_no
-          trv = 0
-          while trv < @ds_chars.length
-#            puts "Checking child: " + children[ch] + " against VT: " + 
-#              @ds_chars[trv].name
-            if children[ch] == @ds_chars[trv].name
-              break
-            end
-            trv += 1
-          end
-          child_ds = @ds_chars[trv]
           fw.puts @s + "while (dc < dsC_size) {"
           fw.puts @s + "    if ( !strcmp(dsC->dsNames[dc], \"" + 
-            child_ds.name + "\") )"
+            children[ch].name + "\") )"
           fw.puts @s + @s + "break;"
           fw.puts @s + "    dc++;"
           fw.puts @s + "}"
 #          puts "VT: " + curr_ds.name + " related to child: " + 
 #            child_ds.name + " by means of access: " + 
 #            child_ds.access
-          if child_ds.access.length == 0
+          if children[ch].access.length == 0
             access = ""
           else
-            access = access_bridge + child_ds.access
+            access = access_bridge + children[ch].access
           end
           fw.puts @s + "d->children->memories[ch] = (long int *)" +
             form + access + ";"
@@ -1173,11 +1186,11 @@ SR
         end
         fw.puts @s + "assert (ch == d->children->size);"
       else
-        if curr_ds.parent.length > 0
+        if curr_ds.parents.length > 0
           fw.puts catch_illegal_query
         end
         fw.puts @s + "data *d = (data *)sqlite3_malloc(sizeof(data));"
-        if curr_ds.parent.length > 0
+        if curr_ds.parents.length > 0
           fw.puts @s + "d->set_mem = dsC->set_memories[c];"
           fw.puts @s + "*d->set_mem = 0;"
         end
@@ -1482,21 +1495,19 @@ mkf
   def process_hierarchy()
     w = 0
     while w < @ds_chars.length
-      parent = @ds_chars[w].parent
-      if parent.length > 0
+      parents = @ds_chars[w].parents
+      p = 0
+      while p < parents.length
         pr = 0
-        while parent != @ds_chars[pr].name
+        while pr < @ds_chars.length && parents[p] != @ds_chars[pr].name
           pr += 1
         end
         if pr == @ds_chars.length
-          puts "No such data structure recorded: " + parent + 
+          puts "No such data structure recorded: " + parents[p] + 
             " parent of " + @ds_chars[w].name
           exit(1)
-        else
-          @ds_chars[pr].children[@ds_chars[pr].children.length] = @ds_chars[w].name
-          puts "Child name: " + @ds_chars[pr].children[@ds_chars[pr].children.length - 1] + " in parent: " +
-            @ds_chars[pr].name
         end
+        @ds_chars[pr].children[@ds_chars[pr].children.length] = Child.new
         access_stmt = @ds_chars[pr].search_fk(@ds_chars[w].name)
         if access_stmt == nil
           access_stmt = @ds_chars[w].search_fk(@ds_chars[pr].name)
@@ -1506,8 +1517,14 @@ mkf
             " and " + @ds_chars[w].name + " not recorded correctly."
           exit(1)
         end
-        @ds_chars[w].access.replace(access_stmt)
-        puts "Access statement: " + @ds_chars[w].access
+        @ds_chars[pr].children[@ds_chars[pr].children.length - 1].name = @ds_chars[w].name
+        @ds_chars[pr].children[@ds_chars[pr].children.length - 1].access =  access_stmt
+        puts "Child name: " + 
+          @ds_chars[pr].children[@ds_chars[pr].children.length - 1].name + 
+          " in parent: " + @ds_chars[pr].name + 
+          " with access statement: " + 
+          @ds_chars[pr].children[@ds_chars[pr].children.length - 1].access
+        p += 1
       end
       w += 1
     end
@@ -1564,8 +1581,9 @@ if __FILE__==$0
 TABLE foo.Trucks : vector<Truck*> {truck_id INT FROM &Truck}
 TABLE foo.Truck : Truck FROM Trucks {truck_id INT FROM &, cost DOUBLE FROM get_cost(), delcapacity INT FROM get_delcapacity(), pickcapacity INT FROM get_pickcapacity(), rlpoint INT FROM get_rlpoint()}
 TABLE foo.Customers : vector<Customer *> FROM Truck {truck_id INT FROM &Truck get_Customers(), customer_id INT FROM &Customer}
-TABLE foo.Customer : Customer FROM Customers {customer_id INT FROM &, demand INT FROM get_demand(), code STRING from get_code(), serviced INT from get_serviced(), pickdemand INT FROM get_pickdemand(), starttime INT FROM get_starttime(), servicetime INT FROM get_servicetime(), finishtime INT FROM get_finishtime(), revenue INT FROM get_revenue(), position_id INT FROM &Position get_pos()}
-TABLE foo.Position : Position FROM Customer {position_id INT FROM &, x_coord INT FROM get_x(), y_coord INT FROM get_y()}"
+TABLE foo.Customer : Customer FROM Customers, MapIndex {customer_id INT FROM &, demand INT FROM get_demand(), code STRING from get_code(), serviced INT from get_serviced(), pickdemand INT FROM get_pickdemand(), starttime INT FROM get_starttime(), servicetime INT FROM get_servicetime(), finishtime INT FROM get_finishtime(), revenue INT FROM get_revenue(), position_id INT FROM &Position get_pos()}
+TABLE foo.Position : Position FROM Customer {position_id INT FROM &, x_coord INT FROM get_x(), y_coord INT FROM get_y()}
+TABLE foo.MapIndex : map<int,Customer *> {map_index INT FROM first, customer_id INT FROM &Customer second}"
   input = Input_Description.new(description)
   input.register_datastructure
 end
