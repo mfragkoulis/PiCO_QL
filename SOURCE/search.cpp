@@ -17,227 +17,444 @@ using namespace std;
 
 int set_dependencies(void *st, void *ds, const char *table_name, char **pzErr) {
     stlTable *stl = (stlTable *)st;
-    dsCarrier **ddsC = (dsCarrier **)ds;
-    dsCarrier *dsC = *ddsC;
-    int c = 0, ch, dc;
-    int dsC_size = dsC->size;
+    dsArray *dsC = (dsArray *)ds;
+    dsCarrier **tmp_Carrier = dsC->ds, *curr_ds;
+    attrCarrier **children, *curr_child, *attr_child, *curr_attr;
+    relationship *tmp_rel;
+    int c = 0, ch, dc, rlt_no, ch_size, i;
+    int dsC_size = dsC->ds_size;
+    
     while (c < dsC_size) {
-        if ( !strcmp(table_name, dsC->dsNames[c]) )
+        if ( !strcmp(table_name, tmp_Carrier[c]->attr->dsName) )
             break;
         c++;
     }
+    curr_ds = tmp_Carrier[c];
+    curr_attr = curr_ds->attr;
     if( !strcmp(table_name, "Trucks") ) {
-        data *d = (data *)sqlite3_malloc(sizeof(data) + sizeof(dsCarrier) + (sizeof(long int *) + sizeof(const char *) + sizeof(int *)) * 1);
-        d->set_mem = dsC->set_memories[c];
-        *d->set_mem = 0;
-        d->children = (dsCarrier *)&d[1];
-        d->children->memories = (long int **)&d->children[1];
-        d->children->dsNames = (const char **)&d->children->memories[1];
-        d->children->set_memories = (int **)&d->children->dsNames[1];
-        d->mem = dsC->memories[c];
-        d->children->size = 1;
+        data *d = (data *)sqlite3_malloc(sizeof(data) + (sizeof(attrCarrier *) + sizeof(attrCarrier)) * 1);
+        d->set_mem = NULL;
+        d->children = (attrCarrier **)&d[1];
+	children = d->children;
+        d->children_size = 1;
+	ch_size = d->children_size;
+	children[0] = (attrCarrier *)&children[ch_size];
+	for (i = 1; i < ch_size; i++)
+	    children[i] = &children[i-1][1];
+        d->mem = curr_attr->memory;
         vector<Truck*> *any_dstr = (vector<Truck*> *)d->mem;
         vector<Truck*>::iterator iter;
         iter = any_dstr->begin();
         ch = 0;
+	curr_child = children[ch];
         dc = 0;
         while (dc < dsC_size) {
-            if ( !strcmp(dsC->dsNames[dc], "Truck") )
+            if ( !strcmp(tmp_Carrier[dc]->attr->dsName, "Truck") )
+		
                 break;
             dc++;
         }
-        d->children->memories[ch] = (long int *)(*iter);
-	dsC->memories[dc] = (long int *)&d->children->memories[ch];
-	d->children->set_memories[ch] = dsC->set_memories[dc];
-        *d->children->set_memories[ch] = 1;
-        d->children->dsNames[ch] = dsC->dsNames[dc];
+	attr_child = tmp_Carrier[dc]->attr;
+        curr_child->memory = (long int *)(*iter);
+	attr_child->memory = (long int *)&curr_child->memory;
+	rlt_no = 0;
+	tmp_rel = curr_ds->rlt[rlt_no];
+	while (rlt_no < curr_ds->rlt_size) {
+	    if( !strcmp(tmp_rel->child, "Truck") )
+		break;
+	    rlt_no++;
+	}
+	curr_child->set_memory = &tmp_rel->set;
+	attr_child->set_memory = &tmp_rel->set;
+        *curr_child->set_memory = 1;
+        curr_child->dsName = attr_child->dsName;
         ch++;
-        assert (ch == d->children->size);
+        assert (ch == ch_size);
         stl->data = (void *)d;
     } else if( !strcmp(table_name, "Truck") ) {
-        if ( *dsC->set_memories[c] == 0 ) {
+        if ( *curr_attr->set_memory == 0 ) {
             *pzErr = sqlite3_mprintf("Attempted to open the VT %s before its ancestor forgot to include ancestor in FROM clause. Please pay attention to the order of VTs in the FROM clause.\n", table_name);
             return SQLITE_MISUSE;
         }
-        data *d = (data *)sqlite3_malloc(sizeof(data) + sizeof(dsCarrier) + (sizeof(long int *) + sizeof(const char *) + sizeof(int *)) * 1);
-        d->set_mem = dsC->set_memories[c];
+        data *d = (data *)sqlite3_malloc(sizeof(data) + (sizeof(attrCarrier *) + sizeof(attrCarrier)) * 1);
+        d->set_mem = curr_attr->set_memory;
         *d->set_mem = 0;
-        d->children = (dsCarrier *)&d[1];
-        d->children->memories = (long int **)&d->children[1];
-        d->children->dsNames = (const char **)&d->children->memories[1];
-        d->children->set_memories = (int **)&d->children->dsNames[1];
-        d->mem = dsC->memories[c];
-        d->children->size = 1;
+        d->children = (attrCarrier **)&d[1];
+	children = d->children;
+        d->children_size = 1;
+	ch_size = d->children_size;
+	children[0] = (attrCarrier *)&children[ch_size];
+	for (i = 1; i < ch_size; i++)
+	    children[i] = &children[i-1][1];
+        d->mem = curr_attr->memory;
         Truck *any_dstr = (Truck *)*d->mem;
         ch = 0;
+	curr_child = children[ch];
         dc = 0;
         while (dc < dsC_size) {
-            if ( !strcmp(dsC->dsNames[dc], "Customers") )
+            if ( !strcmp(tmp_Carrier[dc]->attr->dsName, "Customers") )
                 break;
             dc++;
         }
-        d->children->memories[ch] = (long int *)any_dstr->get_Customers();
-	dsC->memories[dc] = (long int *)&d->children->memories[ch];
-	d->children->set_memories[ch] = dsC->set_memories[dc];
-        *d->children->set_memories[ch] = 1;
-        d->children->dsNames[ch] = dsC->dsNames[dc];
+	attr_child = tmp_Carrier[dc]->attr;
+        curr_child->memory = (long int *)any_dstr->get_Customers();
+	attr_child->memory = (long int *)&curr_child->memory;
+	rlt_no = 0;
+	tmp_rel = curr_ds->rlt[rlt_no];
+	while (rlt_no < curr_ds->rlt_size) {
+	    if( !strcmp(tmp_rel->child, "Customers") )
+		break;
+	    rlt_no++;
+	}
+	curr_child->set_memory = &tmp_rel->set;
+	attr_child->set_memory = &tmp_rel->set;
+        *curr_child->set_memory = 1;
+        curr_child->dsName = attr_child->dsName;
         ch++;
-        assert (ch == d->children->size);
+        assert (ch == ch_size);
         stl->data = (void *)d;
     } else if( !strcmp(table_name, "Customers") ) {
-        if ( *dsC->set_memories[c] == 0 ) {
+        if ( *curr_attr->set_memory == 0 ) {
             *pzErr = sqlite3_mprintf("Attempted to open the VT %s before its ancestor forgot to include ancestor in FROM clause. Please pay attention to the order of VTs in the FROM clause.\n", table_name);
             return SQLITE_MISUSE;
         }
-        data *d = (data *)sqlite3_malloc(sizeof(data) + sizeof(dsCarrier) + (sizeof(long int *) + sizeof(const char *) + sizeof(int *)) * 1);
-        d->set_mem = dsC->set_memories[c];
+        data *d = (data *)sqlite3_malloc(sizeof(data) + (sizeof(attrCarrier *) + sizeof(attrCarrier)) * 1);
+        d->set_mem = curr_attr->set_memory;
         *d->set_mem = 0;
-        d->children = (dsCarrier *)&d[1];
-        d->children->memories = (long int **)&d->children[1];
-        d->children->dsNames = (const char **)&d->children->memories[1];
-        d->children->set_memories = (int **)&d->children->dsNames[1];
-        d->mem = dsC->memories[c];
-        d->children->size = 1;
+        d->children = (attrCarrier **)&d[1];
+	children = d->children;
+        d->children_size = 1;
+	ch_size = d->children_size;
+	children[0] = (attrCarrier *)&children[ch_size];
+	for (i = 1; i < ch_size; i++)
+	    children[i] = &children[i-1][1];
+        d->mem = curr_attr->memory;
         vector<Customer*> *any_dstr = (vector<Customer*> *)*d->mem;
         vector<Customer*>::iterator iter;
         iter = any_dstr->begin();
         ch = 0;
+	curr_child = children[ch];
         dc = 0;
         while (dc < dsC_size) {
-            if ( !strcmp(dsC->dsNames[dc], "Customer") )
+            if ( !strcmp(tmp_Carrier[dc]->attr->dsName, "Customer") )
                 break;
             dc++;
         }
-        d->children->memories[ch] = (long int *)(*iter);
-	dsC->memories[dc] = (long int *)&d->children->memories[ch];
-	d->children->set_memories[ch] = dsC->set_memories[dc];
-        *d->children->set_memories[ch] = 1;
-        d->children->dsNames[ch] = dsC->dsNames[dc];
+	attr_child = tmp_Carrier[dc]->attr;
+        curr_child->memory = (long int *)(*iter);
+	attr_child->memory = (long int *)&curr_child->memory;
+	rlt_no = 0;
+	tmp_rel = curr_ds->rlt[rlt_no];
+	while (rlt_no < curr_ds->rlt_size) {
+	    if( !strcmp(tmp_rel->child, "Customer") )
+		break;
+	    rlt_no++;
+	}
+	curr_child->set_memory = &tmp_rel->set;
+	attr_child->set_memory = &tmp_rel->set;
+        *curr_child->set_memory = 1;
+        curr_child->dsName = attr_child->dsName;
         ch++;
-        assert (ch == d->children->size);
+        assert (ch == ch_size);
         stl->data = (void *)d;
     } else if( !strcmp(table_name, "Customer") ) {
-        if ( *dsC->set_memories[c] == 0 ) {
+        if ( *curr_attr->set_memory == 0 ) {
             *pzErr = sqlite3_mprintf("Attempted to open the VT %s before its ancestor forgot to include ancestor in FROM clause. Please pay attention to the order of VTs in the FROM clause.\n", table_name);
             return SQLITE_MISUSE;
         }
-        data *d = (data *)sqlite3_malloc(sizeof(data) + sizeof(dsCarrier) + (sizeof(long int *) + sizeof(const char *) + sizeof(int *)) * 1);
-        d->set_mem = dsC->set_memories[c];
+        data *d = (data *)sqlite3_malloc(sizeof(data) + (sizeof(attrCarrier *) + sizeof(attrCarrier)) * 1);
+        d->set_mem = curr_attr->set_memory;
         *d->set_mem = 0;
-        d->children = (dsCarrier *)&d[1];
-        d->children->memories = (long int **)&d->children[1];
-        d->children->dsNames = (const char **)&d->children->memories[1];
-        d->children->set_memories = (int **)&d->children->dsNames[1];
-        d->mem = dsC->memories[c];
-        d->children->size = 1;
+        d->children = (attrCarrier **)&d[1];
+	children = d->children;
+        d->children_size = 1;
+	ch_size = d->children_size;
+	children[0] = (attrCarrier *)&children[ch_size];
+	for (i = 1; i < ch_size; i++)
+	    children[i] = &children[i-1][1];
+        d->mem = curr_attr->memory;
         Customer *any_dstr = (Customer *)*d->mem;
         ch = 0;
+	curr_child = children[ch];
         dc = 0;
         while (dc < dsC_size) {
-            if ( !strcmp(dsC->dsNames[dc], "Position") )
+            if ( !strcmp(tmp_Carrier[dc]->attr->dsName, "Position") )
                 break;
             dc++;
         }
-        d->children->memories[ch] = (long int *)any_dstr->get_pos();
-	dsC->memories[dc] = (long int *)&d->children->memories[ch];
-	d->children->set_memories[ch] = dsC->set_memories[dc];
-        *d->children->set_memories[ch] = 1;
-        d->children->dsNames[ch] = dsC->dsNames[dc];
+	attr_child = tmp_Carrier[dc]->attr;
+        curr_child->memory = (long int *)any_dstr->get_pos();
+	attr_child->memory = (long int *)&curr_child->memory;
+	rlt_no = 0;
+	tmp_rel = curr_ds->rlt[rlt_no];
+	while (rlt_no < curr_ds->rlt_size) {
+	    if( !strcmp(tmp_rel->child, "Customer") )
+		break;
+	    rlt_no++;
+	}
+	curr_child->set_memory = &tmp_rel->set;
+	attr_child->set_memory = &tmp_rel->set;
+        *curr_child->set_memory = 1;
+        curr_child->dsName = attr_child->dsName;
         ch++;
-        assert (ch == d->children->size);
+        assert (ch == ch_size);
         stl->data = (void *)d;
     } else if( !strcmp(table_name, "Position") ) {
-        if ( *dsC->set_memories[c] == 0 ) {
+        if ( *curr_attr->set_memory == 0 ) {
             *pzErr = sqlite3_mprintf("Attempted to open the VT %s before its ancestor forgot to include ancestor in FROM clause. Please pay attention to the order of VTs in the FROM clause.\n", table_name);
             return SQLITE_MISUSE;
         }
         data *d = (data *)sqlite3_malloc(sizeof(data));
-        d->set_mem = dsC->set_memories[c];
+        d->set_mem = curr_attr->set_memory;
         *d->set_mem = 0;
-        d->mem = dsC->memories[c];
+        d->mem = curr_attr->memory;
         d->children = NULL;
         stl->data = (void *)d;
     } else if( !strcmp(table_name, "MapIndex") ) {
-        data *d = (data *)sqlite3_malloc(sizeof(data) + sizeof(dsCarrier) + (sizeof(long int *) + sizeof(const char *) + sizeof(int *)) * 1);
-        d->set_mem = dsC->set_memories[c];
-        *d->set_mem = 0;
-        d->children = (dsCarrier *)&d[1];
-        d->children->memories = (long int **)&d->children[1];
-        d->children->dsNames = (const char **)&d->children->memories[1];
-        d->children->set_memories = (int **)&d->children->dsNames[1];
-        d->mem = dsC->memories[c];
-        d->children->size = 1;
+	    data *d = (data *)sqlite3_malloc(sizeof(data) + (sizeof(attrCarrier *) + sizeof(attrCarrier)) * 1);
+        d->set_mem = NULL;
+        d->children = (attrCarrier **)&d[1];
+	children = d->children;
+        d->children_size = 1;
+	ch_size = d->children_size;
+	children[0] = (attrCarrier *)&children[ch_size];
+	for (i = 1; i < ch_size; i++)
+	    children[i] = &children[i-1][1];
+        d->mem = curr_attr->memory;
         map<int,Customer*> *any_dstr = (map<int,Customer*> *)d->mem;
         map<int,Customer*>::iterator iter;
         iter = any_dstr->begin();
         ch = 0;
+	curr_child = children[ch];
         dc = 0;
         while (dc < dsC_size) {
-            if ( !strcmp(dsC->dsNames[dc], "Customer") )
+            if ( !strcmp(tmp_Carrier[dc]->attr->dsName, "Customer") )
                 break;
             dc++;
         }
-        d->children->memories[ch] = (long int *)(*iter).second;
-	dsC->memories[dc] = (long int *)&d->children->memories[ch];
-	d->children->set_memories[ch] = dsC->set_memories[dc];
-        *d->children->set_memories[ch] = 1;
-        d->children->dsNames[ch] = dsC->dsNames[dc];
+	attr_child = tmp_Carrier[dc]->attr;
+        curr_child->memory = (long int *)(*iter).second;
+	attr_child->memory = (long int *)&curr_child->memory;
+	rlt_no = 0;
+	tmp_rel = curr_ds->rlt[rlt_no];
+	while (rlt_no < curr_ds->rlt_size) {
+	    if( !strcmp(tmp_rel->child, "Customer") )
+		break;
+	    rlt_no++;
+	}
+	curr_child->set_memory = &tmp_rel->set;
+	attr_child->set_memory = &tmp_rel->set;
+        *curr_child->set_memory = 1;
+        curr_child->dsName = attr_child->dsName;
         ch++;
-        assert (ch == d->children->size);
+        assert (ch == ch_size);
         stl->data = (void *)d;
     }
     return SQLITE_OK;
 }
 
 
-void copy_structs(void *ds, int &c, char **c_temp, const char *name, long int *mem) {
+void copy_structs(void *ds, char **c_temp, const char *name, long int *mem) {
     dsCarrier **ddsC = (dsCarrier **)ds;
-    dsCarrier *dsC = *ddsC;
+    dsCarrier *dss = *ddsC;
+    attrCarrier *attr_dss = dss->attr;
     int len;
-    dsC->dsNames[c] = *c_temp;
+    attr_dss->dsName = *c_temp;
     len = (int)strlen(name) + 1;
     memcpy(*c_temp, name, len);
     *c_temp += len;
     if ( mem != NULL ) {
-        dsC->memories[c] = mem;
-        *dsC->set_memories[c] = 1;
+        attr_dss->memory = mem;
     }
-    c++;
-    *ddsC = dsC;
+    *ddsC = dss;
 }
 
+void set_relationships(void *ds, void *mem) {
+    dsArray *dsa = (dsArray *)ds;
+    dsCarrier **tmp_Carrier = dsa->ds, *curr_ds;
+    relationship **holder;
+    int ds_size = dsa->ds_size, i, rlt_size, rlt_no, tmp_rlt_size, tmp_rlt_no, dc, ch;
+
+// 5: hard-coded
+    tmp_rlt_size = 5;
+    relationship **tmp_rlt;
+    tmp_rlt = (relationship **)mem;
+    tmp_rlt[0] = (relationship *)&tmp_rlt[tmp_rlt_size];
+    for (i = 1; i < tmp_rlt_size; i++)
+	tmp_rlt[i] = &tmp_rlt[i-1][1];
+
+    dc = 0;
+    while (dc < ds_size) {
+	if ( !strcmp(tmp_Carrier[dc]->attr->dsName, "Trucks") ) {
+	    curr_ds = tmp_Carrier[dc];
+	    curr_ds->rlt_size = 1;
+	    rlt_size = curr_ds->rlt_size;
+	    tmp_rlt_no = 0;
+	    rlt_no = 0;
+	    ch = 0;
+	    while (ch < ds_size) {
+		if ( !strcmp(tmp_Carrier[ch]->attr->dsName, "Truck") ) {
+		    curr_ds->rlt = &tmp_rlt[tmp_rlt_no];
+		    holder = curr_ds->rlt;
+		    holder[rlt_no] = tmp_rlt[tmp_rlt_no];
+		    holder[rlt_no]->child = tmp_Carrier[ch]->attr->dsName;
+		    holder[rlt_no]->set = 0;
+		    break;
+		}
+		ch++;
+	    }
+	    break;
+	}
+	dc++;
+    }
+
+    dc = 0;
+    while (dc < ds_size) {
+	if ( !strcmp(tmp_Carrier[dc]->attr->dsName, "Truck") ) {
+	    curr_ds = tmp_Carrier[dc];
+	    curr_ds->rlt_size = 1;
+	    rlt_size = curr_ds->rlt_size;
+	    tmp_rlt_no = 0;
+	    rlt_no = 0;
+	    ch = 0;
+	    while (ch < ds_size) {
+		if ( !strcmp(tmp_Carrier[ch]->attr->dsName, "Customers") ) {
+		    curr_ds->rlt = &tmp_rlt[tmp_rlt_no];
+		    holder = curr_ds->rlt;
+		    holder[rlt_no] = tmp_rlt[tmp_rlt_no];
+		    holder[rlt_no]->child = tmp_Carrier[ch]->attr->dsName;
+		    holder[rlt_no]->set = 0;
+		    break;
+		}
+		ch++;
+	    }
+	    break;
+	}
+	dc++;
+    }
+
+    dc = 0;
+    while (dc < ds_size) {
+	if ( !strcmp(tmp_Carrier[dc]->attr->dsName, "Customers") ) {
+	    curr_ds = tmp_Carrier[dc];
+	    curr_ds->rlt_size = 1;
+	    rlt_size = curr_ds->rlt_size;
+	    tmp_rlt_no = 0;
+	    rlt_no = 0;
+	    ch = 0;
+	    while (ch < ds_size) {
+		if ( !strcmp(tmp_Carrier[ch]->attr->dsName, "Customer") ) {
+		    curr_ds->rlt = &tmp_rlt[tmp_rlt_no];
+		    holder = curr_ds->rlt;
+		    holder[rlt_no] = tmp_rlt[tmp_rlt_no];
+		    holder[rlt_no]->child = tmp_Carrier[ch]->attr->dsName;
+		    holder[rlt_no]->set = 0;
+		    break;
+		}
+		ch++;
+	    }
+	    break;
+	}
+	dc++;
+    }
+
+    dc = 0;
+    while (dc < ds_size) {
+	if ( !strcmp(tmp_Carrier[dc]->attr->dsName, "Customer") ) {
+	    curr_ds = tmp_Carrier[dc];
+	    curr_ds->rlt_size = 1;
+	    rlt_size = curr_ds->rlt_size;
+	    tmp_rlt_no = 0;
+	    rlt_no = 0;
+	    ch = 0;
+	    while (ch < ds_size) {
+		if ( !strcmp(tmp_Carrier[ch]->attr->dsName, "Position") ) {
+		    curr_ds->rlt = &tmp_rlt[tmp_rlt_no];
+		    holder = curr_ds->rlt;
+		    holder[rlt_no] = tmp_rlt[tmp_rlt_no];
+		    holder[rlt_no]->child = tmp_Carrier[ch]->attr->dsName;
+		    holder[rlt_no]->set = 0;
+		    break;
+		}
+		ch++;
+	    }
+	    break;
+	}
+	dc++;
+    }
+
+    dc = 0;
+    while (dc < ds_size) {
+	if ( !strcmp(tmp_Carrier[dc]->attr->dsName, "MapIndex") ) {
+	    curr_ds = tmp_Carrier[dc];
+	    curr_ds->rlt_size = 1;
+	    rlt_size = curr_ds->rlt_size;
+	    tmp_rlt_no = 0;
+	    rlt_no = 0;
+	    ch = 0;
+	    while (ch < ds_size) {
+		if ( !strcmp(tmp_Carrier[ch]->attr->dsName, "Customer") ) {
+		    curr_ds->rlt = &tmp_rlt[tmp_rlt_no];
+		    holder = curr_ds->rlt;
+		    holder[rlt_no] = tmp_rlt[tmp_rlt_no];
+		    holder[rlt_no]->child = tmp_Carrier[ch]->attr->dsName;
+		    holder[rlt_no]->set = 0;
+		    break;
+		}
+		ch++;
+	    }
+	    break;
+	}
+	dc++;
+    }
+}
 
 int realloc_carrier(void *st, void *ds, const char *tablename, char **pzErr) {
-    dsCarrier **ddsC = (dsCarrier **)ds;
-    dsCarrier *dsC = *ddsC;
-    dsCarrier *tmp_dsC;
-    int x_size, nByte, c, i;
+    dsArray **ddsC = (dsArray **)ds;
+    dsArray *dsC = *ddsC;
+    dsArray *tmp_dsC;
+    dsCarrier **tmp_Carrier, **dsC_Carrier;
+//
+    int x_size, nByte, c, i, size;
     char *c_temp;
 #ifdef DEBUGGING
-    printf("dsC->size: %i\n", dsC->size);
+    printf("dsC->size: %i\n", dsC->ds_size);
 #endif
-    if (dsC->size != 6) {
-        x_size = dsC->size;
-        nByte = sizeof(dsCarrier) + (sizeof(long int *) + sizeof(const char *) + sizeof(int *) + sizeof(int)) * 6 + 50;
-        tmp_dsC = (dsCarrier *)sqlite3_malloc(nByte);
+    if (dsC->ds_size != 6) {
+
+        x_size = dsC->ds_size;
+        nByte = sizeof(dsArray) + (sizeof(dsCarrier *) + sizeof(dsCarrier) + sizeof(attrCarrier)) * 6 + (sizeof(relationship *) + sizeof(relationship)) * 5 + 50;
+        tmp_dsC = (dsArray *)sqlite3_malloc(nByte);
         if (tmp_dsC != NULL) {
             memset(tmp_dsC, 0, nByte);
-            tmp_dsC->size = 6;
-            tmp_dsC->dsNames = (const char **)&tmp_dsC[1];
-            tmp_dsC->memories = (long int **)&tmp_dsC->dsNames[6];
-            tmp_dsC->set_memories = (int **)&tmp_dsC->memories[6];
-            tmp_dsC->set_memories[0] = (int *)&tmp_dsC->set_memories[6];
-            for (i = 1; i < tmp_dsC->size; i++)
-                tmp_dsC->set_memories[i] = &tmp_dsC->set_memories[i-1][1];
-            c_temp = (char *)&tmp_dsC->set_memories[i-1][1];
+            tmp_dsC->ds_size = 6;
+	    size = tmp_dsC->ds_size;
+	    tmp_dsC->ds = (dsCarrier **)&tmp_dsC[1];
+	    tmp_Carrier = tmp_dsC->ds;
+	    tmp_Carrier[0] = (dsCarrier *)&tmp_Carrier[size];
+	    for (i = 1; i < size; i++)
+		tmp_Carrier[i] = (dsCarrier *)&tmp_Carrier[i-1][1];
+
+	    tmp_Carrier[0]->attr = (attrCarrier *)&tmp_Carrier[i-1][1];
+	    for (i = 1; i < size; i++)
+		tmp_Carrier[i]->attr = (attrCarrier *)&tmp_Carrier[i-1]->attr[1];
+	    c_temp = (char *)&tmp_Carrier[i-1]->attr[1];
+	    dsC_Carrier = dsC->ds;
             c = 0;
-            copy_structs(&tmp_dsC, c, &c_temp, dsC->dsNames[c], dsC->memories[c]);
-            copy_structs(&tmp_dsC, c, &c_temp, dsC->dsNames[c], dsC->memories[c]);
-            copy_structs(&tmp_dsC, c, &c_temp, "Truck", NULL);
-            copy_structs(&tmp_dsC, c, &c_temp, "Customers", NULL);
-            copy_structs(&tmp_dsC, c, &c_temp, "Customer", NULL);
-            copy_structs(&tmp_dsC, c, &c_temp, "Position", NULL);
+            copy_structs(&tmp_Carrier[c], &c_temp, dsC_Carrier[c]->attr->dsName, dsC_Carrier[c]->attr->memory);
+	    c++;
+            copy_structs(&tmp_Carrier[c], &c_temp, dsC_Carrier[c]->attr->dsName, dsC_Carrier[c]->attr->memory);
+	    c++;
+            copy_structs(&tmp_Carrier[c], &c_temp, "Truck", NULL);
+	    c++;
+            copy_structs(&tmp_Carrier[c], &c_temp, "Customers", NULL);
+	    c++;
+            copy_structs(&tmp_Carrier[c], &c_temp, "Customer", NULL);
+	    c++;
+            copy_structs(&tmp_Carrier[c], &c_temp, "Position", NULL);
+	    c++;
             assert(c == 6);
+	    set_relationships(tmp_dsC, c_temp);
 #ifdef DEBUGGING
             printf("c_temp: %lx <= tmp_dsC: %lx \n", c_temp, &((char *)tmp_dsC)[nByte]);
 #endif
@@ -253,7 +470,7 @@ int realloc_carrier(void *st, void *ds, const char *tablename, char **pzErr) {
             return SQLITE_NOMEM;
         }
     }
-    return set_dependencies(st, ds, tablename, pzErr);
+    return set_dependencies(st, *ddsC, tablename, pzErr);
 }
 
 
@@ -263,7 +480,7 @@ int update_structures(void *cur) {
     const char *table_name = stl->zName;
     data *d = (data *)stl->data;
     stlTableCursor *stcsr = (stlTableCursor *)stc;
-    const char **names;
+    attrCarrier **children, *attr_child;
     int dc, index, no_child;
     if( !strcmp(table_name, "Trucks") ) {
         index = stcsr->current;
@@ -274,12 +491,13 @@ int update_structures(void *cur) {
             iter++;
         }
         dc = 0;
-        names = d->children->dsNames;
-        no_child = d->children->size;
+        children = d->children;
+        no_child = d->children_size;
         while (dc < no_child) {
-            if ( !strcmp(names[dc], "Truck") ) {
-                d->children->memories[dc] = (long int *)(*iter);
-                *d->children->set_memories[dc] = 1;
+	    attr_child = children[dc];
+            if ( !strcmp(attr_child->dsName, "Truck") ) {
+                attr_child->memory = (long int *)(*iter);
+                *attr_child->set_memory = 1;
                 break;
             }
             dc++;
@@ -291,12 +509,13 @@ int update_structures(void *cur) {
         *d->set_mem = 0;
         Truck *any_dstr = (Truck *)*d->mem;
         dc = 0;
-        names = d->children->dsNames;
-        no_child = d->children->size;
+        children = d->children;
+        no_child = d->children_size;
         while (dc < no_child) {
-            if ( !strcmp(names[dc], "Customers") ) {
-                d->children->memories[dc] = (long int *)any_dstr->get_Customers();
-                *d->children->set_memories[dc] = 1;
+	    attr_child = children[dc];
+            if ( !strcmp(attr_child->dsName, "Customers") ) {
+                attr_child->memory = (long int *)any_dstr->get_Customers();
+                *attr_child->set_memory = 1;
                 break;
             }
             dc++;
@@ -313,12 +532,13 @@ int update_structures(void *cur) {
             iter++;
         }
         dc = 0;
-        names = d->children->dsNames;
-        no_child = d->children->size;
+        children = d->children;
+        no_child = d->children_size;
         while (dc < no_child) {
-            if ( !strcmp(names[dc], "Customer") ) {
-                d->children->memories[dc] = (long int *)(*iter);
-                *d->children->set_memories[dc] = 1;
+	    attr_child = children[dc];
+            if ( !strcmp(attr_child->dsName, "Customer") ) {
+                attr_child->memory = (long int *)(*iter);
+                *attr_child->set_memory = 1;
                 break;
             }
             dc++;
@@ -330,12 +550,13 @@ int update_structures(void *cur) {
         *d->set_mem = 0;
         Customer *any_dstr = (Customer *)*d->mem;
         dc = 0;
-        names = d->children->dsNames;
-        no_child = d->children->size;
+        children = d->children;
+        no_child = d->children_size;
         while (dc < no_child) {
-            if ( !strcmp(names[dc], "Position") ) {
-                d->children->memories[dc] = (long int *)any_dstr->get_pos();
-                *d->children->set_memories[dc] = 1;
+	    attr_child = children[dc];
+            if ( !strcmp(attr_child->dsName, "Position") ) {
+                attr_child->memory = (long int *)any_dstr->get_pos();
+                *attr_child->set_memory = 1;
                 break;
             }
             dc++;
@@ -354,12 +575,13 @@ int update_structures(void *cur) {
             iter++;
         }
         dc = 0;
-        names = d->children->dsNames;
-        no_child = d->children->size;
+        children = d->children;
+        no_child = d->children_size;
         while (dc < no_child) {
-            if ( !strcmp(names[dc], "Customer") ) {
-                d->children->memories[dc] = (long int *)(*iter).second;
-                *d->children->set_memories[dc] = 1;
+	    attr_child = children[dc];
+            if ( !strcmp(attr_child->dsName, "Customer") ) {
+                attr_child->memory = (long int *)(*iter).second;
+                *attr_child->set_memory = 1;
                 break;
             }
             dc++;
