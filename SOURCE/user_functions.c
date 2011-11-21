@@ -264,7 +264,7 @@ int register_table(const char *nDb, int argc, const char **q, const char **table
   if( re ){
     printf("can't open database\n");
     sqlite3_close(db);
-    exit(1);
+    return re;
   }
 
 #ifdef DEBUGGING

@@ -43,9 +43,8 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc,
   assert( nCol > 0 );
   nByte = sizeof(stlTable) + nCol * sizeof(char *) + nDb + nName + nString;
   stl = (stlTable *)sqlite3_malloc(nByte);
-  if( stl==0 ){
-    int rc = SQLITE_NOMEM;
-    return rc;
+  if( stl == 0 ){
+    return SQLITE_NOMEM;
   }
   memset(stl, 0, nByte);
   stl->db = db;
@@ -94,6 +93,7 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc,
   }else{
     *pzErr = sqlite3_mprintf("Unknown error");
     printf("%s \n", *pzErr);
+    return SQLITE_ERROR;
   } 
 }
 
@@ -196,6 +196,9 @@ int filter_vtable(sqlite3_vtab_cursor *cur, int idxNum, const char *idxStr,
 		  int argc, sqlite3_value **argv){
   stlTable *st=(stlTable *)cur->pVtab;
   stlTableCursor *stc=(stlTableCursor *)cur;
+  int i, j=0, re = 0;
+  char *constr = (char *)sqlite3_malloc(sizeof(char) * 3);
+  memset(constr, 0, sizeof(constr));
   // Initialize size of resultset data structure.
   stc->size = 0;
 
@@ -211,18 +214,18 @@ int filter_vtable(sqlite3_vtab_cursor *cur, int idxNum, const char *idxStr,
   // First_constr is used to signal that the current constr encountered is the
   // first (value 1) or not (value 0).
   stc->first_constr = 1;
-  int i, j=0;
-  char *constr = (char *)sqlite3_malloc(sizeof(char) * 3);
-  memset(constr, 0, sizeof(constr));
 
   //Empty where clause.
-  if( argc==0 ) search((void *)stc, NULL, NULL);
-  else{
+  if( argc==0 ) {
+    if ( (re = search((void *)stc, NULL, NULL)) != 0 )
+      return re;
+  }else{
     for(i=0; i<argc; i++) {
       constr[0] = idxStr[j++];
       constr[1] = idxStr[j++];
       constr[2] = '\0';
-      search((void *)stc, constr, argv[i]);
+      if ( (re = search((void *)stc, constr, argv[i])) != 0 )
+	return re;
     }
   }
   sqlite3_free(constr);
