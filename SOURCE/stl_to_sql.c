@@ -4,9 +4,9 @@
 #include <assert.h>
 #include <stdlib.h>
 
-/*
+
 #define DEBUGGING
-*/
+
 
 // construct the sql query
 void create(sqlite3 *db, int argc, const char * const * as, char *q){ 
@@ -50,8 +50,6 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc,
   stl->db = db;
   int q = 0;
   char str[1024];
-  if ( (re = realloc_carrier((void *)stl, paux, argv[2], pzErr)) != SQLITE_OK )
-    return re;
   stl->nColumn = nCol;
   stl->azColumn=(char **)&stl[1];
   temp=(char *)&stl->azColumn[nCol];
@@ -85,6 +83,8 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc,
       return SQLITE_ERROR;
     }else if( output==0 ){
       *ppVtab = &stl->vtab;
+      if ( (re = realloc_carrier(*ppVtab, paux, argv[2], pzErr)) != SQLITE_OK )
+	return re;
 #ifdef DEBUGGING
       printf("Virtual table declared successfully\n");
 #endif
@@ -136,10 +136,12 @@ int destroy_vtable(sqlite3_vtab *ppVtab){
 // xDisconnect
 int disconnect_vtable(sqlite3_vtab *ppVtab){
   stlTable *s=(stlTable *)ppVtab;
+  dsData *d = (dsData *)s->data;
 #ifdef DEBUGGING
   printf("Disconnecting vtable %s \n\n", s->zName);
 #endif
-  sqlite3_free(s->data);
+  if ( d->children != NULL )
+    sqlite3_free(d->children);
   sqlite3_free(s);
   return SQLITE_OK;
 }
@@ -253,9 +255,13 @@ int next_vtable(sqlite3_vtab_cursor *cur){
 // xOpen
 int open_vtable(sqlite3_vtab *pVtab, sqlite3_vtab_cursor **ppCsr){
   stlTable *st=(stlTable *)pVtab;
+  int re;
 #ifdef DEBUGGING
   printf("Opening vtable %s\n\n", st->zName);
 #endif
+  if ( (re = fill_check_dependencies(pVtab)) != SQLITE_OK )
+    return re;
+
   // To allocate space for the resultset.
   // Will need space at most equal to the data structure size.
   int arraySize = get_datastructure_size(st);
@@ -303,6 +309,7 @@ int close_vtable(sqlite3_vtab_cursor *cur){
 #ifdef DEBUGGING
   printf("Closing vtable %s \n\n",st->zName);
 #endif
+  unset_mem(cur);
   sqlite3_free(stc->resultSet);
   sqlite3_free(stc);
   return SQLITE_OK;

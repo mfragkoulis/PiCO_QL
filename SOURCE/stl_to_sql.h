@@ -51,22 +51,10 @@ typedef struct {sqlite3_vtab vtab; sqlite3 *db; const char *zDb;
 typedef struct {sqlite3_vtab_cursor vtab; int *resultSet; int size; 
   int current; int isEof;int max_size; int first_constr;} stlTableCursor;
 
-/*
-typedef struct {long int **memories; const char** dsNames; int **set_memories; int size;} dsCarrier;
-
-typedef struct {long int *mem; int *set_mem; dsCarrier *children;} data;
-
-#endif
-*/
-
-typedef struct {const char *child; int set;} relationship;
-
 typedef struct {long int *memory; const char *dsName; int *set_memory;} attrCarrier;
 
-typedef struct {attrCarrier *attr; relationship **rlt; int rlt_size;} dsCarrier;
+typedef struct {attrCarrier *attr; attrCarrier **children; int children_size;} dsData;
 
-typedef struct {long int *mem; int *set_mem; attrCarrier **children; int children_size;} data;
-
-typedef struct {dsCarrier **ds; int ds_size;} dsArray; 
+typedef struct {dsData **ds; int ds_size; int init;} dsArray; 
 
 #endif
