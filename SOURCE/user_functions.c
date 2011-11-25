@@ -59,8 +59,10 @@ int prep_exec(FILE *f, sqlite3 *db, const char *q){
       }
 #endif
     }
-  }else
+  } else {
     printf("Error in preparation of query: error no %i\n", prepare);
+    return prepare;
+  }
   printf("\n");
   sqlite3_finalize(stmt);
   return result;
@@ -107,13 +109,17 @@ int step_query(FILE *f, sqlite3_stmt *stmt) {
 int file_prep_exec(FILE *f, sqlite3_stmt *stmt, const char *q){
   int result;
   result = step_query(f, stmt);
-  if( result==SQLITE_DONE ){
-    //    swill_fprintf(f, "<b>DONE<br></b>");
-  }else if( result==SQLITE_OK ){
-    //    swill_fprintf(f, "<b>OK<br></b>");
-  }else if( result==SQLITE_ERROR ){
+  if( result == SQLITE_DONE ){
+#ifdef DEBUGGING
+    swill_fprintf(f, "<b>DONE<br></b>");
+#endif
+  }else if( result == SQLITE_OK ){
+#ifdef DEBUGGING
+    swill_fprintf(f, "<b>OK<br></b>");
+#endif
+  }else if( result == SQLITE_ERROR ){
     swill_fprintf(f, "<b>SQL error or missing database.\n</b>");
-  }else if( result==SQLITE_MISUSE ){
+  }else if( result == SQLITE_MISUSE ){
     swill_fprintf(f, "<b>Library used incorrectly.<br></b>");
   }else {
   }

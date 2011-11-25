@@ -196,7 +196,6 @@ int bestindex_vtable(sqlite3_vtab *pVtab, sqlite3_index_info *pInfo){
 // xFilter
 int filter_vtable(sqlite3_vtab_cursor *cur, int idxNum, const char *idxStr,
 		  int argc, sqlite3_value **argv){
-  stlTable *st=(stlTable *)cur->pVtab;
   stlTableCursor *stc=(stlTableCursor *)cur;
   int i, j=0, re = 0;
   char *constr = (char *)sqlite3_malloc(sizeof(char) * 3);
@@ -219,14 +218,14 @@ int filter_vtable(sqlite3_vtab_cursor *cur, int idxNum, const char *idxStr,
 
   //Empty where clause.
   if( argc==0 ) {
-    if ( (re = search((void *)stc, NULL, NULL)) != 0 )
+    if ( (re = search(cur, NULL, NULL)) != 0 )
       return re;
   }else{
     for(i=0; i<argc; i++) {
       constr[0] = idxStr[j++];
       constr[1] = idxStr[j++];
       constr[2] = '\0';
-      if ( (re = search((void *)stc, constr, argv[i])) != 0 )
+      if ( (re = search(cur, constr, argv[i])) != 0 )
 	return re;
     }
   }
@@ -246,7 +245,7 @@ int next_vtable(sqlite3_vtab_cursor *cur){
   if ( stc->current >= stc->size )
     stc->isEof = 1;
   else
-    if ( (re = update_structures((void *)cur)) != SQLITE_OK )
+    if ( (re = update_structures(cur)) != SQLITE_OK )
       return re;
   return SQLITE_OK;
 }
@@ -264,7 +263,7 @@ int open_vtable(sqlite3_vtab *pVtab, sqlite3_vtab_cursor **ppCsr){
 
   // To allocate space for the resultset.
   // Will need space at most equal to the data structure size.
-  int arraySize = get_datastructure_size(st);
+  int arraySize = get_datastructure_size(pVtab);
 
   sqlite3_vtab_cursor *pCsr;               /* Allocated cursor */
   //  int nByte = sizeof(stlTableCursor) + sizeof(int) * arraySize;
@@ -294,8 +293,7 @@ int open_vtable(sqlite3_vtab *pVtab, sqlite3_vtab_cursor **ppCsr){
 
 //xColumn
 int column_vtable(sqlite3_vtab_cursor *cur, sqlite3_context *con, int n){
-  stlTableCursor *stc=(stlTableCursor *)cur;
-  return retrieve((void *)stc, n, con);
+  return retrieve(cur, n, con);
 }
 
 //xRowid

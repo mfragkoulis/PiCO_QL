@@ -11,11 +11,11 @@ extern "C" {
   int register_table(const char *nDb, int argc, const char **queries, const char **table_names, void *data);
   int realloc_carrier(sqlite3_vtab *pVtab, void *ds, const char *tablename, char **pzErr);
   int fill_check_dependencies(sqlite3_vtab *pVtab);
-  int update_structures(void *cur);
+  int update_structures(sqlite3_vtab_cursor *cur);
   void unset_mem(sqlite3_vtab_cursor *st);
-  int get_datastructure_size(void *st);
-  int search(void *stc, char *constraint, sqlite3_value *val);
-  int retrieve(void *stc, int n, sqlite3_context *con);
+  int get_datastructure_size(sqlite3_vtab *pVtab);
+  int search(sqlite3_vtab_cursor *cur, char *constraint, sqlite3_value *val);
+  int retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con);
 
 
 #ifdef __cplusplus
