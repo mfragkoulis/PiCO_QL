@@ -140,8 +140,10 @@ int disconnect_vtable(sqlite3_vtab *ppVtab){
 #ifdef DEBUGGING
   printf("Disconnecting vtable %s \n\n", s->zName);
 #endif
-  if ( d->children != NULL )
-    sqlite3_free(d->children);
+  if ( d->parents != NULL )
+    sqlite3_free(d->parents);
+  if ( d->nntv != NULL )
+    sqlite3_free(d->nntv);
   sqlite3_free(s);
   return SQLITE_OK;
 }
@@ -244,9 +246,9 @@ int next_vtable(sqlite3_vtab_cursor *cur){
 #endif
   if ( stc->current >= stc->size )
     stc->isEof = 1;
-  else
-    if ( (re = update_structures(cur)) != SQLITE_OK )
-      return re;
+  //  else
+    //    if ( (re = update_structures(cur)) != SQLITE_OK )
+    //      return re;
   return SQLITE_OK;
 }
 
@@ -258,12 +260,12 @@ int open_vtable(sqlite3_vtab *pVtab, sqlite3_vtab_cursor **ppCsr){
 #ifdef DEBUGGING
   printf("Opening vtable %s\n\n", st->zName);
 #endif
-  if ( (re = fill_check_dependencies(pVtab)) != SQLITE_OK )
-    return re;
+  //  if ( (re = fill_check_dependencies(pVtab)) != SQLITE_OK )
+  //    return re;
 
   // To allocate space for the resultset.
   // Will need space at most equal to the data structure size.
-  int arraySize = get_datastructure_size(pVtab);
+  //  int arraySize = get_datastructure_size(pVtab);
 
   sqlite3_vtab_cursor *pCsr;               /* Allocated cursor */
   //  int nByte = sizeof(stlTableCursor) + sizeof(int) * arraySize;
@@ -275,19 +277,19 @@ int open_vtable(sqlite3_vtab *pVtab, sqlite3_vtab_cursor **ppCsr){
   }
   stlTableCursor *stc = (stlTableCursor *)pCsr;
   memset(pCsr, 0, sizeof(stlTableCursor));
-  stc->max_size = arraySize;
+  //  stc->max_size = arraySize;
 #ifdef DEBUGGING
   printf("ppCsr = %lx, pCsr = %lx \n", (long unsigned int)ppCsr, (long unsigned int)pCsr);
-  printf("Original resultSet of vtable %s is %i \n\n", st->zName, stc->max_size);
+  //  printf("Original resultSet of vtable %s is %i \n\n", st->zName, stc->max_size);
 #endif
   // A data structure to hold index positions of resultset so that in the end
   // of loops the remaining resultset is the wanted one.
-  stc->resultSet = (int *)sqlite3_malloc(sizeof(int) * arraySize);
-  if( !stc->resultSet ){
-    return SQLITE_NOMEM;
-  }
-  memset(stc->resultSet, -1, sizeof(int) * arraySize);
-  assert(((char *)stc->resultSet)[sizeof(int) * arraySize] <= stc->resultSet[arraySize]);
+  //  stc->resultSet = (int *)sqlite3_malloc(sizeof(int) * arraySize);
+  //  if( !stc->resultSet ){
+  //    return SQLITE_NOMEM;
+  //  }
+  //  memset(stc->resultSet, -1, sizeof(int) * arraySize);
+  //  assert(((char *)stc->resultSet)[sizeof(int) * arraySize] <= stc->resultSet[arraySize]);
   return SQLITE_OK;
 }
 
@@ -307,8 +309,8 @@ int close_vtable(sqlite3_vtab_cursor *cur){
 #ifdef DEBUGGING
   printf("Closing vtable %s \n\n",st->zName);
 #endif
-  unset_mem(cur);
-  sqlite3_free(stc->resultSet);
+  free_resultset(cur);
+  reset_nonNative(cur);
   sqlite3_free(stc);
   return SQLITE_OK;
 }
