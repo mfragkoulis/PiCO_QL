@@ -224,14 +224,214 @@ class Data_structure_characteristics
     # content: map<string,Truck*>
     @signature = ""
     @stl_class = ""
+    @type = ""
     @object_class = ""
     @template_args = ""
     @parents = Array.new
     @children = Array.new
     @columns = Array.new
+    @nonNative = 0
     @s = "        "
   end
-  attr_accessor(:name,:db,:signature,:stl_class,:object_class,:template_args,:parents,:children,:access,:columns,:s)
+  attr_accessor(:name,:db,:signature,:stl_class,:type,:object_class,:template_args,:parents,:children,:access,:columns,:nonNative,:s)
+
+
+  def spacing(fw, index)
+    spacing = 0
+    blanks = @s
+    while spacing < index
+      blanks += "    "
+      spacing += 1
+    end
+    return blanks
+  end
+
+
+  def print_paths(ds_chars, paths, fw, init)
+    parent_type = ""
+    ds_length = ds_chars.length
+    if (init == 0)
+      fw.puts "    if ( !strcmp(table_name, \"#{@name}\") ) {"
+    else
+      fw.puts "    } else if ( !strcmp(table_name, \"#{@name}\") ) {"
+    end
+    if @nonNative == nil || @nonNative == 0
+      fw.puts @s + "set<#{@type}> *resultset = (set<#{@type}> *)stc->resultSet;"
+    elsif @nonNative == 1
+      parent = @parents[0]
+      w = 0
+      while w < ds_length
+        if ds_chars[w].name == parent
+          parent_type = ds_chars[w].type
+          break
+        end
+        w += 1
+      end
+      if w == ds_length
+        "VT name #{parent} unknown"
+        exit(1)
+      end
+      fw.puts @s + "map<#{@type},#{parent_type}> *resultset = (map<#{@type},#{parent_type}> *)stc->resultSet;"
+    elsif @nonNative > 1
+# HANDLE
+    end
+    if @type.match(/pair/)
+      fw.puts @s + @type + " p;"
+    end
+    pths = 0
+    while pths < paths.length
+      path = paths[pths]
+      pth = path.length - 1
+      if path.length > 1
+        fw.puts @s + "pr = 0;"
+        fw.puts @s + "while (pr < pr_size) {"
+        fw.puts @s + "    if ( !strcmp(parents[pr]->dsName, \"#{path[pth]}\") )"
+        fw.puts @s + @s + "break;"
+        fw.puts @s + "    pr++;"
+        fw.puts @s + "}"
+        fw.puts @s + "parent_attr = parents[pr];"
+      end
+      index = 0
+      while pth >= 0
+        w = 0
+        parent = path[pth];
+        while w < ds_length
+          if ds_chars[w].name == parent && ds_chars[w].signature.length > 0
+            parent_signature = ds_chars[w].signature
+            if index == 0
+              fw.puts @s + "#{parent_signature} *any_dstr#{index.to_s} = (#{parent_signature} *)parent_attr->memory;"
+            else
+              fw.puts @s + "#{parent_signature} *any_dstr#{index.to_s};"
+            end
+            fw.puts @s + "#{parent_signature}::iterator iter#{index.to_s};"
+            index += 1
+            break
+          end
+          w += 1
+        end
+        pth -= 1
+      end
+      pth = path.length - 1
+      index = 0
+      access_bridge = ""
+      access = ""
+      while pth >= 0
+        w = 0
+        parent = path[pth];
+        while w < ds_length
+          if ds_chars[w].name == parent
+            if ds_chars[w].signature.length > 0
+              parent_signature = ds_chars[w].signature
+              spaces = spacing(fw, index)
+              if index > 0
+                fw.puts spaces + "any_dstr#{index.to_s} = (#{parent_signature} *)(*iter#{(index-1).to_s})#{access_bridge}#{access};"
+                access = ""
+                access_bridge = ""
+              end
+              fw.puts spaces + "ds_size#{index.to_s} = any_dstr#{index.to_s}->size();"
+              fw.puts spaces + "iter#{index.to_s} = any_dstr#{index.to_s}->begin();"
+              fw.puts spaces + "for (int i#{index.to_s}; i#{index.to_s}<ds_size#{index.to_s}; i#{index.to_s}++;) {"
+              index += 1
+            else 
+              
+            end
+            if pth > 0
+              child = path[pth - 1]
+              parent_children = ds_chars[w].children
+              pc_size = ds_chars[w].children.length
+              pc = 0
+              while pc < pc_size
+                if child = parent_children[pc].name
+                  access = parent_children[pc].access
+                  if access.length > 0
+                    if ds_chars[w].type.match(/pair<(.+)(\**),(.+)(\**)>*/)
+                      access_bridge = "->"
+                    elsif ds_chars[w].type.match(/pair<(.+)(\**),(.+)(\**)>/)
+                      access_bridge = "."
+                    elsif ds_chars[w].type.match(/\*/)
+                      access_bridge = "->"
+                    else
+                      access_bridge = "."
+                    end
+                  end
+                  break
+                end
+                pc += 1
+              end
+            end
+            break
+          end
+          w += 1
+        end
+        pth -= 1
+      end
+      if @nonNative == nil || @nonNative < 1
+        fw.puts spacing(fw, index) + "resultset->insert((*iter#{(index-1).to_s})#{access_bridge}#{access});"
+      elsif @nonNative == 1
+        fw.puts spacing(fw, index) + "resultset->insert(pair<#{@type},#{parent_type}>((*iter#{(index-1).to_s})#{access_bridge}#{access},*iter#{(index-2).to_s}));"
+      else
+        #HANDLE
+      end
+      while index - 1 >= 0
+        fw.puts spacing(fw,index) + "iter#{(index-1).to_s}++;"
+        fw.puts spacing(fw, index - 1) + "}"
+        index -= 1
+      end
+      fw.puts @s + "stc->size = resultset->size();"
+      pths += 1
+    end
+=begin
+    puts "For VT #{@name} paths are #{paths.length}: "
+    pths = 0
+    while pths < paths.length
+      pth = 0
+      puts "Path #{pths.to_s}:"
+      while pth < paths[pths].length
+        puts paths[pths][pth]
+        pth += 1
+      end
+      puts "<-------->"
+      pths += 1
+    end
+=end
+  end
+  
+
+  def get_paths(ds_chars, paths, path)
+    pr = 0
+    pr_size = @parents.length
+    holder_path = Array.new
+    holder_path.replace(path)
+    if pr_size == 0
+=begin
+      h = 0
+      while h < holder_path.length
+        puts "holder_path[#{h.to_s}]: #{holder_path[h]}"
+        h += 1
+      end 
+=end
+      paths.push(holder_path)
+    end
+    while pr < pr_size
+      curr_parent = @parents[pr]
+      if path.index(curr_parent) == nil
+        path.push(curr_parent)
+      else
+        puts "Cyclic relationship."
+      end
+      w = 0
+      while w < ds_chars.length
+        if ds_chars[w].name == curr_parent
+          ds_chars[w].get_paths(ds_chars, paths, path)
+          path.replace(holder_path)
+          break
+        end
+        w += 1
+      end
+      pr += 1
+    end
+  end
+
 
 
 # Generates code to retrieve each VT struct.
@@ -608,6 +808,10 @@ CS
     if table_signature.include?("<") && table_signature.include?(">")
       container_split = table_signature.split(/</)
       @stl_class = container_split[0]
+      @type = container_split[1].chomp!(">")
+      if @stl_class.match(/map/i)
+        @type = "pair<#{@type}>"
+      end
       if @stl_class == "list" || @stl_class == "deque"  ||
           @stl_class == "vector" || @stl_class == "slist" ||
           @stl_class == "set" || @stl_class == "multiset" ||
@@ -656,6 +860,9 @@ CS
         exit(1)
       end
       @object_class = table_signature
+      @type = @object_class + "*"
+      # VT Truck results from pointer Truck * in stl struct.
+      # This is standard.
       puts "Class name : " + @object_class
     end
   end
@@ -772,226 +979,40 @@ CLS
     fw.puts "}"
   end
 
-# Generates method that returns size of each VT struct.
-  def print_ds_size_functions(fw)
-    fw.puts "int get_datastructure_size(sqlite3_vtab *pVtab){"
-    fw.puts "    stlTable *stl = (stlTable *)pVtab;"
-    w = 0
-    while w < @ds_chars.length
-      curr_ds = @ds_chars[w]
-      if curr_ds.signature.length > 0
-        fw.puts "    if( !strcmp(stl->zName, \"" + curr_ds.name + "\") )\
-{"
-        fw.puts @s + "dsData *d = (dsData *)stl->data;"
-        fw.puts @s + curr_ds.signature + " *any_dstr = (" +
-          curr_ds.signature + " *)d->attr->memory;"
-        fw.puts "        return ((int)any_dstr->size());"
-        fw.puts "    }"
-      end
-      w += 1
-    end
-    fw.puts "    return 1;"
-    fw.puts "}"
-  end
+  
+  def print_fill_resultset(fw)
 
-# Generates function to unset the appropriate field of the related 
-# structs of a struct 
-# when the former closes.
-  def print_unset_mem(fw)
-    
-    unset = <<-UN
-// Update structures is called before is_eof so an update of mem happens
-// but is not implemented (correctly), i.e. sqlite3 terminates query
-// execution (the end of the resultset).
-// This function unsets the last assignment.     
-void unset_mem(sqlite3_vtab_cursor *cur) {
-    stlTable *stl=(stlTable *)cur->pVtab;
-    dsData *d = (dsData *)stl->data;
-    attrCarrier **children = d->children, *curr_attr = d->attr;
-    if ( curr_attr->set_memory != NULL )
-        *curr_attr->set_memory = 0;
-    int ch_size = d->children_size, i = 0;
-    for (i = 0; i < ch_size; i++) {
-        *children[i]->set_memory = 0;
-    }
-}
-UN
-    fw.puts unset
-  end
-
-
-# Generates function to update the related structs of a struct 
-# when the latter is updated. This is how our virtual join mechanism 
-# works
-  def print_update_structures(fw)
-
-    setting_up = <<-SS
+    setup = <<-SP
     stlTable *stl = (stlTable *)cur->pVtab;
     const char *table_name = stl->zName;
+    stlTableCursor *stc = (stlTableCursor *)cur;
     dsData *d = (dsData *)stl->data;
-    stlTableCursor *stcsr = (stlTableCursor *)cur;
-    attrCarrier **children, *curr_attr = d->attr, *child_attr;
-    int ch, index, ch_size;
-SS
+    attrCarrier **parents, *parent_attr, *curr_attr = d->attr;;
+    int pr, pr_size, ds_size;
+    parents = d->parents;
+    pr_size = d->parents_size;
+    table_name = stl->zName;
+SP
 
-    catch_illegal_query = <<-CIQ
-        if ( (index == 0) && (*curr_attr->set_memory == 0) )
-            return SQLITE_MISUSE;
-        *curr_attr->set_memory = 0;
-CIQ
-
-    current_position = <<-CP
-        iter = any_dstr->begin();
-        for(int i=0; i<stcsr->resultSet[index]; i++){
-            iter++;
-        }
-CP
-
-    setting_up_children = <<-SUC
-        ch = 0;
-        children = d->children;
-        ch_size = d->children_size;
-SUC
-
-    fw.puts "int update_structures(sqlite3_vtab_cursor *cur) {"
-    fw.puts setting_up
+    fw.puts "int fill_resultset(sqlite3_vtab_cursor *cur) {"
+    fw.puts setup
     w = 0
+    paths = Array.new
+    path = Array.new
     while w < @ds_chars.length
       curr_ds = @ds_chars[w]
-      if w == 0
-        fw.puts "    if( !strcmp(table_name, \"" + curr_ds.name + "\") ) {"
-      else
-        fw.puts "    } else if( !strcmp(table_name, \"" + curr_ds.name + "\") ) {"
-      end
-      fw.puts @s + "index = stcsr->current;"
-      if curr_ds.parents.length > 0
-        fw.puts catch_illegal_query
-      end
-      children_no = curr_ds.children.length
-      if children_no > 0
-        children = curr_ds.children
-        if curr_ds.signature.length > 0
-          form = "(*iter)"
-          access_bridge = "."
-          signature = curr_ds.signature
-          fw.puts @s + signature + " *any_dstr = (" + signature + " *)curr_attr->memory;"
-          fw.puts @s + signature + "::iterator iter;"
-          fw.puts current_position
-        else
-          form = "any_dstr"
-          access_bridge = "->"
-          signature = curr_ds.object_class
-          fw.puts @s + signature + " *any_dstr = (" + signature + " *)curr_attr->memory;"
-        end
-        fw.puts setting_up_children
-        ch = 0
-        while ch < children_no
-          if children[ch].access.length == 0
-            access = ""
-          else
-            access = access_bridge + children[ch].access
-          end
-          fw.puts @s + "while (ch < ch_size) {"
-          fw.puts @s + "    child_attr = children[ch];"
-          fw.puts @s + "    if ( !strcmp(child_attr->dsName, \"" + 
-            children[ch].name + "\") ) {"
-          fw.puts @s + @s + "child_attr->memory = (long int *)" +
-            form + access + ";"
-          fw.puts @s + @s + "*child_attr->set_memory = 1;"
-          fw.puts @s + @s + "break;"
-          fw.puts @s + "    }"
-          fw.puts @s + "    ch++;"
-          fw.puts @s + "}"
-          ch += 1
-        end
-      end
+      parents = curr_ds.parents
+      path[0] = curr_ds.name
+      puts "Getting paths for: #{curr_ds.name}..."
+      curr_ds.get_paths(@ds_chars, paths, path)
+      curr_ds.print_paths(@ds_chars, paths, fw, w)
+      paths.clear
+      path.clear
       w += 1
     end
-    fw.puts "    }"
     fw.puts "    return SQLITE_OK;"
     fw.puts "}"
   end
-
-
-# Generates the function to reallocate space for the struct 
-# that carries info for the user defined structs of the 
-# application registered with SQTL.
-  def print_fill_check_dependencies(fw)
-        setup_setting = <<-SS
-    stlTable *stl = (stlTable *)pVtab;
-    const char *table_name = stl->zName;
-    dsData *d = (dsData *)stl->data;
-    attrCarrier **children, *child_attr, *curr_attr = d->attr;
-    int c = 0, ch, ch_size;
-SS
-
-    catch_illegal_query = <<-CIQ
-        if ( *curr_attr->set_memory == 0 )
-            return SQLITE_MISUSE;
-        *curr_attr->set_memory = 0;
-CIQ
-
-    fw.puts "int fill_check_dependencies(sqlite3_vtab *pVtab) {"
-    fw.puts setup_setting
-    w = 0
-    while w < @ds_chars.length
-      curr_ds = @ds_chars[w]
-      children_no = curr_ds.children.length
-      children = curr_ds.children
-      if w == 0
-        fw.puts "    if( !strcmp(table_name, \"" + curr_ds.name + "\") ) {"
-      else
-        fw.puts "    } else if( !strcmp(table_name, \"" + curr_ds.name + "\") ) {"
-      end
-      if curr_ds.parents.length > 0
-        fw.puts catch_illegal_query
-      end
-      if children_no > 0
-        fw.puts @s + "children = d->children;"
-        fw.puts @s + "ch_size = d->children_size;"
-        if curr_ds.signature.length > 0
-          form = "(*iter)"
-          access_bridge = "."
-          signature = curr_ds.signature
-          fw.puts @s + signature + " *any_dstr = (" + signature + " *)curr_attr->memory;"
-          fw.puts @s + signature + "::iterator iter;"
-          fw.puts @s + "iter = any_dstr->begin();"
-        else
-          form = "any_dstr"
-          access_bridge = "->"
-          signature = curr_ds.object_class
-          fw.puts @s + signature + " *any_dstr = (" + signature + " *)curr_attr->memory;"
-        end
-        fw.puts @s + "ch = 0;"
-        ch = 0
-        while ch < children_no
-          if children[ch].access.length == 0
-            access = ""
-          else
-            access = access_bridge + children[ch].access
-          end
-          fw.puts @s + "while (ch < ch_size) {"
-          fw.puts @s + "    if ( !strcmp(children[ch]->dsName, \"" + 
-            children[ch].name + "\") )"
-          fw.puts @s + @s + "break;"
-          fw.puts @s + "    ch++;"
-          fw.puts @s + "}"
-          fw.puts @s + "child_attr = children[ch];"
-          fw.puts @s + "child_attr->memory = (long int *)" +
-            form + access + ";"
-          fw.puts @s + "*child_attr->set_memory = 1;"
-          fw.puts @s + "ch++;"
-          ch += 1
-        end
-        fw.puts @s + "assert (ch == ch_size);"
-      end
-      w += 1
-    end
-    fw.puts "    }"
-    fw.puts "    return SQLITE_OK;"
-    fw.puts "}"
-  end
-
 
 # Generates the function to reallocate space for the struct 
 # that carries info for the user defined structs of the 
@@ -1529,14 +1550,14 @@ mkf
       fw.puts "\n\n"
       print_realloc_carrier(fw)
       fw.puts "\n\n"
-      print_fill_check_dependencies(fw)
+      print_fill_resultset(fw)
       fw.puts "\n\n"
-      print_update_structures(fw)
+=begin
+      print_reset_nonNative(fw)
       fw.puts "\n\n"
-      print_unset_mem(fw)
+      print_free_resultset(fw)
       fw.puts "\n\n"
-      print_ds_size_functions(fw)
-      fw.puts auto_gen3
+=end
       print_search_functions(fw)
       fw.puts "\n\n"
       print_retrieve_functions(fw)
@@ -1593,6 +1614,13 @@ mkf
           " with access statement: " + 
           @ds_chars[pr].children[@ds_chars[pr].children.length - 1].access
         p += 1
+      end
+      if @ds_chars[w].signature.length > 0
+        @ds_chars[w].nonNative = p
+        puts "VT #{@ds_chars[w].name} nonNative of rate #{@ds_chars[w].nonNative}"
+      else
+        @ds_chars[w].nonNative = nil
+        puts "VT #{@ds_chars[w].name} native"
       end
       w += 1
     end
