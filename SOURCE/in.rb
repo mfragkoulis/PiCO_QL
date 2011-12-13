@@ -166,6 +166,7 @@ class Column
             @access_path.gsub!(/\$/,".")
           end
         end
+      elsif column_data.length == 3 && @type == "primary_key"
       else
         puts "Invalid format.\n"  
       end
@@ -236,7 +237,7 @@ class Data_structure_characteristics
   attr_accessor(:name,:db,:signature,:stl_class,:type,:object_class,:template_args,:parents,:children,:access,:columns,:nonNative,:s)
 
 
-  def spacing(fw, index)
+  def spacing(index)
     spacing = 0
     blanks = @s
     while spacing < index
@@ -250,19 +251,30 @@ class Data_structure_characteristics
   def print_paths(ds_chars, paths, fw, init)
     parent_type = ""
     ds_length = ds_chars.length
+    if @type.match(/\*/) == nil
+      type  = @type + "*"
+      # VT Truck results from pointer Truck * in stl struct.
+      # This is standard.
+    else 
+      type = @type
+    end
     if (init == 0)
       fw.puts "    if ( !strcmp(table_name, \"#{@name}\") ) {"
     else
-      fw.puts "    } else if ( !strcmp(table_name, \"#{@name}\") ) {"
+      fw.puts "    else if ( !strcmp(table_name, \"#{@name}\") ) {"
     end
     if @nonNative == nil || @nonNative == 0
-      fw.puts @s + "set<#{@type}> *resultset = (set<#{@type}> *)stc->resultSet;"
+      fw.puts @s + "set<#{type}> *resultset = (set<#{type}> *)stc->resultSet;"
     elsif @nonNative == 1
       parent = @parents[0]
       w = 0
       while w < ds_length
         if ds_chars[w].name == parent
           parent_type = ds_chars[w].type
+          parent_signature = ds_chars[w].signature
+          if parent_type.match(/\*/) == nil
+            parent_type = parent_type + "*"
+          end
           break
         end
         w += 1
@@ -271,18 +283,22 @@ class Data_structure_characteristics
         "VT name #{parent} unknown"
         exit(1)
       end
-      fw.puts @s + "map<#{@type},#{parent_type}> *resultset = (map<#{@type},#{parent_type}> *)stc->resultSet;"
+      fw.puts @s + "map<#{type},#{parent_type}> *resultset = (map<#{type},#{parent_type}> *)stc->resultSet;"
     elsif @nonNative > 1
 # HANDLE
     end
-    if @type.match(/pair/)
-      fw.puts @s + @type + " p;"
+    if type.match(/pair/)
+      fw.puts @s + type + " p;"
     end
     pths = 0
+    indexD = 0
+    indexR = 0
+    indexR_hold = 0
     while pths < paths.length
       path = paths[pths]
       pth = path.length - 1
       if path.length > 1
+# not autonomous
         fw.puts @s + "pr = 0;"
         fw.puts @s + "while (pr < pr_size) {"
         fw.puts @s + "    if ( !strcmp(parents[pr]->dsName, \"#{path[pth]}\") )"
@@ -291,20 +307,20 @@ class Data_structure_characteristics
         fw.puts @s + "}"
         fw.puts @s + "parent_attr = parents[pr];"
       end
-      index = 0
       while pth >= 0
         w = 0
         parent = path[pth];
         while w < ds_length
           if ds_chars[w].name == parent && ds_chars[w].signature.length > 0
             parent_signature = ds_chars[w].signature
-            if index == 0
-              fw.puts @s + "#{parent_signature} *any_dstr#{index.to_s} = (#{parent_signature} *)parent_attr->memory;"
+# Object VTs can be accessed from iterators using their access path
+            if pth == path.length - 1
+              fw.puts @s + "#{parent_signature} *any_dstr#{indexD.to_s} = (#{parent_signature} *)parent_attr->memory;"
             else
-              fw.puts @s + "#{parent_signature} *any_dstr#{index.to_s};"
+              fw.puts @s + "#{parent_signature} *any_dstr#{indexD.to_s};"
             end
-            fw.puts @s + "#{parent_signature}::iterator iter#{index.to_s};"
-            index += 1
+            fw.puts @s + "#{parent_signature}::iterator iter#{indexD.to_s};"
+            indexD += 1
             break
           end
           w += 1
@@ -312,9 +328,9 @@ class Data_structure_characteristics
         pth -= 1
       end
       pth = path.length - 1
-      index = 0
       access_bridge = ""
       access = ""
+      indexS = 0
       while pth >= 0
         w = 0
         parent = path[pth];
@@ -322,35 +338,42 @@ class Data_structure_characteristics
           if ds_chars[w].name == parent
             if ds_chars[w].signature.length > 0
               parent_signature = ds_chars[w].signature
-              spaces = spacing(fw, index)
-              if index > 0
-                fw.puts spaces + "any_dstr#{index.to_s} = (#{parent_signature} *)(*iter#{(index-1).to_s})#{access_bridge}#{access};"
+              spaces = spacing(indexS)
+              if pth < path.length - 1
+                fw.puts spaces + "any_dstr#{indexR.to_s} = (#{parent_signature} *)(*iter#{(indexR-1).to_s})#{access_bridge}#{access};"
                 access = ""
                 access_bridge = ""
               end
-              fw.puts spaces + "ds_size#{index.to_s} = any_dstr#{index.to_s}->size();"
-              fw.puts spaces + "iter#{index.to_s} = any_dstr#{index.to_s}->begin();"
-              fw.puts spaces + "for (int i#{index.to_s}; i#{index.to_s}<ds_size#{index.to_s}; i#{index.to_s}++;) {"
-              index += 1
+              fw.puts spaces + "ds_size#{indexR.to_s} = any_dstr#{indexR.to_s}->size();"
+              fw.puts spaces + "iter#{indexR.to_s} = any_dstr#{indexR.to_s}->begin();"
+              fw.puts spaces + "for (int i#{indexR.to_s}; i#{indexR.to_s}<ds_size#{indexR.to_s}; i#{indexR.to_s}++;) {"
+              indexR += 1
+              indexS += 1
             else 
               
             end
             if pth > 0
+# We are getting ahead of ourselves to provide access to the VT 
+# to be printed next. For case 0, there is no next.
               child = path[pth - 1]
               parent_children = ds_chars[w].children
               pc_size = ds_chars[w].children.length
               pc = 0
               while pc < pc_size
-                if child = parent_children[pc].name
+                if child == parent_children[pc].name
                   access = parent_children[pc].access
                   if access.length > 0
-                    if ds_chars[w].type.match(/pair<(.+)(\**),(.+)(\**)>*/)
+                    child_type = ds_chars[w].type
+                    if child_type.match(/\*/) == nil
+                      child_type = child_type + "*"
+                    end
+                    if child_type.match(/pair<(\s*)(\w+)(\s*),(\s*)(\w+)(\s*)>(\s*)\*/)
                       access_bridge = "->"
-                    elsif ds_chars[w].type.match(/pair<(.+)(\**),(.+)(\**)>/)
+                    elsif child_type.match(/pair<(\s*)(\w+)(\s*),(\s*)(\w+)(\s*)>(\s*)/)
                       access_bridge = "."
-                    elsif ds_chars[w].type.match(/\*/)
+                    elsif child_type.match(/(\s*)(\w+)(\s*)\*(\s*)/)
                       access_bridge = "->"
-                    else
+                    elsif child_type.match(/(\s*)(\w+)(\s*)/)
                       access_bridge = "."
                     end
                   end
@@ -366,20 +389,48 @@ class Data_structure_characteristics
         pth -= 1
       end
       if @nonNative == nil || @nonNative < 1
-        fw.puts spacing(fw, index) + "resultset->insert((*iter#{(index-1).to_s})#{access_bridge}#{access});"
+        if type.match(/pair/)
+          fw.puts spacing(indexS) + "p = *iter#{(indexR-1).to_s};"
+          fw.puts spacing(indexS) + "resultset->insert(&p#{access_bridge}#{access});"
+        else
+          fw.puts spacing(indexS) + "resultset->insert((*iter#{(indexR-1).to_s})#{access_bridge}#{access});"
+        end
       elsif @nonNative == 1
-        fw.puts spacing(fw, index) + "resultset->insert(pair<#{@type},#{parent_type}>((*iter#{(index-1).to_s})#{access_bridge}#{access},*iter#{(index-2).to_s}));"
+        if type.match(/pair/)
+          if parent_signature.match(/map/)
+            fw.puts spacing(indexR) + "p = *iter#{(indexR-1).to_s};"
+            fw.puts spacing(indexR) + "pp = *iter#{(indexR-2).to_s};"
+            fw.puts spacing(indexR) + "resultset->insert(pair<#{type},#{parent_type}>(&p#{access_bridge}#{access},&pp));"
+          else
+            fw.puts spacing(indexR) + "p = *iter#{(indexR-1).to_s};"
+            fw.puts spacing(indexR) + "resultset->insert(pair<#{type},#{parent_type}>(&p#{access_bridge}#{access},*iter#{(indexR-2).to_s}));"
+          end
+        else
+          fw.puts spacing(indexR) + "resultset->insert(pair<#{type},#{parent_type}>((*iter#{(indexR-1).to_s})#{access_bridge}#{access},*iter#{(indexR-2).to_s}));"
+        end
       else
         #HANDLE
       end
-      while index - 1 >= 0
-        fw.puts spacing(fw,index) + "iter#{(index-1).to_s}++;"
-        fw.puts spacing(fw, index - 1) + "}"
-        index -= 1
+      prev_indexR_hold = indexR_hold
+      indexR_hold = indexR
+      temp_indexR = indexR
+=begin
+      puts "temp_indexR: #{temp_indexR}"
+      puts "prev_indexR_hold: #{prev_indexR_hold}"
+      puts "indexR_hold: #{indexR_hold}"
+=end
+      indexR_diff = indexR_hold - prev_indexR_hold
+      while indexR_diff > 0 && temp_indexR - 1 >= 0
+        fw.puts spacing(indexS) + "iter#{(temp_indexR-1).to_s}++;"
+        fw.puts spacing(indexS - 1) + "}"
+        temp_indexR -= 1
+        indexR_diff -= 1
+        indexS -= 1
       end
-      fw.puts @s + "stc->size = resultset->size();"
       pths += 1
     end
+    fw.puts @s + "stc->size = resultset->size();"
+    fw.puts "    }"
 =begin
     puts "For VT #{@name} paths are #{paths.length}: "
     pths = 0
@@ -399,7 +450,11 @@ class Data_structure_characteristics
 
   def get_paths(ds_chars, paths, path)
     pr = 0
-    pr_size = @parents.length
+    if @parents == nil
+      pr_size = 0
+    else
+      pr_size = @parents.length
+    end
     holder_path = Array.new
     holder_path.replace(path)
     if pr_size == 0
@@ -418,6 +473,7 @@ class Data_structure_characteristics
         path.push(curr_parent)
       else
         puts "Cyclic relationship."
+        # HANDLE
       end
       w = 0
       while w < ds_chars.length
@@ -615,6 +671,11 @@ RAL
     fw.puts "    stlTableCursor *stcsr = (stlTableCursor *)cur;"
     fw.puts "    dsData *d = (dsData *)stl->data;"
     dereference = ""
+      if @parents == nil
+        parents_no = 0
+      else
+        parents_no = @parents.length
+      end
     if @signature.length > 0
       fw.puts "    " + @signature +
         " *any_dstr = (" + @signature + " *)d->attr->memory;"
@@ -627,7 +688,7 @@ RAL
       exit(1)
     end
     fw.puts "    int op, iCol, count = 0, i = 0, re = 0;"
-    if @parents.length > 0 && @signature.length > 0
+    if parents_no > 0 && @signature.length > 0
       fw.puts "    realloc_resultset(cur);"
     end
     fw.puts "    if ( val==NULL ){"
@@ -717,43 +778,8 @@ RAL
 
 # Matches a VT description against a pattern and extracts VT traits
   def match_pattern(vt_description, columns)
-    pattern = Regexp.new(/^(.+)table (\w+)\.(\w+)(\s*):(\s*)(.+)(\s*)\{(\s*)(.+)/im)
+    pattern = /^ (\w+)\.(\w+)(\s*):(\s*)(.+)(\s*)from (.+)(\s*)\{(\s*)(.+)\}/im
     matchdata = pattern.match(vt_description)
-    if matchdata
-      # First record of table_data contains the whole description of the virtual table
-      # Second record contains the directives to .h files needed to link with. -> Already handled.
-      # Third record contains the database name in which the virtual table will be created
-      @db = matchdata[2]
-      # Fourth record contains the virtual table name
-      @name = matchdata[3]
-      # Seventh record contains the signature, call to gsub to strip any whitespaces
-      table_signature = matchdata[6].gsub(/\s/,"")
-      verify_signature(table_signature)
-      process_columns(matchdata[9], columns)
-      return
-    else
-      pattern = /^(.+)table (\w+)\.(\w+)(\s*):(\s*)(.+)(\s*)from (.+)(\s*)\{(\s*)(.+)/im
-      matchdata = pattern.match(vt_description)
-    end
-    if matchdata
-      # First record of table_data contains the whole description of the virtual table
-      # Second record contains the directives to .h files needed to link with. -> already handled.
-      # Third record contains the database name in which the virtual table will be created
-      @db = matchdata[2]
-      # Fourth record contains the virtual table name
-      @name = matchdata[3]
-      # Seventh record contains the signature, call to gsub to strip any whitespaces
-      table_signature = matchdata[6].gsub(/\s/,"")
-      verify_signature(table_signature)
-      # Ninth record contains the parent table name
-      parents = matchdata[8]
-      process_parents(parents)
-      process_columns(matchdata[11], columns)
-      return
-    else
-      pattern = /^table (\w+)\.(\w+)(\s*):(\s*)(.+)(\s*)from (.+)(\s*)\{(\s*)(.+)/im
-      matchdata = pattern.match(vt_description)
-    end
     if matchdata
       # First record of table_data contains the whole description of the virtual table
       # Second record contains the database name in which the virtual table will be created
@@ -765,11 +791,12 @@ RAL
       verify_signature(table_signature)
       # Eighth record contains the parent table name
       parents = matchdata[7]
+      puts "Parents: #{parents}"
       process_parents(parents)
       process_columns(matchdata[10], columns)
       return
     else
-      pattern = /^table (\w+)\.(\w+)(\s*):(\s*)(.+)(\s*)\{(\s*)(.+)/im
+      pattern = /^ (\w+)\.(\w+)(\s*):(\s*)(.+)(\s*)\{(\s*)(.+)\}/im
       matchdata = pattern.match(vt_description)
     end
     if matchdata
@@ -779,6 +806,7 @@ RAL
       # Third record contains the virtual table name
       @name = matchdata[2]
       # Sixth record contains the signature, call to gsub to strip any whitespaces
+      @parents = nil
       table_signature = matchdata[5].gsub(/\s/,"")
       verify_signature(table_signature)
       process_columns(matchdata[8], columns)
@@ -860,9 +888,7 @@ CS
         exit(1)
       end
       @object_class = table_signature
-      @type = @object_class + "*"
-      # VT Truck results from pointer Truck * in stl struct.
-      # This is standard.
+      @type = @object_class
       puts "Class name : " + @object_class
     end
   end
@@ -977,6 +1003,75 @@ CLS
       w += 1
     end
     fw.puts "}"
+  end
+
+
+  def print_free_resultset(fw)
+    setup = <<-ST
+void free_resultset(sqlite3_vtab_cursor *cur) {
+    stlTableCursor *stc = (stlTableCursor *)cur;
+    stlTable *stl=(stlTable *)cur->pVtab;
+    dsData *d = (dsData *)stl->data;
+    int nntv_size = d->nntv_size;
+    const char *table_name = stl->zName;
+ST
+    fw.puts setup
+    w = 0
+    while w < @ds_chars.length
+      curr_ds = @ds_chars[w]
+      if w == 0
+        fw.puts "    if( !strcmp(table_name, \"" + curr_ds.name + "\") )"
+      else
+        fw.puts "    else if( !strcmp(table_name, \"" + curr_ds.name + "\") )"
+      end
+      type = curr_ds.type
+      if type.match(/pair<(\s*)(\w+)(\s*),(\s*)(\w+)(\s*)>(\s*)\*/)
+      elsif type.match(/pair<(\s*)(\w+)(\s*),(\s*)(\w+)(\s*)>(\s*)/)
+        type = type + "*"
+      elsif type.match(/(\s*)(\w+)(\s*)\*(\s*)/)
+      elsif type.match(/(\s*)(\w+)(\s*)/)
+        type = type + "*"
+      end
+      if curr_ds.nonNative == nil || curr_ds.nonNative == 0
+        fw.puts @s + "delete( (set<#{type}> *)stc->resultSet );"
+      elsif curr_ds.nonNative == 1
+        ww = 0
+        while ww < @ds_chars.length
+          if curr_ds.parents[0] == @ds_chars[ww].name
+            break
+          end
+          ww += 1
+        end
+        curr_pr = @ds_chars[ww]
+        if !curr_pr.type.match(/\*/)
+          pr_type = curr_pr.type + "*"
+        else
+          pr_type = curr_pr.type
+        end
+        fw.puts @s + "delete( (map<#{type},#{pr_type}> *)stc->resultSet );"
+      elsif curr_ds.nonNative > 1
+        # HANDLE
+      end
+      w += 1
+    end
+    fw.puts "}"
+  end
+
+
+  def print_reset_nonNative(fw)
+    
+    reset = <<-RS
+void reset_nonNative(sqlite3_vtab_cursor *cur) {
+    stlTable *stl=(stlTable *)cur->pVtab;
+    dsData *d = (dsData *)stl->data;
+    nonNative **nntv = d->nntv;
+    int nntv_size = d->nntv_size, i = 0;
+    for (i = 0; (nntv_size > 1) && (i < nntv_size); i++) {
+        nntv[i]->active = 0;
+    }
+}
+RS
+    fw.puts reset
   end
 
   
@@ -1106,7 +1201,13 @@ EHE
 # Verify that order does indeed not matter from now on.
     while w < structs_no
       curr_ds = @ds_chars[w]
-      if curr_ds.parents.length == 0
+      parents = curr_ds.parents
+      if parents == nil
+        parents_no = 0
+      else
+        parents_no = curr_ds.parents.length
+      end
+      if parents_no == 0
         fw.puts @s + "copy_structs(&tmp_data[c], &c_temp, dsC_data[c]->attr->dsName, dsC_data[c]->attr->memory);"
         fw.puts @s + "c++;"
       end
@@ -1115,7 +1216,7 @@ EHE
     w = 0
     while w < structs_no
       curr_ds = @ds_chars[w]
-      if curr_ds.parents.length > 0
+      if parents_no > 0
         fw.puts @s + "copy_structs(&tmp_data[c], &c_temp, \"" + curr_ds.name + "\", NULL);"
         fw.puts @s + "c++;"
       end
@@ -1158,8 +1259,9 @@ CP
     setup_setting = <<-SS
     stlTable *stl = (stlTable *)pVtab;
     dsData **tmp_data = dsC->ds, *curr_data;
-    attrCarrier **children, *curr_child, *curr_attr;
-    int c = 0, ch, dc, ch_size, *index;
+    attrCarrier **parents, *curr_attr;
+    nonNative **nntv;
+    int c = 0, pr, dc, pr_size, nn, nntv_size;
     int dsC_size = dsC->ds_size;
     while (c < dsC_size) {
         if ( !strcmp(table_name, tmp_data[c]->attr->dsName) )
@@ -1174,41 +1276,87 @@ SS
     fw.puts "int set_dependencies(sqlite3_vtab *pVtab, dsArray *dsC, const char *table_name, char **pzErr) {"
     fw.puts setup_setting
     w = 0
+    paths = Array.new
+    path = Array.new
     while w < @ds_chars.length
       curr_ds = @ds_chars[w]
-      children_no = curr_ds.children.length
-      children = curr_ds.children
+      parents = curr_ds.parents
+      if parents == nil
+        parents_no = 0
+      else
+        parents_no = curr_ds.parents.length
+      end
+      nonNative = curr_ds.nonNative
       if w == 0
         fw.puts "    if( !strcmp(table_name, \"" + curr_ds.name + "\") ) {"
       else
         fw.puts "    } else if( !strcmp(table_name, \"" + curr_ds.name + "\") ) {"
       end
       fw.puts @s + "stl->data = curr_data;"
-      if children_no > 0
-        fw.puts @s + "curr_data->children = (attrCarrier **)sqlite3_malloc((sizeof(attrCarrier *) + sizeof(int)) * " + children_no.to_s + ");"
-        fw.puts @s + "children = curr_data->children;"
-        fw.puts @s + "curr_data->children_size = " + children_no.to_s + ";"
-        fw.puts @s + "ch_size = curr_data->children_size;"
-        fw.puts @s + "index = (int *)&children[ch_size];"
-        fw.puts @s + "ch = 0;"
-        fw.puts @s + "dc = 0;"
-        ch = 0
-        while ch < children_no
+      if parents_no > 0
+        fw.puts @s + "curr_data->parents_size = " + parents_no.to_s + ";"
+        fw.puts @s + "pr_size = curr_data->parents_size;"
+        fw.puts @s + "curr_data->parents = (attrCarrier **)sqlite3_malloc(sizeof(attrCarrier *) * pr_size);"
+        fw.puts @s + "parents = curr_data->parents;"
+        fw.puts @s + "pr = 0;"
+        pr = 0
+        while pr < parents_no
+          ww = 0
+          while ww < @ds_chars.length
+            if @ds_chars[ww].name == parents[pr]
+              path[0] = parents[pr]
+              @ds_chars[ww].get_paths(@ds_chars, paths, path)
+            end
+            ww += 1
+          end
+          pths = 0
+          while pths < paths.length
+            path = paths[pths]
+            fw.puts @s + "dc = 0;"
+            fw.puts @s + "while (dc < dsC_size) {"
+            fw.puts @s + "    if ( !strcmp(tmp_data[dc]->attr->dsName, \"" + 
+              path[path.length - 1] + "\") )"
+            fw.puts @s + @s + "break;"
+            fw.puts @s + "    dc++;"
+            fw.puts @s + "}"
+            fw.puts @s + "parents[pr] = tmp_data[dc]->attr;"
+            fw.puts @s + "pr++;"
+            pths += 1
+          end
+          paths.clear
+          path.clear
+          pr += 1
+        end
+        fw.puts @s + "assert (pr == pr_size);"
+      else
+        fw.puts @s + "curr_data->parents_size = 0;"
+        fw.puts @s + "curr_data->parents = NULL;"
+      end
+      if nonNative == nil || nonNative == 0
+        fw.puts @s + "curr_data->nntv_size = 0;"
+        fw.puts @s + "curr_data->nntv = NULL;"
+      else
+        fw.puts @s + "curr_data->nntv_size = " + nonNative.to_s + ";"
+        fw.puts @s + "nntv_size = curr_data->nntv_size;"
+        fw.puts @s + "curr_data->nntv = (nonNative **)sqlite3_malloc(sizeof(nonNative *) * nntv_size);"
+        fw.puts @s + "nntv = curr_data->nntv;"
+        fw.puts @s + "nntv[0] = (nonNative *)&nntv[nntv_size];"
+        fw.puts @s + "nn = 0;"
+        pr = 0
+        while pr < nonNative
+          fw.puts @s + "dc = 0;"
           fw.puts @s + "while (dc < dsC_size) {"
           fw.puts @s + "    if ( !strcmp(tmp_data[dc]->attr->dsName, \"" + 
-            children[ch].name + "\") )"
+            parents[pr] + "\") )"
           fw.puts @s + @s + "break;"
           fw.puts @s + "    dc++;"
           fw.puts @s + "}"
-          fw.puts @s + "children[ch] = tmp_data[dc]->attr;"
-          fw.puts @s + "curr_child = children[ch];"
-          fw.puts @s + "curr_child->set_memory = (int *)&index[ch];"
-          fw.puts @s + "ch++;"
-          ch += 1
+          fw.puts @s + "nntv[nn]->name = tmp_data[dc]->attr->dsName;"
+          fw.puts @s + "nntv[nn]->active = 0;"
+          fw.puts @s + "nn++;"
+          pr += 1
         end
-        fw.puts @s + "assert (ch == ch_size);"
-      else
-        fw.puts @s + "curr_data->children = NULL;"
+        fw.puts @s + "assert (nn == nntv_size);"
       end
       w += 1
     end
@@ -1539,6 +1687,8 @@ mkf
       fw.puts "\#include <string>"
       fw.puts "\#include <assert.h>"
       fw.puts "\#include <stdio.h>"
+      fw.puts "\#include <set>"
+      fw.puts "\#include <map>"
       fw.puts @directives
       fw.puts
       fw.puts directives
@@ -1552,12 +1702,10 @@ mkf
       fw.puts "\n\n"
       print_fill_resultset(fw)
       fw.puts "\n\n"
-=begin
       print_reset_nonNative(fw)
       fw.puts "\n\n"
       print_free_resultset(fw)
       fw.puts "\n\n"
-=end
       print_search_functions(fw)
       fw.puts "\n\n"
       print_retrieve_functions(fw)
@@ -1586,7 +1734,7 @@ mkf
     while w < @ds_chars.length
       parents = @ds_chars[w].parents
       p = 0
-      while p < parents.length
+      while parents != nil && p < parents.length
         pr = 0
         while pr < @ds_chars.length && parents[p] != @ds_chars[pr].name
           pr += 1
@@ -1620,7 +1768,7 @@ mkf
         puts "VT #{@ds_chars[w].name} nonNative of rate #{@ds_chars[w].nonNative}"
       else
         @ds_chars[w].nonNative = nil
-        puts "VT #{@ds_chars[w].name} native"
+        puts "VT #{@ds_chars[w].name} nonNative of rate nil"
       end
       w += 1
     end
@@ -1638,26 +1786,32 @@ mkf
     if @description.match(/table/i)
       prep_dir = @description.split(/table/i)
       @directives = prep_dir[0]
+      prep_dir.delete_at(0)
       puts "Directives: " + @directives
     else
       puts "Invalid description"
       exit(1)
     end
-    if @description.match(/\}/)
-      ds = @description.split(/\}/)
-    else
-      puts "Invalid format terminal identifier '}' missing"
-    end
     columns = Array.new
+    
     w = 0
-    while w < ds.length
+    while w < prep_dir.length
+      puts "Before #{prep_dir[w]}"
+      if prep_dir[w].length == 0
+        prep_dir.delete_at(w)
+      end
+      w += 1
+    end
+    w = 0
+    while w < prep_dir.length
       puts "\nDATA STRUCTURE DESCRIPTION No: " + w.to_s + "\n"
       @ds_chars[w] = Data_structure_characteristics.new
       # in case each VT description is in a separate line
-      if ds[w].match(/\n/)
-        ds[w].gsub!(/\n/,"")
+      if prep_dir[w].match(/\n/)
+        prep_dir[w].gsub!(/\n/, "")
       end
-      @ds_chars[w].match_pattern(ds[w], columns)
+      puts "After #{prep_dir[w]}"
+      @ds_chars[w].match_pattern(prep_dir[w], columns)
       @ds_chars[w].register_columns(columns)
       w += 1
     end
@@ -1671,15 +1825,52 @@ end
 if __FILE__==$0
   description = "#include <string>
 #include <vector>
+#include <map>
 
 #include \"Truck.h\"
 #include \"Customer.h\"
-TABLE foo.Trucks : vector<Truck*> {truck_id INT FROM &Truck}
-TABLE foo.Truck : Truck FROM Trucks {truck_id INT FROM &, cost DOUBLE FROM get_cost(), delcapacity INT FROM get_delcapacity(), pickcapacity INT FROM get_pickcapacity(), rlpoint INT FROM get_rlpoint()}
-TABLE foo.Customers : vector<Customer *> FROM Truck {truck_id INT FROM &Truck get_Customers(), customer_id INT FROM &Customer}
-TABLE foo.Customer : Customer FROM Customers, MapIndex {customer_id INT FROM &, demand INT FROM get_demand(), code STRING from get_code(), serviced INT from get_serviced(), pickdemand INT FROM get_pickdemand(), starttime INT FROM get_starttime(), servicetime INT FROM get_servicetime(), finishtime INT FROM get_finishtime(), revenue INT FROM get_revenue(), position_id INT FROM &Position get_pos()}
-TABLE foo.Position : Position FROM Customer {position_id INT FROM &, x_coord INT FROM get_x(), y_coord INT FROM get_y()}
-TABLE foo.MapIndex : map<int,Customer *> {map_index INT FROM first, customer_id INT FROM &Customer second}"
+
+TABLE mydb.Trucks : vector <Truck*> {
+	truck_id INT FROM &Truck
+}
+
+TABLE mydb.Truck : Truck FROM Trucks {
+	truck_id INT FROM &,
+	cost DOUBLE FROM get_cost(),
+	delcapacity INT FROM get_delcapacity(),
+	pickcapacity INT FROM get_pickcapacity(),
+	rlpoint INT FROM get_rlpoint()
+}
+
+TABLE mydb.Customers : vector<Customer *> FROM Truck {
+	truck_id INT FROM &Truck get_Customers(),
+	customer_id INT FROM &Customer
+}
+
+TABLE mydb.Customer : Customer FROM Customers, MapIndex {
+	customer_id INT FROM &,
+	demand INT FROM get_demand(),
+	code STRING from get_code(),
+	serviced INT from get_serviced(),
+	pickdemand INT FROM get_pickdemand(),
+	starttime INT FROM get_starttime(),
+	servicetime INT FROM get_servicetime(),
+	finishtime INT FROM get_finishtime(),
+	revenue INT FROM get_revenue(),
+	position_id INT FROM &Position get_pos()
+}
+
+TABLE mydb.Position : Position FROM Customer {
+	position_id INT FROM &,
+	x_coord INT FROM get_x(),
+	y_coord INT FROM get_y()
+}
+
+TABLE mydb.MapIndex : map<int, Customer *> {
+	map_index INT FROM first,
+	customer_id INT FROM &Customer second
+}
+"
   input = Input_Description.new(description)
   input.register_datastructure
 end
