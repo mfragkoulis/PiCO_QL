@@ -83,8 +83,18 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc,
       return SQLITE_ERROR;
     }else if( output==0 ){
       *ppVtab = &stl->vtab;
-      if ( (re = realloc_carrier(*ppVtab, paux, argv[2], pzErr)) != SQLITE_OK )
-	return re;
+      dsArray *dsC = (dsArray *)paux;
+      int size = dsC->size;
+      for (i=0; i<size; i++) {
+	if ( !strcmp(dsC->ds[i]->dsName, stl->zName) ) {
+	  stl->data = (void *)dsC->ds[i]->memory;
+	  stl->embedded = 0;
+	}
+      }
+      if ( i == size ) {
+	stl->data = NULL;
+	stl->embedded = 1;
+      }
 #ifdef DEBUGGING
       printf("Virtual table declared successfully\n");
 #endif
@@ -136,14 +146,9 @@ int destroy_vtable(sqlite3_vtab *ppVtab){
 // xDisconnect
 int disconnect_vtable(sqlite3_vtab *ppVtab){
   stlTable *s=(stlTable *)ppVtab;
-  dsData *d = (dsData *)s->data;
 #ifdef DEBUGGING
   printf("Disconnecting vtable %s \n\n", s->zName);
 #endif
-  if ( d->parents != NULL )
-    sqlite3_free(d->parents);
-  if ( d->nntv != NULL )
-    sqlite3_free(d->nntv);
   sqlite3_free(s);
   return SQLITE_OK;
 }
@@ -158,35 +163,41 @@ int bestindex_vtable(sqlite3_vtab *pVtab, sqlite3_index_info *pInfo){
 
     assert( pInfo->idxStr==0 );
     int i, j=0;
-    for(i=0; i<pInfo->nConstraint; i++){
-      struct sqlite3_index_constraint *pCons = &pInfo->aConstraint[i];
-      if( pCons->usable==0 ) continue;
-      switch ( pCons->op ){
-      case SQLITE_INDEX_CONSTRAINT_LT:
-	op='A'; 
-	break;
-      case SQLITE_INDEX_CONSTRAINT_LE:  
-	op='B'; 
-	break;
-      case SQLITE_INDEX_CONSTRAINT_EQ:  
-	op='C'; 
-	break;
-      case SQLITE_INDEX_CONSTRAINT_GE:  
-	op='D'; 
-	break;
-      case SQLITE_INDEX_CONSTRAINT_GT:  
-	op='E'; 
-	break;
-	//    case SQLITE_INDEX_CONSTRAINT_MATCH: nidxStr[i]="F"; break;
+    if ( !st->embedded ) {
+      for(i=0; i<pInfo->nConstraint; i++){
+	struct sqlite3_index_constraint *pCons = &pInfo->aConstraint[i];
+	if( pCons->usable==0 ) continue;
+	switch ( pCons->op ){
+	case SQLITE_INDEX_CONSTRAINT_LT:
+	  op='A'; 
+	  break;
+	case SQLITE_INDEX_CONSTRAINT_LE:  
+	  op='B'; 
+	  break;
+	case SQLITE_INDEX_CONSTRAINT_EQ:  
+	  op='C'; 
+	  break;
+	case SQLITE_INDEX_CONSTRAINT_GE:  
+	  op='D'; 
+	  break;
+	case SQLITE_INDEX_CONSTRAINT_GT:  
+	  op='E'; 
+	  break;
+	  //    case SQLITE_INDEX_CONSTRAINT_MATCH: nidxStr[i]="F"; break;
+	}
+	iCol = pCons->iColumn - 1 + 'a';
+	
+	assert( j<sizeof(nidxStr)-1 );
+	nidxStr[j++] = op;
+	nidxStr[j++] = iCol;
+	pInfo->aConstraintUsage[i].argvIndex = i+1;
+	pInfo->aConstraintUsage[i].omit = 1;
       }
-      iCol = pCons->iColumn - 1 + 'a';
-
-      assert( j<sizeof(nidxStr)-1 );
-      nidxStr[j++] = op;
-      nidxStr[j++] = iCol;
-      //    UNUSED_PARAMETER(pVtab);
-      pInfo->aConstraintUsage[i].argvIndex = i+1;
-      pInfo->aConstraintUsage[i].omit = 1;
+    } else {
+      for(i=0; i<pInfo->nConstraint; i++){
+	struct sqlite3_index_constraint *pCons = &pInfo->aConstraint[i];
+	if( pCons->usable==0 ) continue;
+	
     }
     pInfo->needToFreeIdxStr = 1;
     if( (j>0) && 0==(pInfo->idxStr=sqlite3_mprintf("%s", nidxStr)) )
@@ -257,6 +268,9 @@ int open_vtable(sqlite3_vtab *pVtab, sqlite3_vtab_cursor **ppCsr){
 #ifdef DEBUGGING
   printf("Opening vtable %s\n\n", st->zName);
 #endif
+  // To allocate space for the resultset.
+  // Will need space at most equal to the data structure size.
+  int arraySize = get_datastructure_size(pVtab);
 
   sqlite3_vtab_cursor *pCsr;               /* Allocated cursor */
 
@@ -267,9 +281,18 @@ int open_vtable(sqlite3_vtab *pVtab, sqlite3_vtab_cursor **ppCsr){
   }
   stlTableCursor *stc = (stlTableCursor *)pCsr;
   memset(pCsr, 0, sizeof(stlTableCursor));
+  stc->max_size = arraySize;
 #ifdef DEBUGGING
   printf("ppCsr = %lx, pCsr = %lx \n", (long unsigned int)ppCsr, (long unsigned int)pCsr);
 #endif
+  // A data structure to hold index positions of resultset so that in the end
+  // of loops the remaining resultset is the wanted one.
+  stc->resultSet = (int *)sqlite3_malloc(sizeof(int) * arraySize);
+  if( !stc->resultSet ){
+    return SQLITE_NOMEM;
+  }
+  memset(stc->resultSet, -1, sizeof(int) * arraySize);
+  assert(((char *)stc->resultSet)[sizeof(int) * arraySize] <= stc->resultSet[arraySize]);
   return SQLITE_OK;
 }
 
@@ -289,8 +312,7 @@ int close_vtable(sqlite3_vtab_cursor *cur){
 #ifdef DEBUGGING
   printf("Closing vtable %s \n\n",st->zName);
 #endif
-  free_resultset(cur);
-  reset_nonNative(cur);
+  sqlite3_free(stc->resultSet);
   sqlite3_free(stc);
   return SQLITE_OK;
 }

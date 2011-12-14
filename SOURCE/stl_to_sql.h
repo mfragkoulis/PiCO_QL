@@ -42,21 +42,15 @@ void create(sqlite3 *db, int argc, const char * const * as, char *q);
 
 int disconnect_vtable(sqlite3_vtab *ppVtab);
 
-int arrange_size(int argc, const char * const * argv);
-
 typedef struct {sqlite3_vtab vtab; sqlite3 *db; const char *zDb; 
-  const char *zName; int nColumn; char **azColumn; 
+  const char *zName; int embedded; int nColumn; char **azColumn; 
   void *data;} stlTable;
 
-typedef struct {sqlite3_vtab_cursor vtab; void *resultSet; int size; 
-  int current; int isEof; int first_constr;} stlTableCursor;
+typedef struct {sqlite3_vtab_cursor vtab; int max_size; int *resultSet; 
+  int size; int current; int isEof; int first_constr;} stlTableCursor;
 
-typedef struct {const char *name; int active;} nonNative;
+typedef struct {long int *memory; const char *dsName;} dsCarrier;
 
-typedef struct {long int *memory; const char *dsName;} attrCarrier;
-
-typedef struct {attrCarrier *attr; attrCarrier **parents; int parents_size; nonNative **nntv; int nntv_size;} dsData;
-
-typedef struct {dsData **ds; int ds_size; int init;} dsArray; 
+typedef struct {dsCarrier **ds; int size;} dsArray;
 
 #endif
