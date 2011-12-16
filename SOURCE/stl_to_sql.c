@@ -89,6 +89,7 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc,
 	if ( !strcmp(dsC->ds[i]->dsName, stl->zName) ) {
 	  stl->data = (void *)dsC->ds[i]->memory;
 	  stl->embedded = 0;
+	  break;
 	}
       }
       if ( i == size ) {
@@ -149,16 +150,46 @@ int disconnect_vtable(sqlite3_vtab *ppVtab){
 #ifdef DEBUGGING
   printf("Disconnecting vtable %s \n\n", s->zName);
 #endif
+  if (s->zErr)
+    sqlite3_free(s->zErr);
   sqlite3_free(s);
   return SQLITE_OK;
+}
+
+void eval_constraint(int sqlite3_op, char iCol, int *j, char *nidxStr, int nidxLen) {
+  char op;
+  switch ( sqlite3_op ){
+  case SQLITE_INDEX_CONSTRAINT_LT:
+    op='A'; 
+    break;
+  case SQLITE_INDEX_CONSTRAINT_LE:  
+    op='B'; 
+    break;
+  case SQLITE_INDEX_CONSTRAINT_EQ:  
+    op='C'; 
+    break;
+  case SQLITE_INDEX_CONSTRAINT_GE:  
+    op='D'; 
+    break;
+  case SQLITE_INDEX_CONSTRAINT_GT:  
+    op='E'; 
+    break;
+    //    case SQLITE_INDEX_CONSTRAINT_MATCH: nidxStr[i]="F"; break;
+  }
+	
+  assert( *j<nidxLen-2 );
+  nidxStr[(*j)++] = op;
+  nidxStr[(*j)++] = iCol;
 }
 
 // xBestindex
 int bestindex_vtable(sqlite3_vtab *pVtab, sqlite3_index_info *pInfo){
   stlTable *st=(stlTable *)pVtab;
   if ( pInfo->nConstraint>0 ){            // no constraint no setting up
-    char op, iCol;
-    char nidxStr[pInfo->nConstraint*2+1];
+    char iCol;
+    int nCol;
+    int nidxLen = pInfo->nConstraint*2 + 1;
+    char nidxStr[nidxLen];
     memset(nidxStr, 0, sizeof(nidxStr));
 
     assert( pInfo->idxStr==0 );
@@ -167,29 +198,8 @@ int bestindex_vtable(sqlite3_vtab *pVtab, sqlite3_index_info *pInfo){
       for(i=0; i<pInfo->nConstraint; i++){
 	struct sqlite3_index_constraint *pCons = &pInfo->aConstraint[i];
 	if( pCons->usable==0 ) continue;
-	switch ( pCons->op ){
-	case SQLITE_INDEX_CONSTRAINT_LT:
-	  op='A'; 
-	  break;
-	case SQLITE_INDEX_CONSTRAINT_LE:  
-	  op='B'; 
-	  break;
-	case SQLITE_INDEX_CONSTRAINT_EQ:  
-	  op='C'; 
-	  break;
-	case SQLITE_INDEX_CONSTRAINT_GE:  
-	  op='D'; 
-	  break;
-	case SQLITE_INDEX_CONSTRAINT_GT:  
-	  op='E'; 
-	  break;
-	  //    case SQLITE_INDEX_CONSTRAINT_MATCH: nidxStr[i]="F"; break;
-	}
 	iCol = pCons->iColumn - 1 + 'a';
-	
-	assert( j<sizeof(nidxStr)-1 );
-	nidxStr[j++] = op;
-	nidxStr[j++] = iCol;
+	eval_constraint(pCons->op, iCol, &j, nidxStr, nidxLen);
 	pInfo->aConstraintUsage[i].argvIndex = i+1;
 	pInfo->aConstraintUsage[i].omit = 1;
       }
@@ -197,7 +207,30 @@ int bestindex_vtable(sqlite3_vtab *pVtab, sqlite3_index_info *pInfo){
       for(i=0; i<pInfo->nConstraint; i++){
 	struct sqlite3_index_constraint *pCons = &pInfo->aConstraint[i];
 	if( pCons->usable==0 ) continue;
-	
+	iCol = pCons->iColumn - 1 + 'a';
+	nCol = pCons->iColumn;
+	if ( !equals_base(st->azColumn[nCol]) ) continue;
+	eval_constraint(pCons->op, iCol, &j, nidxStr, nidxLen);
+	sqlite3_free(st->zErr);
+	st->zErr = NULL;
+	pInfo->aConstraintUsage[i].argvIndex = 1;
+	pInfo->aConstraintUsage[i].omit = 1;
+      }
+      if ( j == 0 ) {
+	st->zErr = sqlite3_mprintf("Query VT with no usable BASE constraint. Abort.\n");
+	return SQLITE_OK;
+      }
+      int counter = 2;
+      for(i=0; i<pInfo->nConstraint; i++){
+	struct sqlite3_index_constraint *pCons = &pInfo->aConstraint[i];
+	if( pCons->usable==0 ) continue;
+	iCol = pCons->iColumn - 1 + 'a';
+	nCol = pCons->iColumn;
+	if ( equals_base(st->azColumn[nCol]) ) continue;
+	eval_constraint(pCons->op, iCol, &j, nidxStr, nidxLen);
+	pInfo->aConstraintUsage[i].argvIndex = counter++;
+	pInfo->aConstraintUsage[i].omit = 1;
+      }
     }
     pInfo->needToFreeIdxStr = 1;
     if( (j>0) && 0==(pInfo->idxStr=sqlite3_mprintf("%s", nidxStr)) )
@@ -264,13 +297,19 @@ int next_vtable(sqlite3_vtab_cursor *cur){
 // xOpen
 int open_vtable(sqlite3_vtab *pVtab, sqlite3_vtab_cursor **ppCsr){
   stlTable *st=(stlTable *)pVtab;
-  int re;
+  int re, arraySize;
 #ifdef DEBUGGING
   printf("Opening vtable %s\n\n", st->zName);
 #endif
   // To allocate space for the resultset.
   // Will need space at most equal to the data structure size.
-  int arraySize = get_datastructure_size(pVtab);
+  // This is fixed for autonomous structs, variable for embedded ones 
+  // (will be taken care of in search.
+  
+  if ( !st->embedded )
+    arraySize = get_datastructure_size(pVtab);
+  else 
+    arraySize = 1;
 
   sqlite3_vtab_cursor *pCsr;               /* Allocated cursor */
 
@@ -286,7 +325,7 @@ int open_vtable(sqlite3_vtab *pVtab, sqlite3_vtab_cursor **ppCsr){
   printf("ppCsr = %lx, pCsr = %lx \n", (long unsigned int)ppCsr, (long unsigned int)pCsr);
 #endif
   // A data structure to hold index positions of resultset so that in the end
-  // of loops the remaining resultset is the wanted one.
+  // of loops the remaining resultset is the wanted one. 
   stc->resultSet = (int *)sqlite3_malloc(sizeof(int) * arraySize);
   if( !stc->resultSet ){
     return SQLITE_NOMEM;
