@@ -16,18 +16,19 @@ using namespace std;
 */
 
 
-int get_datastructure_size(sqlite3_vtab *pVtab){
-    stlTable *stl = (stlTable *)pVtab;
+int get_datastructure_size(sqlite3_vtab_cursor *cur){
+    stlTableCursor *stc = (stlTableCursor *)cur;
+    stlTable *stl = (stlTable *)cur->pVtab;
     if( !strcmp(stl->zName, "Trucks") ){
-        vector<Truck*> *any_dstr = (vector<Truck*> *)stl->data;
+        vector<Truck*> *any_dstr = (vector<Truck*> *)stc->source;
         return ((int)any_dstr->size());
     }
     if( !strcmp(stl->zName, "Customers") ){
-        vector<Customer*> *any_dstr = (vector<Customer*> *)stl->data;
+        vector<Customer*> *any_dstr = (vector<Customer*> *)stc->source;
         return ((int)any_dstr->size());
     }
     if( !strcmp(stl->zName, "MapIndex") ){
-        map<int,Customer*> *any_dstr = (map<int,Customer*> *)stl->data;
+        map<int,Customer*> *any_dstr = (map<int,Customer*> *)stc->source;
         return ((int)any_dstr->size());
     }
     return 1;
@@ -39,7 +40,7 @@ int realloc_resultset(sqlite3_vtab_cursor *cur) {
     stlTableCursor *stcsr = (stlTableCursor *)cur;
     int arraySize;
     int *res;
-    arraySize = get_datastructure_size(cur->pVtab);
+    arraySize = get_datastructure_size(cur);
     if ( arraySize != stcsr->max_size ){
         res = (int *)sqlite3_realloc(stcsr->resultSet, sizeof(int) * arraySize);
         if (res!=NULL){
@@ -223,11 +224,11 @@ int equals_base(const char *zCol) {
 int Trucks_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
     stlTable *stl = (stlTable *)cur->pVtab;
     stlTableCursor *stcsr = (stlTableCursor *)cur;
-    vector<Truck*> *any_dstr = (vector<Truck*> *)stl->data;
+    vector<Truck*> *any_dstr = (vector<Truck*> *)stcsr->source;
     vector<Truck*>:: iterator iter;
     int op, iCol, count = 0, i = 0, re = 0;
     if ( val==NULL ){
-        for (int j=0; j<get_datastructure_size(cur->pVtab); j++){
+        for (int j=0; j<get_datastructure_size(cur); j++){
             stcsr->resultSet[j] = j;
             stcsr->size++;
 	}
@@ -253,8 +254,8 @@ int Truck_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
     }else{
         check_alloc((const char *)constr, op, iCol);
 	if ( equals_base(stl->azColumn[iCol]) ) {
-	    stl->data = (void *)sqlite3_value_int64(val);
-	    any_dstr = (Truck *)stl->data;
+	    stcsr->source = (void *)sqlite3_value_int64(val);
+	    any_dstr = (Truck *)stcsr->source;
 	}
         int *temp_res;
 	temp_res = (int *)sqlite3_malloc(sizeof(int)  * stcsr->max_size);
@@ -268,7 +269,7 @@ int Truck_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
             assert(count <= stcsr->max_size);
             break;
         case 1:
-	    printf("Searching VT Truck column customers...makes no sense.\n");
+	    printf("Restricted area. Searching VT Truck column customers...makes no sense.\n");
 	    return SQLITE_MISUSE;
         case 2:
             if (compare(any_dstr->get_cost(), op, sqlite3_value_double(val)) )
@@ -312,8 +313,8 @@ int Customers_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val)
     }else{
         check_alloc((const char *)constr, op, iCol);
 	if ( equals_base(stl->azColumn[iCol]) ) {
-	    stl->data = (void *)sqlite3_value_int64(val);
-	    any_dstr = (vector<Customer*> *)stl->data;
+	    stcsr->source = (void *)sqlite3_value_int64(val);
+	    any_dstr = (vector<Customer*> *)stcsr->source;
 	    realloc_resultset(cur);
 	}
         int *temp_res;
@@ -332,7 +333,7 @@ int Customers_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val)
             assert(count <= stcsr->max_size);
             break;
         case 1:
-	    printf("Searching VT Customers column customer_ptr...makes no sense.\n");
+	    printf("Restricted area.Searching VT Customers column customer_ptr...makes no sense.\n");
 	    return SQLITE_MISUSE;
         }
         if ( (re = compare_res(count, stcsr, temp_res)) != 0 )
@@ -354,8 +355,8 @@ int Customer_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
     }else{
         check_alloc((const char *)constr, op, iCol);
 	if ( equals_base(stl->azColumn[iCol]) ) {
-	    stl->data = (void *)sqlite3_value_int64(val);
-	    any_dstr = (Customer *)stl->data;
+	    stcsr->source = (void *)sqlite3_value_int64(val);
+	    any_dstr = (Customer *)stcsr->source;
 	}
         int *temp_res;
 	temp_res = (int *)sqlite3_malloc(sizeof(int)  * stcsr->max_size);
@@ -369,7 +370,7 @@ int Customer_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
             assert(count <= stcsr->max_size);
             break;
         case 1:
-	    printf("Searching VT Customer column position_ptr...makes no sense.\n");
+	    printf("Restricted area.Searching VT Customer column position_ptr...makes no sense.\n");
 	    return SQLITE_MISUSE;
         case 2:
             if (compare(any_dstr->get_demand(), op, sqlite3_value_int(val)) )
@@ -432,8 +433,8 @@ int Position_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
     }else{
         check_alloc((const char *)constr, op, iCol);
 	if ( equals_base(stl->azColumn[iCol]) ) {
-	    stl->data = (void *)sqlite3_value_int64(val);
-	    any_dstr = (Position *)stl->data;
+	    stcsr->source = (void *)sqlite3_value_int64(val);
+	    any_dstr = (Position *)stcsr->source;
 	}
         int *temp_res;
 	temp_res = (int *)sqlite3_malloc(sizeof(int)  * stcsr->max_size);
@@ -468,11 +469,11 @@ int Position_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
 int MapIndex_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
     stlTable *stl = (stlTable *)cur->pVtab;
     stlTableCursor *stcsr = (stlTableCursor *)cur;
-    map<int,Customer*> *any_dstr = (map<int,Customer*> *)stl->data;
+    map<int,Customer*> *any_dstr = (map<int,Customer*> *)stcsr->source;
     map<int,Customer*>:: iterator iter;
     int op, iCol, count = 0, i = 0, re = 0;
     if ( val==NULL ){
-        for (int j=0; j<get_datastructure_size(cur->pVtab); j++){
+        for (int j=0; j<get_datastructure_size(cur); j++){
             stcsr->resultSet[j] = j;
             stcsr->size++;
 	}
@@ -497,7 +498,7 @@ int MapIndex_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
             assert(count <= stcsr->max_size);
             break;
         case 1:
-	    printf("Searching VT MapIndex column customer_ptr...makes no sense.\n");
+	    printf("Restricted area.Searching VT MapIndex column customer_ptr...makes no sense.\n");
 	    return SQLITE_MISUSE;
         }
         if ( (re = compare_res(count, stcsr, temp_res)) != 0 )
@@ -526,9 +527,8 @@ int search(sqlite3_vtab_cursor* cur, char *constr, sqlite3_value *val){
 
 
 int Trucks_retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con){
-    stlTable *stl = (stlTable *)cur->pVtab;
     stlTableCursor *stcsr = (stlTableCursor *)cur;
-    vector<Truck*> *any_dstr = (vector<Truck*> *)stl->data;
+    vector<Truck*> *any_dstr = (vector<Truck*> *)stcsr->source;
     vector<Truck*>:: iterator iter;
     int index = stcsr->current;
     iter = any_dstr->begin();
@@ -545,8 +545,8 @@ int Trucks_retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con){
 
 
 int Truck_retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con){
-    stlTable *stl = (stlTable *)cur->pVtab;
-    Truck *any_dstr = (Truck *)stl->data;
+    stlTableCursor *stcsr = (stlTableCursor *)cur;
+    Truck *any_dstr = (Truck *)stcsr->source;
     switch( n ){
     case 0:
         sqlite3_result_int64(con, (long int)any_dstr);
@@ -572,9 +572,8 @@ int Truck_retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con){
 
 
 int Customers_retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con){
-    stlTable *stl = (stlTable *)cur->pVtab;
     stlTableCursor *stcsr = (stlTableCursor *)cur;
-    vector<Customer*> *any_dstr = (vector<Customer*> *)stl->data;
+    vector<Customer*> *any_dstr = (vector<Customer*> *)stcsr->source;
     vector<Customer*>:: iterator iter;
     int index = stcsr->current;
     iter = any_dstr->begin();
@@ -594,8 +593,8 @@ int Customers_retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con){
 
 
 int Customer_retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con){
-    stlTable *stl = (stlTable *)cur->pVtab;
-    Customer *any_dstr = (Customer *)stl->data;
+    stlTableCursor *stcsr = (stlTableCursor *)cur;
+    Customer *any_dstr = (Customer *)stcsr->source;
     switch( n ){
     case 0:
         sqlite3_result_int64(con, (long int)any_dstr);
@@ -633,8 +632,8 @@ int Customer_retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con){
 
 
 int Position_retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con){
-    stlTable *stl = (stlTable *)cur->pVtab;
-    Position *any_dstr = (Position *)stl->data;
+    stlTableCursor *stcsr = (stlTableCursor *)cur;
+    Position *any_dstr = (Position *)stcsr->source;
     switch( n ){
     case 0:
         sqlite3_result_int64(con, (long int)any_dstr);
@@ -651,9 +650,8 @@ int Position_retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con){
 
 
 int MapIndex_retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con){
-    stlTable *stl = (stlTable *)cur->pVtab;
     stlTableCursor *stcsr = (stlTableCursor *)cur;
-    map<int,Customer*> *any_dstr = (map<int,Customer*> *)stl->data;
+    map<int,Customer*> *any_dstr = (map<int,Customer*> *)stcsr->source;
     map<int,Customer*>:: iterator iter;
     int index = stcsr->current;
     iter = any_dstr->begin();

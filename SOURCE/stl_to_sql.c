@@ -150,8 +150,6 @@ int disconnect_vtable(sqlite3_vtab *ppVtab){
 #ifdef DEBUGGING
   printf("Disconnecting vtable %s \n\n", s->zName);
 #endif
-  if (s->zErr)
-    sqlite3_free(s->zErr);
   sqlite3_free(s);
   return SQLITE_OK;
 }
@@ -301,16 +299,6 @@ int open_vtable(sqlite3_vtab *pVtab, sqlite3_vtab_cursor **ppCsr){
 #ifdef DEBUGGING
   printf("Opening vtable %s\n\n", st->zName);
 #endif
-  // To allocate space for the resultset.
-  // Will need space at most equal to the data structure size.
-  // This is fixed for autonomous structs, variable for embedded ones 
-  // (will be taken care of in search.
-  
-  if ( !st->embedded )
-    arraySize = get_datastructure_size(pVtab);
-  else 
-    arraySize = 1;
-
   sqlite3_vtab_cursor *pCsr;               /* Allocated cursor */
 
   *ppCsr = pCsr = 
@@ -320,6 +308,21 @@ int open_vtable(sqlite3_vtab *pVtab, sqlite3_vtab_cursor **ppCsr){
   }
   stlTableCursor *stc = (stlTableCursor *)pCsr;
   memset(pCsr, 0, sizeof(stlTableCursor));
+  // Keep copy of initial data. Might change in search.
+  // Useful when multiple instances of the VT are open.
+  stc->source = st->data;
+
+  // To allocate space for the resultset.
+  // Will need space at most equal to the data structure size.
+  // This is fixed for autonomous structs, variable for embedded ones 
+  // (will be taken care of in search.
+  if ( !st->embedded ) {
+    pCsr->pVtab = &st->vtab;
+    arraySize = get_datastructure_size(pCsr);
+    pCsr->pVtab = NULL;
+  } else 
+    arraySize = 1;
+
   stc->max_size = arraySize;
 #ifdef DEBUGGING
   printf("ppCsr = %lx, pCsr = %lx \n", (long unsigned int)ppCsr, (long unsigned int)pCsr);
@@ -351,6 +354,8 @@ int close_vtable(sqlite3_vtab_cursor *cur){
 #ifdef DEBUGGING
   printf("Closing vtable %s \n\n",st->zName);
 #endif
+  if (st->zErr)
+    sqlite3_free(st->zErr);
   sqlite3_free(stc->resultSet);
   sqlite3_free(stc);
   return SQLITE_OK;
