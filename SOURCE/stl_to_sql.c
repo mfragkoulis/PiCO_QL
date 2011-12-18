@@ -354,8 +354,6 @@ int close_vtable(sqlite3_vtab_cursor *cur){
 #ifdef DEBUGGING
   printf("Closing vtable %s \n\n",st->zName);
 #endif
-  if (st->zErr)
-    sqlite3_free(st->zErr);
   sqlite3_free(stc->resultSet);
   sqlite3_free(stc);
   return SQLITE_OK;

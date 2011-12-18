@@ -226,9 +226,9 @@ int Trucks_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
     stlTableCursor *stcsr = (stlTableCursor *)cur;
     vector<Truck*> *any_dstr = (vector<Truck*> *)stcsr->source;
     vector<Truck*>:: iterator iter;
-    int op, iCol, count = 0, i = 0, re = 0;
+    int op, iCol, count = 0, i = 0, re = 0, size = get_datastructure_size(cur);
     if ( val==NULL ){
-        for (int j=0; j<get_datastructure_size(cur); j++){
+        for (int j=0; j<size; j++){
             stcsr->resultSet[j] = j;
             stcsr->size++;
 	}
@@ -247,7 +247,10 @@ int Truck_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
     stlTableCursor *stcsr = (stlTableCursor *)cur;
     Truck *any_dstr;
     int op, iCol, count = 0, i = 0, re = 0;
-    if ( stl->zErr ) return SQLITE_MISUSE;
+    if ( stl->zErr ) {
+	sqlite3_free(stl->zErr);
+	return SQLITE_MISUSE;
+    }
     if ( val==NULL ){
 	printf("Seaching VT Truck with no BASE constraint...makes no sense.\n");	
 	return SQLITE_MISUSE;
@@ -305,8 +308,11 @@ int Customers_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val)
     stlTableCursor *stcsr = (stlTableCursor *)cur;
     vector<Customer*> *any_dstr;
     vector<Customer*>:: iterator iter;
-    int op, iCol, count = 0, i = 0, re = 0;
-    if ( stl->zErr ) return SQLITE_MISUSE;
+    int op, iCol, count = 0, i = 0, re = 0, size = 0;
+    if ( stl->zErr ) {
+	sqlite3_free(stl->zErr);
+	return SQLITE_MISUSE;
+    }
     if ( val==NULL ){
 	printf("Seaching VT Customers with no BASE constraint...makes no sense.\n");	
 	return SQLITE_MISUSE;
@@ -315,6 +321,7 @@ int Customers_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val)
 	if ( equals_base(stl->azColumn[iCol]) ) {
 	    stcsr->source = (void *)sqlite3_value_int64(val);
 	    any_dstr = (vector<Customer*> *)stcsr->source;
+	    size = get_datastructure_size(cur);
 	    realloc_resultset(cur);
 	}
         int *temp_res;
@@ -326,7 +333,7 @@ int Customers_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val)
         switch( iCol ){
         case 0:
             iter = any_dstr->begin();
-            for(int i=0; i<(int)any_dstr->size();i++){
+            for(int i=0; i<size;i++){
                 temp_res[count++] = i;
                 iter++;
             }
@@ -349,7 +356,10 @@ int Customer_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
     stlTableCursor *stcsr = (stlTableCursor *)cur;
     Customer *any_dstr;
     int op, iCol, count = 0, i = 0, re = 0;
-    if ( stl->zErr ) return SQLITE_MISUSE;
+    if ( stl->zErr ) {
+	sqlite3_free(stl->zErr);
+	return SQLITE_MISUSE;
+    }
     if ( val==NULL ){
 	printf("Seaching VT Customer with no BASE constraint...makes no sense.\n");	
     }else{
@@ -426,7 +436,10 @@ int Position_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
     stlTableCursor *stcsr = (stlTableCursor *)cur;
     Position *any_dstr;
     int op, iCol, count = 0, i = 0, re = 0;
-    if ( stl->zErr ) return SQLITE_MISUSE;
+    if ( stl->zErr ) {
+	sqlite3_free(stl->zErr);
+	return SQLITE_MISUSE;
+    }
     if ( val==NULL ){
 	printf("Seaching VT Position with no BASE constraint...makes no sense.\n");	
 	return SQLITE_MISUSE;
@@ -471,9 +484,9 @@ int MapIndex_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
     stlTableCursor *stcsr = (stlTableCursor *)cur;
     map<int,Customer*> *any_dstr = (map<int,Customer*> *)stcsr->source;
     map<int,Customer*>:: iterator iter;
-    int op, iCol, count = 0, i = 0, re = 0;
+    int op, iCol, count = 0, i = 0, re = 0, size = get_datastructure_size(cur);
     if ( val==NULL ){
-        for (int j=0; j<get_datastructure_size(cur); j++){
+        for (int j=0; j<size; j++){
             stcsr->resultSet[j] = j;
             stcsr->size++;
 	}
@@ -490,7 +503,7 @@ int MapIndex_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
         switch( iCol ){
         case 0:
             iter = any_dstr->begin();
-            for(int i=0; i<(int)any_dstr->size();i++){
+            for(int i=0; i<size;i++){
                 if (compare((*iter).first, op, sqlite3_value_int(val)) )
                     temp_res[count++] = i;
                 iter++;
