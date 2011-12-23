@@ -3,7 +3,6 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string>
-#include <vector>
 
 #include "Truck.h"
 #include "Customer.h"
@@ -15,6 +14,18 @@ using namespace std;
 #define DEBUGGING
 */
 
+struct name_cmp {
+    bool operator()(const char *a, const char *b) {
+	return strcmp(a, b) < 0;
+    }
+};
+
+static map<const char *, int, name_cmp> vt_directory;
+static map<const char *, int>::iterator vtd_iter;
+
+void register_vt(const char *vt_name) {
+    vt_directory[vt_name] = 0;
+}
 
 int get_datastructure_size(sqlite3_vtab_cursor *cur){
     stlTableCursor *stc = (stlTableCursor *)cur;
@@ -257,6 +268,12 @@ int Truck_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
     }else{
         check_alloc((const char *)constr, op, iCol);
 	if ( equals_base(stl->azColumn[iCol]) ) {
+	    vtd_iter = vt_directory.find(stl->zName);
+	    if ( (vtd_iter == vt_directory.end()) || (vtd_iter->second == 0) ) {
+		printf("Invalid cast to %s\n", stl->zName);
+		return SQLITE_MISUSE;
+	    }
+	    vt_directory[stl->zName] = 0;
 	    stcsr->source = (void *)sqlite3_value_int64(val);
 	    any_dstr = (Truck *)stcsr->source;
 	}
@@ -319,6 +336,12 @@ int Customers_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val)
     }else{
         check_alloc((const char *)constr, op, iCol);
 	if ( equals_base(stl->azColumn[iCol]) ) {
+	    vtd_iter = vt_directory.find(stl->zName);
+	    if ( (vtd_iter == vt_directory.end()) || (vtd_iter->second == 0) ) {
+		printf("Invalid cast to %s\n", stl->zName);
+		return SQLITE_MISUSE;
+	    }
+	    vt_directory[stl->zName] = 0;
 	    stcsr->source = (void *)sqlite3_value_int64(val);
 	    any_dstr = (vector<Customer*> *)stcsr->source;
 	    size = get_datastructure_size(cur);
@@ -365,6 +388,12 @@ int Customer_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
     }else{
         check_alloc((const char *)constr, op, iCol);
 	if ( equals_base(stl->azColumn[iCol]) ) {
+	    vtd_iter = vt_directory.find(stl->zName);
+	    if ( (vtd_iter == vt_directory.end()) || (vtd_iter->second == 0) ) {
+		printf("Invalid cast to %s\n", stl->zName);
+		return SQLITE_MISUSE;
+	    }
+	    vt_directory[stl->zName] = 0;
 	    stcsr->source = (void *)sqlite3_value_int64(val);
 	    any_dstr = (Customer *)stcsr->source;
 	}
@@ -446,6 +475,12 @@ int Position_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
     }else{
         check_alloc((const char *)constr, op, iCol);
 	if ( equals_base(stl->azColumn[iCol]) ) {
+	    vtd_iter = vt_directory.find(stl->zName);
+	    if ( (vtd_iter == vt_directory.end()) || (vtd_iter->second == 0) ) {
+		printf("Invalid cast to %s\n", stl->zName);
+		return SQLITE_MISUSE;
+	    }
+	    vt_directory[stl->zName] = 0;
 	    stcsr->source = (void *)sqlite3_value_int64(val);
 	    any_dstr = (Position *)stcsr->source;
 	}
@@ -550,6 +585,11 @@ int Trucks_retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con){
     }
     switch( n ){
     case 0:
+	if ( (vtd_iter = vt_directory.find("Truck")) == vt_directory.end() ) {
+	    printf("Attempted to join with closed VT Truck\n");
+	    return SQLITE_MISUSE;
+	}
+	vtd_iter->second = 1;
         sqlite3_result_int64(con, (long int)*iter);
         break;
     }
@@ -565,6 +605,11 @@ int Truck_retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con){
         sqlite3_result_int64(con, (long int)any_dstr);
         break;
     case 1:
+	if ( (vtd_iter = vt_directory.find("Customers")) == vt_directory.end() ) {
+	    printf("Attempted to join with closed VT Customers\n");
+	    return SQLITE_MISUSE;
+	}
+	vtd_iter->second = 1;
         sqlite3_result_int64(con, (long int)any_dstr->get_Customers());
         break;
     case 2:
@@ -598,6 +643,11 @@ int Customers_retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con){
         sqlite3_result_int64(con, (long int)any_dstr);
         break;
     case 1:
+	if ( (vtd_iter = vt_directory.find("Customer")) == vt_directory.end() ) {
+	    printf("Attempted to join with closed VT Customer\n");
+	    return SQLITE_MISUSE;
+	}
+	vtd_iter->second = 1;
         sqlite3_result_int64(con, (long int)*iter);
         break;
     }
@@ -613,6 +663,11 @@ int Customer_retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con){
         sqlite3_result_int64(con, (long int)any_dstr);
         break;
     case 1:
+	if ( (vtd_iter = vt_directory.find("Position")) == vt_directory.end() ) {
+	    printf("Attempted to join with closed VT Position\n");
+	    return SQLITE_MISUSE;
+	}
+	vtd_iter->second = 1;
         sqlite3_result_int64(con, (long int)any_dstr->get_pos());
         break;
     case 2:
@@ -676,6 +731,11 @@ int MapIndex_retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con){
         sqlite3_result_int(con, (*iter).first);
         break;
     case 1:
+	if ( (vtd_iter = vt_directory.find("Customer")) == vt_directory.end() ) {
+	    printf("Attempted to join with closed VT Customer\n");
+	    return SQLITE_MISUSE;
+	}
+	vtd_iter->second = 1;
         sqlite3_result_int64(con, (long int)(*iter).second);
         break;
     }

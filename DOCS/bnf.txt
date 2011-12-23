@@ -1,33 +1,35 @@
-<stl_grammar> ::= <table_def> '{' <column_def> {',' <column_def>} '}'
+<--TABLE DEFINITION-->
 
-<table_def> ::= 'TABLE' <db_name>.<vtable_name> ':' <struct> 
-	    	['FROM' <parent_vtable_name> {','
-		<parent_vtable_name>}]
+
+<table_def> ::= 'CREATE TABLE' <db_name>'.'<virtual_table_name> [WITH
+BASE=<base_name>] 'AS SELECT * FROM' <struct_type> ';'
 
 <db_name> ::= 'identifier'
 
-<vtable_name> ::= 'identifier'
+<virtual_table_name> ::= 'identifier'
 
-<struct> ::= <container> | <object>
+<base_name> ::= 'identifier'
+
+<struct_type> ::= <container> | <object>
 
 <container> ::= <stl_class> '<' <type>
 <--if associative container-->
 	    [',' <type>] '>' ['*']
 
 <stl_class> ::= 'list' | 'vector' | 'deque' | 'set' | 
-		  'multiset' | 'hash_set' | 'hash_multiset' |
-		   'map' | 'multimap' | 'hash_map' | 'hash_multimap'
+		  'multiset' | 'map' | 'multimap'
 
-<type> ::= <struct> | <primitive_data_type> ['*']
+<type> ::= <struct_type> | <primitive_data_type> ['*']
 
 <object> ::= <class_name> ['*']
 
+
+<--ELEMENT TABLE DEFINITION-->
+
+
+<element_table_def> ::= 'CREATE ELEMENT TABLE' <class_name> '{' <column_def> {',' <column_def>} '}'
+
 <class_name> ::= 'identifier'
-
-<primitive_data_type> ::= 'int' | 'string' | 'double' | 'char' |
-	    	 'float' | 'real' | 'bool'
-
-<parent_vtable_name> ::= 'identifier'
 
 <column_def> ::= <column_name>
 			( <primitive_column_def> | <struct_column_def> ) 
@@ -37,7 +39,20 @@
 <primitive_column_def> ::=  <primitive_data_type> 'FROM' 
 		       (<access_statement> | 'self')
 
+<primitive_data_type> ::= 'int' | 'string' | 'double' | 'char' |
+	    	 'float' | 'real' | 'bool'
+
 <access_statement> ::= 'how_access:eg_function_name()'
 
-<struct_column_def> ::= 'int' 'FROM' '&'[<parent_vtable_name>
-			[<access_statement>]] 
+<struct_column_def> ::= 'FROM TABLE' <virtual_table_name> 'WITH BASE' <access_statement>
+
+
+<--CREATE VIEW DEFINITION-->
+
+
+<create_view_def> ::= 'CREATE VIEW' <view_name> 'AS SELECT * FROM'
+<virtual_table_name> {',' <virtual_table_name>} WHERE <constraint> {'AND' <constraint>}
+
+<view_name> ::= 'identifier'
+
+<constraint> ::= 'constraint_expression'

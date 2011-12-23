@@ -4,6 +4,7 @@
 #include "sqlite3.h"
 #include "search.h"
 
+
 int create_vtable(sqlite3 *db, void *paux, int argc, 
 		  const char * const * argv, sqlite3_vtab **ppVtab, 
 		  char **pzErr);
@@ -42,7 +43,8 @@ void create(sqlite3 *db, int argc, const char * const * as, char *q);
 
 int disconnect_vtable(sqlite3_vtab *ppVtab);
 
-typedef struct {sqlite3_vtab vtab; sqlite3 *db; const char *zDb; 
+typedef struct {sqlite3_vtab vtab; 
+  sqlite3 *db; const char *zDb; 
   const char *zName; int embedded; int nColumn; char **azColumn; 
   void *data; char *zErr;} stlTable;
 
