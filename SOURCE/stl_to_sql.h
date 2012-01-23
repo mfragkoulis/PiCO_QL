@@ -2,7 +2,7 @@
 #define STL_TO_SQL_H
 
 #include "sqlite3.h"
-#include "search.h"
+#include "stl_search.h"
 
 
 int create_vtable(sqlite3 *db, void *paux, int argc, 
@@ -42,17 +42,5 @@ int close_vtable(sqlite3_vtab_cursor *cur);
 void create(sqlite3 *db, int argc, const char * const * as, char *q);
 
 int disconnect_vtable(sqlite3_vtab *ppVtab);
-
-typedef struct {sqlite3_vtab vtab; 
-  sqlite3 *db; const char *zDb; 
-  const char *zName; int embedded; int nColumn; char **azColumn; 
-  void *data; char *zErr;} stlTable;
-
-typedef struct {sqlite3_vtab_cursor pCsr; int max_size; int *resultSet; 
-  int size; int current; int isEof; int first_constr; void *source;} stlTableCursor;
-
-typedef struct {long int *memory; const char *dsName;} dsCarrier;
-
-typedef struct {dsCarrier **ds; int size;} dsArray;
 
 #endif

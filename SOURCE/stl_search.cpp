@@ -1,5 +1,4 @@
-#include "search.h"
-#include <string>
+#include "stl_search.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string>
@@ -9,7 +8,13 @@
 
 using namespace std;
 
+#include "Truck.h"
+#include "Customer.h"
 
+using namespace std;
+
+extern vector<Truck*> *vehicles;
+extern map<int,Customer*> test;
 /*
 #define DEBUGGING
 */
@@ -20,11 +25,56 @@ struct name_cmp {
     }
 };
 
+extern vector<Truck*> *vehicles;
+extern map<int,Customer*> test;
+
 static map<const char *, int, name_cmp> vt_directory;
 static map<const char *, int>::iterator vtd_iter;
 
-void register_vt(const char *vt_name) {
-    vt_directory[vt_name] = 0;
+void * thread_sqlite(void *data){
+    const char **queries, **table_names;
+    queries = (const char **)sqlite3_malloc(sizeof(char *) * 6);
+    table_names = (const char **)sqlite3_malloc(sizeof(char *) * 6);
+    int failure = 0;
+    queries[0] = "CREATE VIRTUAL TABLE Trucks USING stl(truck_ptr INT)";
+    table_names[0] = "Trucks";
+    queries[1] = "CREATE VIRTUAL TABLE Truck USING stl(base INT, customers INT,cost double,delcapacity int,pickcapacity int,rlpoint int)";
+    table_names[1] = "Truck";
+    queries[2] = "CREATE VIRTUAL TABLE Customers USING stl(base INT, customer_ptr INT)";
+    table_names[2] = "Customers";
+    queries[3] = "CREATE VIRTUAL TABLE Customer USING stl(base INT, position_ptr INT,demand int,code text,serviced int,pickdemand int,starttime int,servicetime int,finishtime int,revenue int)";
+    table_names[3] = "Customer"; 
+    queries[4] = "CREATE VIRTUAL TABLE Position USING stl(base INT,x_coord int,y_coord int)";
+    table_names[4] = "Position";
+    queries[5] = "CREATE VIRTUAL TABLE MapIndex USING stl(map_index int,customer_ptr INT)";
+    table_names[5] = "MapIndex";
+    failure = register_table( "foo" ,  6, queries, table_names, data);
+    printf("Thread sqlite returning..\n");
+    sqlite3_free(queries);
+    sqlite3_free(table_names);
+    return (void *)failure;
+}
+
+int call_sqtl() {
+    pthread_t sqlite_thread;
+    int re_sqlite = pthread_create(&sqlite_thread, NULL, thread_sqlite, NULL);
+    signal(SIGPIPE,SIG_IGN);
+    pthread_join(sqlite_thread, NULL);
+    return re_sqlite;
+}
+
+void register_vt(stlTable *stl) {
+    if ( !strcmp(stl->zName, "Trucks") ) {
+	    stl->data = (void *)vehicles;
+	    stl->embedded = 0;
+    } else if ( !strcmp(stl->zName, "MapIndex") ) {
+	    stl->data = (void *)&test;
+	    stl->embedded = 0;
+    } else {
+        stl->data = NULL;
+        stl->embedded = 1;
+    }
+    vt_directory[stl->zName] = 0;
 }
 
 int get_datastructure_size(sqlite3_vtab_cursor *cur){

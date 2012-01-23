@@ -32,7 +32,6 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc,
   stlTable *stl;
   int nDb, nName, nByte, nCol, nString, count, i, re;
   char *temp;
-  FILE *open_stream;
   nDb = (int)strlen(argv[1]) + 1;
   nName = (int)strlen(argv[2]) + 1;
   nString=0;
@@ -84,6 +83,7 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc,
       return SQLITE_ERROR;
     }else if( output==0 ){
       *ppVtab = &stl->vtab;
+/*
       dsArray *dsC = (dsArray *)paux;
       int size = dsC->size;
       for (i=0; i<size; i++) {
@@ -97,7 +97,8 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc,
 	stl->data = NULL;
 	stl->embedded = 1;
       }
-      register_vt(stl->zName);
+*/
+      register_vt(stl);
 #ifdef DEBUGGING
       printf("Virtual table declared successfully\n");
 #endif
