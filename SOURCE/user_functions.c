@@ -1,69 +1,29 @@
-#include "stl_to_sql.h"
+#include "user_functions.h"
 #include <stdlib.h>
 #include <swill.h>
 #include <time.h>
 
-/*
+
+
 #define DEBUGGING
-*/
+
+
 
 // Takes care of query preparation and execution.
 int prep_exec(FILE *f, sqlite3 *db, const char *q){
   sqlite3_stmt  *stmt;
   int result, col, prepare;
   if( (prepare = sqlite3_prepare_v2(db, q, -1, &stmt, 0)) == SQLITE_OK ){
-#ifdef DEBUGGING
-    printf("Statement prepared.\n");  
-#endif
-    if (f != NULL) 
+    if (f) {
       result = file_prep_exec(f, stmt, q);
-    else{
-      result = sqlite3_step(stmt);
-#ifdef DEBUGGING
-      for (col = 0; col < sqlite3_column_count(stmt); col++){
-	printf("%s ", sqlite3_column_name(stmt, col));
-      }
-      printf("\n");
-      while ((result = sqlite3_step(stmt)) == SQLITE_ROW){
-	printf("\n");
-	for (col = 0; col < sqlite3_column_count(stmt); col++){
-	  switch(sqlite3_column_type(stmt, col)) {
-	  case 1: 
-	    printf("%i ", sqlite3_column_int(stmt, col));
-	    break;
-	  case 2:
-	    printf("%f ", sqlite3_column_double(stmt, col));
-	    break;
-	  case 3:
-	    printf("%s ", sqlite3_column_text(stmt, col));
-	    break;
-	  case 4:
-	    printf("%s ", (char *)sqlite3_column_blob(stmt, col));
-	    break;
-	  case 5:
-	    printf("(null) ");
-	    break;
-	  }
-	}
-      }
-      if( result==SQLITE_DONE ){
-	printf("Done\n");
-      }else if( result==SQLITE_OK ){
-	printf("OK\n");
-      }else if( result==SQLITE_ERROR ){
-	printf("SQL error or missing database\n");
-      }else if( result==SQLITE_MISUSE ){
-	printf("Library used incorrectly\n");
-      }else {
-	printf("Error code: %i.\nPlease advise Sqlite error codes (http://www.sqlite.org/c3ref/c_abort.html)", result);
-      }
-#endif
-    }
+      fprintf(f, "\n");
+    } else result = sqlite3_step(stmt);
+    // step only: queries with no resultset (check if table exists)
+    // for those queries preparation will always succeed.
   } else {
-    printf("Error in preparation of query: error no %i\n", prepare);
+    if (f) swill_fprintf(f, "Error in preparation of query: error no %i\n", prepare);
     return prepare;
   }
-  printf("\n");
   sqlite3_finalize(stmt);
   return result;
 }
@@ -291,8 +251,12 @@ int register_table(const char *nDb, int argc, const char **q, const char **table
     if (prep_exec(NULL, db, (const char *)table_query) != SQLITE_ROW)
       re = prep_exec(NULL, db, (const char *)q[i]);
   }
+#ifndef DEBUGGING
   printf("Please visit http://localhost:8080 to be served\n");
   call_swill(db);
+#else
+  re = call_test(db);
+#endif
   sqlite3_free(mod);
   return re;
 }

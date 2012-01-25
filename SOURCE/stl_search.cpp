@@ -8,16 +8,9 @@
 
 using namespace std;
 
-#include "Truck.h"
-#include "Customer.h"
 
-using namespace std;
+//#define DEBUGGING
 
-extern vector<Truck*> *vehicles;
-extern map<int,Customer*> test;
-/*
-#define DEBUGGING
-*/
 
 struct name_cmp {
     bool operator()(const char *a, const char *b) {
@@ -42,7 +35,7 @@ void * thread_sqlite(void *data){
     table_names[1] = "Truck";
     queries[2] = "CREATE VIRTUAL TABLE Customers USING stl(base INT, customer_ptr INT)";
     table_names[2] = "Customers";
-    queries[3] = "CREATE VIRTUAL TABLE Customer USING stl(base INT, position_ptr INT,demand int,code text,serviced int,pickdemand int,starttime int,servicetime int,finishtime int,revenue int)";
+    queries[3] = "CREATE VIRTUAL TABLE Customer USING stl(base INT, position_ptr INT,demand int,code text,serviced int,pickdemand int,starttime int,servicetime int,finishtime int)";
     table_names[3] = "Customer"; 
     queries[4] = "CREATE VIRTUAL TABLE Position USING stl(base INT,x_coord int,y_coord int)";
     table_names[4] = "Position";
@@ -497,11 +490,6 @@ int Customer_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
                 temp_res[count++] = i;
             assert(count <= stcsr->max_size);
             break;
-        case 9:
-            if (compare(any_dstr->get_revenue(), op, sqlite3_value_int(val)) )
-                temp_res[count++] = i;
-            assert(count <= stcsr->max_size);
-            break;
         }
         if ( (re = compare_res(count, stcsr, temp_res)) != 0 )
             return re;
@@ -729,9 +717,6 @@ int Customer_retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con){
         break;
     case 8:
         sqlite3_result_int(con, any_dstr->get_finishtime());
-        break;
-    case 9:
-        sqlite3_result_int(con, any_dstr->get_revenue());
         break;
     }
     return SQLITE_OK;
