@@ -2,13 +2,13 @@
 
 
 <table_def> ::= 'CREATE TABLE' <db_name>'.'<virtual_table_name> [WITH
-BASE=<base_name>] 'AS SELECT * FROM' <struct_type> ';'
+BASE=<base_variable>] 'AS SELECT * FROM' <struct_type> ';'
 
 <db_name> ::= 'identifier'
 
 <virtual_table_name> ::= 'identifier'
 
-<base_name> ::= 'identifier'
+<base_variable> ::= 'identifier'
 
 <struct_type> ::= <container> | <object>
 
@@ -23,35 +23,47 @@ BASE=<base_name>] 'AS SELECT * FROM' <struct_type> ';'
 
 <object> ::= <class_name> ['*']
 
+<--Instruct the parser to use the respective CREATE ELEMENT TABLE when
+both are defined.-->
+<element_table_choice> ::= 'USE ELEMENT' (<virtual_table_name> |
+		       <struct_type_name>)
+
+<struct_type_name> ::= 'name_of_<struct_type>_for_virtual_table'
 
 <--ELEMENT TABLE DEFINITION-->
 
 
-<element_table_def> ::= 'CREATE ELEMENT TABLE' <class_name> '{' <column_def> {',' <column_def>} '}'
+<element_table_def> ::= 'CREATE ELEMENT TABLE' <element_name> '{' <column_def> {',' <column_def>} '}'
 
-<class_name> ::= 'identifier'
+<element_name> ::= 'identifier'
 
-<column_def> ::= <column_name>
-			( <primitive_column_def> | <struct_column_def> ) 
+<column_def> ::= (<column_name>
+			( <primitive_column_def> | <struct_column_def>)  
+			(<access_statement> | 'self')) | <element_table_reuse>
 
 <column_name> ::= 'identifier'
 
-<primitive_column_def> ::=  <primitive_data_type> 'FROM' 
-		       (<access_statement> | 'self')
+<primitive_column_def> ::=  <primitive_data_type> 'FROM'
 
 <primitive_data_type> ::= 'int' | 'string' | 'double' | 'char' |
 	    	 'float' | 'real' | 'bool'
 
+<struct_column_def> ::= 'INT FROM' [<typesafe_column_def>]
+
+<typesafe_column_def> ::= 'TABLE' <virtual_table_name> 'WITH BASE='
+
 <access_statement> ::= 'how_access:eg_function_name()'
 
-<struct_column_def> ::= 'FROM TABLE' <virtual_table_name> 'WITH BASE' <access_statement>
-
+<--Instruct the parser to fill a current element from one defined
+previously by referencing the element table's name
+<element_table_reuse> ::= '#' <element_name>
 
 <--CREATE VIEW DEFINITION-->
 
 
 <create_view_def> ::= 'CREATE VIEW' <view_name> 'AS SELECT * FROM'
-<virtual_table_name> {',' <virtual_table_name>} WHERE <constraint> {'AND' <constraint>}
+		  <virtual_table_name> {',' <virtual_table_name>}
+		  WHERE <constraint> {'AND' <constraint>}
 
 <view_name> ::= 'identifier'
 
