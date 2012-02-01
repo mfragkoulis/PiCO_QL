@@ -67,8 +67,8 @@ class Column
 
 # Validates a column data type
 # The following data types are the ones accepted by sqlite.
-  def verify_data_type(data_type)
-    dt = data_type.downcase
+  def verify_data_type()
+    dt = @data_type.downcase
     if dt == "int" ||
         dt == "integer" ||
         dt == "tinyint" ||
@@ -112,20 +112,42 @@ class Column
 # Matches each column description against a pattern and extracts 
 # column traits.
   def set(column)
-    pattern = Regexp.new(/(\w+) (\w+)(\s*)from(\s*)&(\w*)(\s*)(\S*)|(\w+) (\w+)(\s*)from(\s*)(\S+)/i)
+    puts column
     column.lstrip!
     column.rstrip!
-    if column.match(/&\w/)
-      @type = "foreign_key"
-    elsif column.match(/&\s|&/)
-      @type = "primary_key"
+    if column.match(/\n/)
+      column.gsub!(/\n/, "")
     end
-    if column.match(/self/i)
-      @type = "primitive"
+    column_ptn1 = /\#(\w+)/i
+    column_ptn2 = /(\w+) (\w+) from table (\w+) with base(\s*)=(\s*)(\w+)/i
+    column_ptn3 = /(\w+) (\w+) from (\w+)/i
+    case column
+    when column_ptn1
+      matchdata = column_ptn1.match(column)
+      $elements.each { |el| if el.name == matchdata[1] : $elements.last.columns = $elements.last.columns | el.columns end }
+    when column_ptn2
+      matchdata = column_ptn2.match(column)
+      @name = matchdata[1]
+      @data_type = matchdata[2]
+      @related_to = matchdata[3]
+      @access_path = matchdata[6]    
+    when column_ptn3
+      matchdata = column_ptn3.match(column)
+      @name = matchdata[1]
+      @data_type = matchdata[2]
+      @access_path = matchdata[3]
     end
-    if @type.length == 0
-      @type = "standard"
+    verify_data_type()
+    if @access_path.match(/self/)
+      @access_path.gsub!(/self/,"")
     end
+    puts "Column name is: " + @name
+    puts "Column data type is: " + @data_type
+    puts "Column related to: " + @related_to
+    puts "Column access path is: " + @access_path
+    puts "Column type is: " + @type
+    
+=begin
     matchdata = pattern.match(column)
     column_data = Array.new
     l = 0
@@ -179,6 +201,7 @@ class Column
       puts "Invalid format. One or more of identifiers 'FROM''(space)' missing\n"
       exit(1)
     end
+=end
   end
 
 # Checks if the col is a foreign key to a given table 
@@ -217,24 +240,198 @@ class Child
 
 end
 
-
-class Data_structure_characteristics
+class View
   def initialize
     @name = ""
     @db = ""
-    # content: map<string,Truck*>
+    @virtual_tables = Array.new
+    @where_clauses = Array.new
+  end
+
+  def match_view(view_description)
+    view_description.lstrip!
+    view_description.rstrip!
+    view_ptn = /^create view (\w+)\.(\w+) as select \* from (.+) where(\s*) (.+)/im
+    puts view_description
+    matchdata = view_ptn.match(view_description)
+    @name = matchdata[2]
+    @db = matchdata[1]
+    vts = matchdata[3]
+    where = matchdata[5]
+    if vts.match(/,/) 
+      @virtual_tables = vts.split(/,/) 
+    else
+      raise "Invalid input for virtual tables: " + vts
+    end
+    where.match(/ /) ? @where_clauses = where.split(/ /) : @where_clauses = where
+    puts "View name is: " + @name
+    puts "View lives in database named: " + @db
+    @virtual_tables.each { |vt| puts "View of virtual tables: " + vt }
+    @where_clauses.each { |wh| puts "View of virtual tables: " + wh }
+  end
+end
+
+
+class VirtualTable
+  def initialize
+    @name = ""
+    @base_var = ""
+    @element = ""
+    @db = ""
     @signature = ""
     @stl_class = ""
     @type = ""
     @object_class = ""
     @template_args = ""
-    @parents = Array.new
     @children = Array.new
-    @columns = Array.new
-    @nonNative = 0
-    @s = "        "
   end
-  attr_accessor(:name,:db,:signature,:stl_class,:type,:object_class,:template_args,:parents,:children,:access,:columns,:nonNative,:s)
+
+  attr_accessor(:name,:base_var,:element,:db,:signature,:stl_class,:type,:object_class,:template_args,:children)
+
+
+# validate the signature of an stl structure and extract signature traits.
+# Also for objects, extract class name.
+  def verify_signature()
+
+    class_sign = <<-CS
+STL class signature not properly given:
+template error in #{@signature} \n\n NOW EXITING. \n
+CS
+    sign = @signature
+    if sign.include?("<") && sign.include?(">")
+      container_split = sign.split(/</)
+      @stl_class = container_split[0]
+      @type = container_split[1].chomp!(">")
+#      if @stl_class.match(/map/i)
+#        @type = "pair<#{@type}>"
+#      end
+      if @stl_class == "list" || @stl_class == "deque"  ||
+          @stl_class == "vector" || @stl_class == "slist" ||
+          @stl_class == "set" || @stl_class == "multiset" ||
+          @stl_class == "hash_set" || @stl_class == "hash_multiset" ||
+          @stl_class == "bitset"
+        @template_args = "single"
+      elsif @stl_class == "map" ||
+          @stl_class == "multimap" || @stl_class == "hash_map" ||
+          @stl_class == "hash_multimap"
+        @template_args = "double"
+      else
+        puts $err_state
+        raise TypeError.new("no such container class: " + @stl_class +
+                            "\n\n NOW EXITING. \n")
+      end
+      if (@template_args== "single" && container_split[1].include?(",")) ||
+          (@template_args == "double" && 
+           (!container_split[1].include?(",") &&
+            # After splitting with '<', making sure template 
+            # instantiation is not empty
+            (container_split[1].chomp!(">").length != 0)))
+        # double:if not normal case and not nested case raise
+        raise ArgumentError.new(class_sign)
+      end
+      if @stl_class=="list" || @stl_class=="deque"  ||
+          @stl_class=="vector" || @stl_class=="slist" ||
+          @stl_class=="bitset"
+        @container_type="sequence"
+      elsif @stl_class=="map" ||
+          @stl_class=="multimap" || @stl_class=="hash_map" ||
+          @stl_class=="hash_multimap" ||
+          @stl_class=="set" || @stl_class=="multiset" ||
+          @stl_class=="hash_set" || @stl_class=="hash_multiset"
+        @container_type="associative"
+      elsif @stl_class=="bitset"
+        @container_type="bitset"
+      end
+      puts "Table STL class name is: " + @stl_class
+      puts "Table no of template args is: " + @template_args
+      puts "Table container type is: " + @container_type
+      puts "Table record is of type: " + @type
+    else
+      if sign.match(/(<*) | (>*)/)
+        puts "Template instantiation identifier '<' or '>' missing\n"
+        exit(1)
+      end
+      @object_class = sign
+      @type = @object_class
+      puts "Table object class name : " + @object_class
+      puts "Table record is of type: " + @type
+    end
+  end
+
+
+  def match_table(table_description)
+    table_description.lstrip!
+    table_description.rstrip!
+    table_ptn1 = /^create table (\w+)\.(\w+) with base(\s*)=(\s*)(\w+) as select \* from (.+)/im
+    table_ptn2 = /^create table (\w+)\.(\w+) as select \* from (.+)/im
+    puts table_description
+    case table_description
+    when table_ptn1
+      puts "1"
+      matchdata = table_ptn1.match(table_description)
+      @name = matchdata[2]
+      @db = matchdata[1]
+      @base_var = matchdata[5]
+      @signature = matchdata[6]
+    when table_ptn2
+      puts "2"
+      matchdata = table_ptn2.match(table_description)
+      @name = matchdata[2]
+      @db = matchdata[1]
+      @signature = matchdata[3].gsub(/\s/,"")
+    end
+    verify_signature()
+    @type.match(/\*/) ? element_type = @type.chomp!('*') : element_type = @type 
+    $elements.each { |el| if el.name == @name : @element = el end }
+    if @element == nil
+      $elements.each { |el| if el.name == element_type : @element = el end }
+    end
+    puts "Table name is: " + @name
+    puts "Table lives in database named: " + @db
+    puts "Table base variable name is: " + @base_var
+    puts "Table signature name is: " + @signature
+    puts "Table follows element: " + @element.name
+=begin
+#      process_parents(parents)
+#      process_columns(matchdata[10], columns)
+      return
+    else
+      pattern = /^ (\w+)\.(\w+)(\s*):(\s*)(.+)(\s*)\{(\s*)(.+)\}/im
+      matchdata = pattern.match(vt_description)
+    end
+    if matchdata
+      # First record of table_data contains the whole description of the virtual table
+      # Second record contains the database name in which the virtual table will be created
+      @db = matchdata[1]
+      # Third record contains the virtual table name
+      @name = matchdata[2]
+      # Sixth record contains the signature, call to gsub to strip any whitespaces
+      @parents = nil
+      table_signature = matchdata[5].gsub(/\s/,"")
+      verify_signature(table_signature)
+      process_columns(matchdata[8], columns)
+    else
+      puts "Invalid format. One or more of identifiers ':', 'TABLE', 'FROM''(space)' missing\n"
+      exit(1)
+    end
+#=begin
+       mt = 0
+       while mt < matchdata.length
+         puts "matchdata[" + td.to_s + "] = " + matchdata[td]
+         mt += 1
+       end
+=end
+  end
+
+end
+
+class Element
+  def initialize
+    @name = ""
+    # content: map<string,Truck*>
+    @columns = Array.new
+  end
+  attr_accessor(:name,:columns)
 
 
   def spacing(index)
@@ -744,7 +941,7 @@ RAL
   end
 
 # Extracts column information for a VT
-  def process_columns(col_string, columns)
+  def process_columns(columns_str, columns)
     split_col = Array.new
     if col_string.match(/,/)
       split_col = col_string.split(/,/)
@@ -776,133 +973,37 @@ RAL
     end
   end
 
-# Matches a VT description against a pattern and extracts VT traits
-  def match_pattern(vt_description, columns)
-    pattern = /^ (\w+)\.(\w+)(\s*):(\s*)(.+)(\s*)from (.+)(\s*)\{(\s*)(.+)\}/im
-    matchdata = pattern.match(vt_description)
+
+  def match_element(element_description)
+    pattern = /^create element table (\w+)(\s*)\((.+)\)/im
+    matchdata = pattern.match(element_description)
     if matchdata
-      # First record of table_data contains the whole description of the virtual table
-      # Second record contains the database name in which the virtual table will be created
-      @db = matchdata[1]
-      # Third record contains the virtual table name
-      @name = matchdata[2]
-      # Sixth record contains the signature, call to gsub to strip any whitespaces
-      table_signature = matchdata[5].gsub(/\s/,"")
-      verify_signature(table_signature)
-      # Eighth record contains the parent table name
-      parents = matchdata[7]
-      puts "Parents: #{parents}"
-      process_parents(parents)
-      process_columns(matchdata[10], columns)
-      return
-    else
-      pattern = /^ (\w+)\.(\w+)(\s*):(\s*)(.+)(\s*)\{(\s*)(.+)\}/im
-      matchdata = pattern.match(vt_description)
-    end
-    if matchdata
-      # First record of table_data contains the whole description of the virtual table
-      # Second record contains the database name in which the virtual table will be created
-      @db = matchdata[1]
-      # Third record contains the virtual table name
-      @name = matchdata[2]
-      # Sixth record contains the signature, call to gsub to strip any whitespaces
-      @parents = nil
-      table_signature = matchdata[5].gsub(/\s/,"")
-      verify_signature(table_signature)
-      process_columns(matchdata[8], columns)
-    else
-      puts "Invalid format. One or more of identifiers ':', 'TABLE', 'FROM''(space)' missing\n"
-      exit(1)
-    end
-=begin
-       mt = 0
-       while mt < matchdata.length
-         puts "matchdata[" + td.to_s + "] = " + matchdata[td]
-         mt += 1
-       end
-=end
-  end
-
-
-# validate the signature of an stl structure and extract signature traits.
-# Also for objects, extract class name.
-  def verify_signature(table_signature)
-
-    class_sign = <<-CS
-STL class signature not properly given:
-template error in #{table_signature} \n\n NOW EXITING. \n
-CS
-
-    if table_signature.include?("<") && table_signature.include?(">")
-      container_split = table_signature.split(/</)
-      @stl_class = container_split[0]
-      @type = container_split[1].chomp!(">")
-      if @stl_class.match(/map/i)
-        @type = "pair<#{@type}>"
-      end
-      if @stl_class == "list" || @stl_class == "deque"  ||
-          @stl_class == "vector" || @stl_class == "slist" ||
-          @stl_class == "set" || @stl_class == "multiset" ||
-          @stl_class == "hash_set" || @stl_class == "hash_multiset" ||
-          @stl_class == "bitset"
-        @template_args = "single"
-      elsif @stl_class == "map" ||
-          @stl_class == "multimap" || @stl_class == "hash_map" ||
-          @stl_class == "hash_multimap"
-        @template_args = "double"
+      # First record of table_data contains the whole description of the element
+      # Second record contains the element's name
+      @name = matchdata[1]
+      columns_str = Array.new
+      if matchdata[3].match(/,/)
+        columns_str = matchdata[3].split(/,/)
       else
-        puts $err_state
-        raise TypeError.new("no such container class: " + @stl_class +
-                            "\n\n NOW EXITING. \n")
+        columns_str[0] = matchdata[3]
       end
-      if (@template_args== "single" && container_split[1].include?(",")) ||
-          (@template_args == "double" && 
-           (!container_split[1].include?(",") &&
-            # After splitting with '<', making sure template 
-            # instantiation is not empty
-            (container_split[1].chomp!(">").length != 0)))
-        # double:if not normal case and not nested case raise
-        raise ArgumentError.new(class_sign)
-      end
-      if @stl_class=="list" || @stl_class=="deque"  ||
-          @stl_class=="vector" || @stl_class=="slist" ||
-          @stl_class=="bitset"
-        @container_type="sequence"
-      elsif @stl_class=="map" ||
-          @stl_class=="multimap" || @stl_class=="hash_map" ||
-          @stl_class=="hash_multimap" ||
-          @stl_class=="set" || @stl_class=="multiset" ||
-          @stl_class=="hash_set" || @stl_class=="hash_multiset"
-        @container_type="associative"
-      elsif @stl_class=="bitset"
-        @container_type="bitset"
-      end
-      puts "stl class is: " + @stl_class
-      puts "no of template args is: " + @template_args
-      puts "container type is: " + @container_type
-      @signature = table_signature
-      puts "container signature is: " + @signature
-    else
-      if table_signature.match(/(<*) | (>*)/)
-        puts "Template instantiation identifier '<' or '>' missing\n"
-        exit(1)
-      end
-      @object_class = table_signature
-      @type = @object_class
-      puts "Class name : " + @object_class
     end
+    columns_str.each { |x| @columns.push(Column.new).last.set(x) }
+    @columns.each { |x| p x }
   end
+
+
+
+
 
 
 end
 
-class Input_Description
-  def initialize(description="")
-    # original string description
+class InputDescription
+  def initialize(description)
+    # original description tokenised in an Array
     @description = description
     # array with entries the processed characteristics of each virtual table
-
-    @ds_chars = Array.new
     @directives = ""
     @tokenised_dir = Array.new
     @s = "        "
@@ -1774,103 +1875,62 @@ mkf
     end
   end
 
+
+# Matches a description against a pattern and calls specific methods fow extracting characteristics out of the description.
+  def match_pattern(w, columns)
+  end
+
+
 # User description first comes here. Description is cleaned from 
 # surplus spaces and is split to extract directives to external 
 # application and library files. 
 # Each VT description is separated, matched against specific patterns
 # and all elements are recorded including column specifications.
-  def register_datastructure
-    puts "description before whitespace squeeze " + @description
-    @description.squeeze!(' ')
-    puts "description after whitespace squeeze " + @description
-    if @description.match(/table/i)
-      prep_dir = @description.split(/table/i)
-      @directives = prep_dir[0]
-      prep_dir.delete_at(0)
-      puts "Directives: " + @directives
-    else
-      puts "Invalid description"
-      exit(1)
-    end
-    columns = Array.new
-    
+  def register_datastructures()
+    @description.each { |x| puts x }
+    @directives = @description[0]
+    @description.delete_at(0)
+    puts "Directives: " + @directives
+    $elements = Array.new
+    tables = Array.new
+    views = Array.new
     w = 0
-    while w < prep_dir.length
-      puts "Before #{prep_dir[w]}"
-      if prep_dir[w].length == 0
-        prep_dir.delete_at(w)
+    while w < @description.length
+      puts "\nDESCRIPTION No: " + w.to_s + "\n"
+      des = @description[w].lstrip!
+      case des
+      when /^create element table/i
+        $elements.push(Element.new).last.match_element(des)
+      when /^create table/i
+        tables.push(VirtualTable.new).last.match_table(des)
+      when /^create view/i
+        views.push(View.new).last.match_view(des)
       end
       w += 1
     end
-    w = 0
-    while w < prep_dir.length
-      puts "\nDATA STRUCTURE DESCRIPTION No: " + w.to_s + "\n"
-      @ds_chars[w] = Data_structure_characteristics.new
-      # in case each VT description is in a separate line
-      if prep_dir[w].match(/\n/)
-        prep_dir[w].gsub!(/\n/, "")
-      end
-      puts "After #{prep_dir[w]}"
-      @ds_chars[w].match_pattern(prep_dir[w], columns)
-      @ds_chars[w].register_columns(columns)
-      w += 1
-    end
-    process_hierarchy()
-    generate()
+    #    process_hierarchy()
   end
 end
 
-
-
-if __FILE__==$0
-  description = "#include <string>
-#include <vector>
-#include <map>
-
-#include \"Truck.h\"
-#include \"Customer.h\"
-
-TABLE mydb.Trucks : vector <Truck*> {
-	truck_id INT FROM &Truck
-}
-
-TABLE mydb.Truck : Truck FROM Trucks {
-	truck_id INT FROM &,
-	cost DOUBLE FROM get_cost(),
-	delcapacity INT FROM get_delcapacity(),
-	pickcapacity INT FROM get_pickcapacity(),
-	rlpoint INT FROM get_rlpoint()
-}
-
-TABLE mydb.Customers : vector<Customer *> FROM Truck {
-	truck_id INT FROM &Truck get_Customers(),
-	customer_id INT FROM &Customer
-}
-
-TABLE mydb.Customer : Customer FROM Customers, MapIndex {
-	customer_id INT FROM &,
-	demand INT FROM get_demand(),
-	code STRING from get_code(),
-	serviced INT from get_serviced(),
-	pickdemand INT FROM get_pickdemand(),
-	starttime INT FROM get_starttime(),
-	servicetime INT FROM get_servicetime(),
-	finishtime INT FROM get_finishtime(),
-	revenue INT FROM get_revenue(),
-	position_id INT FROM &Position get_pos()
-}
-
-TABLE mydb.Position : Position FROM Customer {
-	position_id INT FROM &,
-	x_coord INT FROM get_x(),
-	y_coord INT FROM get_y()
-}
-
-TABLE mydb.MapIndex : map<int, Customer *> {
-	map_index INT FROM first,
-	customer_id INT FROM &Customer second
-}
-"
-  input = Input_Description.new(description)
-  input.register_datastructure
+if __FILE__ == $0
+  if !File.file?("input.txt")
+    raise "File 'input.txt' does not exist.\n"
+  end
+  description = ""
+  description = File.open("input.txt", "r") { |fw| fw.read }
+  if description.match(/;/)
+    token_description = description.split(/;/)
+  else
+    raise "Invalid description..delimeter ';' not used."
+  end
+  $s = "        "
+  puts "description before whitespace squeeze "
+#  token_description.each { |x| p x}
+  token_description.each{ |x| x.squeeze(' ')}
+  token_description.each{ |x| if x.length == 0 : description.delete(x) end }
+  token_description.each{ |x| if x.match(/\n|\t|\r/) : x.gsub!(/\n|\t|\r/, "") end }
+  puts "description after whitespace squeeze "
+  ip = InputDescription.new(token_description)
+  ip.register_datastructures()
+#  ip.generate()
 end

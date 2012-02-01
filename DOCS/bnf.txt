@@ -23,13 +23,6 @@ BASE=<base_variable>] 'AS SELECT * FROM' <struct_type> ';'
 
 <object> ::= <class_name> ['*']
 
-<--Instruct the parser to use the respective CREATE ELEMENT TABLE when
-both are defined.-->
-<element_table_choice> ::= 'USE ELEMENT' (<virtual_table_name> |
-		       <struct_type_name>)
-
-<struct_type_name> ::= 'name_of_<struct_type>_for_virtual_table'
-
 <--ELEMENT TABLE DEFINITION-->
 
 
@@ -61,7 +54,7 @@ previously by referencing the element table's name
 <--CREATE VIEW DEFINITION-->
 
 
-<create_view_def> ::= 'CREATE VIEW' <view_name> 'AS SELECT * FROM'
+<create_view_def> ::= 'CREATE VIEW' <db_name>.<view_name> 'AS SELECT * FROM'
 		  <virtual_table_name> {',' <virtual_table_name>}
 		  WHERE <constraint> {'AND' <constraint>}
 
