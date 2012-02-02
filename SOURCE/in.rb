@@ -102,7 +102,6 @@ class Column
     elsif dt == "string"
       return "text"
     else
-      puts $err_state
       raise TypeError.new("no such data type " + data_type.upcase + "\n")
     end
   end
@@ -112,9 +111,9 @@ class Column
 # Matches each column description against a pattern and extracts 
 # column traits.
   def set(column)
-    puts column
     column.lstrip!
     column.rstrip!
+    puts column
     if column.match(/\n/)
       column.gsub!(/\n/, "")
     end
@@ -124,7 +123,8 @@ class Column
     case column
     when column_ptn1
       matchdata = column_ptn1.match(column)
-      $elements.each { |el| if el.name == matchdata[1] : $elements.last.columns = $elements.last.columns | el.columns end }
+      $elements.each { |el| if el.name == matchdata[1] : $elements.last.columns = $elements.last.columns_delete_last() | el.columns end }
+      return
     when column_ptn2
       matchdata = column_ptn2.match(column)
       @name = matchdata[1]
@@ -215,17 +215,7 @@ class Column
 
 # Returns valid column format for use in VT create queries.
   def print_col_info()
-#    puts "type is " + @type
-    if @type == "primary_key"
-      return @name + " INTEGER PRIMARY KEY"
-    elsif @type == "foreign_key"
-      return @name + " REFERENCES " + @related_to 
-    elsif @type == "standard" || @type == "primitive"
       return @name + " " + @data_type
-    else
-      puts "Unrecognised state\n"
-      exit(1)
-    end
   end
 
 end
@@ -249,8 +239,6 @@ class View
   end
 
   def match_view(view_description)
-    view_description.lstrip!
-    view_description.rstrip!
     view_ptn = /^create view (\w+)\.(\w+) as select \* from (.+) where(\s*) (.+)/im
     puts view_description
     matchdata = view_ptn.match(view_description)
@@ -263,11 +251,11 @@ class View
     else
       raise "Invalid input for virtual tables: " + vts
     end
-    where.match(/ /) ? @where_clauses = where.split(/ /) : @where_clauses = where
+    where.match(/ and /i) ? @where_clauses = where.split(/ and /) : @where_clauses = where
     puts "View name is: " + @name
     puts "View lives in database named: " + @db
     @virtual_tables.each { |vt| puts "View of virtual tables: " + vt }
-    @where_clauses.each { |wh| puts "View of virtual tables: " + wh }
+    @where_clauses.each { |wh| puts "View of where clauses: " + wh }
   end
 end
 
@@ -276,14 +264,19 @@ class VirtualTable
   def initialize
     @name = ""
     @base_var = ""
-    @element = ""
+    @element
     @db = ""
     @signature = ""
     @stl_class = ""
-    @type = ""
+    @pointer = ""
     @object_class = ""
     @template_args = ""
     @children = Array.new
+    @@stl_single_classes = ["list" , "deque" , "vector" , "set" , 
+                            "multiset"]
+    @@stl_double_classes = ["map" , "multimap"]
+    @@stl_sequence_classes = ["list", "vector", "deque"]
+    @@stl_associative_classes = ["set" , "multiset" , "map" , "multimap"]
   end
 
   attr_accessor(:name,:base_var,:element,:db,:signature,:stl_class,:type,:object_class,:template_args,:children)
@@ -297,91 +290,71 @@ class VirtualTable
 STL class signature not properly given:
 template error in #{@signature} \n\n NOW EXITING. \n
 CS
-    sign = @signature
-    if sign.include?("<") && sign.include?(">")
-      container_split = sign.split(/</)
-      @stl_class = container_split[0]
-      @type = container_split[1].chomp!(">")
+
+    case @signature
+    when /(\w+)<(.+)>(\**)/
+      matchdata = /(\w+)<(.+)>(\**)/.match(@signature)
+      @stl_class = matchdata[1]
+      @type = matchdata[2]
+      @pointer = matchdata[3]
 #      if @stl_class.match(/map/i)
 #        @type = "pair<#{@type}>"
 #      end
-      if @stl_class == "list" || @stl_class == "deque"  ||
-          @stl_class == "vector" || @stl_class == "slist" ||
-          @stl_class == "set" || @stl_class == "multiset" ||
-          @stl_class == "hash_set" || @stl_class == "hash_multiset" ||
-          @stl_class == "bitset"
+      if @@stl_single_classes.include?(@stl_class)
         @template_args = "single"
-      elsif @stl_class == "map" ||
-          @stl_class == "multimap" || @stl_class == "hash_map" ||
-          @stl_class == "hash_multimap"
+      elsif @@stl_double_classes.include?(@stl_class)
         @template_args = "double"
       else
-        puts $err_state
         raise TypeError.new("no such container class: " + @stl_class +
                             "\n\n NOW EXITING. \n")
       end
-      if (@template_args== "single" && container_split[1].include?(",")) ||
-          (@template_args == "double" && 
-           (!container_split[1].include?(",") &&
-            # After splitting with '<', making sure template 
-            # instantiation is not empty
-            (container_split[1].chomp!(">").length != 0)))
-        # double:if not normal case and not nested case raise
-        raise ArgumentError.new(class_sign)
-      end
-      if @stl_class=="list" || @stl_class=="deque"  ||
-          @stl_class=="vector" || @stl_class=="slist" ||
-          @stl_class=="bitset"
+      if @@stl_sequence_classes.include?(@stl_class)
         @container_type="sequence"
-      elsif @stl_class=="map" ||
-          @stl_class=="multimap" || @stl_class=="hash_map" ||
-          @stl_class=="hash_multimap" ||
-          @stl_class=="set" || @stl_class=="multiset" ||
-          @stl_class=="hash_set" || @stl_class=="hash_multiset"
+      elsif @@stl_associative_classes.include?(@stl_class)
         @container_type="associative"
-      elsif @stl_class=="bitset"
-        @container_type="bitset"
+      end
+      if (@template_args == "single" && /(.+),(.+)/.match(@type)) ||
+          (@template_args == "double" && !(/(.+),(.+)/.match(@type)))
+        raise ArgumentError.new(class_sign)
       end
       puts "Table STL class name is: " + @stl_class
       puts "Table no of template args is: " + @template_args
       puts "Table container type is: " + @container_type
       puts "Table record is of type: " + @type
-    else
-      if sign.match(/(<*) | (>*)/)
-        puts "Template instantiation identifier '<' or '>' missing\n"
-        exit(1)
-      end
-      @object_class = sign
-      @type = @object_class
+      puts "Table type is of type pointer: " + @pointer
+    when /(\w+)\*|(\w+)/
+      matchdata = /(\w+)(\**)/.match(@signature)
+      @object_class = @signature
+      @type = @signature
+      @pointer = matchdata[2]
       puts "Table object class name : " + @object_class
       puts "Table record is of type: " + @type
+      puts "Table type is of type pointer: " + @pointer
+    when /(.+)/
+      raise "Template instantiation faulty.\n"
     end
   end
 
 
   def match_table(table_description)
-    table_description.lstrip!
-    table_description.rstrip!
     table_ptn1 = /^create table (\w+)\.(\w+) with base(\s*)=(\s*)(\w+) as select \* from (.+)/im
     table_ptn2 = /^create table (\w+)\.(\w+) as select \* from (.+)/im
     puts table_description
     case table_description
     when table_ptn1
-      puts "1"
       matchdata = table_ptn1.match(table_description)
       @name = matchdata[2]
       @db = matchdata[1]
       @base_var = matchdata[5]
       @signature = matchdata[6]
     when table_ptn2
-      puts "2"
       matchdata = table_ptn2.match(table_description)
       @name = matchdata[2]
       @db = matchdata[1]
       @signature = matchdata[3].gsub(/\s/,"")
     end
     verify_signature()
-    @type.match(/\*/) ? element_type = @type.chomp!('*') : element_type = @type 
+    @type.match(/\*/) ? element_type = @type.chomp('*') : element_type = @type 
     $elements.each { |el| if el.name == @name : @element = el end }
     if @element == nil
       $elements.each { |el| if el.name == element_type : @element = el end }
@@ -973,8 +946,13 @@ RAL
     end
   end
 
+  def columns_delete_last()
+    @columns.delete(@columns.last)
+    return @columns
+  end
 
   def match_element(element_description)
+    puts element_description
     pattern = /^create element table (\w+)(\s*)\((.+)\)/im
     matchdata = pattern.match(element_description)
     if matchdata
@@ -1003,9 +981,10 @@ class InputDescription
   def initialize(description)
     # original description tokenised in an Array
     @description = description
-    # array with entries the processed characteristics of each virtual table
+    # array with entries the identity of each virtual table
+    @tables = Array.new
     @directives = ""
-    @tokenised_dir = Array.new
+#    @tokenised_dir = Array.new
     @s = "        "
   end
 
@@ -1467,6 +1446,60 @@ SS
   end
 
 
+  def print_thread(fw)
+
+    auto_gen1_1 = <<-AG11
+void * thread_sqlite(void *data){
+    const char **queries, **table_names;
+    queries = (const char **)sqlite3_malloc(sizeof(char *) *
+                   #{@tables.length.to_s});
+    table_names = (const char **)sqlite3_malloc(sizeof(char *) *
+                   #{@tables.length.to_s});
+    int failure = 0;
+AG11
+
+
+   #HereDoc2
+# maybe adjust so that create queries are grouped by database.
+      auto_gen2 = <<-AG2
+    failure = register_table( "#{@tables[0].db}" ,  #{@tables.length.to_s}, queries, table_names, data);
+    printf(\"Thread sqlite returning..\\n\");
+    sqlite3_free(queries);
+    sqlite3_free(table_names);
+    return (void *)failure;
+}
+
+
+int call_sqtl() {
+    pthread_t sqlite_thread;
+    int re_sqlite = pthread_create(&sqlite_thread, NULL, thread_sqlite, NULL);
+    signal(SIGPIPE,SIG_IGN);
+    pthread_join(sqlite_thread, NULL);
+    return re_sqlite;
+}
+
+AG2
+
+    fw.puts auto_gen1_1
+# <db>.<table> always valid?
+# <db>.<table> does not work for some reason. test.
+    @tables.each_index { |vt| 
+      query =  "CREATE VIRTUAL TABLE " + @tables[vt].db + "." + @tables[vt].name  + " USING stl(" 
+      @tables[vt].element.columns.each { |c| query += "#{c.name} #{c.data_type}," }
+      query = query.chomp(",") + ")"
+      fw.puts "    queries[#{vt}] = \"#{query}\";"
+      fw.puts "    table_names[#{vt}] = \"#{@tables[vt].name}\";"
+    }
+    fw.puts auto_gen2
+  end
+
+
+  def print_extern_variables(fw)
+    @tables.each { |vt| if vt.base_var.length > 0 : fw.puts "extern #{vt.signature} #{vt.base_var};" end }
+  end
+
+
+
 # Generates application-specific code to complement the SQTL library.
   def generate()
 
@@ -1476,93 +1509,20 @@ SS
 using namespace std;
 
 
-void * thread_sqlite(void *data){
-    const char **queries, **table_names;
-    queries = (const char **)sqlite3_malloc(sizeof(char *) *
-                   #{@ds_chars.length.to_s});
-    table_names = (const char **)sqlite3_malloc(sizeof(char *) *
-                   #{@ds_chars.length.to_s});
-    int failure = 0;
-AG1
-
-   #HereDoc2
-# maybe adjust so that create queries are grouped by database.
-      auto_gen2 = <<-AG2
-    failure = register_table( "#{@ds_chars[0].db}" ,  #{@ds_chars.length.to_s}, queries, table_names, data);
-    printf(\"Thread sqlite returning..\\n\");
-    sqlite3_free(queries);
-    sqlite3_free(table_names);
-    return (void *)failure;
-}
+//#define DEBUGGING                                                             
 
 
-/* comparison function for datastructure if needed
-struct classcomp{
-    bool operator() (const USER_CLASS& uc1, const USER_CLASS& uc2) const{
-        return (uc1.get_known_type()<uc2.get_known_type());
+struct name_cmp {
+    bool operator()(const char *a, const char *b) {
+        return strcmp(a, b) < 0;
     }
 };
-// in main: include classcomp in template arguments
-*/
 
+static map<const char *, int, name_cmp> vt_directory;
+static map<const char *, int>::iterator vtd_iter;
 
-int main(){
-// allocations and initialisations
-  int re_sqlite;
-  void *data;
-  char *c_temp;
+AG1
 
-  //names of data structures to be registered
-  const char *name1 = "to be filled_in";
-  int n_name1 = (int)strlen(name1) + 1;
-  // etc for subsequent data structures. eg:
-  // const char *name2 = "to be filled_in";
-  // int n_name2 = (int)strlen(name2) + 1;
-  // length of data structures names
-
-  dsArray *dsC;
-  dsData **ddsC;
-  int nByte = sizeof(dsArray) + (sizeof(dsData *) + sizeof(dsData) + sizeof(attrCarrier)) * <number of stl structures to register> + n_name1;
-  // etc for subsequent data structures. eg: + n_name2;
-  dsC = (dsArray *)sqlite3_malloc(nByte);
-  memset(dsC, 0, nByte);
-  pthread_t sqlite_thread;
-
-// assignment of data structure characteristics to dsC
-  // number of data structures to register
-  dsC->ds_size = <number of stl structures to register>;
-  int size = dsC->ds_size;
-  dsC->init = 1;
-  dsC->ds = (dsData **)&dsC[1];
-  ddsC = dsC->ds;
-  ddsC[0] = (dsData *)&ddsC[size];
-  int dsi;
-  for (dsi = 1; dsi < size; dsi++)
-    ddsC[dsi] = (dsData *)&ddsC[dsi-1][1];
-  ddsC[0]->attr = (attrCarrier *)&ddsC[dsi-1][1];
-  for (dsi = 1; dsi < size; dsi++)
-    ddsC[dsi]->attr = (attrCarrier *)&ddsC[dsi-1]->attr[1];
-  ddsC[0]->attr->memory = (long int *) <address of stl structure to register first>;
-  // etc for subsequent data structures. eg:
-  // ddsC[1]->attr->memory = (long int *) <address of stl structure to register first>;
-  c_temp = (char *)&ddsC[dsi-1]->attr[1];
-  ddsC[0]->attr->dsName = c_temp;
-  memcpy(c_temp, name1, n_name1);
-  c_temp += n_name1;
-  // etc for subsequent data structures
-  // ddsC[1]->attr->dsName = c_temp;
-  memcpy(c_temp, name2, n_name2);
-  c_temp += n_name2;
-  assert(c_temp <= &((char *)dsC)[nByte]);
-  dat = (void *)&dsC;
-  signal(SIGPIPE, SIG_IGN);
-  re_sqlite = pthread_create(&sqlite_thread, NULL, thread_sqlite, dat);
-  pthread_join(sqlite_thread, NULL);
-  printf(\"Thread sqlite returned %i\\n\", re_sqlite);
-}
-
-
-AG2
 
     #HereDoc3
     directives = <<-dir
@@ -1765,34 +1725,21 @@ search.o: search.cpp search.h
         g++ -W -g -c search.cpp
 mkf
 
-    myfile = File.open("main_v2.template", "w") do |fw|
-      fw.puts "\#include <stdlib.h>"
-      fw.puts "\#include \"stl_to_sql.h\""
-      fw.puts "\#include <pthread.h>"
-      fw.puts "\#include <assert.h>"
-      fw.puts @directives
-      fw.puts auto_gen1
-      w = 0
-      while w < @ds_chars.length
-        curr_ds = @ds_chars[w]
-        # probably needs processing
-        fw.puts "    queries[" + w.to_s + "] = \"" + curr_ds.gen_create_query() + "\";"
-        fw.puts "    table_names[" + w.to_s + "] = \"" + curr_ds.name + "\";"
-        w += 1
-      end
-      fw.puts auto_gen2
-    end
-
-    myfile = File.open("search.cpp", "w") do |fw|
-      fw.puts "\#include \"search.h\""
+    myfile = File.open("stl_search_gen.cpp", "w") do |fw|
+      fw.puts "\#include \"stl_search.h\""
       fw.puts "\#include <string>"
       fw.puts "\#include <assert.h>"
       fw.puts "\#include <stdio.h>"
-      fw.puts "\#include <set>"
-      fw.puts "\#include <map>"
       fw.puts @directives
       fw.puts
-      fw.puts directives
+      fw.puts auto_gen1
+      print_extern_variables(fw)
+      fw.puts "\n\n"
+      print_thread(fw)
+      fw.puts "\n\n"
+#      print_register_vt(fw)
+      fw.puts "\n\n"
+=begin
       print_set_dependencies(fw)
       fw.puts "\n\n"
       print_copy_structs(fw)
@@ -1824,60 +1771,8 @@ mkf
       fw.puts makefile_part
       fw.puts
       print_directives(fw, 2)
+=end
     end
-  end
-
-# Processes each pair of parent and child structures and stores the 
-# child's name to parent and the access statement for the child 
-# table to child.
-  def process_hierarchy()
-    w = 0
-    while w < @ds_chars.length
-      parents = @ds_chars[w].parents
-      p = 0
-      while parents != nil && p < parents.length
-        pr = 0
-        while pr < @ds_chars.length && parents[p] != @ds_chars[pr].name
-          pr += 1
-        end
-        if pr == @ds_chars.length
-          puts "No such data structure recorded: " + parents[p] + 
-            " parent of " + @ds_chars[w].name
-          exit(1)
-        end
-        @ds_chars[pr].children[@ds_chars[pr].children.length] = Child.new
-        access_stmt = @ds_chars[pr].search_fk(@ds_chars[w].name)
-        if access_stmt == nil
-          access_stmt = @ds_chars[w].search_fk(@ds_chars[pr].name)
-        end
-        if access_stmt == nil
-          puts "Relationship between tables " + @ds_chars[pr].name + 
-            " and " + @ds_chars[w].name + " not recorded correctly."
-          exit(1)
-        end
-        @ds_chars[pr].children[@ds_chars[pr].children.length - 1].name = @ds_chars[w].name
-        @ds_chars[pr].children[@ds_chars[pr].children.length - 1].access =  access_stmt
-        puts "Child name: " + 
-          @ds_chars[pr].children[@ds_chars[pr].children.length - 1].name + 
-          " in parent: " + @ds_chars[pr].name + 
-          " with access statement: " + 
-          @ds_chars[pr].children[@ds_chars[pr].children.length - 1].access
-        p += 1
-      end
-      if @ds_chars[w].signature.length > 0
-        @ds_chars[w].nonNative = p
-        puts "VT #{@ds_chars[w].name} nonNative of rate #{@ds_chars[w].nonNative}"
-      else
-        @ds_chars[w].nonNative = nil
-        puts "VT #{@ds_chars[w].name} nonNative of rate nil"
-      end
-      w += 1
-    end
-  end
-
-
-# Matches a description against a pattern and calls specific methods fow extracting characteristics out of the description.
-  def match_pattern(w, columns)
   end
 
 
@@ -1887,28 +1782,47 @@ mkf
 # Each VT description is separated, matched against specific patterns
 # and all elements are recorded including column specifications.
   def register_datastructures()
-    @description.each { |x| puts x }
-    @directives = @description[0]
-    @description.delete_at(0)
+    puts "description before whitespace cleanup: "
+    @description.each { |x| p x }
+    token_d = @description
+    token_d = token_d.select { |x| x.length > 0 }
+    @directives = token_d[0]
+    token_d.delete_at(0)
     puts "Directives: " + @directives
+    x = 0
+    while x < token_d.length
+      token_d[x].lstrip!
+      token_d[x].rstrip!
+      if /\n|\t|\r|\f/.match(token_d[x]) : token_d[x].gsub!(/\n|\t|\r|\f/, "") end
+      token_d[x].squeeze!(" ")
+      if / ,|, /.match(token_d[x]) : token_d[x].gsub!(/ ,|, /, ",") end
+      if / \(/.match(token_d[x]) : token_d[x].gsub!(/ \(/, "(") end
+      if /\( /.match(token_d[x]) : token_d[x].gsub!(/\( /, "(") end
+      if /\) /.match(token_d[x]) : token_d[x].gsub!(/\) /, ")") end
+      if / \)/.match(token_d[x]) : token_d[x].gsub!(/ \)/, ")") end
+      x += 1
+    end
+    @description = token_d
+    puts "description after whitespace cleanup: "
+    @description.each { |x| p x }
     $elements = Array.new
-    tables = Array.new
     views = Array.new
     w = 0
     while w < @description.length
       puts "\nDESCRIPTION No: " + w.to_s + "\n"
-      des = @description[w].lstrip!
+      @description[w].lstrip!
+      @description[w].rstrip!
+      des = @description[w]
       case des
       when /^create element table/i
         $elements.push(Element.new).last.match_element(des)
       when /^create table/i
-        tables.push(VirtualTable.new).last.match_table(des)
+        @tables.push(VirtualTable.new).last.match_table(des)
       when /^create view/i
         views.push(View.new).last.match_view(des)
       end
       w += 1
     end
-    #    process_hierarchy()
   end
 end
 
@@ -1916,7 +1830,6 @@ if __FILE__ == $0
   if !File.file?("input.txt")
     raise "File 'input.txt' does not exist.\n"
   end
-  description = ""
   description = File.open("input.txt", "r") { |fw| fw.read }
   if description.match(/;/)
     token_description = description.split(/;/)
@@ -1924,13 +1837,7 @@ if __FILE__ == $0
     raise "Invalid description..delimeter ';' not used."
   end
   $s = "        "
-  puts "description before whitespace squeeze "
-#  token_description.each { |x| p x}
-  token_description.each{ |x| x.squeeze(' ')}
-  token_description.each{ |x| if x.length == 0 : description.delete(x) end }
-  token_description.each{ |x| if x.match(/\n|\t|\r/) : x.gsub!(/\n|\t|\r/, "") end }
-  puts "description after whitespace squeeze "
   ip = InputDescription.new(token_description)
   ip.register_datastructures()
-#  ip.generate()
+  ip.generate()
 end
