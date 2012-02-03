@@ -2,7 +2,6 @@
 #define STL_SEARCH_H
 
 #include "sqlite3.h"
-#include "user_functions.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -23,6 +22,7 @@ extern "C" {
   int get_datastructure_size(sqlite3_vtab_cursor *cur);
   int search(sqlite3_vtab_cursor *cur, char *constraint, sqlite3_value *val);
   int retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con);
+
 
 #ifdef __cplusplus
 }

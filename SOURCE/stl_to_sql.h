@@ -2,7 +2,6 @@
 #define STL_TO_SQL_H
 
 #include "sqlite3.h"
-#include "stl_search.h"
 
 
 int create_vtable(sqlite3 *db, void *paux, int argc, 

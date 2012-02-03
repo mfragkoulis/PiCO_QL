@@ -3,7 +3,6 @@
 
 #include <stdio.h>
 #include "sqlite3.h"
-#include "stl_test.h"
 
 #ifdef __cplusplus
 extern "C" {

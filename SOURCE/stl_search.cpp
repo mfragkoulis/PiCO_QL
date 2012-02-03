@@ -1,10 +1,11 @@
-#include "stl_search.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string>
-
 #include "Truck.h"
 #include "Customer.h"
+#include "stl_search.h"
+#include "user_functions.h"
+#include "workers.h"
 
 using namespace std;
 
@@ -58,11 +59,11 @@ int call_sqtl() {
 
 void register_vt(stlTable *stl) {
     if ( !strcmp(stl->zName, "Trucks") ) {
-	    stl->data = (void *)vehicles;
-	    stl->embedded = 0;
+	stl->data = (void *)vehicles;
+	stl->embedded = 0;
     } else if ( !strcmp(stl->zName, "MapIndex") ) {
-	    stl->data = (void *)&test;
-	    stl->embedded = 0;
+	stl->data = (void *)&test;
+	stl->embedded = 0;
     } else {
         stl->data = NULL;
         stl->embedded = 1;
