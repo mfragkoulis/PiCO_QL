@@ -1,5 +1,6 @@
 class Column
   def initialize
+#=begin
     @name = ""
     @data_type = ""
     @related_to = ""
@@ -9,7 +10,7 @@ class Column
     @@double_data_types = ["float", "double", "double precision", "real"]
     @@text_data_types = ["text", "date", "datetime", "clob", "string"]
     @@text_match_data_types = [/character/i, /varchar/i, /nvarchar/i, /varying character/i, /native character/i, /nchar/i]
-
+#=end
   end
   attr_accessor(:name,:data_type,:related_to,:access_path,:type)
 
@@ -18,7 +19,7 @@ class Column
 # and fills the variables with necessary values.
   def bind_datatypes(sqlite3_type, column_cast, sqlite3_parameters, 
                      column_cast_back, access_path)
-=begin
+#=begin
     match_text_array = Array.new
     match_text_array.replace(@@text_match_data_types)
     if @name == "base"
@@ -26,17 +27,17 @@ class Column
       sqlite3_parameters.replace(", -1, SQLITE_STATIC")
       return @name
     end
-    case @data_type
-    when @@int_data_types.include?(@data_type)
+    dt = @data_type.downcase
+    if @@int_data_types.include?(dt)
       sqlite3_type.replace("int")
-    when @data_type == "blob"
+    elsif (dt == "blob")
       sqlite3_type.replace("blob")
       column_cast.replace("(const void *)")
       sqlite3_parameters.replace(", -1, SQLITE_STATIC")
-    when @@double_data_types.include?(@data_type) ||
-        /decimal/i.match(@data_type)
+    elsif @@double_data_types.include?(dt) ||
+        /decimal/i.match(dt)
       sqlite3_type.replace("double")
-    when @@text_data_types.include?(@data_type) || text_match_array.reject! { |rgx| rgx.match(dt) != nil } != nil
+    elsif @@text_data_types.include?(dt) || match_text_array.reject! { |rgx| rgx.match(dt) != nil } != nil
       sqlite3_type.replace("text")
       column_cast.replace("(const unsigned char *)")
       column_cast_back.replace(".c_str()")
@@ -44,24 +45,24 @@ class Column
     end
     access_path.replace(@access_path)
     return "compare"
-=end
+#=end
   end
 
 # Validates a column data type
 # The following data types are the ones accepted by sqlite.
   def verify_data_type()
-=begin
+#=begin
     dt = @data_type.downcase
     match_text_array = Array.new
     match_text_array.replace(@@text_match_data_types)
     if dt == "string"
       return "text"
-    elsif @@int_data_types.include?(dt) || @@double_data_types.include?(dt) || /decimal/i.match(dt) || @@text_data_types.include?(dt) || match_text_array.reject! { |rgx| rgx.match(dt) != nil } != nil
+    elsif @@int_data_types.include?(dt) || @@double_data_types.include?(dt) || /decimal/i.match(dt) != nil || @@text_data_types.include?(dt) || match_text_array.reject! { |rgx| rgx.match(dt) != nil } != nil
       return dt
     else
       raise TypeError.new("no such data type #{dt.upcase}\\n")
     end
-=end
+#=end
   end
 
 
@@ -69,16 +70,16 @@ class Column
 # Matches each column description against a pattern and extracts 
 # column traits.
   def set(column)
-=begin
+#=begin
     column.lstrip!
     column.rstrip!
     puts column
     if column.match(/\n/)
       column.gsub!(/\n/, "")
     end
-    column_ptn1 = /\#(\w+)/i
-    column_ptn2 = /(\w+) (\w+) from table (\w+) with base(\s*)=(\s*)(\w+)/i
-    column_ptn3 = /(\w+) (\w+) from (\w+)/i
+    column_ptn1 = /\#(\w+)/im
+    column_ptn2 = /(\w+) (\w+) from table (\w+) with base(\s*)=(\s*)(.+)/im
+    column_ptn3 = /(\w+) (\w+) from (.+)/im
     case column
     when column_ptn1
       matchdata = column_ptn1.match(column)
@@ -105,21 +106,23 @@ class Column
     puts "Column related to: " + @related_to
     puts "Column access path is: " + @access_path
     puts "Column type is: " + @type
-=end
+#=end
   end
 
-
+end
 
 class View
   def initialize
+#=begin
     @name = ""
     @db = ""
     @virtual_tables = Array.new
     @where_clauses = Array.new
+#=end
   end
 
   def match_view(view_description)
-=begin
+#=begin
     view_ptn = /^create view (\w+)\.(\w+) as select \* from (.+) where(\s*) (.+)/im
     puts view_description
     matchdata = view_ptn.match(view_description)
@@ -137,13 +140,14 @@ class View
     puts "View lives in database named: " + @db
     @virtual_tables.each { |vt| puts "View of virtual tables: " + vt }
     @where_clauses.each { |wh| puts "View of where clauses: " + wh }
-=end
+#=end
   end
 end
 
 
 class VirtualTable
   def initialize
+#=begin
     @name = ""
     @base_var = ""
     @element
@@ -154,51 +158,50 @@ class VirtualTable
     @pointer = ""
     @object_class = ""
     @template_args = ""
-    @children = Array.new
+    @columns = Array.new
     @@stl_single_classes = ["list" , "deque" , "vector" , "set" , 
                             "multiset"]
     @@stl_double_classes = ["map" , "multimap"]
     @@stl_sequence_classes = ["list", "vector", "deque"]
     @@stl_associative_classes = ["set" , "multiset" , "map" , "multimap"]
+#=end
   end
 
-  attr_accessor(:name,:base_var,:element,:db,:signature,:stl_class,:type,:pointer,:object_class,:template_args,:children)
+  attr_accessor(:name,:base_var,:element,:db,:signature,:stl_class,:type,:pointer,:object_class,:template_args,:columns)
 
 
   def vt_type_spacing(fw)
-=begin
-    fw.puts $s
+#=begin
+    fw.print $s
     if @stl_class.length > 0
       fw.print $s
     else
       fw.print "    "
     end
-=end
+#=end
   end
 
 
 # Generates code to search each VT struct.
 # Each search case matches a specific column of the VT.
   def search_columns(fw)
-=begin
+#=begin
     col = 0
     fw.puts "#{$s}switch( iCol ){"
-    col_array = @element.columns
+    col_array = @columns
     col_array.each_index { |col|
       fw.puts "#{$s}case #{col}:"
       # if collection/map...
       if @stl_class.length > 0
-        fw.puts @s + "    iter = any_dstr->begin();"
-        fw.puts @s + "    for(int i=0; i<size;i++){"
+        fw.puts "#{$s}    iter = any_dstr->begin();"
+        fw.puts "#{$s}    for(int i=0; i<size;i++){"
       end
       sqlite3_type = ""
       column_cast = ""
       sqlite3_parameters = ""
       column_cast_back = ""
       access_path = ""
-      op = col_array[col].bind_datatypes(sqlite3_type, column_cast, 
-                                   sqlite3_parameters, column_cast_back, 
-                                   access_path)
+      op = col_array[col].bind_datatypes(sqlite3_type, column_cast, sqlite3_parameters, column_cast_back, access_path)
       if @stl_class.length > 0
         access_path.length == 0 ? iden = "(*iter)" : iden = "(*iter)."
       else
@@ -213,21 +216,23 @@ class VirtualTable
       when "compare"
         vt_type_spacing(fw)
         fw.print "if (compare(#{column_cast}#{iden}#{access_path}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val)) )"
+        fw.puts
         vt_type_spacing(fw)
         fw.print "    temp_res[count++] = i;"
       when "base"
         vt_type_spacing(fw)
         fw.print "temp_res[count++] = i;"
       end
+      fw.puts
       if @stl_class.length > 0
-        fw.puts @s + @s + "iter++;"
-        fw.puts @s + "    }"
+        fw.puts "#{$s}#{$s}iter++;"
+        fw.puts "#{$s}    }"
       end
-      fw.puts @s + "    assert(count <= stcsr->max_size);"
-      fw.puts @s + "    break;"
+      fw.puts "#{$s}    assert(count <= stcsr->max_size);"
+      fw.puts "#{$s}    break;"
     }
-    fw.puts @s + "}"
-=end
+    fw.puts "#{$s}}"
+#=end
   end
   
 
@@ -235,7 +240,7 @@ class VirtualTable
 # Generates code in search method. Code makes the necessary arrangements 
 # for search to happen successfully (condition checks, reallocation)
   def setup_search(fw)
-=begin
+#=begin
 # optimisation: refrain from calling get_datastructure_size in each call.
 # However for real time apps this is necessary.
     error_case = <<-EC
@@ -318,14 +323,14 @@ RAL
       fw.puts "#{$s}}"
     end
     fw.puts resultset_alloc
-=end
+#=end
   end
 
 
 # validate the signature of an stl structure and extract signature traits.
 # Also for objects, extract class name.
   def verify_signature()
-=begin
+#=begin
     class_sign = <<-CS
 STL class signature not properly given:
 template error in #{@signature} \n\n NOW EXITING. \n
@@ -373,12 +378,12 @@ CS
     when /(.+)/
       raise "Template instantiation faulty.\n"
     end
-=end
+#=end
   end
 
 
   def match_table(table_description)
-=begin
+#=begin
     table_ptn1 = /^create table (\w+)\.(\w+) with base(\s*)=(\s*)(\w+) as select \* from (.+)/im
     table_ptn2 = /^create table (\w+)\.(\w+) as select \* from (.+)/im
     puts table_description
@@ -401,12 +406,17 @@ CS
     if @element == nil
       $elements.each { |el| if el.name == element_type : @element = el end }
     end
+    if @element == nil
+      raise "Cannot match element for table #{@name}.\\n"
+  end
+    if @base_var.length == 0 : @columns.push(Column.new).last.set("base INT FROM self") end
+    @columns = @columns | @element.columns
     puts "Table name is: " + @name
     puts "Table lives in database named: " + @db
     puts "Table base variable name is: " + @base_var
     puts "Table signature name is: " + @signature
     puts "Table follows element: " + @element.name
-=end
+#=end
   end
 
 end
@@ -422,7 +432,7 @@ class Element
 # Generates code to retrieve each VT struct.
 # Each retrieve case matches a specific column of the VT.
   def retrieve_columns(fw)
-=begin
+#=begin
     col = 0
     fw.puts "    switch( n ){"
     while col < @columns.length
@@ -432,9 +442,7 @@ class Element
       sqlite3_parameters = ""
       column_cast_back = ""
       access_path = ""
-      op = @columns[col].bind_datatypes(sqlite3_type, column_cast, 
-                                   sqlite3_parameters, column_cast_back, 
-                                   access_path)
+      op = @columns[col].bind_datatypes( sqlite3_type, column_cast, sqlite3_parameters, column_cast_back, access_path)
       if op == "fill in"
         iden = "\"N/A\""
       elsif op == "compare"
@@ -456,19 +464,19 @@ class Element
       if column_cast_back == ".c_str()"
         column_cast = "(const char *)"
       end
-      fw.puts @s + "sqlite3_result_" + sqlite3_type + "(con, " + 
+      fw.puts $s + "sqlite3_result_" + sqlite3_type + "(con, " + 
         column_cast + iden + access_path + column_cast_back + 
         sqlite3_parameters + ");"
-      fw.puts @s + "break;"
+      fw.puts $s + "break;"
       col += 1
     end
-=end
+#=end
   end
 
 # Generates code in retrieve method. Code makes the necessary arrangements 
 # for retrieve to happen successfully (condition checks, reallocation)
   def setup_retrieve(fw, ds_array)
-=begin
+#=begin
 
     #HereDoc1
 
@@ -495,21 +503,21 @@ AG5
       puts "ERROR: not recorded structure type: stl or object"
       exit(1)
     end
-=end
+#=end
   end
 
 
 
   def columns_delete_last()
-=begin
+#=begin
     @columns.delete(@columns.last)
     return @columns
-=end
+#=end
   end
 
 
   def match_element(element_description)
-=begin
+#=begin
     puts element_description
     pattern = /^create element table (\w+)(\s*)\((.+)\)/im
     matchdata = pattern.match(element_description)
@@ -526,7 +534,7 @@ AG5
     end
     columns_str.each { |x| @columns.push(Column.new).last.set(x) }
     @columns.each { |x| p x }
-=end
+#=end
   end
 
 end
@@ -540,7 +548,7 @@ class InputDescription
     @directives = ""
   end
 
-=begin
+#=begin
 # Processes and generates the directives 
 # (helper functions, user-defined classes) for the makefile
   def print_directives(fw, op)
@@ -573,11 +581,11 @@ class InputDescription
       end
     end
   end
-=end
+#=end
 
 # Generates the application-specific retrieve method for each VT struct.
   def print_retrieve_functions(fw)
-=begin
+#=begin
     w = 0
     while w < @ds_chars.length
       curr_ds = @ds_chars[w]
@@ -601,12 +609,12 @@ class InputDescription
       w += 1
     end
     fw.puts "}"
-=end
+#=end
   end
 
 # Generates the application-specific search method for each VT struct.
   def print_search_functions(fw)
-=begin
+#=begin
     cls_search = <<-CLS
         if ( (re = compare_res(count, stcsr, temp_res)) != 0 )
             return re;
@@ -631,12 +639,12 @@ CLS
       fw.puts "#{$s}return #{vt.name}_search(cur, constr, val);"
     }
     fw.puts "}"
-=end
+#=end
   end
 
 
   def print_get_size(fw)
-=begin
+#=begin
     fw.puts "int get_datastructure_size(sqlite3_vtab_cursor *cur){"
     fw.puts "    stlTableCursor *stc = (stlTableCursor *)cur;"
     fw.puts "    stlTable *stl = (stlTable *)cur->pVtab;"
@@ -648,19 +656,19 @@ CLS
           fw.puts "    } else if ( !strcmp(stl->zName, \"#{@tables[vt].name}\") ) {"
         end
         /\*/.match(@tables[vt].pointer) == nil ? retype = "*" : retype = "" 
-        fw.puts "#{@s}#{@tables[vt].signature}#{retype} any_dstr = (#{@tables[vt].signature}#{retype})stc->source;"
-        fw.puts "#{@s}return (int)any_dstr->size();"
+        fw.puts "#{$s}#{@tables[vt].signature}#{retype} any_dstr = (#{@tables[vt].signature}#{retype})stc->source;"
+        fw.puts "#{$s}return (int)any_dstr->size();"
       end
     }
     fw.puts "    }"
     fw.puts "    return 1;"
     fw.puts "}"
-=end
+#=end
   end
 
 
   def print_register_vt(fw)
-=begin
+#=begin
     els_case = <<-ELS
     } else {
         stl->data = NULL;
@@ -680,17 +688,17 @@ ELS
           fw.puts "    } else if ( !strcmp(stl->zName, \"#{@tables[vt].name}\") ) {"
         end
         /\*/.match(@tables[vt].pointer) == nil ? retype = "&" : retype = "" 
-        fw.puts "#{@s}stl->data = (void *)#{retype}#{@tables[vt].base_var};"
-        fw.puts "#{@s}stl->embedded = 0;"
+        fw.puts "#{$s}stl->data = (void *)#{retype}#{@tables[vt].base_var};"
+        fw.puts "#{$s}stl->embedded = 0;"
       end
     }
     fw.puts els_case
-=end
+#=end
   end
 
 
   def print_thread(fw)
-=begin
+#=begin
     auto_gen1_1 = <<-AG11
 void * thread_sqlite(void *data){
     const char **queries, **table_names;
@@ -727,28 +735,28 @@ AG2
 # <db>.<table> always valid?
 # <db>.<table> does not work for some reason. test.
     @tables.each_index { |vt| 
-      query =  "CREATE VIRTUAL TABLE #{@tables[vt].db}.#{@tables[vt].name} USING stl(" 
-      @tables[vt].element.columns.each { |c| query += "#{c.name} #{c.data_type}," }
+      query =  "CREATE VIRTUAL TABLE #{@tables[vt].db}.#{@tables[vt].name} USING stl("
+      @tables[vt].columns.each { |c| query += "#{c.name} #{c.data_type}," }
       query = query.chomp(",") + ")"
       fw.puts "    queries[#{vt}] = \"#{query}\";"
       fw.puts "    table_names[#{vt}] = \"#{@tables[vt].name}\";"
     }
     fw.puts auto_gen2
-=end
+#=end
   end
 
 
   def print_extern_variables(fw)
-=begin
+#=begin
     @tables.each { |vt| if vt.base_var.length > 0 : fw.puts "extern #{vt.signature} #{vt.base_var};" end }
-=end
+#=end
   end
 
 
 
 # Generates application-specific code to complement the SQTL library.
   def generate()
-=begin
+#=begin
    #HereDoc1
       auto_gen1 = <<-AG1
 
@@ -843,7 +851,7 @@ mkf
       fw.puts
 #      print_directives(fw, 2)
     end
-=end
+#=end
   end
 
 
@@ -853,7 +861,7 @@ mkf
 # Each VT description is separated, matched against specific patterns
 # and all elements are recorded including column specifications.
   def register_datastructures()
-=begin
+#=begin
     puts "description before whitespace cleanup: "
     @description.each { |x| p x }
     token_d = @description
@@ -895,9 +903,10 @@ mkf
       end
       w += 1
     end
-=end
+#=end
   end
 end
+
 
 if __FILE__ == $0
   if !File.file?("input.txt")
