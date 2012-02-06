@@ -22,10 +22,20 @@ class Column
 #=begin
     match_text_array = Array.new
     match_text_array.replace(@@text_match_data_types)
+    if @related_to.length > 0
+      if sqlite3_type.length == 0 
+        return "fk", nil 
+      else
+        sqlite3_type.replace("int64")
+        column_cast.replace("(long int)")
+        access_path.replace(@access_path)
+        return "gen_all", @related_to
+      end
+    end
     if @name == "base"
-      sqlite3_type.replace("text")
-      sqlite3_parameters.replace(", -1, SQLITE_STATIC")
-      return @name
+      sqlite3_type.replace("int64")
+      column_cast.replace("(long int)")
+      return "base", nil
     end
     dt = @data_type.downcase
     if @@int_data_types.include?(dt)
@@ -44,7 +54,7 @@ class Column
       sqlite3_parameters.replace(", -1, SQLITE_STATIC")
     end
     access_path.replace(@access_path)
-    return "compare"
+    return "gen_all", nil
 #=end
   end
 
@@ -170,6 +180,72 @@ class VirtualTable
   attr_accessor(:name,:base_var,:element,:db,:signature,:stl_class,:type,:pointer,:object_class,:template_args,:columns)
 
 
+# Generates code to retrieve each VT struct.
+# Each retrieve case matches a specific column of the VT.
+  def retrieve_columns(fw)
+#=begin
+    fw.puts "    switch( n ){"
+    col_array = @columns
+    col_array.each_index { |col|
+      fw.puts "    case #{col}:"
+      sqlite3_type = "retrieve"
+      column_cast = ""
+      sqlite3_parameters = ""
+      column_cast_back = ""
+      access_path = ""
+      op, fk_col_name = @columns[col].bind_datatypes( sqlite3_type, column_cast, sqlite3_parameters, column_cast_back, access_path)
+      if fk_col_name != nil
+        fw.puts "#{$s}if ( (vtd_iter = vt_directory.find(\"#{fk_col_name}\")) != vt_directory.end() )"
+        fw.puts "#{$s}    vtd_iter->second = 1;"
+      end
+      case op
+      when "gen_all"
+        if @stl_class.length > 0
+          access_path.length == 0 ? iden = "*iter" : iden = "(*iter)."
+        else 
+          access_path.length == 0 ? iden = "any_dstr" : iden = "any_dstr->"
+        end
+        # Patch. Too little exception in bind_datatypes to spoil code reuse
+        if column_cast_back == ".c_str()" : column_cast = "(const char *)" end
+        fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{iden}#{access_path}#{column_cast_back}#{sqlite3_parameters});"
+      when "base"
+        fw.puts "#{$s}printf(\"Retrieving VT #{@name} BASE column...makes no sense.\\n\");"
+        fw.puts "#{$s}return SQLITE_MISUSE;"
+      end
+    }
+#=end
+  end
+
+
+# Generates code in retrieve method. Code makes the necessary arrangements 
+# for retrieve to happen successfully (condition checks, reallocation)
+  def setup_retrieve(fw)
+#=begin
+
+    #HereDoc1
+
+        auto_gen5 = <<-AG5
+    int index = stcsr->current;
+    iter = any_dstr->begin();
+    for(int i=0; i<stcsr->resultSet[index]; i++){
+        iter++;
+    }
+AG5
+    fw.puts "    stlTableCursor *stcsr = (stlTableCursor *)cur;"
+    /\*/.match(@pointer) == nil ? sign_retype = "#{@signature}*" : sign_retype = @signature
+    /\*/.match(@pointer) == nil ? sign_untype = @signature : sign_untype = @signature.chomp("*")
+    fw.puts "    #{sign_retype} any_dstr = (#{sign_retype})stcsr->source;"
+    if @stl_class.length > 0
+      fw.puts "    #{sign_untype}:: iterator iter;"
+      fw.puts auto_gen5
+      #      else
+      #        raise "ERROR: not recorded structure type: stl or object"
+    end
+    #=end
+  end
+
+
+
   def vt_type_spacing(fw)
 #=begin
     fw.print $s
@@ -186,23 +262,24 @@ class VirtualTable
 # Each search case matches a specific column of the VT.
   def search_columns(fw)
 #=begin
-    col = 0
     fw.puts "#{$s}switch( iCol ){"
     col_array = @columns
     col_array.each_index { |col|
       fw.puts "#{$s}case #{col}:"
-      # if collection/map...
-      if @stl_class.length > 0
-        fw.puts "#{$s}    iter = any_dstr->begin();"
-        fw.puts "#{$s}    for(int i=0; i<size;i++){"
-      end
       sqlite3_type = ""
       column_cast = ""
       sqlite3_parameters = ""
       column_cast_back = ""
       access_path = ""
-      op = col_array[col].bind_datatypes(sqlite3_type, column_cast, sqlite3_parameters, column_cast_back, access_path)
+      op, useless = col_array[col].bind_datatypes(sqlite3_type, column_cast, sqlite3_parameters, column_cast_back, access_path)
+      if op == "fk"
+        fw.puts "#{$s}    printf(\"Restricted area. Searching VT #{@name} column #{col_array[col].name}...makes no sense.\\n\");"
+        fw.puts "#{$s}    return SQLITE_MISUSE;"
+        next
+      end
       if @stl_class.length > 0
+        fw.puts "#{$s}    iter = any_dstr->begin();"
+        fw.puts "#{$s}    for(int i=0; i<size;i++){"
         access_path.length == 0 ? iden = "(*iter)" : iden = "(*iter)."
       else
         access_path.length == 0 ? iden = "any_dstr" : iden = "any_dstr->"
@@ -213,7 +290,7 @@ class VirtualTable
       #      puts "column_cast_back: " + column_cast_back
       #      puts "access_path: " + access_path
       case op
-      when "compare"
+      when "gen_all"
         vt_type_spacing(fw)
         fw.print "if (compare(#{column_cast}#{iden}#{access_path}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val)) )"
         fw.puts
@@ -279,28 +356,31 @@ RAL
 
     fw.puts "    stlTable *stl = (stlTable *)cur->pVtab;"
     fw.puts "    stlTableCursor *stcsr = (stlTableCursor *)cur;"
-    /\*/.match(@pointer) == nil ? retype = "*" : retype = ""
+    /\*/.match(@pointer) == nil ? sign_retype = "#{@signature}*" : sign_retype = @signature
+    /\*/.match(@pointer) == nil ? sign_untype = @signature : sign_untype = @signature.chomp("*")
     if @base_var.length > 0
-      fw.puts "    #{@signature}#{retype} any_dstr = (#{@signature}#{retype})stcsr->source;"
+      fw.puts "    #{sign_retype} any_dstr = (#{sign_retype})stcsr->source;"
       if @stl_class.length > 0
-        fw.puts "    #{@signature}:: iterator iter;"
+        fw.puts "    #{sign_untype}:: iterator iter;"
 #      else
 #        raise "ERROR: not recorded structure type: stl or object"
       end
     else
-      fw.puts "    #{@signature}#{retype} any_dstr;"
+      fw.puts "    #{sign_retype} any_dstr;"
       if @stl_class.length > 0
-        fw.puts "    #{@signature}:: iterator iter;"
+        fw.puts "    #{sign_untype}:: iterator iter;"
 #      else
 #        raise "ERROR: not recorded structure type: stl or object"
       end
     end
     fw.puts "    int op, iCol, count = 0, i = 0, re = 0;"
+    if @stl_class.length > 0
+        fw.puts "    int size = get_datastructure_size(cur);"
+    end
     if @base_var.length == 0 : fw.puts error_case end
     fw.puts "    if ( val==NULL ){"
     if @base_var.length > 0
       if @stl_class.length > 0
-        fw.puts "#{$s}int size = get_datastructure_size(cur);"
         fw.puts stl_fill_resultset
       else
         fw.puts "#{$s}stcsr->size++;"
@@ -315,7 +395,7 @@ RAL
       fw.puts "#{$s}if ( equals_base(stl->azColumn[iCol]) ) {"
       if $arg == "typesafe" : fw.puts typesafe_block end
       fw.puts "#{$s}    stcsr->source = (void *)sqlite3_value_int64(val);"
-      fw.puts "#{$s}    any_dstr = (#{@signature}#{retype})stcsr->source;"
+      fw.puts "#{$s}    any_dstr = (#{sign_retype})stcsr->source;"
       if @stl_class.length > 0
         fw.puts "#{$s}    int size = get_datastructure_size(cur);"
         fw.puts "#{$s}    realloc_resultset(cur);"
@@ -429,85 +509,6 @@ class Element
   attr_accessor(:name,:columns)
 
 
-# Generates code to retrieve each VT struct.
-# Each retrieve case matches a specific column of the VT.
-  def retrieve_columns(fw)
-#=begin
-    col = 0
-    fw.puts "    switch( n ){"
-    while col < @columns.length
-      fw.puts "    case " + col.to_s + ":"
-      sqlite3_type = ""
-      column_cast = ""
-      sqlite3_parameters = ""
-      column_cast_back = ""
-      access_path = ""
-      op = @columns[col].bind_datatypes( sqlite3_type, column_cast, sqlite3_parameters, column_cast_back, access_path)
-      if op == "fill in"
-        iden = "\"N/A\""
-      elsif op == "compare"
-        if @signature.length > 0
-          if access_path.length == 0
-            iden = "(*iter)"
-          else
-            iden = "(*iter)."
-          end
-        else
-          if access_path.length == 0
-            iden = "any_dstr"
-          else
-            iden = "any_dstr->"
-          end
-        end
-      end
-# Patch. Too little exception in bind_datatypes to spoil code reuse
-      if column_cast_back == ".c_str()"
-        column_cast = "(const char *)"
-      end
-      fw.puts $s + "sqlite3_result_" + sqlite3_type + "(con, " + 
-        column_cast + iden + access_path + column_cast_back + 
-        sqlite3_parameters + ");"
-      fw.puts $s + "break;"
-      col += 1
-    end
-#=end
-  end
-
-# Generates code in retrieve method. Code makes the necessary arrangements 
-# for retrieve to happen successfully (condition checks, reallocation)
-  def setup_retrieve(fw, ds_array)
-#=begin
-
-    #HereDoc1
-
-        auto_gen5 = <<-AG5
-    int index = stcsr->current;
-    iter = any_dstr->begin();
-    for(int i=0; i<stcsr->resultSet[index]; i++){
-        iter++;
-    }
-AG5
-
-    fw.puts "    stlTable *stl = (stlTable *)cur->pVtab;"
-    fw.puts "    dsData *d = (dsData *)stl->data;"
-    if @signature.length > 0
-      fw.puts "    stlTableCursor *stcsr = (stlTableCursor *)cur;"
-      fw.puts "    " + @signature +
-        " *any_dstr = (" + @signature + " *)d->attr->memory;"
-      fw.puts "    " + @signature + ":: iterator iter;"
-      fw.puts auto_gen5
-    elsif @object_class.length > 0
-      fw.puts "    " + @object_class +
-        " *any_dstr = (" + @object_class + " *)d->attr->memory;"
-    else
-      puts "ERROR: not recorded structure type: stl or object"
-      exit(1)
-    end
-#=end
-  end
-
-
-
   def columns_delete_last()
 #=begin
     @columns.delete(@columns.last)
@@ -586,28 +587,20 @@ class InputDescription
 # Generates the application-specific retrieve method for each VT struct.
   def print_retrieve_functions(fw)
 #=begin
-    w = 0
-    while w < @ds_chars.length
-      curr_ds = @ds_chars[w]
-      fw.puts "int " + curr_ds.name +
-        "_retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con){"
-      curr_ds.setup_retrieve(fw, @ds_chars)
-      curr_ds.retrieve_columns(fw)
+    @tables.each { |vt|
+      fw.puts "int #{vt.name}_retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con){"
+      vt.setup_retrieve(fw)
+      vt.retrieve_columns(fw)
       fw.puts "    }"
       fw.puts "    return SQLITE_OK;"
       fw.puts "}\n\n\n"
-      w += 1
-    end
+    }
     fw.puts "int retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con){"
     fw.puts "    stlTable *stl = (stlTable *)cur->pVtab;"
-    w = 0
-    while w < @ds_chars.length
-      curr_ds = @ds_chars[w]
-      fw.puts "    if( !strcmp(stl->zName, \"" + curr_ds.name + "\") )"
-      fw.puts "        return " + curr_ds.name +
-        "_retrieve(cur, n, con);"
-      w += 1
-    end
+    @tables.each { |vt|
+      fw.puts "    if( !strcmp(stl->zName, \"#{vt.name}\") )"
+      fw.puts "        return #{vt.name}_retrieve(cur, n, con);"
+    }
     fw.puts "}"
 #=end
   end
@@ -735,7 +728,8 @@ AG2
 # <db>.<table> always valid?
 # <db>.<table> does not work for some reason. test.
     @tables.each_index { |vt| 
-      query =  "CREATE VIRTUAL TABLE #{@tables[vt].db}.#{@tables[vt].name} USING stl("
+#      query =  "CREATE VIRTUAL TABLE #{@tables[vt].db}.#{@tables[vt].name} USING stl("
+      query =  "CREATE VIRTUAL TABLE #{@tables[vt].name} USING stl("
       @tables[vt].columns.each { |c| query += "#{c.name} #{c.data_type}," }
       query = query.chomp(",") + ")"
       fw.puts "    queries[#{vt}] = \"#{query}\";"
@@ -759,12 +753,6 @@ AG2
 #=begin
    #HereDoc1
       auto_gen1 = <<-AG1
-
-using namespace std;
-
-
-//#define DEBUGGING                                                             
-
 
 struct name_cmp {
     bool operator()(const char *a, const char *b) {
@@ -817,12 +805,8 @@ stl_to_sql.o: stl_to_sql.c stl_to_sql.h stl_search.h
         gcc -g -c stl_to_sql.c
 mkf
 
-    myfile = File.open("stl_search_gen.cpp", "w") do |fw|
-      fw.puts "\#include \"stl_search.h\""
-      fw.puts "\#include <string>"
-      fw.puts "\#include <assert.h>"
-      fw.puts "\#include <stdio.h>"
-      fw.puts @directives
+    myfile = File.open("stl_search.cpp", "w") do |fw|
+      fw.puts directives
       fw.puts
       fw.puts auto_gen1
       print_extern_variables(fw)
@@ -835,7 +819,7 @@ mkf
       fw.puts "\n\n"
       print_search_functions(fw)
       fw.puts "\n\n"
-#      print_retrieve_functions(fw)
+      print_retrieve_functions(fw)
     end
     myFile = File.open("makefile.append", "w") do |fw|
       fw.print "executable: main.o stl_search.o stl_to_sql.o user_functions.o workers.o stl_test.o"
@@ -918,7 +902,12 @@ if __FILE__ == $0
   else
     raise "Invalid description..delimeter ';' not used."
   end
-  $arg = "typesafe"
+  ARGV.each do |arg|
+    case arg
+    when "typesafe"
+      $arg = arg
+    end
+  end
   $s = "        "
   ip = InputDescription.new(token_description)
   ip.register_datastructures()

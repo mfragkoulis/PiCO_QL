@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string>
 #include "workers.h"
+
 using namespace std;
 
 int realloc_resultset(sqlite3_vtab_cursor *cur) {

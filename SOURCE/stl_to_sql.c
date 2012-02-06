@@ -5,8 +5,9 @@
 #include "stl_to_sql.h"
 #include "stl_search.h"
 
+/*
 #define DEBUGGING
-
+*/
 
 // construct the sql query
 void create(sqlite3 *db, int argc, const char * const * as, char *q){ 

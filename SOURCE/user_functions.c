@@ -248,8 +248,13 @@ int register_table(const char *nDb, int argc, const char **q, const char **table
 #endif
   for(i=0; i< argc; i++){
     sprintf(table_query, "SELECT * FROM sqlite_master WHERE type='table' AND name='%s';", table_names[i]);
-    if (prep_exec(NULL, db, (const char *)table_query) != SQLITE_ROW)
+    if (prep_exec(NULL, db, (const char *)table_query) != SQLITE_ROW){
       re = prep_exec(NULL, db, (const char *)q[i]);
+#ifdef DEBUGGING
+      printf("Query %s returned %i\n", q[i], re);
+#endif
+      if ( re != 101 ) return re;
+    }
   }
 #ifndef DEBUGGING
   printf("Please visit http://localhost:8080 to be served\n");
