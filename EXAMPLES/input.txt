@@ -6,46 +6,46 @@
 #include "Customer.h"
 ;
 
-CREATE ELEMENT TABLE TruckId (
-      truck_id INT FROM TABLE Truck WITH BASE=self
+CREATE ELEMENT TABLE Trucks (
+      truck_ptr INT FROM TABLE Truck WITH BASE=self
 );
 
-CREATE TABLE mydb.TruckId WITH BASE=vehicles AS SELECT * FROM vector<Truck*>*;
+CREATE TABLE mydb.Trucks WITH BASE=vehicles AS SELECT * FROM vector<Truck*>*;
 
 CREATE ELEMENT TABLE Truck (
+      customers INT FROM TABLE Customers WITH BASE=get_Customers(),
       cost DOUBLE FROM get_cost(),
       delcapacity INT FROM get_delcapacity(),
       pickcapacity INT FROM get_pickcapacity(),
-      rlpoint INT FROM get_rlpoint(),
-      customer_ids INT FROM TABLE CustomerId WITH BASE=get_Customers()
+      rlpoint INT FROM get_rlpoint()
 );
 
 CREATE TABLE mydb.Truck AS SELECT * FROM Truck;
 
-CREATE VIEW mydb.TruckView AS SELECT * FROM TruckId, Truck WHERE 
-      Truck.base=TruckId.truck_id; 
+CREATE VIEW mydb.TruckView AS SELECT * FROM Trucks, Truck WHERE 
+      Truck.base=Trucks.truck_ptr; 
 
-CREATE ELEMENT TABLE CustomerId (
-      customer_id INT FROM TABLE Customer WITH BASE =self
+CREATE ELEMENT TABLE Customers (
+      customer_ptr INT FROM TABLE Customer WITH BASE =self
 );
 
-CREATE TABLE mydb.CustomerId AS SELECT * FROM vector<Customer*>;
+CREATE TABLE mydb.Customers AS SELECT * FROM vector<Customer*>;
 
 CREATE ELEMENT TABLE Customer (
+      position_ptr INT FROM TABLE Position WITH BASE= get_pos(),
       demand INT FROM get_demand(),
       code STRING FROM get_code(),
       serviced INT FROM get_serviced(),
       pickdemand INT FROM get_pickdemand(),
       starttime INT FROM get_starttime(),
       servicetime INT FROM get_servicetime(),
-      finishtime INT FROM get_finishtime(),
-      position_id INT FROM TABLE Position WITH BASE= get_pos()
+      finishtime INT FROM get_finishtime()
 );
 
 CREATE TABLE mydb.Customer AS SELECT * FROM Customer;
 
-CREATE VIEW mydb.CustomerView AS SELECT * FROM CustomerId, Customer WHERE
-      Customer.base=CustomerId.customer_id;
+CREATE VIEW mydb.CustomerView AS SELECT * FROM Customers, Customer WHERE
+      Customer.base=Customers.customer_ptr;
 
 CREATE ELEMENT TABLE Position (
       x_coord INT FROM get_x(),
@@ -55,11 +55,11 @@ CREATE ELEMENT TABLE Position (
 CREATE TABLE mydb.Position AS SELECT * FROM Position*;
 
 CREATE VIEW mydb.PositionView AS SELECT * FROM PositionId, Position
-      WHERE Position.base=PositionId.position_id;
+      WHERE Position.base=PositionId.position_ptr;
 
 CREATE ELEMENT TABLE MapIndex (
       map_index INT FROM first,
-      customer_id INT FROM TABLE Customer WITH BASE = second
+      customer_ptr INT FROM TABLE Customer WITH BASE = second
 );
 
 CREATE TABLE mydb.MapIndex WITH BASE =test AS SELECT * FROM map<int, Customer*>;

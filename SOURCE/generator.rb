@@ -23,9 +23,9 @@ class Column
     match_text_array = Array.new
     match_text_array.replace(@@text_match_data_types)
     if @related_to.length > 0
-      if sqlite3_type.length == 0 
+      if sqlite3_type == "search" 
         return "fk", nil 
-      else
+      elsif sqlite3_type == "retrieve"
         sqlite3_type.replace("int64")
         column_cast.replace("(long int)")
         access_path.replace(@access_path)
@@ -33,9 +33,16 @@ class Column
       end
     end
     if @name == "base"
+      s_type = ""
+      s_type.replace(sqlite3_type)
       sqlite3_type.replace("int64")
       column_cast.replace("(long int)")
-      return "base", nil
+      case s_type
+      when "search"
+        return "base", nil
+      when "retrieve"  
+        return "gen_all", nil
+      end
     end
     dt = @data_type.downcase
     if @@int_data_types.include?(dt)
@@ -66,7 +73,7 @@ class Column
     match_text_array = Array.new
     match_text_array.replace(@@text_match_data_types)
     if dt == "string"
-      return "text"
+      @data_type.replace("TEXT")
     elsif @@int_data_types.include?(dt) || @@double_data_types.include?(dt) || /decimal/i.match(dt) != nil || @@text_data_types.include?(dt) || match_text_array.reject! { |rgx| rgx.match(dt) != nil } != nil
       return dt
     else
@@ -208,9 +215,7 @@ class VirtualTable
         # Patch. Too little exception in bind_datatypes to spoil code reuse
         if column_cast_back == ".c_str()" : column_cast = "(const char *)" end
         fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{iden}#{access_path}#{column_cast_back}#{sqlite3_parameters});"
-      when "base"
-        fw.puts "#{$s}printf(\"Retrieving VT #{@name} BASE column...makes no sense.\\n\");"
-        fw.puts "#{$s}return SQLITE_MISUSE;"
+        fw.puts "#{$s}break;"
       end
     }
 #=end
@@ -266,7 +271,7 @@ AG5
     col_array = @columns
     col_array.each_index { |col|
       fw.puts "#{$s}case #{col}:"
-      sqlite3_type = ""
+      sqlite3_type = "search"
       column_cast = ""
       sqlite3_parameters = ""
       column_cast_back = ""
@@ -375,7 +380,11 @@ RAL
     end
     fw.puts "    int op, iCol, count = 0, i = 0, re = 0;"
     if @stl_class.length > 0
-        fw.puts "    int size = get_datastructure_size(cur);"
+      if @base_var.length > 0
+        fw.puts "    int size = get_datastructure_size(cur);" 
+      else
+        fw.puts "    int size;"
+      end
     end
     if @base_var.length == 0 : fw.puts error_case end
     fw.puts "    if ( val==NULL ){"
@@ -386,7 +395,7 @@ RAL
         fw.puts "#{$s}stcsr->size++;"
       end
     else
-      fw.puts "#{$s}printf(\"Seaching VT #{@name} with no BASE constraint...makes no sense.\\n\");"
+      fw.puts "#{$s}printf(\"Searching VT #{@name} with no BASE constraint...makes no sense.\\n\");"
       fw.puts "#{$s}return SQLITE_MISUSE;"
     end
     fw.puts "    } else {"
@@ -397,7 +406,7 @@ RAL
       fw.puts "#{$s}    stcsr->source = (void *)sqlite3_value_int64(val);"
       fw.puts "#{$s}    any_dstr = (#{sign_retype})stcsr->source;"
       if @stl_class.length > 0
-        fw.puts "#{$s}    int size = get_datastructure_size(cur);"
+        fw.puts "#{$s}    size = get_datastructure_size(cur);"
         fw.puts "#{$s}    realloc_resultset(cur);"
       end
       fw.puts "#{$s}}"
@@ -549,40 +558,6 @@ class InputDescription
     @directives = ""
   end
 
-#=begin
-# Processes and generates the directives 
-# (helper functions, user-defined classes) for the makefile
-  def print_directives(fw, op)
-    td = 0
-    while td < @tokenised_dir.length
-      current = @tokenised_dir[td].chomp(".h\"")
-      current.gsub!(/\#include \"/,"")
-      if op == 1
-        fw.print current + ".o "
-      elsif op == 2
-        fw.print current + ".o: " + current + 
-          ".cpp " + current + ".h \n" + 
-          "\tg++ -W -g -c " + current + ".cpp \n\n"
-      elsif op == 3
-        fw.print current + ".h "
-      end
-      td += 1
-    end
-  end
-
-# Distinguishes between directives for helper classes 
-# and directives for user defined classes (empty line between the two)
-  def tokenise_directive()
-    if @directives.match(/\n\n/)
-      directives = @directives.split(/\n\n/)
-      if directives[1].match(/\n/)
-        @tokenised_dir = directives[1].split(/\n/)
-      else
-        @tokenised_dir[0] = directives[1]
-      end
-    end
-  end
-#=end
 
 # Generates the application-specific retrieve method for each VT struct.
   def print_retrieve_functions(fw)
@@ -751,19 +726,6 @@ AG2
 # Generates application-specific code to complement the SQTL library.
   def generate()
 #=begin
-   #HereDoc1
-      auto_gen1 = <<-AG1
-
-struct name_cmp {
-    bool operator()(const char *a, const char *b) {
-        return strcmp(a, b) < 0;
-    }
-};
-
-static map<const char *, int, name_cmp> vt_directory;
-static map<const char *, int>::iterator vtd_iter;
-
-AG1
 
 
     #HereDoc3
@@ -778,37 +740,60 @@ AG1
 
 using namespace std;
 
-
 /*
 #define DEBUGGING
 */
 
+struct name_cmp {
+    bool operator()(const char *a, const char *b) {
+        return strcmp(a, b) < 0;
+    }
+};
+
+static map<const char *, int, name_cmp> vt_directory;
+static map<const char *, int>::iterator vtd_iter;
 dir
 
+
+print_equals_base = <<-EQB
+// hard-coded
+int equals_base(const char *zCol) {
+    int length = (int)strlen(zCol) + 1;
+    char copy[length], *token;
+    memcpy(copy, zCol, length);
+    token = strtok(copy, " ");
+    if ( token != NULL ) {
+        if ( !strcmp(token, "base") )
+            return true;
+        else
+            return false;
+    } else
+        return SQLITE_NOMEM;
+}
+EQB
 
     #HereDoc5
   makefile_part = <<-mkf
 
 stl_search.o: stl_search.cpp stl_search.h user_functions.h workers.h
-        g++ -W -g -c stl_search.cpp
-
-user_functions.o: user_functions.c user_functions.h stl_test.h
-        gcc -W -g -c user_functions.c
-
-workers.o: workers.cpp workers.h stl_search.h
-        g++ -W -g -c workers.cpp
-
-stl_test.o: stl_test.c stl_test.h
-        gcc -W -g -c stl_test.c
+\tg++ -W -g -c stl_search.cpp
 
 stl_to_sql.o: stl_to_sql.c stl_to_sql.h stl_search.h
-        gcc -g -c stl_to_sql.c
+\tgcc -g -c stl_to_sql.c
+
+user_functions.o: user_functions.c user_functions.h stl_test.h
+\tgcc -W -g -c user_functions.c
+
+workers.o: workers.cpp workers.h stl_search.h
+\tg++ -W -g -c workers.cpp
+
+stl_test.o: stl_test.c stl_test.h
+\tgcc -W -g -c stl_test.c
 mkf
 
     myfile = File.open("stl_search.cpp", "w") do |fw|
       fw.puts directives
-      fw.puts
-      fw.puts auto_gen1
+      fw.puts "\n\n"
       print_extern_variables(fw)
       fw.puts "\n\n"
       print_thread(fw)
@@ -817,23 +802,18 @@ mkf
       fw.puts "\n\n"
       print_get_size(fw)
       fw.puts "\n\n"
+      fw.puts print_equals_base
       print_search_functions(fw)
       fw.puts "\n\n"
       print_retrieve_functions(fw)
     end
     myFile = File.open("makefile.append", "w") do |fw|
       fw.print "executable: main.o stl_search.o stl_to_sql.o user_functions.o workers.o stl_test.o"
-#      tokenise_directive()
-#      print_directives(fw, 1)
-      fw.print "\n    g++ -lswill -lsqlite3 -W -g main.o stl_search.o stl_to_sql.o user_functions.o workers.o stl_test.o"
-#      print_directives(fw, 1)
-      fw.puts "-o test\n\n"
+      fw.print "\n\tg++ -lswill -lsqlite3 -W -g main.o stl_search.o stl_to_sql.o user_functions.o workers.o stl_test.o -o executable\n\n"
       fw.print "main.o: main.cpp stl_search.h "
-#      print_directives(fw, 3)
       fw.puts "\n\tg++ -W -g -c main.cpp"
       fw.puts makefile_part
       fw.puts
-#      print_directives(fw, 2)
     end
 #=end
   end

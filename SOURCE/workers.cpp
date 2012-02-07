@@ -175,18 +175,3 @@ void check_alloc(const char *constr, int &op, int &iCol) {
     }
     iCol = constr[1] - 'a' + 1;
 }
-
-// hard-coded                                                                   
-int equals_base(const char *zCol) {
-    int length = (int)strlen(zCol) + 1;
-    char copy[length], *token;
-    memcpy(copy, zCol, length);
-    token = strtok(copy, " ");
-    if ( token != NULL ) {
-        if ( !strcmp(token, "base") )
-            return true;
-        else
-            return false;
-    } else
-        return SQLITE_NOMEM;
-}

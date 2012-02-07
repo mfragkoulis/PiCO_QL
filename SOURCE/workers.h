@@ -13,7 +13,5 @@ int compare(const unsigned char *dstr_value, int op,
 	    const unsigned char *value);
 int compare_res(int count, stlTableCursor *stcsr, int *temp_res);
 void check_alloc(const char *constr, int &op, int &iCol);
-int equals_base(const char *zCol);
-
 
 #endif
