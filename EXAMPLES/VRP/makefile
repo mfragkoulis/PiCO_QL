@@ -1,14 +1,17 @@
-schedule: main.o search.o stl_to_sql.o user_functions.o Customer.o LinehaulCustomer.o BackhaulCustomer.o Position.o Truck.o Fleet.o mtrand.o sqlite3.o
-	g++ -lswill -Wall -g main.o search.o stl_to_sql.o user_functions.o Customer.o LinehaulCustomer.o BackhaulCustomer.o Position.o Truck.o Fleet.o mtrand.o sqlite3.o -o schedule -lemon
+test: main.o Fleet.o Truck.o Customer.o LinehaulCustomer.o BackhaulCustomer.o Position.o mtrand.o stl_search.o stl_to_sql.o user_functions.o workers.o stl_test.o
+	g++ -lswill -lsqlite3  -W -g main.o Fleet.o Truck.o Customer.o LinehaulCustomer.o BackhaulCustomer.o Position.o mtrand.o stl_search.o stl_to_sql.o user_functions.o workers.o stl_test.o -o test -lemon
 
-main.o: main.cpp Customer.h Position.h Truck.h mtrand.h bridge.h
-	g++ -Wall -g -c main.cpp
+main.o: main.cpp Fleet.h Truck.h Customer.h Position.h mtrand.h stl_search.h
+	g++ -W -g -c main.cpp
+
+Fleet.o: Fleet.cpp Fleet.h Truck.h mtrand.h
+	g++ -Wall -g -c Fleet.cpp
+
+Truck.o: Truck.cpp Truck.h Customer.h mtrand.h
+	g++ -W -g -c Truck.cpp 
 
 Customer.o: Customer.cpp Customer.h Position.h
-	g++ -Wall -g -c Customer.cpp
-
-Postion.o: Position.cpp Position.h
-	g++ -Wall -g -c Position.cpp
+	g++ -W -g -c Customer.cpp 
 
 LinehaulCustomer.o: LinehaulCustomer.cpp LinehaulCustomer.h Customer.h mtrand.h
 	g++ -Wall -g -c LinehaulCustomer.cpp
@@ -16,23 +19,23 @@ LinehaulCustomer.o: LinehaulCustomer.cpp LinehaulCustomer.h Customer.h mtrand.h
 BackhaulCustomer.o: BackhaulCustomer.cpp BackhaulCustomer.h Customer.h mtrand.h
 	g++ -Wall -g -c BackhaulCustomer.cpp
 
-Truck.o: Truck.cpp Truck.h Customer.h mtrand.h
-	g++ -Wall -g -c Truck.cpp
-
-Fleet.o: Fleet.cpp Fleet.h Truck.h mtrand.h
-	g++ -Wall -g -c Fleet.cpp
+Position.o: Position.cpp Position.h
+	g++ -Wall -g -c Position.cpp
 
 mtrand.o: mtrand.cpp mtrand.h
 	g++ -Wall -g -c mtrand.cpp
 
-user_functions.o: user_functions.c bridge.h
-	gcc -W -g -c user_functions.c
+stl_search.o: stl_search.cpp stl_search.h user_functions.h workers.h
+	g++ -W -g -c stl_search.cpp
 
-stl_to_sql.o: stl_to_sql.c stl_to_sql.h bridge.h
+stl_to_sql.o: stl_to_sql.c stl_to_sql.h stl_search.h
 	gcc -g -c stl_to_sql.c
 
-search.o: search.cpp bridge.h
-	g++ -W -g -c search.cpp
+user_functions.o: user_functions.c user_functions.h stl_test.h
+	gcc -W -g -c user_functions.c
 
-sqlite3.o: sqlite3.c sqlite3.h
-	gcc -W -g -c sqlite3.c
+workers.o: workers.cpp workers.h stl_search.h
+	g++ -W -g -c workers.cpp
+
+stl_test.o: stl_test.c stl_test.h
+	gcc -W -g -c stl_test.c

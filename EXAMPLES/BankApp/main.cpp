@@ -4,8 +4,11 @@
 #include "SpecialAccount.h"
 #include "Account.h"
 #include "SuperAccount.h"
+#include "stl_search.h"
 
 using namespace std;
+
+map<string,SuperAccount> accounts;
 
 int main(){
     
@@ -15,7 +18,7 @@ int main(){
     SpecialAccount spa2("69263", 131.00, 197396445, 72);
     SuperAccount sa1(39);
     SuperAccount sa2(91);
-    map<string,SuperAccount> accounts;
+//    map<string,SuperAccount> accounts;
     map<string,SuperAccount>::iterator it;
     accounts.insert(make_pair("0", acc1));
     accounts.insert(make_pair("1", acc2));
@@ -23,9 +26,11 @@ int main(){
     accounts.insert(make_pair("3", spa2));
     accounts.insert(make_pair("4", sa1));
     accounts.insert(make_pair("5", sa2));
-    
+    int re_sqtl = call_sqtl();
+    printf("Thread sqlite returned %i\n", re_sqtl);
+
     for (it=accounts.begin(); it != accounts.end();it++) {
-	printf("%i\n", it->second.get_account_no());
+	printf("%i\n", it->second.get_iba());
 	
     }
 

@@ -399,8 +399,8 @@ RAL
       fw.puts "#{$s}return SQLITE_MISUSE;"
     end
     fw.puts "    } else {"
+    fw.puts "#{$s}check_alloc((const char *)constr, op, iCol);"
     if @base_var.length == 0
-      fw.puts "#{$s}check_alloc((const char *)constr, op, iCol);"
       fw.puts "#{$s}if ( equals_base(stl->azColumn[iCol]) ) {"
       if $arg == "typesafe" : fw.puts typesafe_block end
       fw.puts "#{$s}    stcsr->source = (void *)sqlite3_value_int64(val);"

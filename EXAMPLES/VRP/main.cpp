@@ -1,3 +1,7 @@
+#include "Customer.h"
+#include "Position.h"
+#include "Truck.h"
+#include "Fleet.h"
 #include <iostream>
 #include <lemon/time_measure.h>
 #include <lemon/list_graph.h>
@@ -8,47 +12,23 @@
 #include <sstream>
 #include <ctime>
 #include "mtrand.h"
-#include "Customer.h"
-#include "Position.h"
-#include "Truck.h"
-#include "Fleet.h"
 #include <stdio.h>
+// For sqtl
+#include "stl_search.h"
 //
-#include <stdlib.h>
-#include "stl_to_sql.h"
-#include <pthread.h>
-#include <assert.h>
-
 
 using namespace std;
 using namespace lemon;
 
 
+
 unsigned long init[4]={0x123, 0x234, 0x345, 0x456};
 unsigned long length=4;  
 MTRand_int32 irand(init, length);
-
-
-
-
-
-void * thread_sqlite(void *dat){
-    const char **queries;
-    queries = (const char **)sqlite3_malloc(sizeof(const char *) *
-					    2);
-    int failure = 0;
-    queries[0] = "CREATE VIRTUAL TABLE Customers USING stl(pk integer primary key,demand INT,code STRI\
-NG,serviced BOOL,pickdemand INT,starttime INT,servicetime INT,finishtime INT,revenue INT)";
-    queries[1] = "CREATE VIRTUAL TABLE Trucks USING stl(pk integer primary key,cost DOUBLE,delcapacity\
- INT,pickcapacity INT,rlpoint INT,Customers_id references Customers)";
-    failure = register_table( "foo.db" ,  2, queries,
-			    dat, 0);
-
-    printf("Thread sqlite returning..\n");
-    sqlite3_free(queries);
-    return (void *)failure;
-}
-
+// For sqtl
+vector<Truck*> *vehicles;
+map<int, Customer *> test;
+//
 
 /* comparison function for datastructure if needed
 struct classcomp{
@@ -274,7 +254,7 @@ int main() {
   while ( (!fin.eof()) && (!fin.fail()) ) {
     if (LinehaulCustomer::get_vrppd()) pick_demand=demand +z;                 // adopt to specific variant
     else if (LinehaulCustomer::get_vrptw()) start=depends;
-    else if (BackhaulCustomer::get_selective()) revenue=demand*3;
+    else if (BackhaulCustomer::get_selective()) revenue=100;
     positions.push_back( new Position(x,y) );
     while (code.length() < total_string.length()) code = "0" + code;                        // automate. hard-coded. not anymore
     z *= -1;
@@ -282,13 +262,17 @@ int main() {
     if ( (demand >0) && (demand < lowest_dem) ) lowest_dem = demand;  // cout << lowest_dem << endl;}
     if (demand <= Truck::get_initcapacity()) {                                       // CVRP!!!
       if (number==0) {
-	if (LinehaulCustomer::get_vrptw()) line.push_back( new LinehaulCustomer(code, demand, 0, positions.back(), true, start, finish ) );
-	else line.push_back( new LinehaulCustomer(code, demand, 0, positions.back(), true, 0, 0) );
+	  if (LinehaulCustomer::get_vrptw()) {
+	      line.push_back( new LinehaulCustomer(code, demand, 0, positions.back(), true, start, finish ) );
+	  } else line.push_back( new LinehaulCustomer(code, demand, 0, positions.back(), true, 0, 0) );
 	back.push_back( new BackhaulCustomer(code, demand, 0, positions.back(), true ) );
       }  else if ( (number> 0) && (number < line_cust) ) {                                                     // "hard-coded". not anymore
 	if (LinehaulCustomer::get_vrptw()) line.push_back( new LinehaulCustomer(code, demand, 0, positions.back(), start, service, finish ) );
 	else if (LinehaulCustomer::get_vrppd()) line.push_back( new LinehaulCustomer(code, demand, pick_demand, positions.back(), 0, 0, 0 ) );
-	else line.push_back( new LinehaulCustomer(code, demand, 0, positions.back(), 0, 0, 0) );
+	else {
+	  line.push_back( new LinehaulCustomer(code, demand, 0, positions.back(), 0, 0, 0) );
+	  test.insert(pair<int, Customer *>(number, line.back()));
+	}
       }  else if ( (number >= line_cust) && (number < total) ) {
 	if (!BackhaulCustomer::get_selective())  back.push_back( new BackhaulCustomer(code, demand, 0, positions.back() ) );
 	else  back.push_back( new BackhaulCustomer(code, demand, revenue, positions.back() ) );
@@ -357,28 +341,6 @@ int main() {
   cout << endl << "Computing distances between backhaul customers. " << endl;
   BackhaulCustomer::compute_dist();
   cout << endl;
-
-// stl definitions
-  int re_sqlite;
-  void *dat;  
-//  long int **mem;
-  char *c_temp;
-//  long int *l_temp;
-//  const char **names;
-  const char *t_name = "Trucks";
-  const char *c_name = "Customers";
-//  mem = (long int **)sqlite3_malloc(sizeof(long int *)*2);
-//  names = (const char **)sqlite3_malloc(sizeof(const char *)*2);
-  dsCarrier *dsC;
-  int nc_name = (int)strlen(c_name) + 1;
-  int nt_name =  (int)strlen(t_name) + 1;
-  int nByte = sizeof(dsCarrier) + 
-      sizeof(long int *) * 2 + sizeof(const char *) * 2 + nc_name + nt_name;
-  dsC = (dsCarrier *)sqlite3_malloc(nByte);
-  memset(dsC, 0, nByte);
-  pthread_t sqlite_thread;
-//
-
 
   Palette palette(true, 50);
   
@@ -656,55 +618,11 @@ int main() {
     if (i==0) {
       bb.set_size(optimal->get_size());
       bb.assign_all(*optimal);
-      
-      // declare and fill datastructure;
-
-//      mem[0] = (long int *)bb.get_fleet();
-//      names[0] = "Trucks";
- 
-//      printf("%lx\n", (long unsigned int)mem[0]);
-
-//      printf("%lx\n", (long unsigned int)bb.get_fleet());
-
-      vector < Truck * > * tr;
-      tr = bb.get_fleet();
-      vector < Truck * >:: iterator it;
-      it = tr->begin();
-
-      dsC->size = 2;
-
-      dsC->dsNames = (const char **)&dsC[1];
-      dsC->memories = (long int **)&dsC->dsNames[2];
-
-      c_temp = (char *)&dsC->memories[2];
-      dsC->memories[0] = (long int *)bb.get_fleet();
-      dsC->memories[1] = (long int *)(*it)->get_Customers();
-//      dsC->dsNames = (const char **)&dsC->memories[2];
-
-      dsC->dsNames[0] = c_temp;
-      memcpy(c_temp, t_name, nt_name); 
-//      c_temp[nt_name] = '\0';
-//      dsC->dsNames[0] = c_temp;
-      c_temp += nt_name;
-
-      dsC->dsNames[1] = c_temp;
-      memcpy(c_temp, c_name, nc_name); 
-//      c_temp[nc_name] = '\0';
-//      dsC->dsNames[1] = c_temp;
-      c_temp += nc_name;
-
-//      dsC->memories[0] = (long int *)bb.get_fleet();
-//      dsC->memories[1] = (long int *)(*it)->get_Customers();
-
-      assert (c_temp <= &((char *)dsC)[nByte]);
-      
-      dat = (void *)dsC;
-      
-      re_sqlite = pthread_create(&sqlite_thread, NULL, thread_sqlite, dat);
-      pthread_join(sqlite_thread, NULL);
+// For sqtl
+      vehicles = bb.get_fleet();
+      int re_sqlite = call_sqtl();
       printf("Thread sqlite returned %i\n", re_sqlite);
-      
-      
+//
     }
     cout << endl << "Optimising schedule now..." << endl << endl;
 
@@ -764,8 +682,4 @@ int main() {
   for(itr1=back.begin(); itr1!= back.end(); itr1++) {
     delete (*itr1);
   }
-
-//  sqlite3_free(mem);
-//  sqlite3_free(names);
-  sqlite3_free(dsC);
 }
