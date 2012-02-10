@@ -1,26 +1,17 @@
 #include "Account.h"
+#include <string.h>
+#include <stdio.h>
 
 using namespace std;
 
-Account::Account(const char *acc_no, float b, int i, int iba) : SuperAccount(iba){
-    account_no=acc_no;
-    balance=b;
-    isbn=i;
+Account::Account(const char *acc_no, float b, int i, const char *t) : SuperAccount(acc_no, b, i){
+    type = reinterpret_cast<const unsigned char *>(t);
 }
 
-Account::Account(const char *acc_no, float b){
-    account_no=acc_no;
-    balance=b;
-}
+Account::Account(const char *acc_no, float b) : SuperAccount(acc_no, b) {}
 
-float Account::get_balance() const{
-    return balance;
-}
+Account & Account::operator=(Account const&) {}
 
-const char * Account::get_account_no() const{
-    return account_no;
-}
-
-int Account::get_isbn() const{
-    return isbn;
+double Account::get_rate() {
+    return balance/50;
 }

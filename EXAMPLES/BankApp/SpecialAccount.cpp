@@ -2,26 +2,14 @@
 
 using namespace std;
 
-SpecialAccount::SpecialAccount(const char *sp_no, float sp_b, int sp_i, int iba) : SuperAccount(iba){
-    special_no=sp_no;
-    special_balance=sp_b;
-    special_isbn=sp_i;
+SpecialAccount::SpecialAccount(const char *sp_no, float sp_b, int sp_i) : SuperAccount(sp_no, sp_b, sp_i){}
+
+SpecialAccount::SpecialAccount(const char *sp_no, float sp_b) : SuperAccount(sp_no, sp_b) {}
+
+double SpecialAccount::get_rate() {
+    return balance/20;
 }
 
-SpecialAccount::SpecialAccount(const char *sp_no, float sp_b){
-    special_no=sp_no;
-    special_balance=sp_b;
+void SpecialAccount::calculate_bonus() {
+    bonus = get_rate() * 7;
 }
-
-float SpecialAccount::get_special_balance() const{
-    return special_balance;
-}
-
-const char * SpecialAccount::get_special_no() const{
-    return special_no;
-}
-
-int SpecialAccount::get_special_isbn() const{
-    return special_isbn;
-}
-

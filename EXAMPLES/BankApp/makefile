@@ -2,7 +2,7 @@ test: main.o Account.o SuperAccount.o SpecialAccount.o stl_search.o stl_to_sql.o
 	g++ -lswill -lsqlite3 -W -g main.o Account.o SuperAccount.o SpecialAccount.o stl_search.o stl_to_sql.o user_functions.o workers.o stl_test.o -o test
 
 main.o: main.cpp Account.h SuperAccount.h SpecialAccount.h stl_search.h
-	g++ -W -g -c main.cpp
+	g++ -Wno-write-strings -g -c main.cpp
 
 Account.o: Account.cpp Account.h
 	g++ -W -g -c Account.cpp

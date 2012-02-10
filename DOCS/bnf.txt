@@ -49,7 +49,7 @@ BASE=<base_variable>] 'AS SELECT * FROM' <struct_type> ';'
 
 <--Instruct the parser to fill a current element from one defined
 previously by referencing the element table's name
-<element_table_reuse> ::= '#' <element_name>
+<element_table_reuse> ::= '#' <element_name> ['FROM' <access_statement>]
 
 <--CREATE VIEW DEFINITION-->
 

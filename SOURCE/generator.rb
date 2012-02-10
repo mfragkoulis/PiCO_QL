@@ -3,6 +3,7 @@ class Column
 #=begin
     @name = ""
     @data_type = ""
+    @cpp_data_type = ""
     @related_to = ""
     @access_path = ""
     @type = ""
@@ -13,6 +14,15 @@ class Column
 #=end
   end
   attr_accessor(:name,:data_type,:related_to,:access_path,:type)
+
+
+def construct(name, data_type, related_to, access_path, type)
+    @name = name
+    @data_type = data_type
+    @related_to = related_to
+    @access_path = access_path
+    @type = type
+end
 
 
 # Performs case analysis with respect to the column_data type (class value)
@@ -55,9 +65,14 @@ class Column
         /decimal/i.match(dt)
       sqlite3_type.replace("double")
     elsif @@text_data_types.include?(dt) || match_text_array.reject! { |rgx| rgx.match(dt) != nil } != nil
+      case sqlite3_type
+      when "search"
+        column_cast.replace("(const unsigned char *)")
+      when "retrieve" 
+        column_cast.replace("(const char *)")
+      end
       sqlite3_type.replace("text")
-      column_cast.replace("(const unsigned char *)")
-      column_cast_back.replace(".c_str()")
+      if @cpp_data_type == "string" : column_cast_back.replace(".c_str()") end
       sqlite3_parameters.replace(", -1, SQLITE_STATIC")
     end
     access_path.replace(@access_path)
@@ -73,6 +88,7 @@ class Column
     match_text_array = Array.new
     match_text_array.replace(@@text_match_data_types)
     if dt == "string"
+      @cpp_data_type.replace(dt)
       @data_type.replace("TEXT")
     elsif @@int_data_types.include?(dt) || @@double_data_types.include?(dt) || /decimal/i.match(dt) != nil || @@text_data_types.include?(dt) || match_text_array.reject! { |rgx| rgx.match(dt) != nil } != nil
       return dt
@@ -94,22 +110,46 @@ class Column
     if column.match(/\n/)
       column.gsub!(/\n/, "")
     end
-    column_ptn1 = /\#(\w+)/im
-    column_ptn2 = /(\w+) (\w+) from table (\w+) with base(\s*)=(\s*)(.+)/im
-    column_ptn3 = /(\w+) (\w+) from (.+)/im
+
+    column_ptn1 = /\$(\w+) FROM (.+)/im
+    column_ptn2 = /\$(\w+)/im
+    column_ptn3 = /(\w+) (\w+) from table (\w+) with base(\s*)=(\s*)(.+)/im
+    column_ptn4 = /(\w+) (\w+) from (.+)/im
     case column
     when column_ptn1
       matchdata = column_ptn1.match(column)
-      $elements.each { |el| if el.name == matchdata[1] : $elements.last.columns = $elements.last.columns_delete_last() | el.columns end }
+      index = 0
+      this_element = $elements.last
+      this_columns = this_element.columns
+      $elements.each { |el| 
+        if el.name == matchdata[1]
+          index = this_element.columns.length - 2
+          if index < 0 : index = 0 end
+          this_element.columns_delete_last()
+          el.columns.each_index { |col| 
+            coln = el.columns[col]
+            this_columns.push(Column.new) 
+            this_columns.last.construct(coln.name.clone, coln.data_type.clone, coln.related_to.clone, coln.access_path.clone, coln.type.clone)
+          }
+        end
+      }
+      col_array = this_element.columns
+      col_array.each_index { |col| if col > index : col_array[col].access_path.replace(matchdata[2] + col_array[col].access_path) end 
+      }
       return
     when column_ptn2
       matchdata = column_ptn2.match(column)
+      $elements.each { |el| if el.name == matchdata[1] : $elements.last.columns = $elements.last.columns_delete_last() | el.columns end 
+      }
+      return
+    when column_ptn3
+      matchdata = column_ptn3.match(column)
       @name = matchdata[1]
       @data_type = matchdata[2]
       @related_to = matchdata[3]
       @access_path = matchdata[6]    
-    when column_ptn3
-      matchdata = column_ptn3.match(column)
+    when column_ptn4
+      matchdata = column_ptn4.match(column)
       @name = matchdata[1]
       @data_type = matchdata[2]
       @access_path = matchdata[3]
@@ -212,8 +252,6 @@ class VirtualTable
         else 
           access_path.length == 0 ? iden = "any_dstr" : iden = "any_dstr->"
         end
-        # Patch. Too little exception in bind_datatypes to spoil code reuse
-        if column_cast_back == ".c_str()" : column_cast = "(const char *)" end
         fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{iden}#{access_path}#{column_cast_back}#{sqlite3_parameters});"
         fw.puts "#{$s}break;"
       end
