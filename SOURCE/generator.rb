@@ -34,12 +34,13 @@ end
     match_text_array.replace(@@text_match_data_types)
     if @related_to.length > 0
       if sqlite3_type == "search" 
-        return "fk", nil 
+        return "fk", nil, nil 
       elsif sqlite3_type == "retrieve"
+        /_ptr/.match(@name) ? @type = "pointer" : @type = "object"
         sqlite3_type.replace("int64")
         column_cast.replace("(long int)")
         access_path.replace(@access_path)
-        return "gen_all", @related_to
+        return "fk", @related_to, @type
       end
     end
     if @name == "base"
@@ -49,9 +50,9 @@ end
       column_cast.replace("(long int)")
       case s_type
       when "search"
-        return "base", nil
+        return "base", nil, nil
       when "retrieve"  
-        return "gen_all", nil
+        return "base", nil, nil
       end
     end
     dt = @data_type.downcase
@@ -76,7 +77,7 @@ end
       sqlite3_parameters.replace(", -1, SQLITE_STATIC")
     end
     access_path.replace(@access_path)
-    return "gen_all", nil
+    return "gen_all", nil, nil
 #=end
   end
 
@@ -240,18 +241,30 @@ class VirtualTable
       sqlite3_parameters = ""
       column_cast_back = ""
       access_path = ""
-      op, fk_col_name = @columns[col].bind_datatypes( sqlite3_type, column_cast, sqlite3_parameters, column_cast_back, access_path)
-      if fk_col_name != nil
-        fw.puts "#{$s}if ( (vtd_iter = vt_directory.find(\"#{fk_col_name}\")) != vt_directory.end() )"
-        fw.puts "#{$s}    vtd_iter->second = 1;"
+      op, fk_col_name, column_type = @columns[col].bind_datatypes( sqlite3_type, column_cast, sqlite3_parameters, column_cast_back, access_path)
+      if @stl_class.length > 0
+        access_path.length == 0 ? iden = "*iter" : iden = "(*iter)."
+      else 
+        access_path.length == 0 ? iden = "any_dstr" : iden = "any_dstr->"
       end
       case op
-      when "gen_all"
-        if @stl_class.length > 0
-          access_path.length == 0 ? iden = "*iter" : iden = "(*iter)."
-        else 
-          access_path.length == 0 ? iden = "any_dstr" : iden = "any_dstr->"
+      when "base"
+        @type.match(/\*/) ? record_type = "" : record_type = "&"
+        fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{record_type}#{iden}#{access_path}#{column_cast_back}#{sqlite3_parameters});"
+        fw.puts "#{$s}break;"
+      when "fk"
+        if fk_col_name != nil
+          fw.puts "#{$s}if ( (vtd_iter = vt_directory.find(\"#{fk_col_name}\")) != vt_directory.end() )"
+          fw.puts "#{$s}    vtd_iter->second = 1;"
+          if access_path.length == 0
+            @type.match(/\*/) ? record_type = "" : record_type = "&"
+          else
+            column_type == "pointer" ? record_type = "" : record_type = "&"
+          end
         end
+        fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{record_type}#{iden}#{access_path}#{column_cast_back}#{sqlite3_parameters});"
+        fw.puts "#{$s}break;"        
+      when "gen_all"
         fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{iden}#{access_path}#{column_cast_back}#{sqlite3_parameters});"
         fw.puts "#{$s}break;"
       end
@@ -314,7 +327,7 @@ AG5
       sqlite3_parameters = ""
       column_cast_back = ""
       access_path = ""
-      op, useless = col_array[col].bind_datatypes(sqlite3_type, column_cast, sqlite3_parameters, column_cast_back, access_path)
+      op, useless, uselesss = col_array[col].bind_datatypes(sqlite3_type, column_cast, sqlite3_parameters, column_cast_back, access_path)
       if op == "fk"
         fw.puts "#{$s}    printf(\"Restricted area. Searching VT #{@name} column #{col_array[col].name}...makes no sense.\\n\");"
         fw.puts "#{$s}    return SQLITE_MISUSE;"
@@ -654,10 +667,12 @@ CLS
     fw.puts "int get_datastructure_size(sqlite3_vtab_cursor *cur){"
     fw.puts "    stlTableCursor *stc = (stlTableCursor *)cur;"
     fw.puts "    stlTable *stl = (stlTable *)cur->pVtab;"
+    count = 0
     @tables.each_index { |vt|
       if @tables[vt].stl_class.length > 0
-        if vt == 0
+        if count == 0
           fw.puts "    if ( !strcmp(stl->zName, \"#{@tables[vt].name}\") ) {"
+	  count += 1
         else
           fw.puts "    } else if ( !strcmp(stl->zName, \"#{@tables[vt].name}\") ) {"
         end
@@ -686,10 +701,12 @@ CLS
 ELS
     
     fw.puts "void register_vt(stlTable *stl) {"
+    count = 0
     @tables.each_index { |vt| 
       if @tables[vt].base_var.length > 0
-        if vt == 0
+        if count == 0
           fw.puts "    if ( !strcmp(stl->zName, \"#{@tables[vt].name}\") ) {"
+	  count += 1
         else
           fw.puts "    } else if ( !strcmp(stl->zName, \"#{@tables[vt].name}\") ) {"
         end
@@ -774,6 +791,7 @@ AG2
 #include "stl_search.h"
 #include "user_functions.h"
 #include "workers.h"
+#include <map>
 #{@directives}
 
 using namespace std;

@@ -1,0 +1,117 @@
+Query 0:
+ select * from ChessBoard;
+
+Statement prepared.
+row_id 
+
+1050848 
+1050872 
+1050896 
+1050920 
+1050944 
+1050968 
+1050992 
+1051016 
+
+Done
+
+Query 1:
+ select * from ChessRow;
+
+Statement prepared.
+base name color 
+
+
+Library used incorrectly
+
+Query 2:
+ select * from ChessBoard,ChessRow where ChessRow.base=ChessBoard.row_id
+
+Statement prepared.
+row_id base name color 
+
+1050848 1050464 rook white 
+1050848 1050480 knight white 
+1050848 1050496 bishop white 
+1050848 1050512 king white 
+1050848 1050528 queen white 
+1050848 1050544 bishop white 
+1050848 1050560 knight white 
+1050848 1050576 rook white 
+1050872 1049792 pawn white 
+1050872 1049808 pawn white 
+1050872 1049824 pawn white 
+1050872 1049840 pawn white 
+1050872 1049856 pawn white 
+1050872 1049872 pawn white 
+1050872 1049888 pawn white 
+1050872 1049904 pawn white 
+1050896 1051040   
+1050896 1051056   
+1050896 1051072   
+1050896 1051088   
+1050896 1051104   
+1050896 1051120   
+1050896 1051136   
+1050896 1051152   
+1050920 1051168   
+1050920 1051184   
+1050920 1051200   
+1050920 1051216   
+1050920 1051232   
+1050920 1051248   
+1050920 1051264   
+1050920 1051280   
+1050920 1051296   
+1050944 1050592   
+1050944 1050608   
+1050944 1050624   
+1050944 1050640   
+1050944 1050656   
+1050944 1050672   
+1050944 1050688   
+1050944 1050704   
+1050944 1050720   
+1050968 1050112   
+1050968 1050128   
+1050968 1050144   
+1050968 1050160   
+1050968 1050176   
+1050968 1050192   
+1050968 1050208   
+1050968 1050224   
+1050968 1050240   
+1050992 1051760 pawn black 
+1050992 1051776 pawn black 
+1050992 1051792 pawn black 
+1050992 1051808 pawn black 
+1050992 1051824 pawn black 
+1050992 1051840 pawn black 
+1050992 1051856 pawn black 
+1050992 1051872 pawn black 
+1050992 1051888 pawn black 
+1051016 1052208 rook black 
+1051016 1052224 knight black 
+1051016 1052240 bishop black 
+1051016 1052256 king black 
+1051016 1052272 queen black 
+1051016 1052288 bishop black 
+1051016 1052304 knight black 
+1051016 1052320 rook black 
+
+Done
+
+Query 3:
+ select * from ChessBoard,ChessRow where ChessRow.base=ChessBoard.row_id and color="white" and name="bishop";
+
+Statement prepared.
+row_id base name color 
+
+1050848 1050496 bishop white 
+1050848 1050544 bishop white 
+
+Done
+
+
+TEST SUCCESSFUL
+diff command returned: 
