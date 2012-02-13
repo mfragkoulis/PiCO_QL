@@ -115,6 +115,12 @@ int ChessRow_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
     } else {
         check_alloc((const char *)constr, op, iCol);
         if ( equals_base(stl->azColumn[iCol]) ) {
+            vtd_iter = vt_directory.find(stl->zName);
+            if ( (vtd_iter == vt_directory.end()) || (vtd_iter->second == 0) ) {
+                printf("Invalid cast to %s\n", stl->zName);
+                return SQLITE_MISUSE;
+            }
+            vt_directory[stl->zName] = 0;
             stcsr->source = (void *)sqlite3_value_int64(val);
             any_dstr = (vector<ChessPiece>*)stcsr->source;
             size = get_datastructure_size(cur);
@@ -217,7 +223,7 @@ int ChessRow_retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con){
     }
     switch( n ){
     case 0:
-        sqlite3_result_int64(con, (long int)&*iter);
+        sqlite3_result_int64(con, (long int)any_dstr);
         break;
     case 1:
         sqlite3_result_text(con, (const char *)(*iter).get_name().c_str(), -1, SQLITE_STATIC);

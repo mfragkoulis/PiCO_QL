@@ -35,15 +35,15 @@ int test_prep_exec(FILE *f, sqlite3 *db, const char *q){
       }
     }
     if( result==SQLITE_DONE ){
-      fprintf(f, "Done\n");
+      fprintf(f, "\n\nDone\n");
     }else if( result==SQLITE_OK ){
-      fprintf(f, "OK\n");
+      fprintf(f, "\n\nOK\n");
     }else if( result==SQLITE_ERROR ){
-      fprintf(f, "SQL error or missing database\n");
+      fprintf(f, "\n\nSQL error or missing database\n");
     }else if( result==SQLITE_MISUSE ){
-      fprintf(f, "Library used incorrectly\n");
+      fprintf(f, "\n\nLibrary used incorrectly\n");
     }else {
-      fprintf(f, "Error code: %i.\nPlease advise Sqlite error codes (http://w\
+      fprintf(f, "\n\nError code: %i.\nPlease advise Sqlite error codes (http://w\
 ww.sqlite.org/c3ref/c_abort.html)", result);
     }
     fprintf(f, "\n");

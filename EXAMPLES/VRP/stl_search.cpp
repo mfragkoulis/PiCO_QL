@@ -167,6 +167,12 @@ int Truck_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
     } else {
         check_alloc((const char *)constr, op, iCol);
         if ( equals_base(stl->azColumn[iCol]) ) {
+            vtd_iter = vt_directory.find(stl->zName);
+            if ( (vtd_iter == vt_directory.end()) || (vtd_iter->second == 0) ) {
+                printf("Invalid cast to %s\n", stl->zName);
+                return SQLITE_MISUSE;
+            }
+            vt_directory[stl->zName] = 0;
             stcsr->source = (void *)sqlite3_value_int64(val);
             any_dstr = (Truck*)stcsr->source;
         }
@@ -230,6 +236,12 @@ int Customers_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val)
     } else {
         check_alloc((const char *)constr, op, iCol);
         if ( equals_base(stl->azColumn[iCol]) ) {
+            vtd_iter = vt_directory.find(stl->zName);
+            if ( (vtd_iter == vt_directory.end()) || (vtd_iter->second == 0) ) {
+                printf("Invalid cast to %s\n", stl->zName);
+                return SQLITE_MISUSE;
+            }
+            vt_directory[stl->zName] = 0;
             stcsr->source = (void *)sqlite3_value_int64(val);
             any_dstr = (vector<Customer*>*)stcsr->source;
             size = get_datastructure_size(cur);
@@ -277,6 +289,12 @@ int Customer_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
     } else {
         check_alloc((const char *)constr, op, iCol);
         if ( equals_base(stl->azColumn[iCol]) ) {
+            vtd_iter = vt_directory.find(stl->zName);
+            if ( (vtd_iter == vt_directory.end()) || (vtd_iter->second == 0) ) {
+                printf("Invalid cast to %s\n", stl->zName);
+                return SQLITE_MISUSE;
+            }
+            vt_directory[stl->zName] = 0;
             stcsr->source = (void *)sqlite3_value_int64(val);
             any_dstr = (Customer*)stcsr->source;
         }
@@ -353,6 +371,12 @@ int Position_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
     } else {
         check_alloc((const char *)constr, op, iCol);
         if ( equals_base(stl->azColumn[iCol]) ) {
+            vtd_iter = vt_directory.find(stl->zName);
+            if ( (vtd_iter == vt_directory.end()) || (vtd_iter->second == 0) ) {
+                printf("Invalid cast to %s\n", stl->zName);
+                return SQLITE_MISUSE;
+            }
+            vt_directory[stl->zName] = 0;
             stcsr->source = (void *)sqlite3_value_int64(val);
             any_dstr = (Position*)stcsr->source;
         }
@@ -472,7 +496,7 @@ int Truck_retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con){
     Truck* any_dstr = (Truck*)stcsr->source;
     switch( n ){
     case 0:
-        sqlite3_result_int64(con, (long int)&any_dstr);
+        sqlite3_result_int64(con, (long int)any_dstr);
         break;
     case 1:
         if ( (vtd_iter = vt_directory.find("Customers")) != vt_directory.end() )
@@ -507,7 +531,7 @@ int Customers_retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con){
     }
     switch( n ){
     case 0:
-        sqlite3_result_int64(con, (long int)*iter);
+        sqlite3_result_int64(con, (long int)any_dstr);
         break;
     case 1:
         if ( (vtd_iter = vt_directory.find("Customer")) != vt_directory.end() )
@@ -524,7 +548,7 @@ int Customer_retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con){
     Customer* any_dstr = (Customer*)stcsr->source;
     switch( n ){
     case 0:
-        sqlite3_result_int64(con, (long int)&any_dstr);
+        sqlite3_result_int64(con, (long int)any_dstr);
         break;
     case 1:
         if ( (vtd_iter = vt_directory.find("Position")) != vt_directory.end() )

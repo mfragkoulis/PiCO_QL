@@ -21,13 +21,17 @@ truck_ptr
 3767472 
 3767568 
 3767664 
-3768016 Done
+3768016 
+
+Done
 
 Query 1:
  select * from truck;
 
 Statement prepared.
 base customers cost delcapacity pickcapacity rlpoint 
+
+
 Library used incorrectly
 
 Query 2:
@@ -53,7 +57,9 @@ truck_ptr base customers cost delcapacity pickcapacity rlpoint
 3767472 3767472 3767480 1219.625006 0 200 100 
 3767568 3767568 3767576 706.772959 0 200 100 
 3767664 3767664 3767672 719.610738 0 200 100 
-3768016 3768016 3768024 597.482936 70 200 100 Done
+3768016 3768016 3768024 597.482936 70 200 100 
+
+Done
 
 Query 3:
  select * from trucks,truck where truck.base=trucks.truck_ptr and cost<800 and delcapacity>0;
@@ -61,7 +67,9 @@ Query 3:
 Statement prepared.
 truck_ptr base customers cost delcapacity pickcapacity rlpoint 
 
-3768016 3768016 3768024 597.482936 70 200 100 Done
+3768016 3768016 3768024 597.482936 70 200 100 
+
+Done
 
 Query 4:
  select * from trucks,truck,customers,customer where truck.base=trucks.truck_ptr and cost <800 and delcapacity>0 and customers.base=truck.customers and customer.base=customers.customer_ptr and code>100 and demand>10;
@@ -73,7 +81,9 @@ truck_ptr base customers cost delcapacity pickcapacity rlpoint base customer_ptr
 3768016 3768016 3768024 597.482936 70 200 100 3768024 2125104 2125104 2125088 20 139 1 0 0 0 0 
 3768016 3768016 3768024 597.482936 70 200 100 3768024 2134896 2134896 2134880 20 190 1 0 0 0 0 
 3768016 3768016 3768024 597.482936 70 200 100 3768024 2126832 2126832 2126816 20 148 1 0 0 0 0 
-3768016 3768016 3768024 597.482936 70 200 100 3768024 2121264 2121264 2121248 20 119 1 0 0 0 0 Done
+3768016 3768016 3768024 597.482936 70 200 100 3768024 2121264 2121264 2121248 20 119 1 0 0 0 0 
+
+Done
 
 Query 5:
  select * from trucks,truck,customers,customer where truck.base=trucks.truck_ptr and cost <800 and delcapacity>0 and customers.base=truck.customers and customer.base=customers.customer_ptr and code>100 and demand>10 order by code;
@@ -85,7 +95,9 @@ truck_ptr base customers cost delcapacity pickcapacity rlpoint base customer_ptr
 3768016 3768016 3768024 597.482936 70 200 100 3768024 2125104 2125104 2125088 20 139 1 0 0 0 0 
 3768016 3768016 3768024 597.482936 70 200 100 3768024 2126256 2126256 2126240 20 145 1 0 0 0 0 
 3768016 3768016 3768024 597.482936 70 200 100 3768024 2126832 2126832 2126816 20 148 1 0 0 0 0 
-3768016 3768016 3768024 597.482936 70 200 100 3768024 2134896 2134896 2134880 20 190 1 0 0 0 0 Done
+3768016 3768016 3768024 597.482936 70 200 100 3768024 2134896 2134896 2134880 20 190 1 0 0 0 0 
+
+Done
 
 Query 6:
  select code, demand, x_coord, y_coord from trucks,truck,customers, customer, position where truck.base=trucks.truck_ptr and customers.base=truck.customers and customer.base=customers.customer_ptr and position.base=customer.position_ptr and code like '%99' union select code, demand, x_coord,y_coord from mapindex,customer,position where customer.base=mapindex.customer_ptr and position.base=customer.position_ptr and x_coord>133;
@@ -103,13 +115,17 @@ code demand x_coord y_coord
 141 10 136 29 
 171 30 135 6 
 174 30 139 10 
-199 10 34 108 Done
+199 10 34 108 
+
+Done
 
 Query 7:
  select c.code, c.demand, c.position_ptr, p.x_coord, p.y_coord,u.code, u.demand, u.position_ptr, o.x_coord, o.y_coord from trucks,truck,customers, customer c,mapindex,customer u, position p,position o where truck.base=trucks.truck_ptr and customers.base=truck.customers and c.base=customers.customer_ptr and p.base=c.position_ptr and c.code like '%99' and u.base=mapindex.customer_ptr and o.base=u.position_ptr and o.x_coord>133 and p.y_coord=o.y_coord;
 
 Statement prepared.
 code demand position_ptr x_coord y_coord code demand position_ptr x_coord y_coord 
+
+
 Done
 
 Query 8:
@@ -117,6 +133,8 @@ Query 8:
 
 Statement prepared.
 base position_ptr demand code serviced pickdemand starttime servicetime finishtime 
+
+
 Library used incorrectly
 
 Query 9:
@@ -124,6 +142,8 @@ Query 9:
 
 Statement prepared.
 truck_ptr base customer_ptr 
+
+
 Library used incorrectly
 
 Query 10:
@@ -131,6 +151,8 @@ Query 10:
 
 Statement prepared.
 truck_ptr base customer_ptr 
+
+
 Library used incorrectly
 
 Query 11:
@@ -138,6 +160,8 @@ Query 11:
 
 Statement prepared.
 code demand position_ptr x_coord y_coord code demand position_ptr x_coord y_coord 
+
+
 Library used incorrectly
 
 Query 12:
@@ -145,5 +169,7 @@ Query 12:
 
 Statement prepared.
 code demand x_coord y_coord 
+
+
 Library used incorrectly
 
