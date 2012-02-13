@@ -4,6 +4,7 @@
 #include "stl_search.h"
 #include "user_functions.h"
 #include "workers.h"
+#include <map>
 #include <string>
 #include <vector>
 #include <map>
@@ -41,7 +42,7 @@ void * thread_sqlite(void *data){
     int failure = 0;
     queries[0] = "CREATE VIRTUAL TABLE Trucks USING stl(truck_ptr INT)";
     table_names[0] = "Trucks";
-    queries[1] = "CREATE VIRTUAL TABLE Truck USING stl(base INT,customers INT,cost DOUBLE,delcapacity INT,pickcapacity INT,rlpoint INT)";
+    queries[1] = "CREATE VIRTUAL TABLE Truck USING stl(base INT,customers_ptr INT,cost DOUBLE,delcapacity INT,pickcapacity INT,rlpoint INT)";
     table_names[1] = "Truck";
     queries[2] = "CREATE VIRTUAL TABLE Customers USING stl(base INT,customer_ptr INT)";
     table_names[2] = "Customers";
@@ -131,6 +132,7 @@ int Trucks_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
         assert(stcsr->size <= stcsr->max_size);
         assert(&stcsr->resultSet[stcsr->size] <= &stcsr->resultSet[stcsr->max_size]);
     } else {
+        check_alloc((const char *)constr, op, iCol);
         int *temp_res;
 	temp_res = (int *)sqlite3_malloc(sizeof(int)  * stcsr->max_size);
         if ( !temp_res ){
@@ -180,7 +182,7 @@ int Truck_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
             assert(count <= stcsr->max_size);
             break;
         case 1:
-            printf("Restricted area. Searching VT Truck column customers...makes no sense.\n");
+            printf("Restricted area. Searching VT Truck column customers_ptr...makes no sense.\n");
             return SQLITE_MISUSE;
         case 2:
             if (compare(any_dstr->get_cost(), op, sqlite3_value_double(val)) )
@@ -399,6 +401,7 @@ int MapIndex_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
         assert(stcsr->size <= stcsr->max_size);
         assert(&stcsr->resultSet[stcsr->size] <= &stcsr->resultSet[stcsr->max_size]);
     } else {
+        check_alloc((const char *)constr, op, iCol);
         int *temp_res;
 	temp_res = (int *)sqlite3_malloc(sizeof(int)  * stcsr->max_size);
         if ( !temp_res ){
@@ -469,7 +472,7 @@ int Truck_retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con){
     Truck* any_dstr = (Truck*)stcsr->source;
     switch( n ){
     case 0:
-        sqlite3_result_int64(con, (long int)any_dstr);
+        sqlite3_result_int64(con, (long int)&any_dstr);
         break;
     case 1:
         if ( (vtd_iter = vt_directory.find("Customers")) != vt_directory.end() )
@@ -521,7 +524,7 @@ int Customer_retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con){
     Customer* any_dstr = (Customer*)stcsr->source;
     switch( n ){
     case 0:
-        sqlite3_result_int64(con, (long int)any_dstr);
+        sqlite3_result_int64(con, (long int)&any_dstr);
         break;
     case 1:
         if ( (vtd_iter = vt_directory.find("Position")) != vt_directory.end() )
