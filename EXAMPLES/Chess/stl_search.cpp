@@ -22,7 +22,7 @@ struct name_cmp {
 };
 
 static map<const char *, int, name_cmp> vt_directory;
-static map<const char *, int>::iterator vtd_iter;
+static map<const char *, int, name_cmp>::iterator vtd_iter;
 
 
 extern vector<vector<ChessPiece> >* chessBoard;
@@ -115,12 +115,6 @@ int ChessRow_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
     } else {
         check_alloc((const char *)constr, op, iCol);
         if ( equals_base(stl->azColumn[iCol]) ) {
-            vtd_iter = vt_directory.find(stl->zName);
-            if ( (vtd_iter == vt_directory.end()) || (vtd_iter->second == 0) ) {
-                printf("Invalid cast to %s\n", stl->zName);
-                return SQLITE_MISUSE;
-            }
-            vt_directory[stl->zName] = 0;
             stcsr->source = (void *)sqlite3_value_int64(val);
             any_dstr = (vector<ChessPiece>*)stcsr->source;
             size = get_datastructure_size(cur);

@@ -26,7 +26,7 @@ struct name_cmp {
 };
 
 static map<const char *, int, name_cmp> vt_directory;
-static map<const char *, int>::iterator vtd_iter;
+static map<const char *, int, name_cmp>::iterator vtd_iter;
 
 
 extern map<string,SuperAccount> superaccounts;

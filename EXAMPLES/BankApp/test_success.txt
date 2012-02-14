@@ -1,149 +1,93 @@
-Query 0:
- select * from trucks;
-
-Statement prepared.
-truck_ptr 
-
-3766000 
-3766096 
-3766192 
-3766288 
-3766384 
-3766480 
-3766576 
-3766672 
-3766768 
-3766992 
-3767088 
-3767184 
-3767280 
-3767376 
-3767472 
-3767568 
-3767664 
-3768016 Done
-
 Query 1:
- select * from truck;
+ select * from SuperAccounts;
 
 Statement prepared.
-base customers cost delcapacity pickcapacity rlpoint 
-Library used incorrectly
+id balance account_no rate isbn 
 
-Query 2:
- select * from trucks,truck where truck.base=trucks.truck_ptr
+0 500.000000 10068 5.000000 478923743 
+1 394.279999 10234 3.942800 692346729 
+10 23489.000000 34807 234.889999 394847344 
+12 -347389.000000 22974 -3473.889893 580383483 
+15 445567.000000 47023 4455.669922 830343479 
+18 48923.000000 34369 489.230011 347304830 
+21 47235.000000 3462 472.350006 676328962 
+22 346.230011 2532 3.462300 234628621 
+23 1000.000000 23999 10.000000 639269243 
+31 131.000000 69263 1.310000 457349341 
+33 -589045.312500 28904 -5890.453125 808023242 
+34 4784.580078 45483 47.845802 580540484 
+36 2784.590088 28902 27.845901 197396445 
+39 284.579987 04023 2.845800 347893488 
+41 46423.000000 46738 464.230011 362626823 
+5 -262.000000 26738 -2.620000 234674389 
+59 26834.000000 34734 268.339996 236326823 
+9 2363.000000 23683 23.629999 729367263 
 
-Statement prepared.
-truck_ptr base customers cost delcapacity pickcapacity rlpoint 
-
-3766000 3766000 3766008 925.021785 0 200 100 
-3766096 3766096 3766104 814.871451 0 200 100 
-3766192 3766192 3766200 1134.567773 0 200 100 
-3766288 3766288 3766296 1070.410081 0 200 100 
-3766384 3766384 3766392 936.952535 0 200 100 
-3766480 3766480 3766488 459.070786 0 200 100 
-3766576 3766576 3766584 806.947432 0 200 100 
-3766672 3766672 3766680 722.064501 0 200 100 
-3766768 3766768 3766776 596.207580 0 200 100 
-3766992 3766992 3767000 850.418002 0 200 100 
-3767088 3767088 3767096 1224.739619 0 200 100 
-3767184 3767184 3767192 821.409696 0 200 100 
-3767280 3767280 3767288 877.243648 0 200 100 
-3767376 3767376 3767384 773.318615 0 200 100 
-3767472 3767472 3767480 1219.625006 0 200 100 
-3767568 3767568 3767576 706.772959 0 200 100 
-3767664 3767664 3767672 719.610738 0 200 100 
-3768016 3768016 3768024 597.482936 70 200 100 Done
-
-Query 3:
- select * from trucks,truck where truck.base=trucks.truck_ptr and cost<800 and delcapacity>0;
-
-Statement prepared.
-truck_ptr base customers cost delcapacity pickcapacity rlpoint 
-
-3768016 3768016 3768024 597.482936 70 200 100 Done
-
-Query 4:
- select * from trucks,truck,customers,customer where truck.base=trucks.truck_ptr and cost <800 and delcapacity>0 and customers.base=truck.customers and customer.base=customers.customer_ptr and code>100 and demand>10;
-
-Statement prepared.
-truck_ptr base customers cost delcapacity pickcapacity rlpoint base customer_ptr base position_ptr demand code serviced pickdemand starttime servicetime finishtime 
-
-3768016 3768016 3768024 597.482936 70 200 100 3768024 2126256 2126256 2126240 20 145 1 0 0 0 0 
-3768016 3768016 3768024 597.482936 70 200 100 3768024 2125104 2125104 2125088 20 139 1 0 0 0 0 
-3768016 3768016 3768024 597.482936 70 200 100 3768024 2134896 2134896 2134880 20 190 1 0 0 0 0 
-3768016 3768016 3768024 597.482936 70 200 100 3768024 2126832 2126832 2126816 20 148 1 0 0 0 0 
-3768016 3768016 3768024 597.482936 70 200 100 3768024 2121264 2121264 2121248 20 119 1 0 0 0 0 Done
-
-Query 5:
- select * from trucks,truck,customers,customer where truck.base=trucks.truck_ptr and cost <800 and delcapacity>0 and customers.base=truck.customers and customer.base=customers.customer_ptr and code>100 and demand>10 order by code;
-
-Statement prepared.
-truck_ptr base customers cost delcapacity pickcapacity rlpoint base customer_ptr base position_ptr demand code serviced pickdemand starttime servicetime finishtime 
-
-3768016 3768016 3768024 597.482936 70 200 100 3768024 2121264 2121264 2121248 20 119 1 0 0 0 0 
-3768016 3768016 3768024 597.482936 70 200 100 3768024 2125104 2125104 2125088 20 139 1 0 0 0 0 
-3768016 3768016 3768024 597.482936 70 200 100 3768024 2126256 2126256 2126240 20 145 1 0 0 0 0 
-3768016 3768016 3768024 597.482936 70 200 100 3768024 2126832 2126832 2126816 20 148 1 0 0 0 0 
-3768016 3768016 3768024 597.482936 70 200 100 3768024 2134896 2134896 2134880 20 190 1 0 0 0 0 Done
-
-Query 6:
- select code, demand, x_coord, y_coord from trucks,truck,customers, customer, position where truck.base=trucks.truck_ptr and customers.base=truck.customers and customer.base=customers.customer_ptr and position.base=customer.position_ptr and code like '%99' union select code, demand, x_coord,y_coord from mapindex,customer,position where customer.base=mapindex.customer_ptr and position.base=customer.position_ptr and x_coord>133;
-
-Statement prepared.
-code demand x_coord y_coord 
-
-051 10 137 6 
-065 20 135 3 
-069 20 134 31 
-086 10 135 0 
-094 20 137 3 
-099 10 34 79 
-115 30 136 0 
-141 10 136 29 
-171 30 135 6 
-174 30 139 10 
-199 10 34 108 Done
-
-Query 7:
- select c.code, c.demand, c.position_ptr, p.x_coord, p.y_coord,u.code, u.demand, u.position_ptr, o.x_coord, o.y_coord from trucks,truck,customers, customer c,mapindex,customer u, position p,position o where truck.base=trucks.truck_ptr and customers.base=truck.customers and c.base=customers.customer_ptr and p.base=c.position_ptr and c.code like '%99' and u.base=mapindex.customer_ptr and o.base=u.position_ptr and o.x_coord>133 and p.y_coord=o.y_coord;
-
-Statement prepared.
-code demand position_ptr x_coord y_coord code demand position_ptr x_coord y_coord 
 Done
 
-Query 8:
- select * from customer;
+Query 2:
+ select * from SuperAccounts where isbn > 0 and balance < 500 and account_no>1000 order by id;
 
 Statement prepared.
-base position_ptr demand code serviced pickdemand starttime servicetime finishtime 
-Library used incorrectly
+id balance account_no rate isbn 
 
-Query 9:
- select * from trucks, customers;
+1 394.279999 10234 3.942800 692346729 
+12 -347389.000000 22974 -3473.889893 580383483 
+22 346.230011 2532 3.462300 234628621 
+31 131.000000 69263 1.310000 457349341 
+33 -589045.312500 28904 -5890.453125 808023242 
+5 -262.000000 26738 -2.620000 234674389 
 
-Statement prepared.
-truck_ptr base customer_ptr 
-Library used incorrectly
+Done
 
-Query 10:
- select * from trucks, customers where customers.base=trucks.truck_ptr;
-
-Statement prepared.
-truck_ptr base customer_ptr 
-Library used incorrectly
-
-Query 11:
- select c.code, c.demand, c.position_ptr, p.x_coord, p.y_coord,u.code, u.demand, u.position_ptr, o.x_coord, o.y_coord from trucks,truck,customers, customer c,mapindex,customer u, position p,position o where truck.base=trucks.truck_ptr and customers.base=truck.customers and c.base=customers.customer_ptr and p.base=c.position_ptr and c.code like '%99' and u.base=mapindex.customer_ptr and o.base=truck.base and o.x_coord>133 and p.y_coord=o.y_coord;
+Query 3:
+ select * from Accounts;
 
 Statement prepared.
-code demand position_ptr x_coord y_coord code demand position_ptr x_coord y_coord 
-Library used incorrectly
+balance account_no rate isbn type 
 
-Query 12:
- select code, demand, x_coord, y_coord from trucks,truck,customers, customer, position where truck.base=trucks.truck_ptr and customers.base=truck.customers and customer.base=trucks.truck_ptr and position.base=customer.position_ptr and code like '%99' union select code, demand, x_coord,y_coord from mapindex,customer,position where customer.base=mapindex.customer_ptr and position.base=customer.position_ptr and x_coord>133;
+500.000000 10068 10.000000 478923743 credit 
+394.279999 10234 7.885600 692346729 debit-consuming 
+-347389.000000 22974 -6947.779785 580383483 debit-first house 
+48923.000000 34369 978.460022 347304830 credit 
+445567.000000 47023 8911.339844 830343479 debit-business 
+23489.000000 34807 469.779999 394847344 credit-fundtrust 
+
+Done
+
+Query 4:
+ select * from Accounts where rate >10 and balance<20000 order by account_no;
 
 Statement prepared.
-code demand x_coord y_coord 
-Library used incorrectly
+balance account_no rate isbn type 
+
+
+Done
+
+Query 5:
+ select * from SpecialAccounts;
+
+Statement prepared.
+balance account_no rate isbn bonus 
+
+1000.000000 23999 50.000000 639269243 350.000000 
+131.000000 69263 6.550000 457349341 45.850001 
+4784.580078 45483 239.229004 580540484 1674.603027 
+2784.590088 28902 139.229507 197396445 974.606552 
+284.579987 04023 14.228999 347893488 99.602994 
+-589045.312500 28904 -29452.265625 808023242 -206165.859375 
+
+Done
+
+Query 6:
+ select * from SpecialAccounts where bonus > 20 and rate >15 order by account_no;
+
+Statement prepared.
+balance account_no rate isbn bonus 
+
+1000.000000 23999 50.000000 639269243 350.000000 
+2784.590088 28902 139.229507 197396445 974.606552 
+4784.580078 45483 239.229004 580540484 1674.603027 
+
+Done
 
