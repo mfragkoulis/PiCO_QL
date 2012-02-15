@@ -716,7 +716,6 @@ AG11
 int call_sqtl() {
     pthread_t sqlite_thread;
     int re_sqlite = pthread_create(&sqlite_thread, NULL, thread_sqlite, NULL);
-    signal(SIGPIPE,SIG_IGN);
     pthread_join(sqlite_thread, NULL);
     return re_sqlite;
 }
@@ -770,7 +769,7 @@ struct name_cmp {
 };
 
 static map<const char *, int, name_cmp> vt_directory;
-static map<const char *, int>::iterator vtd_iter;
+static map<const char *, int, name_cmp>::iterator vtd_iter;
 dir
 
     print_equals_base = <<-EQB

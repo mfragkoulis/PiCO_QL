@@ -1,6 +1,7 @@
 #include "stl_test.h"
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 // Takes care of query preparation and execution.
 int test_prep_exec(FILE *f, sqlite3 *db, const char *q){
@@ -43,8 +44,7 @@ int test_prep_exec(FILE *f, sqlite3 *db, const char *q){
     }else if( result==SQLITE_MISUSE ){
       fprintf(f, "\n\nLibrary used incorrectly\n");
     }else {
-      fprintf(f, "\n\nError code: %i.\nPlease advise Sqlite error codes (http://w\
-ww.sqlite.org/c3ref/c_abort.html)", result);
+      fprintf(f, "\n\nError code: %i.\nPlease advise Sqlite error codes (http://www.sqlite.org/c3ref/c_abort.html)", result);
     }
     fprintf(f, "\n");
   } else {
@@ -115,23 +115,9 @@ int call_test(sqlite3 *db) {
   result = test_prep_exec(f, db, q);
 
   fclose(f);
-  FILE *pipe;
-  pipe = popen("diff test_success.txt test_current.txt", "r");
-  if ( pipe==NULL ) return SQLITE_ERROR;
-  char buffer[128], output[1280];
-  int j = 0, status;
-  while (fgets(buffer, 128, pipe) != NULL) {
-    if (j == 0) strcpy(output, buffer);
-    else strcat(output, buffer);
-    j++;
+  if (system("./diff_test.sh")) {
+    printf("Invoking diff_test script failed.\n");
+    exit(1);
   }
-  status = pclose(pipe);
-  if ( status==-1 )
-    return SQLITE_ERROR;
-  f = fopen("test_current.txt", "a+");
-  if (strlen(output) == 0) fprintf(f, "\nTEST SUCCESSFUL\n");
-  else fprintf(f, "\nTEST FAILED\n");
-  fprintf(f, "diff command returned: %s\n", output);
-  fclose(f);
   return SQLITE_OK;
 }
