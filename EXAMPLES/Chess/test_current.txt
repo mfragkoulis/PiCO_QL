@@ -1,4 +1,4 @@
-Query 0:
+Query 1:
  select * from ChessBoard;
 
 Statement prepared.
@@ -15,7 +15,7 @@ row_id
 
 Done
 
-Query 1:
+Query 2:
  select * from ChessRow;
 
 Statement prepared.
@@ -24,7 +24,7 @@ base name color
 
 Library used incorrectly
 
-Query 2:
+Query 3:
  select * from ChessBoard,ChessRow where ChessRow.base=ChessBoard.row_id
 
 Statement prepared.
@@ -101,7 +101,7 @@ row_id base name color
 
 Done
 
-Query 3:
+Query 4:
  select * from ChessBoard,ChessRow where ChessRow.base=ChessBoard.row_id and color="white" and name="bishop";
 
 Statement prepared.
