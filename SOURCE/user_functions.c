@@ -4,11 +4,6 @@
 #include "user_functions.h"
 #include "stl_test.h"
 
-
-#define DEBUGGING
-
-
-
 // Takes care of query preparation and execution.
 int prep_exec(FILE *f, sqlite3 *db, const char *q){
   sqlite3_stmt  *stmt;
@@ -70,11 +65,11 @@ int file_prep_exec(FILE *f, sqlite3_stmt *stmt, const char *q){
   int result;
   result = step_query(f, stmt);
   if( result == SQLITE_DONE ){
-#ifdef DEBUGGING
+#ifdef DEBUG
     swill_fprintf(f, "<b>DONE<br></b>");
 #endif
   }else if( result == SQLITE_OK ){
-#ifdef DEBUGGING
+#ifdef DEBUG
     swill_fprintf(f, "<b>OK<br></b>");
 #endif
   }else if( result == SQLITE_ERROR ){
@@ -233,7 +228,7 @@ int register_table(const char *nDb, int argc, const char **q, const char **table
     return re;
   }
 
-#ifdef DEBUGGING
+#ifdef DEBUG
   for(i=0; i<argc; i++){
     printf("\nquery to be executed: %s\n in database: %s\n\n", q[i], nDb);
   }
@@ -243,20 +238,20 @@ int register_table(const char *nDb, int argc, const char **q, const char **table
   fill_module(mod);
   int output = sqlite3_create_module(db, "stl", mod, data);
   if( output==1 ) printf("Error while registering module\n");
-#ifdef DEBUGGING
+#ifdef DEBUG
   else if( output==0 ) printf("Module registered successfully\n");
 #endif
   for(i=0; i< argc; i++){
     sprintf(table_query, "SELECT * FROM sqlite_master WHERE type='table' AND name='%s';", table_names[i]);
     if (prep_exec(NULL, db, (const char *)table_query) != SQLITE_ROW){
       re = prep_exec(NULL, db, (const char *)q[i]);
-#ifdef DEBUGGING
+#ifdef DEBUG
       printf("Query %s returned %i\n", q[i], re);
 #endif
       if ( re != 101 ) return re;
     }
   }
-#ifndef DEBUGGING
+#ifndef TEST
   printf("Please visit http://localhost:8080 to be served\n");
   call_swill(db);
 #else

@@ -63,7 +63,6 @@ void * thread_sqlite(void *data){
 int call_sqtl() {
     pthread_t sqlite_thread;
     int re_sqlite = pthread_create(&sqlite_thread, NULL, thread_sqlite, NULL);
-    signal(SIGPIPE,SIG_IGN);
     pthread_join(sqlite_thread, NULL);
     return re_sqlite;
 }
@@ -167,6 +166,12 @@ int Truck_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
     } else {
         check_alloc((const char *)constr, op, iCol);
         if ( equals_base(stl->azColumn[iCol]) ) {
+            vtd_iter = vt_directory.find(stl->zName);
+            if ( (vtd_iter == vt_directory.end()) || (vtd_iter->second == 0) ) {
+                printf("Invalid cast to %s\n", stl->zName);
+                return SQLITE_MISUSE;
+            }
+            vt_directory[stl->zName] = 0;
             stcsr->source = (void *)sqlite3_value_int64(val);
             any_dstr = (Truck*)stcsr->source;
         }
@@ -230,6 +235,12 @@ int Customers_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val)
     } else {
         check_alloc((const char *)constr, op, iCol);
         if ( equals_base(stl->azColumn[iCol]) ) {
+            vtd_iter = vt_directory.find(stl->zName);
+            if ( (vtd_iter == vt_directory.end()) || (vtd_iter->second == 0) ) {
+                printf("Invalid cast to %s\n", stl->zName);
+                return SQLITE_MISUSE;
+            }
+            vt_directory[stl->zName] = 0;
             stcsr->source = (void *)sqlite3_value_int64(val);
             any_dstr = (vector<Customer*>*)stcsr->source;
             size = get_datastructure_size(cur);
@@ -277,6 +288,12 @@ int Customer_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
     } else {
         check_alloc((const char *)constr, op, iCol);
         if ( equals_base(stl->azColumn[iCol]) ) {
+            vtd_iter = vt_directory.find(stl->zName);
+            if ( (vtd_iter == vt_directory.end()) || (vtd_iter->second == 0) ) {
+                printf("Invalid cast to %s\n", stl->zName);
+                return SQLITE_MISUSE;
+            }
+            vt_directory[stl->zName] = 0;
             stcsr->source = (void *)sqlite3_value_int64(val);
             any_dstr = (Customer*)stcsr->source;
         }
@@ -353,6 +370,12 @@ int Position_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
     } else {
         check_alloc((const char *)constr, op, iCol);
         if ( equals_base(stl->azColumn[iCol]) ) {
+            vtd_iter = vt_directory.find(stl->zName);
+            if ( (vtd_iter == vt_directory.end()) || (vtd_iter->second == 0) ) {
+                printf("Invalid cast to %s\n", stl->zName);
+                return SQLITE_MISUSE;
+            }
+            vt_directory[stl->zName] = 0;
             stcsr->source = (void *)sqlite3_value_int64(val);
             any_dstr = (Position*)stcsr->source;
         }

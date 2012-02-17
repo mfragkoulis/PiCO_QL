@@ -19,7 +19,7 @@ int realloc_resultset(sqlite3_vtab_cursor *cur) {
             memset(stcsr->resultSet, -1,
                    sizeof(int) * arraySize);
             stcsr->max_size = arraySize;
-#ifdef DEBUGGING
+#ifdef DEBUG
             printf("\\nReallocating resultSet..now max size %i \\n\\n", stcsr->max_size);
 #endif
         }else{

@@ -15,10 +15,6 @@
 
 using namespace std;
 
-/*
-#define DEBUGGING
-*/
-
 struct name_cmp {
     bool operator()(const char *a, const char *b) {
         return strcmp(a, b) < 0;

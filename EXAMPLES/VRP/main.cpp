@@ -7,7 +7,7 @@
 #include <lemon/list_graph.h>
 #include <lemon/graph_to_eps.h>
 #include <lemon/math.h>
-#include <fstream>
+#include <stdio.h>
 #include <string>
 #include <sstream>
 #include <ctime>
@@ -42,11 +42,12 @@ struct classcomp{
 
 
 
-int main() {
+int main(int argc, const char *argv[]) {
 
   int line_cust, restarts, total=-9, lowest_dem, total_dem=0;
-  string variant, mode, filename, data, total_string;
+  string variant, mode, data, total_string;
   Fleet bb;
+/*
   cout << endl;
   cout << "Welcome to VRP solver." << endl;
   cout << "Please type in the variant that you would like to be solved." << endl << endl;
@@ -150,12 +151,13 @@ int main() {
   else filename += "_" +ch;
   filename += ".TXT";
   // cout << filename << " **** " << endl;
-
-  ifstream fin;
-  fin.open (filename.c_str());
+*/
+  ifstream fin(argv[1]);
+  cout << argv[1] << endl;
   if(!fin) {
     cout << "Cannot open file.\n" << endl;
-    goto try_again;
+    exit(1);
+//    goto try_again;
   }
 
   // other input formats
@@ -171,7 +173,8 @@ int main() {
   total_string=out.str();
 
   // cout << "total_string: " << total_string << endl;
-
+  restarts = 0;
+/*
   while (1) {
     cout << endl << "Please enter the number of restarts : " ;
     cin >> restarts;
@@ -183,7 +186,7 @@ int main() {
     break;
   }
   cout << endl;
-
+*/
   if (variant=="cvrp") {
     LinehaulCustomer::set_variant(true);
     line_cust=total;
@@ -231,7 +234,7 @@ int main() {
   optimal->add();                        // create first truck of fleet. reason for doing it here: record info about truck capacity
   lowest_dem=Truck::get_initcapacity();      // symbolic initialization (the highest demand possible)  
  
-  fin.open(filename.c_str());
+/*  fin.open(filename.c_str());
   if(!fin) {
     cout << "Cannot open file.\n";
     return 1;
@@ -242,6 +245,7 @@ int main() {
     // cout << data << endl;
     number++;
   }
+*/
   number=0;
   fin >> code;
   fin >> x;
@@ -321,11 +325,11 @@ int main() {
       if ( (*itr1)->get_code()==(*itr2)->get_code() )  bcode_v++;
     }
   }
-  for (itr1=back.begin() +1; itr1!=back.end(); itr1++) {        // not checking the depot, if such violation exists it would have already been revealed
+/*  for (itr1=back.begin() +1; itr1!=back.end(); itr1++) {        // not checking the depot, if such violation exists it would have already been revealed
     for (iter2=line.begin() +1; iter2!=line.end(); iter2++) {
       if ( (*itr1)->get_code()==(*iter2)->get_code() )  code_v++;
     }
-  }
+    }*/
   if (pos_v>0) cout << pos_v << " pairs of customers have the same position." << endl;
   else cout << " All positions valid " << endl; 
   if (lcode_v>0) cout << lcode_v << " pairs of linehaul customers have the same code." << endl;

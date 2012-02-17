@@ -11,10 +11,6 @@
 
 using namespace std;
 
-/*
-#define DEBUGGING
-*/
-
 struct name_cmp {
     bool operator()(const char *a, const char *b) {
         return strcmp(a, b) < 0;
@@ -50,7 +46,6 @@ void * thread_sqlite(void *data){
 int call_sqtl() {
     pthread_t sqlite_thread;
     int re_sqlite = pthread_create(&sqlite_thread, NULL, thread_sqlite, NULL);
-    signal(SIGPIPE,SIG_IGN);
     pthread_join(sqlite_thread, NULL);
     return re_sqlite;
 }

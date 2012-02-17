@@ -5,10 +5,6 @@
 #include "stl_to_sql.h"
 #include "stl_search.h"
 
-/*
-#define DEBUGGING
-*/
-
 // construct the sql query
 void create(sqlite3 *db, int argc, const char * const * as, char *q){ 
   int i;
@@ -22,7 +18,7 @@ void create(sqlite3 *db, int argc, const char * const * as, char *q){
     else strcat(q,");");
   }
   q[strlen(q)] = '\0';
-#ifdef DEBUGGING
+#ifdef DEBUG
   printf("query is: %s with length %i \n", q, (int)strlen(q));
 #endif
 }
@@ -73,7 +69,7 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc,
 
   char query[arrange_size(argc, argv)];
   create(db, argc, argv, query);
-#ifdef DEBUGGING
+#ifdef DEBUG
   printf("query is: %s \n", query);
 #endif
   if( !(*pzErr) ){
@@ -100,7 +96,7 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc,
       }
 */
       register_vt(stl);
-#ifdef DEBUGGING
+#ifdef DEBUG
       printf("Virtual table declared successfully\n");
 #endif
       return SQLITE_OK;
@@ -116,7 +112,7 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc,
 int connect_vtable(sqlite3 *db, void *paux, int argc,
 		   const char * const * argv, sqlite3_vtab **ppVtab,
 		   char **pzErr){
-#ifdef DEBUGGING
+#ifdef DEBUG
   printf("Connecting vtable %s \n\n", argv[2]);
 #endif
   return init_vtable(0, db, paux, argc, argv, ppVtab, pzErr);
@@ -126,7 +122,7 @@ int connect_vtable(sqlite3 *db, void *paux, int argc,
 int create_vtable(sqlite3 *db, void *paux, int argc,
 		  const char * const * argv, sqlite3_vtab **ppVtab,
 		  char **pzErr){
-#ifdef DEBUGGING
+#ifdef DEBUG
   printf("Creating vtable %s \n\n", argv[2]);
 #endif
   return init_vtable(1, db, paux, argc, argv, ppVtab, pzErr);
@@ -139,7 +135,7 @@ int update_vtable(sqlite3_vtab *pVtab, int argc, sqlite3_value **argv,
 // xDestroy
 int destroy_vtable(sqlite3_vtab *ppVtab){
   stlTable *st = (stlTable *)ppVtab;
-#ifdef DEBUGGING
+#ifdef DEBUG
   printf("Destroying vtable %s \n\n", st->zName);
 #endif
   int result;
@@ -151,7 +147,7 @@ int destroy_vtable(sqlite3_vtab *ppVtab){
 // xDisconnect
 int disconnect_vtable(sqlite3_vtab *ppVtab){
   stlTable *s=(stlTable *)ppVtab;
-#ifdef DEBUGGING
+#ifdef DEBUG
   printf("Disconnecting vtable %s \n\n", s->zName);
 #endif
   sqlite3_free(s);
@@ -287,7 +283,7 @@ int next_vtable(sqlite3_vtab_cursor *cur){
   stlTable *st=(stlTable *)cur->pVtab;
   stlTableCursor *stc=(stlTableCursor *)cur;
   stc->current++;
-#ifdef DEBUGGING
+#ifdef DEBUG
   printf("Table %s, now stc->current: %i \n\n", st->zName, stc->current);
 #endif
   if ( stc->current >= stc->size )
@@ -300,7 +296,7 @@ int next_vtable(sqlite3_vtab_cursor *cur){
 int open_vtable(sqlite3_vtab *pVtab, sqlite3_vtab_cursor **ppCsr){
   stlTable *st=(stlTable *)pVtab;
   int re, arraySize;
-#ifdef DEBUGGING
+#ifdef DEBUG
   printf("Opening vtable %s\n\n", st->zName);
 #endif
   sqlite3_vtab_cursor *pCsr;               /* Allocated cursor */
@@ -328,7 +324,7 @@ int open_vtable(sqlite3_vtab *pVtab, sqlite3_vtab_cursor **ppCsr){
     arraySize = 1;
 
   stc->max_size = arraySize;
-#ifdef DEBUGGING
+#ifdef DEBUG
   printf("ppCsr = %lx, pCsr = %lx \n", (long unsigned int)ppCsr, (long unsigned int)pCsr);
 #endif
   // A data structure to hold index positions of resultset so that in the end
@@ -338,7 +334,6 @@ int open_vtable(sqlite3_vtab *pVtab, sqlite3_vtab_cursor **ppCsr){
     return SQLITE_NOMEM;
   }
   memset(stc->resultSet, -1, sizeof(int) * arraySize);
-  assert(((char *)stc->resultSet)[sizeof(int) * arraySize] <= stc->resultSet[arraySize]);
   return SQLITE_OK;
 }
 
@@ -355,7 +350,7 @@ int rowid_vtable(sqlite3_vtab_cursor *cur, sqlite_int64 *pRowid){
 int close_vtable(sqlite3_vtab_cursor *cur){
   stlTable *st=(stlTable *)cur->pVtab;
   stlTableCursor *stc=(stlTableCursor *)cur;
-#ifdef DEBUGGING
+#ifdef DEBUG
   printf("Closing vtable %s \n\n",st->zName);
 #endif
   sqlite3_free(stc->resultSet);
@@ -403,7 +398,7 @@ int arrange_size(int argc, const char * const * argv){
   }
   // Sentinel character.
   length += 1;
-#ifdef DEBUGGING
+#ifdef DEBUG
   printf("length is %i \n",length);
 #endif
   return length;
