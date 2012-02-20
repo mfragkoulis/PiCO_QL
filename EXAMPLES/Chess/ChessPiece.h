@@ -15,9 +15,6 @@ class ChessPiece {
 
  public:
   ChessPiece(string n, string c);
-  static vector<vector<ChessPiece> > board;
-  static void setup_board();
-  static int move(Position from, Position to);
   string get_name();
   string get_color();
 

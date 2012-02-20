@@ -402,21 +402,14 @@ RAL
       sign_retype = @signature
       sign_untype = @signature.chomp("*")
     end
-    if @base_var.length > 0
-      fw.puts "    #{sign_retype} any_dstr = (#{sign_retype})stcsr->source;"
-      if @stl_class.length > 0
-        fw.puts "    #{sign_untype}:: iterator iter;"
-      end
-    else
-      fw.puts "    #{sign_retype} any_dstr;"
-      if @stl_class.length > 0
-        fw.puts "    #{sign_untype}:: iterator iter;"
-      end
+    fw.puts "    #{sign_retype} any_dstr = (#{sign_retype})stcsr->source;"
+    if @stl_class.length > 0
+      fw.puts "    #{sign_untype}:: iterator iter;"
     end
     fw.puts "    int op, iCol, count = 0, i = 0, re = 0;"
     if @stl_class.length > 0
       if @base_var.length > 0
-        fw.puts "    int size = get_datastructure_size(cur);" 
+        fw.puts "    int size = get_datastructure_size(cur);"
       else
         fw.puts "    int size;"
       end
@@ -441,10 +434,10 @@ RAL
       fw.puts "#{$s}    stcsr->source = (void *)sqlite3_value_int64(val);"
       fw.puts "#{$s}    any_dstr = (#{sign_retype})stcsr->source;"
       if @stl_class.length > 0
-        fw.puts "#{$s}    size = get_datastructure_size(cur);"
         fw.puts "#{$s}    realloc_resultset(cur);"
       end
       fw.puts "#{$s}}"
+      fw.puts "#{$s}size = get_datastructure_size(cur);"
     end
     fw.puts resultset_alloc
   end
@@ -750,6 +743,7 @@ AG2
 #include <assert.h>
 #include <stdio.h>
 #include <string>
+#include <string.h>
 #include "stl_search.h"
 #include "user_functions.h"
 #include "workers.h"

@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <stdio.h>
 #include <string>
+#include <string.h>
 #include "workers.h"
 
 using namespace std;

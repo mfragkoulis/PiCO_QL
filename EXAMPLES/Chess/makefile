@@ -8,10 +8,11 @@ ifdef TYPESAFE
 CXXFLAGS+=-DTYPESAFE
 CFLAGS+=-DTYPESAFE
 endif
+endif
+
 ifdef DEBUG
 CXXFLAGS+=-DDEBUG
 CFLAGS+=-DDEBUG
-endif
 endif
 
 OBJ=main.o ChessPiece.o Position.o stl_search.o stl_to_sql.o user_functions.o workers.o stl_test.o

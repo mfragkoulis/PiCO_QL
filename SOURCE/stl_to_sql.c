@@ -262,15 +262,19 @@ int filter_vtable(sqlite3_vtab_cursor *cur, int idxNum, const char *idxStr,
 
   //Empty where clause.
   if( argc==0 ) {
-    if ( (re = search(cur, NULL, NULL)) != 0 )
+    if ( (re = search(cur, NULL, NULL)) != 0 ){
+      sqlite3_free(constr);
       return re;
+    }
   }else{
     for(i=0; i<argc; i++) {
       constr[0] = idxStr[j++];
       constr[1] = idxStr[j++];
       constr[2] = '\0';
-      if ( (re = search(cur, constr, argv[i])) != 0 )
+      if ( (re = search(cur, constr, argv[i])) != 0 ){
+	sqlite3_free(constr);
 	return re;
+      }
     }
   }
   sqlite3_free(constr);

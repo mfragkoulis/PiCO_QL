@@ -114,6 +114,7 @@ int call_test(sqlite3 *db) {
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);
 
+  sqlite3_close(db);
   fclose(f);
   if (system("./diff_test.sh")) {
     printf("Invoking diff_test script failed.\n");

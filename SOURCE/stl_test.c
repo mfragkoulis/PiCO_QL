@@ -62,58 +62,15 @@ int call_test(sqlite3 *db) {
   int result, i = 0;
   char *q;
 
-  q = "select * from trucks;";
+  /*
+  q = "select...;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);
 
-  q = "select * from truck;";
-  fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  More queries...
+  */
 
-  q = "select * from trucks,truck where truck.base=trucks.truck_ptr";
-  fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
-
-  q = "select * from trucks,truck where truck.base=trucks.truck_ptr and cost<800 and delcapacity>0;";
-  fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
-
-  q = "select * from trucks,truck,customers,customer where truck.base=trucks.truck_ptr and cost <800 and delcapacity>0 and customers.base=truck.customers and customer.base=customers.customer_ptr and code>100 and demand>10;";
-  fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
-
-  q = "select * from trucks,truck,customers,customer where truck.base=trucks.truck_ptr and cost <800 and delcapacity>0 and customers.base=truck.customers and customer.base=customers.customer_ptr and code>100 and demand>10 order by code;";
-  fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
-
-  q = "select code, demand, x_coord, y_coord from trucks,truck,customers, customer, position where truck.base=trucks.truck_ptr and customers.base=truck.customers and customer.base=customers.customer_ptr and position.base=customer.position_ptr and code like '%99' union select code, demand, x_coord,y_coord from mapindex,customer,position where customer.base=mapindex.customer_ptr and position.base=customer.position_ptr and x_coord>133;";
-  fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
-
-  q = "select c.code, c.demand, c.position_ptr, p.x_coord, p.y_coord,u.code, u.demand, u.position_ptr, o.x_coord, o.y_coord from trucks,truck,customers, customer c,mapindex,customer u, position p,position o where truck.base=trucks.truck_ptr and customers.base=truck.customers and c.base=customers.customer_ptr and p.base=c.position_ptr and c.code like '%99' and u.base=mapindex.customer_ptr and o.base=u.position_ptr and o.x_coord>133 and p.y_coord=o.y_coord;";
-  fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
-
-  q = "select * from customer;";
-  fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
-
-  q = "select * from trucks, customers;";
-  fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
-
-  q = "select * from trucks, customers where customers.base=trucks.truck_ptr;";
-  fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
-
-  q = "select c.code, c.demand, c.position_ptr, p.x_coord, p.y_coord,u.code, u.demand, u.position_ptr, o.x_coord, o.y_coord from trucks,truck,customers, customer c,mapindex,customer u, position p,position o where truck.base=trucks.truck_ptr and customers.base=truck.customers and c.base=customers.customer_ptr and p.base=c.position_ptr and c.code like '%99' and u.base=mapindex.customer_ptr and o.base=truck.base and o.x_coord>133 and p.y_coord=o.y_coord;";
-  fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
-
-  q = "select code, demand, x_coord, y_coord from trucks,truck,customers, customer, position where truck.base=trucks.truck_ptr and customers.base=truck.customers and customer.base=trucks.truck_ptr and position.base=customer.position_ptr and code like '%99' union select code, demand, x_coord,y_coord from mapindex,customer,position where customer.base=mapindex.customer_ptr and position.base=customer.position_ptr and x_coord>133;";
-  fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
-
+  sqlite3_close(db);
   fclose(f);
   if (system("./diff_test.sh")) {
     printf("Invoking diff_test script failed.\n");

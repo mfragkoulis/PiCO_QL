@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string>
+#include <string.h>
 #include "stl_search.h"
 #include "user_functions.h"
 #include "workers.h"
@@ -96,7 +97,7 @@ int equals_base(const char *zCol) {
 int ChessRow_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
     stlTable *stl = (stlTable *)cur->pVtab;
     stlTableCursor *stcsr = (stlTableCursor *)cur;
-    vector<ChessPiece>* any_dstr;
+    vector<ChessPiece>* any_dstr = (vector<ChessPiece>*)stcsr->source;
     vector<ChessPiece>:: iterator iter;
     int op, iCol, count = 0, i = 0, re = 0;
     int size;
@@ -112,9 +113,9 @@ int ChessRow_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
         if ( equals_base(stl->azColumn[iCol]) ) {
             stcsr->source = (void *)sqlite3_value_int64(val);
             any_dstr = (vector<ChessPiece>*)stcsr->source;
-            size = get_datastructure_size(cur);
             realloc_resultset(cur);
         }
+        size = get_datastructure_size(cur);
         int *temp_res;
 	temp_res = (int *)sqlite3_malloc(sizeof(int)  * stcsr->max_size);
         if ( !temp_res ){

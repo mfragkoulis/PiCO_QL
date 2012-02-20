@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string>
+#include <string.h>
 #include "stl_search.h"
 #include "user_functions.h"
 #include "workers.h"
