@@ -17,7 +17,7 @@ endif
 OBJ=main.o Fleet.o Truck.o Customer.o LinehaulCustomer.o BackhaulCustomer.o Position.o mtrand.o stl_search.o stl_to_sql.o user_functions.o workers.o stl_test.o
 
 schedule: $(OBJ)
-	$(CXX) -lswill -lsqlite3 -W -g $(CXXFLAGS) $(OBJ) -o $@ -lemon
+	$(CXX) -lswill -lsqlite3 -W -g $(CXXFLAGS) $(OBJ) -o $@
 
 main.o: main.cpp Fleet.h Truck.h Customer.h Position.h mtrand.h stl_search.h
 	$(CXX) -W -g -c $<
@@ -53,3 +53,12 @@ user_functions.o: user_functions.c user_functions.h stl_test.h
 workers.o: workers.cpp workers.h stl_search.h
 
 stl_test.o: stl_test.c stl_test.h
+
+seed:
+	cp test_current.txt test_success.txt
+
+.PHONY: clean
+
+clean:
+	rm *.o
+

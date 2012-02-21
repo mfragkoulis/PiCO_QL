@@ -58,60 +58,6 @@ Position* BackhaulCustomer::get_pos() {
   */
 }
 
-BackhaulCustomer* BackhaulCustomer::approve( BackhaulCustomer* bc, int& pos, Position* p, int i, int& keep_track_cpt) {
-  // cout << "approve" << endl;
-  int k=0;
-  double d;
-  BackhaulCustomer* b;
-  b=this;
-  if (i%2==0) {
-  again:
-    if (keep_track_cpt - b->get_demand() <0) return NULL;
-    if (bc==NULL)  d=b->get_pos()->distance(p);
-    else {
-      if ( b->get_code() < bc->get_code() )   d=get_dist(b->get_code() + bc->get_code());
-      else d=get_dist(bc->get_code() + b->get_code());
-      p=bc->get_pos();
-    }
-    if ( (k!=list_b.size() +1) && (b->get_revenue() - d - get_dist(get_depot()->get_code() + b->get_code()) + p->distance(get_depot()->get_pos())<0) ) {
-      // cout << b->get_revenue() << " " <<  d << " " << get_dist(get_depot()->get_code() + b->get_code()) << " " << p->distance(get_depot()->get_pos()) << endl;
-      b=random_sel( pos, i);
-      k++;
-      goto again;
-    }
-    if (k==list_b.size()+1) {
-      // cout << "approved null" << endl;
-      return NULL;
-    }else {
-      keep_track_cpt -= b->get_demand();
-      // cout << b->get_code() << " approved." << endl;
-      return b;
-    }
-  }else {
-  ag:
-    if (keep_track_cpt - b->get_demand() <0) return NULL;
-    if (bc==NULL)  d=b->get_pos()->distance(p);
-    else {
-      if ( b->get_code() < bc->get_code() )   d=get_dist(b->get_code() + bc->get_code());
-      else d=get_dist(bc->get_code() + b->get_code());
-      p=bc->get_pos();
-    }
-    if ( (k!=list_bb.size() +1) && (b->get_revenue() - d - get_dist(get_depot()->get_code() + b->get_code()) + p->distance(get_depot()->get_pos())<0) ) {
-      // cout << b->get_revenue() << " " <<  d << " " << get_dist(get_depot()->get_code() + b->get_code()) << " " << p->distance(get_depot()->get_pos()) << endl;
-      b=random_sel( pos, i);
-      k++;
-      goto ag;
-    }
-    if (k==list_bb.size()+1) {
-      // cout << "NULL approved" << endl;
-      return NULL;
-    } else {
-      keep_track_cpt -= b->get_demand();
-      // cout << b->get_code() << " approved." << endl;
-      return b;
-    }
-  }
-}
 
 int BackhaulCustomer::get_revenue() {
   return revenue;
@@ -126,47 +72,10 @@ void BackhaulCustomer::set_selective(bool s) {
   selective=s;
 }
 
-BackhaulCustomer* BackhaulCustomer::random_sel( int& pos, int i) {
-  // cout << " list_b size : " << list_b.size() << endl;
-  // cout << " list_bb size : " << list_bb.size() << endl;
-  if (i%2==0) {
-    if ( list_b.size() > 1 ) {                                 // the depot will (should) never be considered, therefore 1
-      pos=irand()%list_b.size();
-      while  ( list_b[pos]->get_serviced() ) {              // assumption: depot will always be the first input "customer"
-	// cout << "stuck" << endl;	
-	pos=irand()%list_b.size();                           // cnt: apparently depot is not eligible for selection
-      }
-      // cout << "1-Backhaul customer selected " << list_b[pos]->get_code() << " at position " << pos << endl;
-      return list_b[pos];
-    } else return NULL;
-  } else {
-    if ( list_bb.size() > 1 ) {                                 // the depot will (should) never be considered, therefore 1
-      pos=irand()%list_bb.size();
-      while  ( list_bb[pos]->get_serviced() ) {              // assumption: depot will always be the first input "customer"
-	pos=irand()%list_bb.size();                           // cnt: apparently depot is not eligible for selection
-	//cout << list_b[pos]->code << endl;
-      }
-      // cout << "2-Backhaul customer selected " << list_bb[pos]->get_code() << " at position " << pos << endl;
-      return list_bb[pos];
-    } else return NULL;
-  }
-}
+BackhaulCustomer* BackhaulCustomer::random_sel( int& pos){}
 
 
-void BackhaulCustomer::erase_c(int random, int i) {
-  if (i%2==0) {
-    // cout << "1-Backhaul customer : " << list_b[random]->get_code() << " is being erased from position " << random << " of " << list_b.size() << " element list" << endl;
-    list_bb.push_back(list_b[random]);
-    list_b.erase(list_b.begin() + random);
-    // cout << "1-Now list contains : " << list_b.size() << " elements." << endl;
-  } else {
-    // cout << "2-Backhaul customer : " << list_bb[random]->get_code() << " is being erased from position " << random << " of " << list_bb.size() << " element list" << endl;
-    list_b.push_back(list_bb[random]);
-    list_bb.erase(list_bb.begin() + random);
-    // cout << "2-Now list contains : " << list_bb.size() << " elements." << endl;
-  }
-
-}
+void BackhaulCustomer::erase_c(int random) {}
 
 double BackhaulCustomer::get_dist(string pair) {
   return dist_b[pair];
@@ -178,21 +87,7 @@ double BackhaulCustomer::get_dist(string pair) {
 }
  
 
-void BackhaulCustomer::compute_dist() {
-  map < string, Position* >:: iterator top;
-  map < string, Position* >:: iterator nested;
-  map < string, Position* >:: iterator next;
-  for (top=coord_b.begin(); top!=coord_b.end(); top++) {
-    //   cout << top->first << endl;
-    next=top;
-    next++;
-    for (nested=next; nested!=coord_b.end(); nested++) {
-      double temp = sqrt( pow( nested->second->get_x() - top->second->get_x(),2 ) + pow( nested->second->get_y() - top->second->get_y(),2 ) );
-      dist_b.insert(make_pair(top->first + nested->first, temp));
-      // cout << "The distance between " << top->first << " and " << nested->first << " backhaul participators is : " << BackhaulCustomer::get_dist(top->first + nested->first) << " units" <<  endl;
-    }
-  }
-}
+void BackhaulCustomer::compute_dist() {}
 
 void BackhaulCustomer::non_serviced(int k) {
   if (k%2==0) {
