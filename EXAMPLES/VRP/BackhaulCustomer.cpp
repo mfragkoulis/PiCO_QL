@@ -20,6 +20,7 @@ bool BackhaulCustomer::selective=false;
 
 extern MTRand_int32 irand;
 
+// Constructs new Backhaul customer object.
 BackhaulCustomer::BackhaulCustomer (string c, int d, int r, Position* pos, bool depot) : Customer( c, d, pos, depot ) {
   revenue=r;
   coord_b.insert( make_pair(c, pos) );
@@ -29,88 +30,55 @@ BackhaulCustomer::BackhaulCustomer (string c, int d, int r, Position* pos, bool 
   // cout <<"b" << endl;
 }
 
-BackhaulCustomer::BackhaulCustomer (string c, int d, int r, Position* pos) : Customer( c, d, pos ) {
-  revenue=r;
-  coord_b.insert( make_pair(c, pos) );
-  list_b.push_back(this);
-  count_b++;
-  // cout << c << endl;
-}
-
+// Returns the total number of Backhaul customers.
 int BackhaulCustomer::get_countb() {
   return count_b;
 }
 
-
+// Returns the depot object.
 BackhaulCustomer* BackhaulCustomer::get_depot() {
-  // map < string, Position* >:: iterator iter;
-  //iter=coord_b.begin();
-  return list_b[0];             // careful not to delete depot in erase_c. kind of hard coded. depot should be the first to be input
+  return list_b[0];             // Careful not to delete depot in erase_c. 
 }
 
-
+// Returns the position of a Backhaul customer.
 Position* BackhaulCustomer::get_pos() {
   return coord_b[this->get_code()];
-
-  /*  map < string, Position* >:: iterator fp=coord_b.find(this);
-  if (fp!=coord_b.end() ) return fp->second;
-  else return NULL;
-  */
 }
 
-
+// Returns the revenue associated with a backhaul customer.
 int BackhaulCustomer::get_revenue() {
   return revenue;
 }
 
-
+// Returns true for VRPSelectiveBackhaul variant. 
+// Not applicable in this distribution.
 bool BackhaulCustomer::get_selective() {
   return selective;
 }
 
+// Sets truw if VRPSB.
 void BackhaulCustomer::set_selective(bool s) {
   selective=s;
 }
 
-BackhaulCustomer* BackhaulCustomer::random_sel( int& pos){}
+// Selects a Backhaul customer at random.
+BackhaulCustomer* BackhaulCustomer::random_sel( int& pos, int i){}
 
+// Erases a Backhaul customer picked for service.
+void BackhaulCustomer::erase_c(int random, int i) {}
 
-void BackhaulCustomer::erase_c(int random) {}
-
+// Returns the distance betwen two backhaul customers.
 double BackhaulCustomer::get_dist(string pair) {
   return dist_b[pair];
-
-  /*  map < string, double >::iterator iter= dist_b.find(pair);
-  if (iter != dist_b.end() ) return iter->second;
-  else return 1000000.0;
-  */
 }
  
-
+// Computes the distance between all pairs of backhaul customers.
 void BackhaulCustomer::compute_dist() {}
 
-void BackhaulCustomer::non_serviced(int k) {
-  if (k%2==0) {
-    if (list_b.size() > 1) {
-      cout << list_b.size() -1 << " Backhaul customers not serviced after scheduling namely: " << endl ;
-      for (int i=1; i!=list_b.size(); i++) {
-	list_b[i]->set_serviced();
-	list_bb.push_back(list_b[i]);
-	cout  << list_b[i]->get_code() << endl;
-      }
-    }
-  } else {
-    if (list_bb.size() > 1) {
-      cout << list_bb.size() -1 << " Backhaul customers not serviced after scheduling namely: " << endl ;
-      for (int i=1; i!=list_bb.size(); i++) {
-	list_bb[i]->set_serviced();
-	list_b.push_back(list_bb[i]);
-	cout  << list_bb[i]->get_code() << endl;
-      }
-    }
-  }
-}
+// Returns the non-serviced backhaul customers. Applicable in VRPSB. 
+void BackhaulCustomer::non_serviced(int k) {}
 
+// Returns an iterator to the end of the non-serviced list.
 vector < BackhaulCustomer* >::iterator BackhaulCustomer::get_nonser() {
   vector < BackhaulCustomer* >::iterator it;
   // cout << "in" << endl;
@@ -120,6 +88,8 @@ vector < BackhaulCustomer* >::iterator BackhaulCustomer::get_nonser() {
 
 }
 
+// Clears the list of backhaul customers currently active.
+// When the one is empty, the other is full.
 void BackhaulCustomer::clear_list(int i) {
   if (i%2==0) {
     list_b.clear();
@@ -130,6 +100,7 @@ void BackhaulCustomer::clear_list(int i) {
   }
 }
 
+// Copies the non-serviced customers to the non-serviced list.x
 void BackhaulCustomer::cp_list(int i) {
   // vector < BackhaulCustomer* >::iterator it;
   if (i%2==0) {

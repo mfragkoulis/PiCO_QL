@@ -17,5 +17,6 @@ int Position::get_y() {
 }
 
 double Position::distance( Position* pos) {
- return sqrt( pow( pos->get_x() - this->get_x(),2 ) + pow( pos->get_y() - this->get_y(),2 ) );
+ return sqrt( pow( pos->get_x() - this->get_x(),2 ) + pow( pos->get_y() - 
+							   this->get_y(),2 ) );
 }

@@ -5,7 +5,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <string>
-#include <sstream>
+#include <fstream>
 #include <ctime>
 #include "mtrand.h"
 #include <stdio.h>
@@ -30,42 +30,59 @@ int main(int argc, const char *argv[]) {
 	exit(1);
     }
 
+    char total_code_string[10];    // Enough for ten billion customers.
+    int keep_track_cpt, lowest_dem = 0, lines = 0, code_length;
+    string data;
     clock_t start_clock = clock(), finish_clock;
     double c_time;
-    Fleet *optimal=new Fleet;
-    optimal->add();                   /* Create first truck of fleet to 
+    Fleet *candidate_fl=new Fleet;
+    candidate_fl->add();                /* Create first truck of fleet to 
                                          record info about truck capacity. */
+    keep_track_cpt = Truck::get_initcapacity();
     lowest_dem=Truck::get_initcapacity();    /* Symbolic initialization:
                                                 the highest demand possible. */
 
-    int lowest_dem, total_dem=0;
-    int x, y, demand, number;
-    string data, total_string, code;    
+    while ( (!fin.eof()) && (!fin.fail()) ) {   // Count lines from file.
+	getline(fin, data);
+	lines++;
+    }
+    fin.close();
+    sprintf(total_code_string, "%d", lines);
+    code_length = (int)strlen(total_code_string);
+    int x, y, demand, number, total_dem = 0;
+    string code, useless1, useless2, useless3;
+    bool is_depot;
     vector < Position* > positions;
     vector < LinehaulCustomer* > line;
     number=1;
+    ifstream finput(argv[1]);
     while (number<10) {      //Data file info.
-	getline(fin, data);
+	getline(finput, data);
 	// cout << data << endl;
 	number++;
     }
     number=-1;
-    while ( (!fin.eof()) && (!fin.fail()) ) {
+    while ( (!finput.eof()) && (!finput.fail()) && (number + 11 < lines) ) {   
+                                                    // Reading data from file.
 	number++;
-	fin >> code;
-	fin >> x;
-	fin >> y;
-	fin >> demand;
+	finput >> code;
+	finput >> x;
+	finput >> y;
+	finput >> demand;
+	finput >> useless1;
+	finput >> useless2;
+	finput >> useless3;
 	total_dem += demand;
 	positions.push_back( new Position(x,y) );
-	while (code.length() < total_string.length()) code = "0" + code;
-	line.push_back( new LinehaulCustomer(code, demand, 0, positions.back(),
-					     0, 0, 0) );
+	while ((int)code.length() < code_length) code = "0" + code;
+	( number==0 ) ? is_depot = true : is_depot = false;
+	line.push_back( new LinehaulCustomer(code, demand, 
+						 positions.back(), is_depot) );
 	test.insert(pair<int, Customer *>(number, line.back()));
 	/* cout << "number: " << number << ", code: " << code << " " << 
 	   x << " " << y << " " << demand; */
     }
-    fin.close();
+    finput.close();
     // cout << "Data file size: " << number << " customers." << endl;  
 
     // Code block: check positions coincidence, customer code coincidence.
@@ -76,15 +93,25 @@ int main(int argc, const char *argv[]) {
     int pos_v=0;
     int lcode_v=0;
     for (it1=positions.begin(); it1!=positions.end(); it1++) {
-	//    cout << (*it1)->get_x() << " " << (*it1)->get_y() << endl;
+//	cout << (*it1)->get_x() << " " << (*it1)->get_y() << endl;
 	for (it2=it1+1; it2!=positions.end(); it2++) {
-	    if ( ((*it1)->get_x()==(*it2)->get_x()) && ((*it1)->get_y()==(*it2)->get_y()) )  pos_v++;
+	    if ( ((*it1)->get_x()==(*it2)->get_x()) && 
+		 ((*it1)->get_y()==(*it2)->get_y()) ){
+		 cout << (*it1)->get_x() << " " << (*it1)->get_y() << endl;
+		 cout << (*it2)->get_x() << " " << (*it2)->get_y() << endl;
+		pos_v++;
+	    }
 	}
     }
     for (iter1=line.begin(); iter1!=line.end(); iter1++) {
-	//    cout << (*iter1)->get_code() << endl;
 	for (iter2=iter1+1; iter2!=line.end(); iter2++) {
-	    if ( (*iter1)->get_code()==(*iter2)->get_code() )  lcode_v++;
+	    /* cout << (*iter1)->get_code() << "+" << 
+	       (*iter2)->get_code() << endl; */
+	    if ( (*iter1)->get_code()==(*iter2)->get_code() ){  
+		cout << "SAME: " << (*iter1)->get_code() << "-" << 
+		    (*iter2)->get_code() << endl;
+		lcode_v++;
+	    }
 	}
     }
     if (pos_v>0) cout << pos_v << 
@@ -94,94 +121,98 @@ int main(int argc, const char *argv[]) {
 		       " pairs of linehaul customers have the same code." << 
 		       endl;
     else cout << " All linehaul codes valid " << endl;
+
     cout << endl << "Computing distances between linehaul customers. " << 
 	endl << endl;
     LinehaulCustomer::compute_dist();
     
-    int keep_track_cpt;
+    int pos, extra_shots = 0, i, restarts = atoi(argv[2]);
     LinehaulCustomer* l = NULL;
-    Fleet best, bb;
-    for (int i=0; i<=atoi(argv[2]); i++) {
+    Fleet optimised_fl, best_fl;
+    for (i=0; i<=restarts; i++) {
 	pos=0;
 	if ( i>0 ) {
-	    optimal=new Fleet;
-	    optimal->add();
+	    candidate_fl=new Fleet;
+	    candidate_fl->add();
+	    keep_track_cpt = Truck::get_initcapacity();
 	    cout << "RESTART No" << i << endl << endl;
 	}
 	while ( !Customer::get_allserviced() ) {
 	    // cout << "LOADING NEW TRUCK " << endl;
-	    keep_track_cpt=Truck::get_initcapacity();
-	    l=LinehaulCustomer::random_sel(pos);
+	    l=LinehaulCustomer::random_sel(pos, i);
 	    if (l != NULL) {
-		while ( extra_shots<5 ){        //utilise best a Trucks's space
+		extra_shots = 0;
+		while ( extra_shots<5 ){      // Utilise best a Trucks's space.
 		    keep_track_cpt -= l->get_demand();
 		    // cout << " Customer's demand : " << l->get_demand();
-		    switch (keep_truck_cpt){
-		    case >0:
-			optimal->get_current()->load(l);
-			LinehaulCustomer::erase_c(pos);
+		    if( keep_track_cpt>0 ){
+			candidate_fl->get_current()->load(l);
+			LinehaulCustomer::erase_c(pos, i);
 			extra_shots = 4;
-			break;
-		    case >=( lowest_dem-l->get_demand() ):
-			l=LinehaulCustomer::random_sel(pos);
-			break;
-		    case <0:
-			optimal->get_current()->return_todepot();
+		    }else if ( keep_track_cpt>=lowest_dem-l->get_demand() ){ 
+                                                          // Worth extra shot.
+			l=LinehaulCustomer::random_sel(pos, i);
+		    }else if (keep_track_cpt <lowest_dem-l->get_demand() ){
+                                                         //No chance,load new.
+			candidate_fl->get_current()->return_todepot();
 			/* cout << "The total cost of delivery for the " <<
 			"truck amounts to " << 
-			optimal->get_current()->get_cost() << 
+			candidate_fl->get_current()->get_cost() << 
 			" and there are " << 
-			optimal->get_current()->get_delcapacity() 
+			candidate_fl->get_current()->get_delcapacity() 
 			<< " units of unused space left." << endl << endl;*/
-			optimal->add();
+			candidate_fl->add();
 			keep_track_cpt=Truck::get_initcapacity();
 			extra_shots = 4;
-			break;
 		    }
 		    extra_shots += 1;
 		}
 	    }
 	}
-	optimal->set_delspace();
-	optimal->set_totalcost();
+	Customer::set_allserviced();
+	candidate_fl->set_delspace();
+	candidate_fl->set_totalcost();
 	cout << " END OF SCHEDULING " << endl << endl;
 	cout << "The total cost of transportation for the fleet of " << 
-	    optimal->get_size() << " trucks amounts to " << 
-	    optimal->get_totalcost(); << cout <<" distance units";
-	if (i==0) {
-	    bb.set_size(optimal->get_size());
-	    bb.assign_all(*optimal);
+	    candidate_fl->get_size() << " trucks amounts to " << 
+	    candidate_fl->get_totalcost() << " distance units.";
+	if ( i==0 ) {
+	    best_fl.set_size(candidate_fl->get_size());
+	    best_fl.assign_all(*candidate_fl);
 	}
 	cout << endl << "Optimising schedule now..." << endl << endl;
-	best.set_size(optimal->get_size());
-	optimal->optimise(best);
-	cout << "The optimised fleet of " << best.get_size() << 
-	    " trucks amounts to " << best.get_totalcost() << " distance units";
-	cout << " and there are " <<  best.get_delspace() << " units of unused delivery space and " << best.get_pickspace() << endl << endl;
-	if (best.get_totalcost() <= bb.get_totalcost()) {
-	    bb.deallocate();
-	    bb.set_size(best.get_size());
-	    bb.assign_all(best);
+	optimised_fl.set_size(candidate_fl->get_size());
+	candidate_fl->optimise(optimised_fl);
+	cout << "The optimised fleet of " << optimised_fl.get_size() << 
+	    " trucks amounts to " << optimised_fl.get_totalcost() << 
+	    " distance units";
+	cout << " and there are " <<  optimised_fl.get_delspace() << 
+	    " units of unused delivery space." << endl << endl;
+	if (optimised_fl.get_totalcost() <= best_fl.get_totalcost()) {
+	    best_fl.deallocate();
+	    best_fl.set_size(optimised_fl.get_size());
+	    best_fl.assign_all(optimised_fl);
 	}
-	best.deallocate();
-	optimal->deallocate();
-	delete optimal;
+	optimised_fl.deallocate();
+	candidate_fl->deallocate();
+	delete candidate_fl;
     } 
-    if (argv[2]>i) {
+    if ( restarts>i ) {
 	for (iter1=line.begin()+1; iter1!=line.end(); iter1++) {
 	    (*iter1)->set_serviced();
 	    // cout << (*iter1)->get_code() << endl;
 	}
     }
 
-    vehicles = bb.get_fleet();     // For SQTL
+    vehicles = best_fl.get_fleet();     // For SQTL
     int re_sqlite = call_sqtl();
     printf("Thread sqlite returned %i\n", re_sqlite);
     
-    cout << endl << "Optimised solution after " << argv[2] << 
-	" restarts includes " << bb.get_size() << " trucks and has cost " << 
-	bb.get_totalcost() <<" distance units";
-    cout << " with unused delivery space of " << bb.get_delspace() << 
+    cout << endl << "Optimised solution after " << restarts << 
+	" restarts includes " << best_fl.get_size() << 
+	" trucks and has cost " << 
+	best_fl.get_totalcost() <<" distance units";
+    cout << " with unused delivery space of " << best_fl.get_delspace() << 
 	"distance units." << endl << endl;
     cout << endl << "Ideally (feasibility not guaranteed) minimum size " << 
 	"of fleet would be " << (double)total_dem/Truck::get_initcapacity() <<
@@ -190,7 +221,7 @@ int main(int argc, const char *argv[]) {
     c_time = (double(finish_clock)-double(start_clock))/CLOCKS_PER_SEC;
     cout << "Ellapsed time given by c++ : " << c_time << "s." << endl << endl;
     
-    bb.deallocate();    
+    best_fl.deallocate();    
     for (it1=positions.begin(); it1!=positions.end(); it1++)
 	delete (*it1);
     for(iter1=line.begin(); iter1!= line.end(); iter1++)

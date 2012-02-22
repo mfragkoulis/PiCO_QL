@@ -16,8 +16,6 @@ CREATE ELEMENT TABLE Truck (
       customers_ptr INT FROM TABLE Customers WITH BASE=get_Customers(),
       cost DOUBLE FROM get_cost(),
       delcapacity INT FROM get_delcapacity(),
-      pickcapacity INT FROM get_pickcapacity(),
-      rlpoint INT FROM get_rlpoint()
 );
 
 CREATE TABLE mydb.Truck AS SELECT * FROM Truck;
@@ -36,10 +34,6 @@ CREATE ELEMENT TABLE Customer (
       demand INT FROM get_demand(),
       code STRING FROM get_code(),
       serviced INT FROM get_serviced(),
-      pickdemand INT FROM get_pickdemand(),
-      starttime INT FROM get_starttime(),
-      servicetime INT FROM get_servicetime(),
-      finishtime INT FROM get_finishtime()
 );
 
 CREATE TABLE mydb.Customer AS SELECT * FROM Customer;

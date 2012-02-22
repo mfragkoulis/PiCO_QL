@@ -22,17 +22,12 @@ class Customer {
 
  public:
   Customer();
-  Customer(string c, int d, Position* pos);
   Customer(string c, int d, Position* pos, bool depot);
   virtual ~Customer();
   bool get_serviced();
   void set_serviced();
   string get_code();
   int get_demand();
-  virtual int get_pickdemand();
-  virtual int get_starttime();
-  virtual int get_servicetime();
-  virtual int get_finishtime();
   virtual Position* get_pos();
   virtual int get_revenue();
   static Customer* get_depot();
@@ -41,8 +36,8 @@ class Customer {
   static double get_dist(string pair);
   static bool get_allserviced();
   static void set_allserviced();
-  static Customer* random_sel(int& pos);
-  static void erase_c(int pos);
+  static Customer* random_sel(int& pos, int i);
+  static void erase_c(int pos, int i);
 
 };
 
@@ -50,5 +45,3 @@ class Customer {
 #include "LinehaulCustomer.h"
 
 #endif
-
-

@@ -11,17 +11,8 @@ Customer::Customer() {}
 Customer::Customer(string c, int d, Position* pos, bool depot) {
   code=c;
   demand=d;
-  serviced=true;
+  (depot) ? serviced=true : serviced=false;
   // all_demand+=demand;
-}
-
-
-Customer::Customer(string c, int d,Position* pos) {
-  code=c;
-  demand=d;
-  serviced=false;
-  count++;
-  //  all_demand+=demand;
 }
 
 Customer::~Customer() {}
@@ -53,14 +44,6 @@ int Customer::get_count() {
 
 int Customer::get_revenue() {}
 
-int Customer::get_pickdemand() {}
-
-int Customer::get_starttime() {}
-
-int Customer::get_servicetime() {}
-
-int Customer::get_finishtime() {}
-
 Position* Customer::get_pos() {}
 
 bool Customer::get_allserviced() {
@@ -75,10 +58,10 @@ void Customer::set_allserviced() {
 
 Customer* Customer::get_depot() {}
 
-Customer* Customer::random_sel(int& pos) {}
+Customer* Customer::random_sel(int& pos, int i) {}
 
 
-void Customer::erase_c(int random) {}
+void Customer::erase_c(int random, int i) {}
 
 
 double Customer::get_dist(string pair) {}

@@ -20,7 +20,6 @@ class BackhaulCustomer : public Customer {
 
  public:
   BackhaulCustomer( string c, int d, int r, Position* pos, bool depot ); 
-  BackhaulCustomer( string c, int d, int r, Position* pos );
   Position* get_pos();
   int get_revenue();
   static BackhaulCustomer* get_depot();
@@ -28,8 +27,8 @@ class BackhaulCustomer : public Customer {
   static void compute_dist();
   static int get_countb();
   static double get_dist( string pair );
-  static BackhaulCustomer* random_sel( int& pos);
-  static void erase_c( int pos);
+  static BackhaulCustomer* random_sel( int& pos, int i);
+  static void erase_c( int pos, int i);
   static void non_serviced(int i);
   static void clear_list(int i);
   static void cp_list(int i);
