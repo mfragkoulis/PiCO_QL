@@ -42,9 +42,8 @@ int Customer::get_count() {
   return count;
 }
 
-int Customer::get_revenue() {}
-
 Position* Customer::get_pos() {}
+
 
 bool Customer::get_allserviced() {
   return all_serviced;

@@ -29,7 +29,6 @@ class Customer {
   string get_code();
   int get_demand();
   virtual Position* get_pos();
-  virtual int get_revenue();
   static Customer* get_depot();
   static void compute_dist();
   static int get_count();

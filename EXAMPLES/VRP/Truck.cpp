@@ -36,13 +36,13 @@ void Truck::load(LinehaulCustomer* load) {
     load->set_serviced();
     d = load->get_demand();
     del_capacity -= d;
-     // cout << "Del Capacity left after load : " << del_capacity << endl; 
-     if (d < d_lowest) d_lowest=d;
-     if (d > d_highest) d_highest=d;
-     cost += c;
-     // cout << half << " + " <<  other << " : " << cost << endl;
-     info.push_back(cost);                           
-     // cout << "travel time (cost) recorded: " << cost << endl;
+    cout << "Del Capacity left after load : " << del_capacity << endl; 
+    if (d < d_lowest) d_lowest=d;
+    if (d > d_highest) d_highest=d;
+    cost += c;
+    // cout << half << " + " <<  other << " : " << cost << endl;
+    info.push_back(cost);                           
+    // cout << "travel time (cost) recorded: " << cost << endl;
 }
 
 // Returns the truck's initial capacity.
@@ -87,8 +87,7 @@ void Truck::return_todepot() {
 void Truck::exchange( Truck* t, bool& trap, bool same) {
     // cout << "exchange" << endl;
     trap=false;                              // redundant
-    int pos1, pos2, i, d1, d2, s1, s2;
-    double b1, a1, b2, a2, new_time1, new_time2;
+    int pos1, pos2, i, d1, d2;
     string pre1="", mid1="", next1="", pre2="", mid2="", next2="", depot;
     i=0;
     if ( (same) && (cargoArray.size()==1) ){    // Won't be able to 
@@ -104,7 +103,6 @@ void Truck::exchange( Truck* t, bool& trap, bool same) {
 	trap=true;
 	goto stop;
     }
-again:
     if (i==50) {
 	trap=true;
 	// cout << "TRAP!!!" << endl;
@@ -125,7 +123,7 @@ again:
     d1 = cargoArray[pos1]->get_demand();
     d2 = t->cargoArray[pos2]->get_demand();
 
-    /*
+    
       cout << " selected " << pos1 << " with " << pos2 << " " << 
       cargoArray.size() << " " << t->cargoArray.size() << endl;
       cout << "d1: " << d1 << "   del_capacity: " << del_capacity << 
@@ -138,7 +136,7 @@ again:
       "   t->cargoArray[pos2]->get_demand(): " << 
       t->cargoArray[pos2]->get_demand() << 
       "   t->del_capacity: " << t->del_capacity << endl;
-    */
+    
     
     /* cout << " go rearrange " << pos1 << " with " << pos2 << " " << 
        << endl << endl; */
@@ -151,14 +149,14 @@ again:
     del_capacity = del_capacity + d1 - d2;
     t->del_capacity = t->del_capacity + d2 - d1;
 	
-    /* 
+     
        cout << "del_cap: " << del_capacity << 
        "   cargoArray[pos1]->get_demand(): " << 
        cargoArray[pos1]->get_demand() << 
        "   t->cargoArray[pos2]->get_demand(): " << 
        t->cargoArray[pos2]->get_demand() << 
        "   t->del_capacity: " << t->del_capacity << endl;
-    */
+    
     
     Customer* c;              // Finally swap customers between the two trucks.
     c=cargoArray[pos1];

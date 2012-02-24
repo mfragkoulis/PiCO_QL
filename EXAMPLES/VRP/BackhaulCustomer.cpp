@@ -25,7 +25,6 @@ BackhaulCustomer::BackhaulCustomer (string c, int d, int r, Position* pos, bool 
   revenue=r;
   coord_b.insert( make_pair(c, pos) );
   list_b.push_back(this);
-  list_bb.push_back(this);
   count_b++;
   // cout <<"b" << endl;
 }

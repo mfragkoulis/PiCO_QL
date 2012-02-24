@@ -50,37 +50,45 @@ int main(int argc, const char *argv[]) {
     sprintf(total_code_string, "%d", lines);
     code_length = (int)strlen(total_code_string);
     int x, y, demand, number, total_dem = 0;
-    string code, useless1, useless2, useless3;
+    string code;
     bool is_depot;
     vector < Position* > positions;
     vector < LinehaulCustomer* > line;
     number=1;
     ifstream finput(argv[1]);
-    while (number<10) {      //Data file info.
-	getline(finput, data);
-	// cout << data << endl;
+    while ( (!finput.eof()) && (!finput.fail()) ) {   
+	finput >> data;                          // Reading data from file.
+	if ( number>18 ) {                       // <= 18: data file info.
+	    switch ( (number-19)%7 ) {           // 7 tokens per line.
+	    case 0:
+	        code = data.substr(0, data.length());
+		break;
+	    case 1:
+		x = atoi(data.c_str());
+		break;
+	    case 2:
+		y = atoi(data.c_str());
+		break;
+	    case 3:
+		demand = atoi(data.c_str());
+		break;
+	    case 4:                     // Do not care about the 
+                                        // fourth and subsequent tokens of 
+                                        // line. Time to insert our line data.
+		total_dem += demand;
+		positions.push_back( new Position(x,y) );
+		while ((int)code.length() < code_length) code = "0" + code;
+		( number==0 ) ? is_depot = true : is_depot = false;
+		line.push_back( new LinehaulCustomer(code, demand, 
+						     positions.back(), 
+						     is_depot) );
+		test.insert(pair<int, Customer *>(number, line.back()));
+		/* cout << "number: " << (number/7)-2 << ", code: " << code << 
+		    " x: " << x << " y: " << y << " demand: " << 
+		    demand << endl; */
+	    }
+	}
 	number++;
-    }
-    number=-1;
-    while ( (!finput.eof()) && (!finput.fail()) && (number + 11 < lines) ) {   
-                                                    // Reading data from file.
-	number++;
-	finput >> code;
-	finput >> x;
-	finput >> y;
-	finput >> demand;
-	finput >> useless1;
-	finput >> useless2;
-	finput >> useless3;
-	total_dem += demand;
-	positions.push_back( new Position(x,y) );
-	while ((int)code.length() < code_length) code = "0" + code;
-	( number==0 ) ? is_depot = true : is_depot = false;
-	line.push_back( new LinehaulCustomer(code, demand, 
-						 positions.back(), is_depot) );
-	test.insert(pair<int, Customer *>(number, line.back()));
-	/* cout << "number: " << number << ", code: " << code << " " << 
-	   x << " " << y << " " << demand; */
     }
     finput.close();
     // cout << "Data file size: " << number << " customers." << endl;  
@@ -126,7 +134,7 @@ int main(int argc, const char *argv[]) {
 	endl << endl;
     LinehaulCustomer::compute_dist();
     
-    int pos, extra_shots = 0, i, restarts = atoi(argv[2]);
+    int pos, extra_shots = 0, i, restarts = atoi(argv[2]), cust_demand;
     LinehaulCustomer* l = NULL;
     Fleet optimised_fl, best_fl;
     for (i=0; i<=restarts; i++) {
@@ -143,24 +151,27 @@ int main(int argc, const char *argv[]) {
 	    if (l != NULL) {
 		extra_shots = 0;
 		while ( extra_shots<5 ){      // Utilise best a Trucks's space.
-		    keep_track_cpt -= l->get_demand();
-		    // cout << " Customer's demand : " << l->get_demand();
-		    if( keep_track_cpt>0 ){
+		    cust_demand = l->get_demand();
+		    keep_track_cpt -= cust_demand;
+		    // cout << " Customer's demand : " << cust_demand;
+		    if( keep_track_cpt>=0 ){
 			candidate_fl->get_current()->load(l);
 			LinehaulCustomer::erase_c(pos, i);
 			extra_shots = 4;
-		    }else if ( keep_track_cpt>=lowest_dem-l->get_demand() ){ 
+		    }else if ( keep_track_cpt>=lowest_dem-cust_demand ){ 
                                                           // Worth extra shot.
+			keep_track_cpt += cust_demand;
 			l=LinehaulCustomer::random_sel(pos, i);
 		    }else if (keep_track_cpt <lowest_dem-l->get_demand() ){
                                                          //No chance,load new.
 			candidate_fl->get_current()->return_todepot();
-			/* cout << "The total cost of delivery for the " <<
-			"truck amounts to " << 
-			candidate_fl->get_current()->get_cost() << 
-			" and there are " << 
-			candidate_fl->get_current()->get_delcapacity() 
-			<< " units of unused space left." << endl << endl;*/
+			cout << "The total cost of delivery for the " <<
+			    "truck amounts to " << 
+			    candidate_fl->get_current()->get_cost() << 
+			    " and there are " << 
+			    candidate_fl->get_current()->get_delcapacity() << 
+			    "/" << keep_track_cpt <<
+			    " units of unused space left." << endl << endl;
 			candidate_fl->add();
 			keep_track_cpt=Truck::get_initcapacity();
 			extra_shots = 4;
@@ -213,7 +224,7 @@ int main(int argc, const char *argv[]) {
 	" trucks and has cost " << 
 	best_fl.get_totalcost() <<" distance units";
     cout << " with unused delivery space of " << best_fl.get_delspace() << 
-	"distance units." << endl << endl;
+	" distance units." << endl << endl;
     cout << endl << "Ideally (feasibility not guaranteed) minimum size " << 
 	"of fleet would be " << (double)total_dem/Truck::get_initcapacity() <<
 	" trucks." << endl << endl;
