@@ -29,8 +29,12 @@ class Truck {
   vector < Customer * > * get_Customers();
   static int get_initcapacity();
   void exchange( Truck* t, bool& trap, bool same);
+  void rearrange(int pos, string& pre, string& mid, string& other_mid, 
+		 string& next);
   void rearrange(int pos, string& pre, string& mid, string& next);
   void add_costs(int pos, string pre, string mid, string next);
+  void add_costs(int pos, string pre, string mid, string other_mid, 
+		 string next);
   void assignC(Truck* t);
   void reassignC(Truck* t);
 };

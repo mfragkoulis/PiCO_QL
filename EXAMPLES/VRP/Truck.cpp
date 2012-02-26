@@ -36,7 +36,7 @@ void Truck::load(LinehaulCustomer* load) {
     load->set_serviced();
     d = load->get_demand();
     del_capacity -= d;
-    cout << "Del Capacity left after load : " << del_capacity << endl; 
+    // cout << "Del Capacity left after load : " << del_capacity << endl; 
     if (d < d_lowest) d_lowest=d;
     if (d > d_highest) d_highest=d;
     cost += c;
@@ -103,28 +103,30 @@ void Truck::exchange( Truck* t, bool& trap, bool same) {
 	trap=true;
 	goto stop;
     }
-    if (i==50) {
-	trap=true;
-	// cout << "TRAP!!!" << endl;
-	goto stop;
-    }
 
-    i++;
-    // cout << " i : " << i << endl;
-    pos1=irand()%cargoArray.size();
+    pos1=irand()%cargoArray.size(); 
+    d1 = cargoArray[pos1]->get_demand();
     pos2=irand()%t->cargoArray.size();
-    while ( (same) && (pos1==pos2) ){	
+    d2 = t->cargoArray[pos2]->get_demand();
+    while ( ((same) && (pos1==pos2)) || (d1+del_capacity<d2) ||
+	    (d2+t->del_capacity<d1) ){	
+	if (i==50) {
+	    trap=true;
+	    // cout << "TRAP!!!" << endl;
+	    goto stop;
+	}
 	pos1=irand()%cargoArray.size(); 
+	d1 = cargoArray[pos1]->get_demand();
 	pos2=irand()%t->cargoArray.size();
+	d2 = t->cargoArray[pos2]->get_demand();
+	i++;
+	// cout << " i : " << i << endl;
 	/* cout << "stuck " << pos1 << " " << pos2 << " " << same << " " << 
 	   cargoArray.size() << endl; */
     }
-    
-    d1 = cargoArray[pos1]->get_demand();
-    d2 = t->cargoArray[pos2]->get_demand();
 
     
-      cout << " selected " << pos1 << " with " << pos2 << " " << 
+    /* cout << " selected " << pos1 << " with " << pos2 << " " << 
       cargoArray.size() << " " << t->cargoArray.size() << endl;
       cout << "d1: " << d1 << "   del_capacity: " << del_capacity << 
       "   d2: " << d2 << "   t->del_capacity: " << t->del_capacity << 
@@ -135,27 +137,33 @@ void Truck::exchange( Truck* t, bool& trap, bool same) {
       cargoArray[pos1]->get_demand() << 
       "   t->cargoArray[pos2]->get_demand(): " << 
       t->cargoArray[pos2]->get_demand() << 
-      "   t->del_capacity: " << t->del_capacity << endl;
+      "   t->del_capacity: " << t->del_capacity << endl; */
     
     
     /* cout << " go rearrange " << pos1 << " with " << pos2 << " " << 
        << endl << endl; */
-    rearrange(pos1, pre1, mid1, next1);        // Subtract costs related with 
+    if ( (same) && (pos1+1==pos2) )
+	rearrange(pos1, pre1, mid1, mid2, next2); // Subtract costs related to 
+                                                  // positions in change.
+    else if ( (same) && (pos2+1==pos1) )
+	rearrange(pos2, pre2, mid2, mid1, next1);
+    else {
+	rearrange(pos1, pre1, mid1, next1);    // Subtract costs related to 
                                                // positions in change.
-    t->rearrange(pos2, pre2, mid2, next2);     // Rearrange capacities in 
+	t->rearrange(pos2, pre2, mid2, next2);
+    }
+
+    del_capacity = del_capacity + d1 - d2;     // Rearrange capacities in 
                                                // trucks to reflect the 
                                                // correct ones after movements.
-
-    del_capacity = del_capacity + d1 - d2;
     t->del_capacity = t->del_capacity + d2 - d1;
-	
      
-       cout << "del_cap: " << del_capacity << 
+    /* cout << "del_cap: " << del_capacity << 
        "   cargoArray[pos1]->get_demand(): " << 
        cargoArray[pos1]->get_demand() << 
        "   t->cargoArray[pos2]->get_demand(): " << 
        t->cargoArray[pos2]->get_demand() << 
-       "   t->del_capacity: " << t->del_capacity << endl;
+       "   t->del_capacity: " << t->del_capacity << endl; */
     
     
     Customer* c;              // Finally swap customers between the two trucks.
@@ -164,13 +172,11 @@ void Truck::exchange( Truck* t, bool& trap, bool same) {
     t->cargoArray[pos2]=c;
 
     if ( (same) && (pos1+1==pos2) ) {
-	add_costs(pos1, pre1, mid2, mid1);    // Add the costs that 
+	add_costs(pos1, pre1, mid2, mid1, next2);    // Add the costs that 
                                               // are produced as a 
                                               // result of the changed route.
-	t->add_costs(pos2, mid2, mid1, next2);
     } else if ( (same) && (pos2+1==pos1) ) {
-	add_costs(pos1, mid1, mid2, next1);   
-	t->add_costs(pos2, pre2, mid1, mid2);
+	add_costs(pos2, pre2, mid1, mid2, next1);
     } else {
 	add_costs(pos1, pre1, mid2, next1);
 	t->add_costs(pos2, pre2, mid1, next2);
@@ -178,33 +184,74 @@ void Truck::exchange( Truck* t, bool& trap, bool same) {
 stop:;
 }
 
-
+// Subtracts costs of ssubroutes related to customers selected to swap places.
 void Truck::rearrange(int pos, string& pre, string& mid, string& next) {
     // cout << "rearrange" << endl;
-    // cout << "Cost before : " << cost << endl;
+    cout << "Cost before : " << cost << endl;
     mid=cargoArray[pos]->get_code();
     if ( pos>0 ) pre=cargoArray[pos-1]->get_code();
     else pre=LinehaulCustomer::get_depot()->get_code();
     if (pre < mid) {
 	cost -= LinehaulCustomer::get_dist(pre +mid);
-	// cout <<  LinehaulCustomer::get_dist(pre +mid) << endl;
+	cout <<   pre << "-" << mid << ": " << LinehaulCustomer::get_dist(pre +mid) << endl;
     } else {
 	cost -= LinehaulCustomer::get_dist(mid +pre);
-	// cout << LinehaulCustomer::get_dist(mid +pre) << endl;
+	cout <<  mid << "-" << pre << ": " << LinehaulCustomer::get_dist(mid +pre) << endl;
     }
     if (pos+1 < (int)cargoArray.size()) next=cargoArray[pos+1]->get_code();
     else next=LinehaulCustomer::get_depot()->get_code();
     if (mid < next) {
 	cost -= LinehaulCustomer::get_dist(mid + next);
-	// cout << LinehaulCustomer::get_dist(mid + next) << endl;
+	cout <<  mid << "-" << next << ": " << LinehaulCustomer::get_dist(mid + next) << endl;
     } else {
 	cost -= LinehaulCustomer::get_dist(next + mid);
-	// cout <<  LinehaulCustomer::get_dist(next + mid) << endl;
+	cout << next << "-" << mid << ": " << LinehaulCustomer::get_dist(next + mid) << endl;
     }
     // cout << "3" << endl;
+    cout << "Cost after : " << cost << endl;
+    cout << "pre: " << pre << ", mid: " << mid << 
+		     ", next: " << next << endl; 
 }
 
-
+// Subtracts costs of ssubroutes related to customers selected to swap places.
+void Truck::rearrange(int pos, string& pre, string& mid, string& other_mid, 
+		      string& next) {
+    // cout << "rearrange" << endl;
+    cout << "Cost before in same: " << cost << endl;
+    mid=cargoArray[pos]->get_code();
+    if (pos+1 >= (int)cargoArray.size()) cout << "Pos at end of truck.\n";
+    other_mid = cargoArray[pos+1]->get_code();
+    if ( pos>0 ) pre=cargoArray[pos-1]->get_code();
+    else pre=LinehaulCustomer::get_depot()->get_code();
+    if (pre < mid) {
+	cost -= LinehaulCustomer::get_dist(pre +mid);
+	cout <<  pre << "-" << mid << ": " << LinehaulCustomer::get_dist(pre +mid) << endl;
+    } else {
+	cost -= LinehaulCustomer::get_dist(mid +pre);
+	cout <<  mid << "-" << pre << ": " << LinehaulCustomer::get_dist(mid +pre) << endl;
+    }
+    if (mid < other_mid) {
+	cost -= LinehaulCustomer::get_dist(mid + other_mid);
+	cout << mid << "-" << other_mid << ": " << LinehaulCustomer::get_dist(mid + other_mid) << endl;
+    } else {
+	cost -= LinehaulCustomer::get_dist(other_mid + mid);
+	cout <<  other_mid << "-" << mid << ": " << LinehaulCustomer::get_dist(other_mid + mid) << endl;
+    }
+    if (pos+2 < (int)cargoArray.size()) next=cargoArray[pos+2]->get_code();
+    else next=LinehaulCustomer::get_depot()->get_code();
+    if (other_mid < next) {
+	cost -= LinehaulCustomer::get_dist(other_mid + next);
+	cout <<  other_mid << "-" << next << ": " << LinehaulCustomer::get_dist(other_mid + next) << endl;
+    } else {
+	cost -= LinehaulCustomer::get_dist(next + other_mid);
+	cout << next << "-" << other_mid << ": " << LinehaulCustomer::get_dist(next + other_mid) << endl;
+    }
+    // cout << "3" << endl;
+    cout << "Cost after in same: " << cost << endl;
+    cout << "pre: " << pre << ", mid: " << mid << 
+       ", other_mid: " << 
+	 other_mid << ", next: " << next << endl; 
+}
 
 
 // Recalculates costs of the engaged trucks after the exchange.
@@ -212,30 +259,30 @@ void Truck::add_costs(int pos, string pre, string mid, string next) {
     // cout << "add" << endl;
     //int c1, c2;
     //c1=cost;
-    /* cout << endl << "pre: " << pre << ", mid: " << mid << ", next: " << 
-       next << endl; */
-    // cout << "Before adding : " << cost << endl;
+    cout << "pre: " << pre << ", mid: " << mid << 
+    ", next: " << next << endl; 
+    cout << "Before adding : " << cost << endl;
     if (pre < mid) {
 	cost += LinehaulCustomer::get_dist(pre +mid);
-	// cout <<  LinehaulCustomer::get_dist(pre +mid) << endl;
+	cout <<   pre << "+" << mid << ": " << LinehaulCustomer::get_dist(pre +mid) << endl;
     } else {
 	cost += LinehaulCustomer::get_dist(mid +pre);
-	// cout << LinehaulCustomer::get_dist(mid +pre) << endl;
+	cout <<  mid << "+" << pre << ": " << LinehaulCustomer::get_dist(mid +pre) << endl;
     }
     if (mid < next) {
 	cost += LinehaulCustomer::get_dist(mid + next);
-	// cout << LinehaulCustomer::get_dist(mid + next) << endl;
+	cout <<  mid << "+" << next << ": " << LinehaulCustomer::get_dist(mid + next) << endl;
     } else {
 	cost += LinehaulCustomer::get_dist(next + mid);
-	// cout <<  LinehaulCustomer::get_dist(next + mid) << endl;
+	cout << next << "+" << mid << ": " << LinehaulCustomer::get_dist(next + mid) << endl;
     }
     // cout << "6" << endl;
     if (next.length()==0) {
 	cost += 
 	    cargoArray[pos+1]->get_pos()->distance(cargoArray[pos]->get_pos());
-	/* cout <<  
+	cout <<  "NEXT 0 " << 
 	cargoArray[pos+1]->get_pos()->distance(cargoArray[pos]->get_pos()) << 
-	endl; */
+	    endl << endl << endl;
 	if (pre < mid) {
 	    cost += LinehaulCustomer::get_dist(pre + mid);
 	    // cout <<  LinehaulCustomer::get_dist(pre + mid) << endl;
@@ -246,8 +293,61 @@ void Truck::add_costs(int pos, string pre, string mid, string next) {
 	// cout << "8" << endl;
     }
     // c2=cost;
-    // cout << "After addition : " << cost << endl;
+    cout << "After addition : " << cost << endl << endl;
+    if (cost<20) cout << "VIOLATION POSSIBLE.\n\n";
 }
+
+// Recalculates costs of the engaged trucks after the exchange.
+void Truck::add_costs(int pos, string pre, string mid, string other_mid, 
+		      string next) {
+    // cout << "add" << endl;
+    //int c1, c2;
+    //c1=cost;
+    cout << "pre: " << pre << ", mid: " << mid << ", other_mid: " << 
+	other_mid << ", next: " << next << endl;
+    cout << "Before adding in same: " << cost << endl;
+    if (pre < mid) {
+	cost += LinehaulCustomer::get_dist(pre +mid);
+	cout <<   pre << "+" << mid << ": " << LinehaulCustomer::get_dist(pre +mid) << endl;
+    } else {
+	cost += LinehaulCustomer::get_dist(mid +pre);
+	cout <<  mid << "+" << pre << ": " << LinehaulCustomer::get_dist(mid +pre) << endl;
+    }
+    if (mid < other_mid) {
+	cost += LinehaulCustomer::get_dist(mid + other_mid);
+	cout <<  mid << "+" << other_mid << ": " << LinehaulCustomer::get_dist(mid + other_mid) << endl;
+    } else {
+	cost += LinehaulCustomer::get_dist(other_mid + mid);
+	cout << other_mid << "+" << mid << ": " << LinehaulCustomer::get_dist(other_mid + mid) << endl;
+    }
+    if (other_mid < next) {
+	cost += LinehaulCustomer::get_dist(other_mid + next);
+	cout << other_mid << "+" << next << ": " << LinehaulCustomer::get_dist(other_mid + next) << endl;
+    } else {
+	cost += LinehaulCustomer::get_dist(next + other_mid);
+	cout << next << "+" << other_mid << ": " << LinehaulCustomer::get_dist(next + other_mid) << endl;
+    }
+    // cout << "6" << endl;
+    if (next.length()==0) {
+	cost += 
+	    cargoArray[pos+1]->get_pos()->distance(cargoArray[pos]->get_pos());
+	cout << "In same: NEXT 0 " <<  
+	cargoArray[pos+1]->get_pos()->distance(cargoArray[pos]->get_pos()) << 
+	    endl << endl << endl;
+	if (pre < mid) {
+	    cost += LinehaulCustomer::get_dist(pre + mid);
+	    cout <<  LinehaulCustomer::get_dist(pre + mid) << endl;
+	} else {
+	    cost += LinehaulCustomer::get_dist(mid + pre);
+	    cout <<  LinehaulCustomer::get_dist(mid + pre) << endl;
+	}
+	// cout << "8" << endl;
+    }
+    // c2=cost;
+    cout << "After adding in same : " << cost << endl << endl;
+    if (cost<20) cout << "VIOLATION POSSIBLE IN SAME.\n\n";
+}
+
 
 // Assigns a Truck service to "this" as part of the optimisation process.
 void Truck::assignC(Truck* t) {
