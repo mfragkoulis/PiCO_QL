@@ -27,7 +27,7 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc,
 		const char * const * argv, sqlite3_vtab **ppVtab,
 		char **pzErr){
   stlTable *stl;
-  int nDb, nName, nByte, nCol, nString, count, i, re;
+  int nDb, nName, nByte, nCol, nString, i;
   char *temp;
   nDb = (int)strlen(argv[1]) + 1;
   nName = (int)strlen(argv[2]) + 1;
@@ -45,8 +45,6 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc,
   }
   memset(stl, 0, nByte);
   stl->db = db;
-  int q = 0;
-  char str[1024];
   stl->nColumn = nCol;
   stl->azColumn=(char **)&stl[1];
   temp=(char *)&stl->azColumn[nCol];
@@ -130,6 +128,7 @@ int create_vtable(sqlite3 *db, void *paux, int argc,
 
 int update_vtable(sqlite3_vtab *pVtab, int argc, sqlite3_value **argv,
 		  sqlite_int64 *pRowid){
+  return SQLITE_OK;
 }
 
 // xDestroy
@@ -283,7 +282,6 @@ int filter_vtable(sqlite3_vtab_cursor *cur, int idxNum, const char *idxStr,
 
 //xNext
 int next_vtable(sqlite3_vtab_cursor *cur){
-  int re;
   stlTable *st=(stlTable *)cur->pVtab;
   stlTableCursor *stc=(stlTableCursor *)cur;
   stc->current++;
@@ -299,7 +297,7 @@ int next_vtable(sqlite3_vtab_cursor *cur){
 // xOpen
 int open_vtable(sqlite3_vtab *pVtab, sqlite3_vtab_cursor **ppCsr){
   stlTable *st=(stlTable *)pVtab;
-  int re, arraySize;
+  int arraySize;
 #ifdef DEBUG
   printf("Opening vtable %s\n\n", st->zName);
 #endif

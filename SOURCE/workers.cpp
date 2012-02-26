@@ -8,7 +8,6 @@
 using namespace std;
 
 int realloc_resultset(sqlite3_vtab_cursor *cur) {
-    stlTable *stl = (stlTable *)cur->pVtab;
     stlTableCursor *stcsr = (stlTableCursor *)cur;
     int arraySize;
     int *res;

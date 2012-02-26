@@ -7,7 +7,7 @@
 // Takes care of query preparation and execution.
 int prep_exec(FILE *f, sqlite3 *db, const char *q){
   sqlite3_stmt  *stmt;
-  int result, col, prepare;
+  int result, prepare;
   if( (prepare = sqlite3_prepare_v2(db, q, -1, &stmt, 0)) == SQLITE_OK ){
     if (f) {
       result = file_prep_exec(f, stmt, q);
@@ -86,7 +86,6 @@ int file_prep_exec(FILE *f, sqlite3_stmt *stmt, const char *q){
 // retrieves the database schema and promotes inputted queries 
 // to sqlite_engine.
 void app_index(FILE *f, sqlite3 *db){
-  char *query="\0";
   swill_fprintf(f, "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"\n\"http://www.w3.org/TR/html4/loose.dtd\">");
   swill_fprintf(f, "<html>");
   swill_fprintf(f, "<head>");
@@ -151,7 +150,7 @@ void serve_query(FILE *f, sqlite3 *db){
   swill_fprintf(f, "</head>");
   swill_fprintf(f, "<body>");
   if( swill_getargs("s(query)", &query) ){
-    int rc, i;
+    int rc;
     clock_t start_clock,finish_clock;
     double c_time;
     start_clock = clock();
