@@ -279,67 +279,65 @@ void Fleet::nested(Fleet& new_fleet, Fleet* optimised_fl, double temperature,
 // Arranges which trucks will engage in exchange of customers as part of 
 // the optimisation process.
 void Fleet::generate_new(int& pos1, int& pos2) {
-  // cout << "gen" << endl;
-  vector < Customer* >::iterator it;
-  bool trap=false, same=false;
-  int i=0;
- again:
-  if (i==1000)  {
-    cout << "INFINITE" << endl;
-    i=0;
-  }
-  i++;
-  pos1=irand()%fleet.size();
-  pos2=irand()%fleet.size();
-  (pos1==pos2) ? same=true : same=false;
-  // cout << " go exchange " << pos1 << " with " << pos2 << endl;
-  fleet[pos1]->exchange(fleet[pos2], trap, same);
-  if (trap) goto again;
-  set_totalcost();
-  set_delspace();
+    // cout << "gen" << endl;
+    vector < Customer* >::iterator it;
+    bool trap=false, same=false;
+    int i=0;
+again:
+    if (i==1000)  {
+	cout << "INFINITE" << endl;
+	i=0;
+    }
+    i++;
+    pos1=irand()%fleet.size();
+    pos2=irand()%fleet.size();
+    (pos1==pos2) ? same=true : same=false;
+    // cout << " go exchange " << pos1 << " with " << pos2 << endl;
+    fleet[pos1]->exchange(fleet[pos2], trap, same);
+    if (trap) goto again;
+    set_totalcost();
+    set_delspace();
 
-  /* 
-     cout << " truck position : " << pos1 << "rl_point : " << 
-     fleet[pos1]->get_rlpoint() << endl;
+    /*
+     cout << " truck position : " << pos1 << endl;
      for (it=fleet[pos1]->start(); it!=fleet[pos1]->finish(); it++) {
-     cout << (*it)->get_code() << endl;
+	 cout << (*it)->get_code() << endl;
      }
      cout << endl;
-     cout << " truck position : " << pos2 << "rl_point : " << 
-     fleet[pos2]->get_rlpoint() << endl;
+     cout << " truck position : " << pos2 << endl;
      for (it=fleet[pos2]->start(); it!=fleet[pos2]->finish(); it++) {
-     cout << (*it)->get_code() << endl;
+	 cout << (*it)->get_code() << endl;
      }
-     cout << endl;
-  */
+     cout << endl; 
+    */
 }
 
 // Arranges the swapping of Customers between trucks as part of the 
 // optimisation process.
 void Fleet::assignT(int pos1, int pos2, Fleet source) {
-  // cout << "assignT" << endl;
-  fleet[pos1]->reassignC(source.fleet[pos1]);
-  fleet[pos2]->reassignC(source.fleet[pos2]);
+    // cout << "assignT" << endl;
+    fleet[pos1]->reassignC(source.fleet[pos1]);
+    fleet[pos2]->reassignC(source.fleet[pos2]);
 }
 
 // Assigns a fleet object to "this".
 void Fleet::assign_all(Fleet source) {
-  // cout << "assign all" << endl;
+    // cout << "assign all" << endl;
     for (int i=0; i!=(int)source.fleet.size(); i++) {
-    fleet[i]->assignC(source.fleet[i]);
-  }
-  // cout << "fleet size: " << fleet.size() << endl;
-  total_cost=source.total_cost;
-  unused_delspace=source.unused_delspace;
+	fleet[i]->assignC(source.fleet[i]);
+    }
+    // cout << "fleet size: " << fleet.size() << endl;
+    total_cost=source.total_cost;
+    unused_delspace=source.unused_delspace;
 }
 
 // Same as assign_all.
 void Fleet::assign_best(Fleet source) {
-  // cout << "assign best" << endl;
+    // cout << "assign best" << endl;
     for (int i=0; i!=(int)source.fleet.size(); i++) {
-    fleet[i]->reassignC(source.fleet[i]);
-  }
-  // cout << "fleet size: " << fleet.size() << endl;
-  total_cost=source.total_cost;
-  unused_delspace=source.unused_delspace;
+	fleet[i]->reassignC(source.fleet[i]);
+    }
+    // cout << "fleet size: " << fleet.size() << endl;
+    total_cost=source.total_cost;
+    unused_delspace=source.unused_delspace;
 }

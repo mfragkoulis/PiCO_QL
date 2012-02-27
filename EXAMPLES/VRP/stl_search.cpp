@@ -118,7 +118,7 @@ int Trucks_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
     stlTableCursor *stcsr = (stlTableCursor *)cur;
     vector<Truck*>* any_dstr = (vector<Truck*>*)stcsr->source;
     vector<Truck*>:: iterator iter;
-    int op, iCol, count = 0, i = 0, re = 0;
+    int op, iCol, i = 0, count = 0, re = 0;
     int size = get_datastructure_size(cur);
     if ( val==NULL ){
         for (int j=0; j<size; j++){
@@ -152,7 +152,7 @@ int Truck_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
     stlTable *stl = (stlTable *)cur->pVtab;
     stlTableCursor *stcsr = (stlTableCursor *)cur;
     Truck* any_dstr = (Truck*)stcsr->source;
-    int op, iCol, count = 0, i = 0, re = 0;
+    int op, iCol, i = 0, count = 0, re = 0;
     int size;
     if ( stl->zErr ) {
         sqlite3_free(stl->zErr);
@@ -212,7 +212,7 @@ int Customers_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val)
     stlTableCursor *stcsr = (stlTableCursor *)cur;
     vector<Customer*>* any_dstr = (vector<Customer*>*)stcsr->source;
     vector<Customer*>:: iterator iter;
-    int op, iCol, count = 0, i = 0, re = 0;
+    int op, iCol, i = 0, count = 0, re = 0;
     int size;
     if ( stl->zErr ) {
         sqlite3_free(stl->zErr);
@@ -266,7 +266,7 @@ int Customer_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
     stlTable *stl = (stlTable *)cur->pVtab;
     stlTableCursor *stcsr = (stlTableCursor *)cur;
     Customer* any_dstr = (Customer*)stcsr->source;
-    int op, iCol, count = 0, i = 0, re = 0;
+    int op, iCol, i = 0, count = 0, re = 0;
     int size;
     if ( stl->zErr ) {
         sqlite3_free(stl->zErr);
@@ -330,7 +330,7 @@ int Position_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
     stlTable *stl = (stlTable *)cur->pVtab;
     stlTableCursor *stcsr = (stlTableCursor *)cur;
     Position* any_dstr = (Position*)stcsr->source;
-    int op, iCol, count = 0, i = 0, re = 0;
+    int op, iCol, i = 0, count = 0, re = 0;
     int size;
     if ( stl->zErr ) {
         sqlite3_free(stl->zErr);
@@ -387,7 +387,7 @@ int MapIndex_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
     stlTableCursor *stcsr = (stlTableCursor *)cur;
     map<int,Customer*>* any_dstr = (map<int,Customer*>*)stcsr->source;
     map<int,Customer*>:: iterator iter;
-    int op, iCol, count = 0, i = 0, re = 0;
+    int op, iCol, i = 0, count = 0, re = 0;
     int size = get_datastructure_size(cur);
     if ( val==NULL ){
         for (int j=0; j<size; j++){

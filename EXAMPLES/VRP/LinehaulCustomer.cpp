@@ -24,8 +24,8 @@ LinehaulCustomer::LinehaulCustomer(string c, int d, Position* pos,
 				   bool depot) : Customer( c, d, pos, depot ) {
   coord_l.insert( make_pair(c, pos) );
   list_l.push_back(this);
-//  list_ll.push_back(this);
-  // cout << this->get_code() << " " << c << endl;
+  if ( depot ) list_ll.push_back(this);
+//  cout << this->get_code() << " " << c << << ", serviced: " << depot << endl;
   count_l++;
 }
 
@@ -38,9 +38,10 @@ bool LinehaulCustomer::get_allLserviced() {
 void LinehaulCustomer::set_allLserviced() {
     if ( !all_Lserviced ){
 	all_Lserviced=true;
-	Customer::set_allserviced();               // This is the case in 
-                                                   // this distribution.
     } else all_Lserviced=false;
+
+    Customer::set_allserviced();               // This is the case in 
+                                               // this distribution.
 }
 
 // Returns the list of Linehaul customers.
@@ -82,10 +83,10 @@ LinehaulCustomer* LinehaulCustomer::random_sel(int& pos, int i) {
 	                                      // not eligible for selection.
 	}
 	/* cout <<  "Linehaul customer selected : " << 
-	   list_a[pos]->get_code() << " at position : " << pos << endl; */
+	   (*list_a)[pos]->get_code() << " at position : " << pos << endl; */
 	return (*list_a)[pos];
     } else {
-	// cout << "NULL" << endl;
+	// cout << "NULL!!" << endl;
 	LinehaulCustomer::set_allLserviced();
 	return NULL;
     }

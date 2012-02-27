@@ -78,14 +78,14 @@ int main(int argc, const char *argv[]) {
 		total_dem += demand;
 		positions.push_back( new Position(x,y) );
 		while ((int)code.length() < code_length) code = "0" + code;
-		( number==0 ) ? is_depot = true : is_depot = false;
+		( number==23 ) ? is_depot = true : is_depot = false;
 		line.push_back( new LinehaulCustomer(code, demand, 
 						     positions.back(), 
 						     is_depot) );
 		test.insert(pair<int, Customer *>(number, line.back()));
 		/* cout << "number: " << (number/7)-2 << ", code: " << code << 
 		    " x: " << x << " y: " << y << " demand: " << 
-		    demand << endl; */
+		    demand << ", serviced: " << is_depot << endl; */
 	    }
 	}
 	number++;
@@ -165,22 +165,32 @@ int main(int argc, const char *argv[]) {
 		    }else if (keep_track_cpt <lowest_dem-l->get_demand() ){
                                                          //No chance,load new.
 			candidate_fl->get_current()->return_todepot();
-			cout << "The total cost of delivery for the " <<
+			/* cout << "The total cost of delivery for the " <<
 			    "truck amounts to " << 
 			    candidate_fl->get_current()->get_cost() << 
 			    " and there are " << 
 			    candidate_fl->get_current()->get_delcapacity() << 
 			    "/" << keep_track_cpt <<
-			    " units of unused space left." << endl << endl;
+			    " units of unused space left." << endl << endl; */
 			candidate_fl->add();
 			keep_track_cpt=Truck::get_initcapacity();
 			extra_shots = 4;
 		    }
 		    extra_shots += 1;
 		}
+	    } else {
+		candidate_fl->get_current()->return_todepot();
+		extra_shots = 5;
+		/* cout << "NULL:The total cost of delivery for the " <<
+		    "truck amounts to " << 
+		    candidate_fl->get_current()->get_cost() << 
+		    " and there are " << 
+		    candidate_fl->get_current()->get_delcapacity() << 
+		    "/" << keep_track_cpt <<
+		    " units of unused space left." << endl << endl; */
 	    }
 	}
-	Customer::set_allserviced();
+	Customer::set_allserviced();                // Reset the flag.
 	candidate_fl->set_delspace();
 	candidate_fl->set_totalcost();
 	cout << " END OF SCHEDULING " << endl << endl;

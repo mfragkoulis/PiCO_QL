@@ -28,6 +28,8 @@ class Truck {
   int get_delcapacity();
   vector < Customer * > * get_Customers();
   static int get_initcapacity();
+  vector < Customer* >::iterator finish();
+  vector < Customer* >::iterator start();
   void exchange( Truck* t, bool& trap, bool same);
   void rearrange(int pos, string& pre, string& mid, string& other_mid, 
 		 string& next);

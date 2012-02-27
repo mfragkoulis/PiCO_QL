@@ -52,6 +52,7 @@ bool Customer::get_allserviced() {
 void Customer::set_allserviced() {
   if (!all_serviced) all_serviced=true;
   else all_serviced=false;
+  // cout << "all_serviced: " << all_serviced << endl;
 }
 
 

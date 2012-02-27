@@ -406,7 +406,7 @@ RAL
     if @stl_class.length > 0
       fw.puts "    #{sign_untype}:: iterator iter;"
     end
-    fw.puts "    int op, iCol, count = 0, re = 0;"
+    fw.puts "    int op, iCol, i = 0, count = 0, re = 0;"
     if @base_var.length > 0
       fw.puts "    int size = get_datastructure_size(cur);"
     else
