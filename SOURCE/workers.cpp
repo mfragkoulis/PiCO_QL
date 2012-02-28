@@ -7,6 +7,8 @@
 
 using namespace std;
 
+// Reallocates the space allocated to the resultset struct.
+// Useful for embedded stl data structures.
 int realloc_resultset(sqlite3_vtab_cursor *cur) {
     stlTableCursor *stcsr = (stlTableCursor *)cur;
     int arraySize;
@@ -31,7 +33,7 @@ int realloc_resultset(sqlite3_vtab_cursor *cur) {
     return SQLITE_OK;
 }
 
-
+// Compares two integers and returns the result of the comparison.
 int compare(int dstr_value, int op, int value){
     switch( op ){
     case 0:
@@ -47,7 +49,7 @@ int compare(int dstr_value, int op, int value){
     }
 }
 
-
+// Compares two long integers and returns the result of the comparison.
 int compare(long int dstr_value, int op, long int value){
     switch( op ){
     case 0:
@@ -64,6 +66,7 @@ int compare(long int dstr_value, int op, long int value){
 }
 
 
+// Compares two doubles and returns the result of the comparison.
 int compare(double dstr_value, int op, double value){
     switch( op ){
     case 0:
@@ -80,6 +83,8 @@ int compare(double dstr_value, int op, double value){
 }
 
 
+// Compares two void pointers and returns the result of the comparison.
+// Mem comparison.
 int compare(const void *dstr_value, int op, const void *value){
     switch( op ){
     case 0:
@@ -95,7 +100,7 @@ int compare(const void *dstr_value, int op, const void *value){
     }
 }
 
-
+// Compares two arrays of characters and returns the result of the comparison.
 int compare(const unsigned char *dstr_value, int op,
 	    const unsigned char *value){
     switch( op ){
@@ -113,6 +118,8 @@ int compare(const unsigned char *dstr_value, int op,
 }
 
 
+// Compares the current resultset with the one stored in the cursor.
+// Their intersection survives.
 int compare_res(int count, stlTableCursor *stcsr, int *temp_res) {
     int ia, ib;
     int *i_res;
@@ -149,7 +156,7 @@ int compare_res(int count, stlTableCursor *stcsr, int *temp_res) {
     return SQLITE_OK;
 }
 
-
+// Interprets the structure of constraint to operation and column it regards.
 void check_alloc(const char *constr, int &op, int &iCol) {
     switch( constr[0] - 'A' ){
     case 0:

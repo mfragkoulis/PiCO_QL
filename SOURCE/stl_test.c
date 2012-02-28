@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-// Takes care of query preparation and execution.
+// Takes care of query preparation and execution. Writes results to file.
 int test_prep_exec(FILE *f, sqlite3 *db, const char *q){
   sqlite3_stmt  *stmt;
   int result, col, prepare;

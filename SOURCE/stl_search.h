@@ -7,13 +7,14 @@
 extern "C" {
 #endif
 
-  typedef struct {sqlite3_vtab vtab;
+  typedef struct {sqlite3_vtab vtab;             // The virtual table struct.
     sqlite3 *db; const char *zDb;
     const char *zName; int embedded; int nColumn; char **azColumn;
     void *data; char *zErr;} stlTable;
 
   typedef struct {sqlite3_vtab_cursor pCsr; int max_size; int *resultSet;
-    int size; int current; int isEof; int first_constr; void *source;} stlTableCursor; 
+    int size; int current; int isEof; int first_constr; void *source;} stlTableCursor;                                         // The cursor struct for the 
+                                                // virtual table.
 
   int call_sqtl();
   void fill_module(sqlite3_module *stl);

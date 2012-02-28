@@ -13,10 +13,11 @@ int prep_exec(FILE *f, sqlite3 *db, const char *q){
       result = file_prep_exec(f, stmt, q);
       fprintf(f, "\n");
     } else result = sqlite3_step(stmt);
-    // step only: queries with no resultset (check if table exists)
-    // for those queries preparation will always succeed.
+    // Step only: queries with no resultset (check if table exists).
+    // For those queries preparation will always succeed.
   } else {
-    if (f) swill_fprintf(f, "Error in preparation of query: error no %i\n", prepare);
+    if (f) swill_fprintf(f, "Error in preparation of query: error no %i\n", 
+			 prepare);
     return prepare;
   }
   sqlite3_finalize(stmt);
@@ -61,6 +62,8 @@ int step_query(FILE *f, sqlite3_stmt *stmt) {
     return result;
 }
 
+// Calls step_query for query execution. 
+// Collects and acts on the result status of a query execution.
 int file_prep_exec(FILE *f, sqlite3_stmt *stmt, const char *q){
   int result;
   result = step_query(f, stmt);
@@ -203,7 +206,7 @@ void terminate(FILE *f, sqlite3 *db){
   swill_close();
 }
 
-
+// Interface to the swill server functionality.
 void call_swill(sqlite3 *db){
   swill_init(8080);
   swill_handle("index.html", app_index, db);
@@ -214,6 +217,8 @@ void call_swill(sqlite3 *db){
   }
 }
 
+// Executes the SQL CREATE queries, opens the sqlite database connection and 
+// calls swill or stl_test depending on the compile flag TEST.
 int register_table(const char *nDb, int argc, const char **q, const char **table_names, void *data){
   // This definition implicitly constraints a table name to 140 characters.
   // It should be more than enough.

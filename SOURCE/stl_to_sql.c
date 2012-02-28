@@ -5,7 +5,7 @@
 #include "stl_to_sql.h"
 #include "stl_search.h"
 
-// construct the sql query
+// Constructs the SQL CREATE query.
 void create(sqlite3 *db, int argc, const char * const * as, char *q){ 
   int i;
   q[0] = '\0';
@@ -23,6 +23,8 @@ void create(sqlite3 *db, int argc, const char * const * as, char *q){
 #endif
 }
 
+// Creates/connects a virtual table to the provided database.
+// isCreate for activating e.g. extra storage utilised. Not used so far.
 int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc, 
 		const char * const * argv, sqlite3_vtab **ppVtab,
 		char **pzErr){
@@ -79,21 +81,6 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc,
       return SQLITE_ERROR;
     }else if( output==0 ){
       *ppVtab = &stl->vtab;
-/*
-      dsArray *dsC = (dsArray *)paux;
-      int size = dsC->size;
-      for (i=0; i<size; i++) {
-	if ( !strcmp(dsC->ds[i]->dsName, stl->zName) ) {
-	  stl->data = (void *)dsC->ds[i]->memory;
-	  stl->embedded = 0;
-	  break;
-	}
-      }
-      if ( i == size ) {
-	stl->data = NULL;
-	stl->embedded = 1;
-      }
-*/
       register_vt(stl);
 #ifdef DEBUG
       printf("Virtual table declared successfully\n");
@@ -127,6 +114,7 @@ int create_vtable(sqlite3 *db, void *paux, int argc,
   return init_vtable(1, db, paux, argc, argv, ppVtab, pzErr);
 }
 
+// SQL update. Not provided.
 int update_vtable(sqlite3_vtab *pVtab, int argc, sqlite3_value **argv,
 		  sqlite_int64 *pRowid){
   return SQLITE_OK;
@@ -144,7 +132,7 @@ int destroy_vtable(sqlite3_vtab *ppVtab){
   return result;
 }
 
-// xDisconnect
+// xDisconnect. Called when closing a database connection.
 int disconnect_vtable(sqlite3_vtab *ppVtab){
   stlTable *s=(stlTable *)ppVtab;
 #ifdef DEBUG
@@ -154,6 +142,7 @@ int disconnect_vtable(sqlite3_vtab *ppVtab){
   return SQLITE_OK;
 }
 
+// Helper function for structuring an SQL WHERE constraint.
 void eval_constraint(int sqlite3_op, char iCol, int *j, char *nidxStr, int nidxLen) {
   char op;
   switch ( sqlite3_op ){
@@ -180,7 +169,8 @@ void eval_constraint(int sqlite3_op, char iCol, int *j, char *nidxStr, int nidxL
   nidxStr[(*j)++] = iCol;
 }
 
-// xBestindex
+// xBestindex. Defines the query plan for an SQL query. 
+// Might be called multiple times with alternate plans.
 int bestindex_vtable(sqlite3_vtab *pVtab, sqlite3_index_info *pInfo){
   stlTable *st=(stlTable *)pVtab;
   if ( pInfo->nConstraint>0 ){            // no constraint no setting up
@@ -245,7 +235,8 @@ int bestindex_vtable(sqlite3_vtab *pVtab, sqlite3_index_info *pInfo){
   return SQLITE_OK;
 }
 
-// xFilter
+// xFilter. Filters an SQL query. Calls the search family of callbacks 
+// at stl_search.cpp.
 int filter_vtable(sqlite3_vtab_cursor *cur, int idxNum, const char *idxStr,
 		  int argc, sqlite3_value **argv){
   stlTableCursor *stc=(stlTableCursor *)cur;
@@ -289,7 +280,7 @@ int filter_vtable(sqlite3_vtab_cursor *cur, int idxNum, const char *idxStr,
   return next_vtable(cur);
 }
 
-//xNext
+//xNext. Advances the cursor to next record of resultset.
 int next_vtable(sqlite3_vtab_cursor *cur){
   stlTable *st=(stlTable *)cur->pVtab;
   stlTableCursor *stc=(stlTableCursor *)cur;
@@ -303,7 +294,8 @@ int next_vtable(sqlite3_vtab_cursor *cur){
 }
 
 
-// xOpen
+// xOpen. Opens the virtual table struct to be used in an SQL query.
+// Triggered by the FROM clause. Initialises cursor.
 int open_vtable(sqlite3_vtab *pVtab, sqlite3_vtab_cursor **ppCsr){
   stlTable *st=(stlTable *)pVtab;
   int arraySize;
@@ -332,14 +324,15 @@ int open_vtable(sqlite3_vtab *pVtab, sqlite3_vtab_cursor **ppCsr){
     arraySize = get_datastructure_size(pCsr);
     pCsr->pVtab = NULL;
   } else 
-    arraySize = 1;
+    arraySize = 1;     // Embedded struct. Size will be synced in search 
+                       // when powered from source.
 
   stc->max_size = arraySize;
 #ifdef DEBUG
   printf("ppCsr = %lx, pCsr = %lx \n", (long unsigned int)ppCsr, (long unsigned int)pCsr);
 #endif
   // A data structure to hold index positions of resultset so that in the end
-  // of loops the remaining resultset is the wanted one. 
+  // of the constraint evaluation the remaining resultset is the wanted one. 
   stc->resultSet = (int *)sqlite3_malloc(sizeof(int) * arraySize);
   if( !stc->resultSet ){
     return SQLITE_NOMEM;
@@ -348,16 +341,17 @@ int open_vtable(sqlite3_vtab *pVtab, sqlite3_vtab_cursor **ppCsr){
   return SQLITE_OK;
 }
 
-//xColumn
+//xColumn. Calls the retrieve family of functions at stl_search.cpp.
+// Returns the value of column $n for record pointed at by $cur.
 int column_vtable(sqlite3_vtab_cursor *cur, sqlite3_context *con, int n){
   return retrieve(cur, n, con);
 }
 
-//xRowid
+//xRowid. Returns the rowid of record pointed at by $cur in integer format.
 int rowid_vtable(sqlite3_vtab_cursor *cur, sqlite_int64 *pRowid){
 }
 
-//xClose
+//xClose. Closes the virtual table after the completion of a query.
 int close_vtable(sqlite3_vtab_cursor *cur){
   stlTable *st=(stlTable *)cur->pVtab;
   stlTableCursor *stc=(stlTableCursor *)cur;
@@ -369,12 +363,13 @@ int close_vtable(sqlite3_vtab_cursor *cur){
   return SQLITE_OK;
 }
 
-//xEof
+//xEof. Signifies the end of resultset.
 int eof_vtable(sqlite3_vtab_cursor *cur){
   return ((stlTableCursor *)cur)->isEof;
 }
 
-// Fill module's function pointers with implemented callback functions.
+// Fills virtual table module's function pointers with implemented callback 
+// functions.
 void fill_module(sqlite3_module *m){
   m->iVersion = 1;
   m->xCreate = create_vtable;

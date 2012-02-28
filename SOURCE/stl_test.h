@@ -3,6 +3,6 @@
 
 #include "sqlite3.h"
 
-int call_test(sqlite3 *db);
+int call_test(sqlite3 *db);      // The interface for testing purposes.
 
 #endif
