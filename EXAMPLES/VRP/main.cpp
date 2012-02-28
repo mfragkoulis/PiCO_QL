@@ -78,7 +78,8 @@ int main(int argc, const char *argv[]) {
 		total_dem += demand;
 		positions.push_back( new Position(x,y) );
 		while ((int)code.length() < code_length) code = "0" + code;
-		( number==23 ) ? is_depot = true : is_depot = false;
+		( number==23 ) ? is_depot = true : is_depot = false; // 19 + 
+                                                                     // case 4.
 		line.push_back( new LinehaulCustomer(code, demand, 
 						     positions.back(), 
 						     is_depot) );

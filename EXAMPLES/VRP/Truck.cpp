@@ -82,13 +82,14 @@ void Truck::return_todepot() {
        endl; */
 }
 
-
+// Returns iterator to beginning of Truck.
 vector < Customer* >::iterator Truck::start() {
     vector < Customer* >::iterator iter;
     iter=cargoArray.begin();
     return iter;
 }
 
+// Returns iterator to end of Truck.
 vector < Customer* >::iterator Truck::finish() {
     vector < Customer* >::iterator iter;
     iter=cargoArray.end();
@@ -229,7 +230,8 @@ void Truck::rearrange(int pos, string& pre, string& mid, string& next) {
     ", next: " << next << endl; */
 }
 
-// Subtracts costs of ssubroutes related to customers selected to swap places.
+// Subtracts costs of subroutes related to customers in the same Truck 
+// selected to swap places.
 void Truck::rearrange(int pos, string& pre, string& mid, string& other_mid, 
 		      string& next) {
     // cout << "rearrange" << endl;
@@ -313,7 +315,7 @@ void Truck::add_costs(int pos, string pre, string mid, string next) {
     if (cost<0) cout << "COST VIOLATION.\n\n";
 }
 
-// Recalculates costs of the engaged trucks after the exchange.
+// Recalculates costs in the same truck after the exchange.
 void Truck::add_costs(int pos, string pre, string mid, string other_mid, 
 		      string next) {
     // cout << "add" << endl;
@@ -365,7 +367,8 @@ void Truck::add_costs(int pos, string pre, string mid, string other_mid,
 }
 
 
-// Assigns a Truck service to "this" as part of the optimisation process.
+// Assigns a Truck service to "this" as part of the optimisation process 
+// (copy fleet).
 void Truck::assignC(Truck* t) {
   // cout << "assignC" << endl;
     for (int i=0; i!=(int)t->cargoArray.size();i++) {
@@ -380,7 +383,7 @@ void Truck::assignC(Truck* t) {
   info=t->info;
 }
 
-// SAme as assignC.
+// Reassigns customers of Truck *t to "this" truck.
 void Truck::reassignC(Truck* t) {
   // cout << "reassignC" << endl;
     for (int i=0; i!=(int)t->cargoArray.size();i++) {

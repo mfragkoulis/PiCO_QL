@@ -199,23 +199,23 @@ void Fleet::nested(Fleet& new_fleet, Fleet* optimised_fl, double temperature,
   }
 */
 
-      assignT(pos1, pos2, new_fleet);
+	assignT(pos1, pos2, new_fleet);
 
-      /*      
-	      for (iter=fleet.begin(); iter!=fleet.end(); iter++) {
-	      cout << "current truck : " << iter - fleet.begin() << endl;
-	      for (it=(*iter)->start(); it!=(*iter)->finish(); it++) {
-	      cout << (*it)->get_code() << endl;
-	      }
-	      cout << endl;
-	      }
-      */
+	/*      
+		for (iter=fleet.begin(); iter!=fleet.end(); iter++) {
+		cout << "current truck : " << iter - fleet.begin() << endl;
+		for (it=(*iter)->start(); it!=(*iter)->finish(); it++) {
+		cout << (*it)->get_code() << endl;
+		}
+		cout << endl;
+		}
+	*/
 
-      total_cost=new_fleet.total_cost;
-      unused_delspace=new_fleet.unused_delspace;
+	total_cost=new_fleet.total_cost;
+	unused_delspace=new_fleet.unused_delspace;
       
-      if (total_cost < optimised_fl->total_cost) {
-	  optimised_fl->assign_best(*this);
+	if (total_cost < optimised_fl->total_cost) {
+	    optimised_fl->assign_best(*this);
 /*
   for (iter=(optimised_fl->fleet).begin(); iter!=(optimised_fl->fleet).end(); 
   iter++) {
@@ -227,7 +227,7 @@ void Fleet::nested(Fleet& new_fleet, Fleet* optimised_fl, double temperature,
   cout << endl;
   }
 */
-      }
+	}
     }
     else if ( v < exp(-(new_fleet.total_cost - total_cost) / temperature)) {
 	// cout << "worse but accepted" << endl;
@@ -312,8 +312,10 @@ again:
     */
 }
 
-// Arranges the swapping of Customers between trucks as part of the 
-// optimisation process.
+// Arranges the swapping of Customers between two trucks as part of the 
+// optimisation process (when accepting a solution).
+// Brute force: Swap customers between the two trucks engaged in the 
+// last exchange.
 void Fleet::assignT(int pos1, int pos2, Fleet source) {
     // cout << "assignT" << endl;
     fleet[pos1]->reassignC(source.fleet[pos1]);
@@ -331,7 +333,7 @@ void Fleet::assign_all(Fleet source) {
     unused_delspace=source.unused_delspace;
 }
 
-// Same as assign_all.
+// Reassigns to a fleet (optimised) the best solution found so far.
 void Fleet::assign_best(Fleet source) {
     // cout << "assign best" << endl;
     for (int i=0; i!=(int)source.fleet.size(); i++) {
