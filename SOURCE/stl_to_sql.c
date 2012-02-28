@@ -44,6 +44,7 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc,
     return SQLITE_NOMEM;
   }
   memset(stl, 0, nByte);
+  stl->zErr = NULL;
   stl->db = db;
   stl->nColumn = nCol;
   stl->azColumn=(char **)&stl[1];
@@ -201,6 +202,13 @@ int bestindex_vtable(sqlite3_vtab *pVtab, sqlite3_index_info *pInfo){
 	pInfo->aConstraintUsage[i].omit = 1;
       }
     } else {
+      if ( st->zErr!=NULL ) {
+	sqlite3_free(st->zErr);
+	st->zErr = NULL;
+#ifdef DEBUG
+	printf("zErr freed for %s\n", st->zName);
+#endif
+      }
       for(i=0; i<pInfo->nConstraint; i++){
 	struct sqlite3_index_constraint *pCons = &pInfo->aConstraint[i];
 	if( pCons->usable==0 ) continue;
@@ -208,13 +216,14 @@ int bestindex_vtable(sqlite3_vtab *pVtab, sqlite3_index_info *pInfo){
 	nCol = pCons->iColumn;
 	if ( !equals_base(st->azColumn[nCol]) ) continue;
 	eval_constraint(pCons->op, iCol, &j, nidxStr, nidxLen);
-	sqlite3_free(st->zErr);
-	st->zErr = NULL;
 	pInfo->aConstraintUsage[i].argvIndex = 1;
 	pInfo->aConstraintUsage[i].omit = 1;
       }
       if ( j == 0 ) {
-	st->zErr = sqlite3_mprintf("Query VT with no usable BASE constraint. Abort.\n");
+	st->zErr = sqlite3_mprintf("Query VT with no usable BASE constraint.Abort.\n");
+#ifdef DEBUG
+	printf("j=0: NO BASE for %s\n", st->zName);
+#endif
 	return SQLITE_OK;
       }
       int counter = 2;

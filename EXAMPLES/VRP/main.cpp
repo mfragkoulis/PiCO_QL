@@ -9,6 +9,7 @@
 #include <ctime>
 #include "mtrand.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include "stl_search.h"     // For SQTL
 
 using namespace std;

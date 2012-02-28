@@ -1,4 +1,5 @@
 #include <math.h>
+#include <stdlib.h>
 #include "Fleet.h"
 #include <iostream>
 #include <fstream>
