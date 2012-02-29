@@ -116,7 +116,7 @@ int SuperAccounts_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *
     stlTableCursor *stcsr = (stlTableCursor *)cur;
     map<string,SuperAccount>* any_dstr = (map<string,SuperAccount>*)stcsr->source;
     map<string,SuperAccount>:: iterator iter;
-    int op, iCol, count = 0, i = 0, re = 0;
+    int op, iCol, i = 0, count = 0, re = 0;
     int size = get_datastructure_size(cur);
     if ( val==NULL ){
         for (int j=0; j<size; j++){
@@ -193,7 +193,7 @@ int Accounts_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
     stlTableCursor *stcsr = (stlTableCursor *)cur;
     vector<Account>* any_dstr = (vector<Account>*)stcsr->source;
     vector<Account>:: iterator iter;
-    int op, iCol, count = 0, i = 0, re = 0;
+    int op, iCol, i = 0, count = 0, re = 0;
     int size = get_datastructure_size(cur);
     if ( val==NULL ){
         for (int j=0; j<size; j++){
@@ -270,7 +270,7 @@ int Specialaccounts_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value
     stlTableCursor *stcsr = (stlTableCursor *)cur;
     list<SpecialAccount>* any_dstr = (list<SpecialAccount>*)stcsr->source;
     list<SpecialAccount>:: iterator iter;
-    int op, iCol, count = 0, i = 0, re = 0;
+    int op, iCol, i = 0, count = 0, re = 0;
     int size = get_datastructure_size(cur);
     if ( val==NULL ){
         for (int j=0; j<size; j++){

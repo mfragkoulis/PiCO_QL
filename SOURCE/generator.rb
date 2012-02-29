@@ -1,15 +1,23 @@
+# Models a column of the virtual table
 class Column
   def initialize
     @name = ""
     @data_type = ""
-    @cpp_data_type = ""
-    @related_to = ""
-    @access_path = ""
-    @type = ""
-    @@int_data_types = ["int", "integer", "tinyint", "smallint", "mediumint", "bigint", "unsigned bigint", "int2", "bool", "boolean", "int8", "numeric"]
+    @cpp_data_type = ""       # respective C++ data type. Used only 
+                              # for string so far.
+    @related_to = ""          # Reference to other VT(like a FK).
+    @access_path = ""         # The access statement for the column value.
+    @type = ""                # Record type (pointer or reference) for 
+                              # special columns, the ones that refer to 
+                              # other VT.
+    @@int_data_types = ["int", "integer", "tinyint", "smallint", 
+                        "mediumint", "bigint", "unsigned bigint", "int2",
+                        "bool", "boolean", "int8", "numeric"]
     @@double_data_types = ["float", "double", "double precision", "real"]
     @@text_data_types = ["text", "date", "datetime", "clob", "string"]
-    @@text_match_data_types = [/character/i, /varchar/i, /nvarchar/i, /varying character/i, /native character/i, /nchar/i]
+    @@text_match_data_types = [/character/i, /varchar/i, /nvarchar/i, 
+                               /varying character/i, /native character/i,
+                               /nchar/i]
   end
   attr_accessor(:name,:data_type,:related_to,:access_path,:type)
 
@@ -30,11 +38,14 @@ end
                      column_cast_back, access_path)
     match_text_array = Array.new
     match_text_array.replace(@@text_match_data_types)
-    if @related_to.length > 0
+    if @related_to.length > 0       # Column refers to other virtual table.
       if sqlite3_type == "search" 
         return "fk", nil, nil 
       elsif sqlite3_type == "retrieve"
-        /_ptr/.match(@name) ? @type = "pointer" : @type = "object"
+        /_ptr/.match(@name) ? @type = "pointer" : @type = "object"   # In
+                        # columns that reference other virtual tables
+                        # users have to declare the type for generating
+                        # correct access statement.
         sqlite3_type.replace("int64")
         column_cast.replace("(long int)")
         access_path.replace(@access_path)
@@ -46,12 +57,14 @@ end
       s_type.replace(sqlite3_type)
       sqlite3_type.replace("int64")
       column_cast.replace("(long int)")
+####
       case s_type
       when "search"
         return "base", nil, nil
       when "retrieve"  
         return "base", nil, nil
       end
+####
     end
     dt = @data_type.downcase
     if @@int_data_types.include?(dt)
@@ -63,7 +76,8 @@ end
     elsif @@double_data_types.include?(dt) ||
         /decimal/i.match(dt)
       sqlite3_type.replace("double")
-    elsif @@text_data_types.include?(dt) || match_text_array.reject! { |rgx| rgx.match(dt) != nil } != nil
+    elsif @@text_data_types.include?(dt) || 
+        match_text_array.reject! { |rgx| rgx.match(dt) != nil } != nil
       case sqlite3_type
       when "search"
         column_cast.replace("(const unsigned char *)")
@@ -71,7 +85,8 @@ end
         column_cast.replace("(const char *)")
       end
       sqlite3_type.replace("text")
-      if @cpp_data_type == "string" : column_cast_back.replace(".c_str()") end
+      if @cpp_data_type == "string" : 
+          column_cast_back.replace(".c_str()") end
       sqlite3_parameters.replace(", -1, SQLITE_STATIC")
     end
     access_path.replace(@access_path)
@@ -79,7 +94,7 @@ end
   end
 
 
-# Validates a column data type
+# Validates a column data type.
 # The following data types are the ones accepted by sqlite.
   def verify_data_type()
     dt = @data_type.downcase
@@ -88,7 +103,10 @@ end
     if dt == "string"
       @cpp_data_type.replace(dt)
       @data_type.replace("TEXT")
-    elsif @@int_data_types.include?(dt) || @@double_data_types.include?(dt) || /decimal/i.match(dt) != nil || @@text_data_types.include?(dt) || match_text_array.reject! { |rgx| rgx.match(dt) != nil } != nil
+    elsif @@int_data_types.include?(dt) || 
+        @@double_data_types.include?(dt) || /decimal/i.match(dt) != nil ||
+        @@text_data_types.include?(dt) || 
+        match_text_array.reject! { |rgx| rgx.match(dt) != nil } != nil
       return dt
     else
       raise TypeError.new("No such data type #{dt.upcase}\\n")
@@ -115,24 +133,34 @@ end
       index = 0
       this_element = $elements.last
       this_columns = this_element.columns
-      $elements.each { |el| 
-        if el.name == matchdata[1]
+      $elements.each { |el|        # Search all element definitions to 
+        if el.name == matchdata[1] # find the one specified and include it.
           index = this_element.columns.length - 2
           if index < 0 : index = 0 end
           this_element.columns_delete_last()
           el.columns.each_index { |col| 
-            coln = el.columns[col]
-            this_columns.push(Column.new) 
-            this_columns.last.construct(coln.name.clone, coln.data_type.clone, coln.related_to.clone, coln.access_path.clone, coln.type.clone)
+            coln = el.columns[col]         # Manually construct a deep copy
+            this_columns.push(Column.new)  # of coln and push it to 'this'.
+            this_columns.last.construct(coln.name.clone, 
+                                        coln.data_type.clone, 
+                                        coln.related_to.clone, 
+                                        coln.access_path.clone, 
+                                        coln.type.clone)
           }
         end
       }
-      this_columns.each_index { |col| if col > index : this_columns[col].access_path.replace(matchdata[2] + this_columns[col].access_path) end 
+      this_columns.each_index { |col|      # Adapt access path.
+        if col > index : 
+            this_columns[col].access_path.replace(matchdata[2] + 
+                                                  this_columns[col].access_path) end
       }
       return
     when column_ptn2
       matchdata = column_ptn2.match(column)
-      $elements.each { |el| if el.name == matchdata[1] : $elements.last.columns = $elements.last.columns_delete_last() | el.columns end 
+      $elements.each { |el| if el.name == matchdata[1] : 
+                                $elements.last.columns = 
+                                $elements.last.columns_delete_last() | 
+                                el.columns end 
       }
       return
     when column_ptn3
@@ -160,7 +188,7 @@ end
 
 end
 
-
+# Models a view.
 class View
   def initialize
     @name = ""
@@ -171,7 +199,8 @@ class View
   attr_accessor(:name,:db,:virtual_tables,:where_clauses)
 
   def match_view(view_description)
-    view_ptn = /^create view (\w+)\.(\w+) as select \* from (.+) where(\s*) (.+)/im
+    view_ptn = 
+      /^create view (\w+)\.(\w+) as select \* from (.+) where(\s*) (.+)/im
     puts view_description
     matchdata = view_ptn.match(view_description)
     @name = matchdata[2]
@@ -183,7 +212,8 @@ class View
     else
       raise "Invalid input for virtual tables: " + vts
     end
-    where.match(/ and /im) ? @where_clauses = where.split(/ and /) : @where_clauses = where
+    where.match(/ and /im) ? @where_clauses = where.split(/ and /) : 
+      @where_clauses = where
     puts "View name is: " + @name
     puts "View lives in database named: " + @db
     @virtual_tables.each { |vt| puts "View of virtual tables: " + vt }
@@ -192,27 +222,28 @@ class View
 
 end
 
-
+# Models a virtual table.
 class VirtualTable
   def initialize
     @name = ""
-    @base_var = ""
-    @element
-    @db = ""
-    @signature = ""
-    @stl_class = ""
-    @type = ""
-    @pointer = ""
-    @object_class = ""
-    @template_args = ""
-    @columns = Array.new
+    @base_var = ""        # Name of the base variable alive at C++ app.
+    @element              # Reference to the respective element definition.
+    @db = ""              # Database name to be created/connected.
+    @signature = ""       # The C++ signature of the struct.
+    @stl_class = ""       # If an STL struct instance.
+    @type = ""            # The record type for the VT.
+    @pointer = ""         # Type of the base_var.
+    @object_class = ""    # If an object instance.
+    @template_args = ""   # For STL structs, number of template arguments.
+    @columns = Array.new  # References to the VT columns.
     @@stl_single_classes = ["list" , "deque" , "vector" , "set" , 
                             "multiset"]
     @@stl_double_classes = ["map" , "multimap"]
     @@stl_sequence_classes = ["list", "vector", "deque"]
     @@stl_associative_classes = ["set" , "multiset" , "map" , "multimap"]
   end
-  attr_accessor(:name,:base_var,:element,:db,:signature,:stl_class,:type,:pointer,:object_class,:template_args,:columns)
+  attr_accessor(:name,:base_var,:element,:db,:signature,:stl_class,:type,
+                :pointer,:object_class,:template_args,:columns)
 
 
 # Method performs case analysis to generate 
@@ -240,7 +271,11 @@ class VirtualTable
       sqlite3_parameters = ""
       column_cast_back = ""
       access_path = ""
-      op, fk_col_name, column_type = @columns[col].bind_datatypes( sqlite3_type, column_cast, sqlite3_parameters, column_cast_back, access_path)
+      op, fk_col_name, column_type = 
+      @columns[col].bind_datatypes(
+                                   sqlite3_type, column_cast, 
+                                   sqlite3_parameters, column_cast_back, 
+                                   access_path)
       case op
       when "base"
         fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, #{column_cast}any_dstr);"
@@ -250,14 +285,14 @@ class VirtualTable
         if fk_col_name != nil
           fw.puts "#{$s}if ( (vtd_iter = vt_directory.find(\"#{fk_col_name}\")) != vt_directory.end() )"
           fw.puts "#{$s}    vtd_iter->second = 1;"
-          if access_path.length == 0
+          if access_path.length == 0    # Access with (*iter) .
             @type.match(/\*/) ? record_type = "" : record_type = "&"
-          else
+          else                          # Access with (*iter)[.|->]access .
             column_type == "pointer" ? record_type = "" : record_type = "&"
           end
         end
         fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{record_type}#{iden}#{access_path}#{column_cast_back}#{sqlite3_parameters});"
-        fw.puts "#{$s}break;"        
+        fw.puts "#{$s}break;"
       when "gen_all"
         iden = configure(access_path)
         fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{iden}#{access_path}#{column_cast_back}#{sqlite3_parameters});"
@@ -278,6 +313,7 @@ class VirtualTable
     }
 AG5
     fw.puts "    stlTableCursor *stcsr = (stlTableCursor *)cur;"
+####
     if /\*/.match(@pointer) == nil
       sign_retype = "#{@signature}*"
       sign_untype = @signature
@@ -285,6 +321,7 @@ AG5
       sign_retype = @signature
       sign_untype = @signature.chomp("*")
     end
+####
     fw.puts "    #{sign_retype} any_dstr = (#{sign_retype})stcsr->source;"
     if @stl_class.length > 0
       fw.puts "    #{sign_untype}:: iterator iter;"
@@ -395,6 +432,7 @@ RAL
 
     fw.puts "    stlTable *stl = (stlTable *)cur->pVtab;"
     fw.puts "    stlTableCursor *stcsr = (stlTableCursor *)cur;"
+####
     if /\*/.match(@pointer) == nil
       sign_retype = "#{@signature}*"
       sign_untype = @signature
@@ -402,6 +440,7 @@ RAL
       sign_retype = @signature
       sign_untype = @signature.chomp("*")
     end
+####
     fw.puts "    #{sign_retype} any_dstr = (#{sign_retype})stcsr->source;"
     if @stl_class.length > 0
       fw.puts "    #{sign_untype}:: iterator iter;"
@@ -509,7 +548,7 @@ CS
       @signature = matchdata[3]
     end
     verify_signature()
-    @type.match(/\*/) ? element_type = @type.chomp('*') : element_type = @type 
+    @type.match(/\*/) ? element_type = @type.chomp('*') : element_type = @type                        # type is active for both stl_struct and object.
     $elements.each { |el| if el.name == @name : @element = el end }
     if @element == nil
       $elements.each { |el| if el.name == element_type : @element = el end }
@@ -517,7 +556,7 @@ CS
     if @element == nil
       raise "Cannot match element for table #{@name}.\\n"
   end
-    if @base_var.length == 0 : @columns.push(Column.new).last.set("base INT FROM self") end
+    if @base_var.length == 0 : @columns.push(Column.new).last.set("base INT FROM self") end           # base column for embedded structs.
     @columns = @columns | @element.columns
     puts "Table name is: " + @name
     puts "Table lives in database named: " + @db
@@ -528,7 +567,7 @@ CS
 
 end
 
-
+# Models an element table.
 class Element
   def initialize
     @name = ""
@@ -536,19 +575,23 @@ class Element
   end
   attr_accessor(:name,:columns)
 
-
+  # Removes the last entry in the columns table and returns the table 
+  # itself. Useful when including an element definition to remove the 
+  # entry left empty.
   def columns_delete_last()
     @columns.delete(@columns.last)
     return @columns
   end
 
-
+  # Matches an element definition against the prototype pattern and 
+  # extracts the characteristics.
   def match_element(element_description)
     puts element_description
     pattern = /^create element table (\w+)(\s*)\((.+)\)/im
     matchdata = pattern.match(element_description)
     if matchdata
-      # First record of table_data contains the whole description of the element
+      # First record of table_data contains the whole description of the 
+      # element.
       # Second record contains the element's name
       @name = matchdata[1]
       columns_str = Array.new
@@ -564,7 +607,7 @@ class Element
 
 end
 
-
+# Models the input description.
 class InputDescription
   def initialize(description)
     # original description tokenised in an Array
@@ -575,7 +618,8 @@ class InputDescription
   end
   attr_accessor(:description,:tables,:directives)
 
-# Generates the application-specific retrieve method for each VT struct.
+# Calls the family of methods that generate the application-specific 
+# retrieve method for each VT struct.
   def print_retrieve_functions(fw)
     @tables.each { |vt|
       fw.puts "int #{vt.name}_retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con){"
@@ -595,7 +639,8 @@ class InputDescription
   end
 
 
-# Generates the application-specific search method for each VT struct.
+# Calls the family of methods that generate the application-specific 
+# search method for each VT struct.
   def print_search_functions(fw)
     cls_search = <<-CLS
         if ( (re = compare_res(count, stcsr, temp_res)) != 0 )
@@ -682,7 +727,7 @@ ELS
   end
 
 
-# Generates the thread function that starts the sqtl thread.
+# Generates the thread function that starts the SQTL thread.
   def print_thread(fw)
     auto_gen1_1 = <<-AG11
 void * thread_sqlite(void *data){
@@ -694,7 +739,7 @@ void * thread_sqlite(void *data){
     int failure = 0;
 AG11
 
-# maybe adjust so that create queries are grouped by database.
+# Maybe adjust so that create queries are grouped by database.
       auto_gen2 = <<-AG2
     failure = register_table( "#{@tables[0].db}" ,  #{@tables.length.to_s}, queries, table_names, data);
     printf(\"Thread sqlite returning..\\n\");
@@ -780,19 +825,14 @@ EQB
     makefile_part = <<-mkf
 
 stl_search.o: stl_search.cpp stl_search.h user_functions.h workers.h
-\tg++ -W -g -c stl_search.cpp
 
 stl_to_sql.o: stl_to_sql.c stl_to_sql.h stl_search.h
-\tgcc -g -c stl_to_sql.c
 
 user_functions.o: user_functions.c user_functions.h stl_test.h
-\tgcc -W -g -c user_functions.c
 
 workers.o: workers.cpp workers.h stl_search.h
-\tg++ -W -g -c workers.cpp
 
 stl_test.o: stl_test.c stl_test.h
-\tgcc -W -g -c stl_test.c
 mkf
 
     myfile = File.open("stl_search.cpp", "w") do |fw|
@@ -835,11 +875,11 @@ mkf
     token_d.delete_at(0)
     puts "Directives: " + @directives
     x = 0
-    while x < token_d.length
+    while x < token_d.length            # Cleaning white space.
       token_d[x].lstrip!
       token_d[x].rstrip!
       if /\n|\t|\r|\f/.match(token_d[x]) : token_d[x].gsub!(/\n|\t|\r|\f/, "") end
-      token_d[x].squeeze!(" ")
+      token_d[x].squeeze!(" ")           
       if / ,|, /.match(token_d[x]) : token_d[x].gsub!(/ ,|, /, ",") end
       if / \(/.match(token_d[x]) : token_d[x].gsub!(/ \(/, "(") end
       if /\( /.match(token_d[x]) : token_d[x].gsub!(/\( /, "(") end
