@@ -107,7 +107,7 @@ void app_index(FILE *f, sqlite3 *db){
   swill_fprintf(f, "</style>");
   swill_fprintf(f, "</head>");
   swill_fprintf(f, "<body>");
-  swill_file("sqtl.png", NULL);
+  swill_file("sqtl.png", "../EXTERN/sqtl.png");
   swill_fprintf(f, "<img src=\"sqtl.png\" alt=\"SQTL logo\" />");
   swill_fprintf(f, "<div class=\"div_style\">");
   swill_fprintf(f, "<form action=\"serveQuery.html\" method=GET>");
@@ -171,8 +171,10 @@ void serve_query(FILE *f, sqlite3 *db){
       swill_fprintf(f, "<b>\nQUERY SUCCESSFUL! </b><br><br>");
       swill_fprintf(f,"Ellapsed time given by C++ : <b>%f</b>s.<br><br>",c_time);
     } else {
-      swill_fprintf(f, "<b>Error code %i.<br>Please advise </b><a href=\"", rc);
-      swill_file("SQLite_error_codes.html", NULL);
+      swill_fprintf(f, "<b>Error code %i.<br>Please advise </b><a href=\"", 
+		    rc);
+      swill_file("SQLite_error_codes.html", 
+		 "../EXTERN/SQLite_error_codes.html");
       swill_printurl(f, "SQLite_error_codes.html", "", 0);
       swill_fprintf(f,"\">SQLite error codes</a>.<br><br>");
     }

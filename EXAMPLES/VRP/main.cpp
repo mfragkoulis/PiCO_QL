@@ -236,7 +236,7 @@ int main(int argc, const char *argv[]) {
 	" trucks and has cost " << 
 	best_fl.get_totalcost() <<" distance units";
     cout << " with unused delivery space of " << best_fl.get_delspace() << 
-	" distance units." << endl << endl;
+	" units." << endl << endl;
     cout << endl << "Ideally (feasibility not guaranteed) minimum size " << 
 	"of fleet would be " << (double)total_dem/Truck::get_initcapacity() <<
 	" trucks." << endl << endl;
