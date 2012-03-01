@@ -14,7 +14,7 @@ map<string,SuperAccount> superaccounts;
 list<SpecialAccount> specialaccounts;
 vector<Account> accounts;
 
-int main(){
+int main() {
     
     Account acc1("10068", 500.0, 478923743, "credit");
     Account acc2("10234", 394.28, 692346729, "debit-consuming");
@@ -77,7 +77,7 @@ int main(){
     int re_sqtl = call_sqtl();
     printf("Thread sqlite returned %i\n", re_sqtl);
 
-    for (it=superaccounts.begin(); it != superaccounts.end();it++) {
+    for (it = superaccounts.begin(); it != superaccounts.end(); it++) {
 	printf("%i\n", it->second.get_isbn());
 	
     }

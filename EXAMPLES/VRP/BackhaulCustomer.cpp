@@ -21,7 +21,7 @@ bool BackhaulCustomer::selective=false;
 extern MTRand_int32 irand;
 
 // Constructs new Backhaul customer object.
-BackhaulCustomer::BackhaulCustomer (string c, int d, int r, Position* pos, bool depot) : Customer( c, d, pos, depot ) {
+BackhaulCustomer::BackhaulCustomer (string c, int d, int r, Position* pos, bool depot) : Customer(c, d, pos, depot ) {
   revenue=r;
   coord_b.insert( make_pair(c, pos) );
   list_b.push_back(this);
@@ -61,7 +61,7 @@ void BackhaulCustomer::set_selective(bool s) {
 }
 
 // Selects a Backhaul customer at random.
-BackhaulCustomer* BackhaulCustomer::random_sel( int& pos, int i){}
+BackhaulCustomer* BackhaulCustomer::random_sel( int& pos, int i) {}
 
 // Erases a Backhaul customer picked for service.
 void BackhaulCustomer::erase_c(int random, int i) {}
@@ -102,10 +102,10 @@ void BackhaulCustomer::clear_list(int i) {
 // Copies the non-serviced customers to the non-serviced list.x
 void BackhaulCustomer::cp_list(int i) {
   // vector < BackhaulCustomer* >::iterator it;
-  if (i%2==0) {
+    if ((i % 2) == 0) {
     nonser_list=list_b;
     /* cout << "code is ";
-    for (it=list_b.begin();it!=list_b.end();it++) {
+    for (it = list_b.begin(); it != list_b.end(); it++) {
       cout << (*it)->get_code() << endl;
       }*/
   } else nonser_list=list_bb;

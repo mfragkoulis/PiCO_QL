@@ -4,7 +4,7 @@
 
 using namespace std;
 
-Account::Account(const char *acc_no, float b, int i, const char *t) : SuperAccount(acc_no, b, i){
+Account::Account(const char *acc_no, float b, int i, const char *t) : SuperAccount(acc_no, b, i) {
     type = reinterpret_cast<const unsigned char *>(t);
 }
 

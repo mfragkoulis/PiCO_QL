@@ -3,7 +3,7 @@
 
 #include "SuperAccount.h"
 
-class SpecialAccount: public SuperAccount{
+class SpecialAccount: public SuperAccount {
 
  public:
   SpecialAccount(const char *sp_no, float sp_b, int sp_i);

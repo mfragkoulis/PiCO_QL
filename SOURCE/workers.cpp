@@ -14,9 +14,9 @@ int realloc_resultset(sqlite3_vtab_cursor *cur) {
     int arraySize;
     int *res;
     arraySize = get_datastructure_size(cur);
-    if ( arraySize != stcsr->max_size ){
+    if (arraySize != stcsr->max_size ) {
         res = (int *)sqlite3_realloc(stcsr->resultSet, sizeof(int) * arraySize);
-        if (res!=NULL){
+        if (res != NULL) {
             stcsr->resultSet = res;
             memset(stcsr->resultSet, -1,
                    sizeof(int) * arraySize);
@@ -34,8 +34,8 @@ int realloc_resultset(sqlite3_vtab_cursor *cur) {
 }
 
 // Compares two integers and returns the result of the comparison.
-int compare(int dstr_value, int op, int value){
-    switch( op ){
+int compare(int dstr_value, int op, int value) {
+    switch (op) {
     case 0:
         return dstr_value<value;
     case 1:
@@ -50,8 +50,8 @@ int compare(int dstr_value, int op, int value){
 }
 
 // Compares two long integers and returns the result of the comparison.
-int compare(long int dstr_value, int op, long int value){
-    switch( op ){
+int compare(long int dstr_value, int op, long int value) {
+    switch (op) {
     case 0:
         return dstr_value<value;
     case 1:
@@ -67,8 +67,8 @@ int compare(long int dstr_value, int op, long int value){
 
 
 // Compares two doubles and returns the result of the comparison.
-int compare(double dstr_value, int op, double value){
-    switch( op ){
+int compare(double dstr_value, int op, double value) {
+    switch (op) {
     case 0:
         return dstr_value<value;
     case 1:
@@ -85,8 +85,8 @@ int compare(double dstr_value, int op, double value){
 
 // Compares two void pointers and returns the result of the comparison.
 // Mem comparison.
-int compare(const void *dstr_value, int op, const void *value){
-    switch( op ){
+int compare(const void *dstr_value, int op, const void *value) {
+    switch (op) {
     case 0:
         return dstr_value<value;
     case 1:
@@ -102,8 +102,8 @@ int compare(const void *dstr_value, int op, const void *value){
 
 // Compares two arrays of characters and returns the result of the comparison.
 int compare(const unsigned char *dstr_value, int op,
-	    const unsigned char *value){
-    switch( op ){
+	    const unsigned char *value) {
+    switch (op) {
     case 0:
         return strcmp((const char *)dstr_value,(const char *)value)<0;
     case 1:
@@ -124,26 +124,26 @@ int compare_res(int count, stlTableCursor *stcsr, int *temp_res) {
     int ia, ib;
     int *i_res;
     int i_count = 0;
-    if ( (stcsr->size == 0) && (stcsr->first_constr == 1) ){
+    if ((stcsr->size == 0) && (stcsr->first_constr == 1)) {
         memcpy(stcsr->resultSet, temp_res, sizeof(int) *
                stcsr->max_size);
         stcsr->size = count;
         stcsr->first_constr = 0;
-    }else if (stcsr->size > 0){
+    } else if (stcsr->size > 0) {
         i_res = (int *)sqlite3_malloc(sizeof(int) *
                                       stcsr->max_size);
-        if ( i_res == NULL ) {
+        if (i_res == NULL) {
             sqlite3_free(i_res);
             printf("Error (re)allocating memory\\n");
             return SQLITE_NOMEM;
         }
-        for(int a=0; a<stcsr->size; a++){
-            for(int b=0; b<count; b++){
+        for (int a = 0; a < stcsr->size; a++) {
+            for (int b = 0; b < count; b++) {
                 ia = stcsr->resultSet[a];
                 ib = temp_res[b];
-                if( ia==ib ){
+                if (ia == ib) {
                     i_res[i_count++] = ia;
-                }else if( ia < ib )
+                } else if (ia < ib)
                     b = count;
             }
         }
@@ -158,7 +158,7 @@ int compare_res(int count, stlTableCursor *stcsr, int *temp_res) {
 
 // Interprets the structure of constraint to operation and column it regards.
 void check_alloc(const char *constr, int &op, int &iCol) {
-    switch( constr[0] - 'A' ){
+    switch (constr[0] - 'A') {
     case 0:
         op = 0;
         break;

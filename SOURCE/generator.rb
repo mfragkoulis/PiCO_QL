@@ -6,7 +6,7 @@ class CodeToGenerate
     return  <<-AG5
     int index = stcsr->current;
     iter = any_dstr->begin();
-    for(int i=0; i<stcsr->resultSet[index]; i++){
+    for (int i = 0; i < stcsr->resultSet[index]; i++) {
         iter++;
     }
 AG5
@@ -15,7 +15,7 @@ AG5
 
   def CodeToGenerate.Error_case
     return <<-EC
-    if ( stl->zErr ) {
+    if (stl->zErr) {
         sqlite3_free(stl->zErr);
         return SQLITE_MISUSE;
     }
@@ -25,7 +25,7 @@ EC
 
   def CodeToGenerate.Stl_fill_resultset
     return <<-SFR
-        for (int j=0; j<size; j++){
+        for (int j = 0; j < size; j++) {
             stcsr->resultSet[j] = j;
             stcsr->size++;
 	}
@@ -38,7 +38,7 @@ SFR
   def CodeToGenerate.Typesafe_block
     return <<-TB
             vtd_iter = vt_directory.find(stl->zName);
-            if ( (vtd_iter == vt_directory.end()) || (vtd_iter->second == 0) ) {
+            if ((vtd_iter == vt_directory.end()) || (vtd_iter->second == 0)) {
                 printf("Invalid cast to %s\\n", stl->zName);
                 return SQLITE_MISUSE;
             }
@@ -51,7 +51,7 @@ TB
     return <<-RAL
         int *temp_res;
 	temp_res = (int *)sqlite3_malloc(sizeof(int)  * stcsr->max_size);
-        if ( !temp_res ){
+        if (!temp_res) {
             printf("Error in allocating memory\\n");
             return SQLITE_NOMEM;
         }
@@ -69,7 +69,7 @@ CS
 
   def CodeToGenerate.Cls_search
     return <<-CLS
-        if ( (re = compare_res(count, stcsr, temp_res)) != 0 )
+        if ((re = compare_res(count, stcsr, temp_res)) != 0)
             return re;
         sqlite3_free(temp_res);
     }
@@ -96,7 +96,8 @@ ELS
 
   def CodeToGenerate.Prepare_thread(tables)
       return <<-PRTD
-void * thread_sqlite(void *data){
+// Thread. Creates the queries and passes them on to SQTL.
+void * thread_sqlite(void *data) {
     const char **queries, **table_names;
     queries = (const char **)sqlite3_malloc(sizeof(char *) *
                    #{tables.length.to_s});
@@ -118,6 +119,7 @@ PRTD
 }
 
 
+// The API with user application code. Creates the SQTL thread.
 int call_sqtl() {
     pthread_t sqlite_thread;
     int re_sqlite = pthread_create(&sqlite_thread, NULL, thread_sqlite, NULL);
@@ -157,20 +159,23 @@ DIR
 
   def CodeToGenerate.Equals_base
     return <<-EQB
-// hard-coded
+// Each embedded virtual table has a column named 'base'.
+// This function checks if a provided column name is indeed 'base'.
 int equals_base(const char *zCol) {
     int length = (int)strlen(zCol) + 1;
     char copy[length], *token;
     memcpy(copy, zCol, length);
     token = strtok(copy, " ");
-    if ( token != NULL ) {
-        if ( !strcmp(token, "base") )
+    if (token != NULL) {
+        if (!strcmp(token, "base"))
             return true;
         else
             return false;
     } else
         return SQLITE_NOMEM;
 }
+
+
 EQB
   end
     
@@ -488,7 +493,7 @@ class VirtualTable
 # Generates code to retrieve each VT struct.
 # Each retrieve case matches a specific column of the VT.
   def retrieve_columns(fw)
-    fw.puts "    switch( n ){"
+    fw.puts "    switch (n) {"
     col_array = @columns
     col_array.each_index { |col|
       fw.puts "    case #{col}:"
@@ -509,7 +514,7 @@ class VirtualTable
       when "fk"
         iden = configure(access_path)
         if fk_col_name != nil
-          fw.puts "#{$s}if ( (vtd_iter = vt_directory.find(\"#{fk_col_name}\")) != vt_directory.end() )"
+          fw.puts "#{$s}if ((vtd_iter = vt_directory.find(\"#{fk_col_name}\")) != vt_directory.end())"
           fw.puts "#{$s}    vtd_iter->second = 1;"
           if access_path.length == 0    # Access with (*iter) .
             @type.match(/\*/) ? record_type = "" : record_type = "&"
@@ -567,7 +572,7 @@ class VirtualTable
 # Generates code to search each VT struct.
 # Each search case matches a specific column of the VT.
   def search_columns(fw)
-    fw.puts "#{$s}switch( iCol ){"
+    fw.puts "#{$s}switch (iCol) {"
     @columns.each_index { |col|
       fw.puts "#{$s}case #{col}:"
       sqlite3_type = "search"
@@ -586,7 +591,7 @@ class VirtualTable
       end
       if @stl_class.length > 0
         fw.puts "#{$s}    iter = any_dstr->begin();"
-        fw.puts "#{$s}    for(int i=0; i<size;i++){"
+        fw.puts "#{$s}    for (int i = 0; i < size; i++) {"
         access_path.length == 0 ? iden = "(*iter)" : iden = "(*iter)."
       else
         access_path.length == 0 ? iden = "any_dstr" : iden = "any_dstr->"
@@ -638,7 +643,7 @@ class VirtualTable
       fw.puts "    int size;"
     end
     if @base_var.length == 0 : fw.puts CodeToGenerate.Error_case end
-    fw.puts "    if ( val==NULL ){"
+    fw.puts "    if (val==NULL) {"
     if @base_var.length > 0
       if @stl_class.length > 0
         fw.puts CodeToGenerate.Stl_fill_resultset
@@ -652,7 +657,7 @@ class VirtualTable
     fw.puts "    } else {"
     fw.puts "#{$s}check_alloc((const char *)constr, op, iCol);"
     if @base_var.length == 0
-      fw.puts "#{$s}if ( equals_base(stl->azColumn[iCol]) ) {"
+      fw.puts "#{$s}if (equals_base(stl->azColumn[iCol])) {"
       if $argT == "TYPESAFE" : fw.puts CodeToGenerate.Typesafe_block end
       fw.puts "#{$s}    stcsr->source = (void *)sqlite3_value_int64(val);"
       fw.puts "#{$s}    any_dstr = (#{sign_retype})stcsr->source;"
@@ -824,17 +829,18 @@ class InputDescription
 # retrieve method for each VT struct.
   def print_retrieve_functions(fw)
     @tables.each { |vt|
-      fw.puts "int #{vt.name}_retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con){"
+      fw.puts "// Retrieves column values of virtual table #{vt.name}."
+      fw.puts "int #{vt.name}_retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con) {"
       vt.setup_retrieve(fw)
       vt.retrieve_columns(fw)
       fw.puts "    }"
       fw.puts "    return SQLITE_OK;"
       fw.puts "}\n\n\n"
     }
-    fw.puts "int retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con){"
+    fw.puts "int retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con) {"
     fw.puts "    stlTable *stl = (stlTable *)cur->pVtab;"
     @tables.each { |vt|
-      fw.puts "    if( !strcmp(stl->zName, \"#{vt.name}\") )"
+      fw.puts "    if (!strcmp(stl->zName, \"#{vt.name}\"))"
       fw.puts "        return #{vt.name}_retrieve(cur, n, con);"
     }
     fw.puts "}"
@@ -845,15 +851,16 @@ class InputDescription
 # search method for each VT struct.
   def print_search_functions(fw)
     @tables.each { |vt|
-      fw.puts "int #{vt.name}_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){"
+      fw.puts "// Filters column values of virtual table #{vt.name}."
+      fw.puts "int #{vt.name}_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val) {"
       vt.setup_search(fw)
       vt.search_columns(fw)
       fw.puts CodeToGenerate.Cls_search
     }
-    fw.puts "int search(sqlite3_vtab_cursor* cur, char *constr, sqlite3_value *val){"
+    fw.puts "int search(sqlite3_vtab_cursor* cur, char *constr, sqlite3_value *val) {"
     fw.puts "    stlTable *stl = (stlTable *)cur->pVtab;"
     @tables.each { |vt|
-      fw.puts "    if( !strcmp(stl->zName, \"#{vt.name}\") )"
+      fw.puts "    if (!strcmp(stl->zName, \"#{vt.name}\"))"
       fw.puts "#{$s}return #{vt.name}_search(cur, constr, val);"
     }
     fw.puts "}"
@@ -863,17 +870,18 @@ class InputDescription
 # Generates the function that retrieves the size of 
 # data structures registered with sqtl.
   def print_get_size(fw)
-    fw.puts "int get_datastructure_size(sqlite3_vtab_cursor *cur){"
+    fw.puts "// Returns the size (records) for each virtual table."
+    fw.puts "int get_datastructure_size(sqlite3_vtab_cursor *cur) {"
     fw.puts "    stlTableCursor *stc = (stlTableCursor *)cur;"
     fw.puts "    stlTable *stl = (stlTable *)cur->pVtab;"
     count = 0
     @tables.each_index { |vt|
       if @tables[vt].stl_class.length > 0
         if count == 0
-          fw.puts "    if ( !strcmp(stl->zName, \"#{@tables[vt].name}\") ) {"
+          fw.puts "    if (!strcmp(stl->zName, \"#{@tables[vt].name}\")) {"
 	  count += 1
         else
-          fw.puts "    } else if ( !strcmp(stl->zName, \"#{@tables[vt].name}\") ) {"
+          fw.puts "    } else if (!strcmp(stl->zName, \"#{@tables[vt].name}\")) {"
         end
         /\*/.match(@tables[vt].pointer) == nil ? retype = "*" : retype = "" 
         fw.puts "#{$s}#{@tables[vt].signature}#{retype} any_dstr = (#{@tables[vt].signature}#{retype})stc->source;"
@@ -889,15 +897,17 @@ class InputDescription
 # Generates the function that assigns a base variable to 
 # the respective VT struct.
   def print_register_vt(fw)
+    fw.puts "// Registers the base variables of user application code"
+    fw.puts "// with their virtual table representation."
     fw.puts "void register_vt(stlTable *stl) {"
     count = 0
     @tables.each_index { |vt| 
       if @tables[vt].base_var.length > 0
         if count == 0
-          fw.puts "    if ( !strcmp(stl->zName, \"#{@tables[vt].name}\") ) {"
+          fw.puts "    if (!strcmp(stl->zName, \"#{@tables[vt].name}\")) {"
 	  count += 1
         else
-          fw.puts "    } else if ( !strcmp(stl->zName, \"#{@tables[vt].name}\") ) {"
+          fw.puts "    } else if (!strcmp(stl->zName, \"#{@tables[vt].name}\")) {"
         end
         /\*/.match(@tables[vt].pointer) == nil ? retype = "&" : retype = "" 
         fw.puts "#{$s}stl->data = (void *)#{retype}#{@tables[vt].base_var};"
@@ -915,8 +925,10 @@ class InputDescription
     @tables.each_index { |vt| 
 #      query =  "CREATE VIRTUAL TABLE #{@tables[vt].db}.#{@tables[vt].name} USING stl("
       query =  "CREATE VIRTUAL TABLE #{@tables[vt].name} USING stl("
-      @tables[vt].columns.each { |c| query += "#{c.name} #{c.data_type}," }
-      query = query.chomp(",") + ")"
+      @tables[vt].columns.each { |c| 
+        query += "#{c.name} #{c.data_type}, "
+      }
+      query = query.chomp(", ") + ")"
       fw.puts "    queries[#{vt}] = \"#{query}\";"
       fw.puts "    table_names[#{vt}] = \"#{@tables[vt].name}\";"
     }

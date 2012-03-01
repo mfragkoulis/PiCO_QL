@@ -11,7 +11,7 @@ int main() {
     vector<vector<ChessPiece> >::iterator iter;
     vector<ChessPiece>::iterator it;
 
-    for (int i=0;i<8;i++)
+    for (int i = 0; i < 8; i++)
 	board.push_back(vector<ChessPiece>());
     iter = board.begin();
     it = (*iter).begin();
@@ -27,37 +27,37 @@ int main() {
     iter++;
     it = (*iter).begin();
     (*iter).push_back(ChessPiece("pawn", "white"));
-    for (int i=1; i<8; i++)
+    for (int i = 1; i < 8; i++)
         (*iter).push_back(ChessPiece("pawn", "white"));
 
     iter++;
     it = (*iter).begin();
     (*iter).push_back(ChessPiece("", ""));
-    for (int i=1; i<8; i++)
+    for (int i = 1; i < 8; i++)
         (*iter).push_back(ChessPiece("", ""));
 
     iter++;
     it = (*iter).begin();
     (*iter).push_back(ChessPiece("", ""));
-    for (int i=0; i<8; i++)
+    for (int i = 0; i < 8; i++)
 	(*iter).push_back(ChessPiece("", ""));
 
     iter++;
     it = (*iter).begin();
     (*iter).push_back(ChessPiece("", ""));
-    for (int i=0; i<8; i++)
+    for (int i = 0; i < 8; i++)
         (*iter).push_back(ChessPiece("", ""));
 
     iter++;
     it = (*iter).begin();
     (*iter).push_back(ChessPiece("", ""));
-    for (int i=0; i<8; i++)
+    for (int i = 0; i < 8; i++)
         (*iter).push_back(ChessPiece("", ""));
     iter++;
 
     it = (*iter).begin();
     (*iter).push_back(ChessPiece("pawn", "black"));
-    for (int i=0; i<8; i++)
+    for (int i = 0; i < 8; i++)
         (*iter).push_back(ChessPiece("pawn", "black"));
 
     iter++;
@@ -76,9 +76,9 @@ int main() {
 //    move(Position(1, 'c'), Position(2, 'c'));
 
 /*                                                                              
-    for (iter=board.begin(); iter!=board.end(); iter++) {                       
+    for (iter = board.begin(); iter != board.end(); iter++) {                       
     cout << "Row " << iter + 1 - board.begin() << ":" << endl << endl;      
-        for (it=(*iter).begin(); it!=(*iter).end(); it++) {                     
+        for (it = (*iter).begin(); it != (*iter).end(); it++) {                     
 	cout << "Column " << ((char)(it - (*iter).begin() + 'a')) << ": " <\
 	< (*it).get_color() << " " << (*it).get_name() << endl;                         
         }                                                                       

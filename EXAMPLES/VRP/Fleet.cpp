@@ -10,8 +10,8 @@ extern MTRand_int32 irand;
 
 // Constructs a new Fleet object.
 Fleet::Fleet() {
-    total_cost=0;
-    unused_delspace=0;
+    total_cost = 0;
+    unused_delspace = 0;
 }
 
 // Returns the fleet data structure.
@@ -31,9 +31,9 @@ Truck* Fleet::get_current() {
 
 // Sets the total cost for the fleet.
 void Fleet::set_totalcost() {
-    total_cost=0;
+    total_cost = 0;
     vector < Truck* >:: iterator iter;
-    for ( iter = fleet.begin(); iter != fleet.end(); iter++ ) {
+    for (iter = fleet.begin(); iter != fleet.end(); iter++) {
 	total_cost += (*iter)->get_cost();
 	// cout << total_cost << " " << (*iter)->get_cost() << endl;
     }
@@ -41,7 +41,7 @@ void Fleet::set_totalcost() {
 
 // Sets the total cost for the fleet.
 void Fleet::set_totalcost(int cost) {
-    total_cost=cost;
+    total_cost = cost;
 }
 
 // Returns the total cost for the fleet.
@@ -51,16 +51,16 @@ double Fleet::get_totalcost() {
 
 // Sets the aggregate space utilised by customer goods.
 void Fleet::set_delspace() {
-    unused_delspace=0;
-    vector < Truck* >:: iterator iter;
-    for( iter = fleet.begin(); iter != fleet.end(); iter++ ) {
+    unused_delspace = 0;
+    vector < Truck* >::iterator iter;
+    for(iter = fleet.begin(); iter != fleet.end(); iter++) {
 	unused_delspace += (*iter)->get_delcapacity();
     }
 }
 
 // Sets the aggregate space utilised by customer goods.
 void Fleet::set_delspace(int space) {
-    unused_delspace=space;
+    unused_delspace = space;
 }
 
 // Returns the aggregate space utilised by customer goods.
@@ -75,7 +75,7 @@ int Fleet::get_size() {
 
 // Sets the number of trucks in the Fleet.
 void Fleet::set_size(int size) {
-    for (int i=0; i!=size; i++) {
+    for (int i = 0; i != size; i++) {
 	fleet.push_back(new Truck(Truck::get_initcapacity()));
     }
 }
@@ -83,7 +83,7 @@ void Fleet::set_size(int size) {
 // Deallocates the fleet data structure.
 void Fleet::deallocate() {
     vector < Truck* >::iterator iter;
-    for (iter=fleet.begin(); iter!=fleet.end(); iter++) {
+    for (iter = fleet.begin(); iter != fleet.end(); iter++) {
 	delete (*iter);
     }
     fleet.clear();
@@ -92,8 +92,9 @@ void Fleet::deallocate() {
 // Optimises the customer allocations in the fleet.
 void Fleet::optimise(Fleet& optimised_fl) {
 
-    double iterations=10000.0, temperature=100.0,  // Parameters for Simulated
-	m=20.0, cool=0.9, spend=1.1, counter=0 ;   // Annealing algorithm.
+    double iterations = 10000.0, temperature = 100.0,  // Parameters for 
+                                                       // Simulated Annealing
+	m = 20.0, cool = 0.9, spend = 1.1, counter = 0 ;  // algorithm.
     vector < Truck* >::iterator iter;
     vector < Customer* >::iterator it;
     
@@ -108,11 +109,11 @@ void Fleet::optimise(Fleet& optimised_fl) {
 	   cout << "Optimised_fl: " << optimised_fl.total_cost << 
 	   " | " << endl;
 	   cout << " COUNTER : " << counter << endl;
-	   for (iter=(optimised_fl.fleet).begin(); 
-	   iter!=(optimised_fl.fleet).end(); iter++) {
+	   for (iter = (optimised_fl.fleet).begin(); 
+	   iter != (optimised_fl.fleet).end(); iter++) {
 	   cout << "Optimised truck : " << iter - optimised_fl.fleet.begin() <<
 	   endl;
-	   for (it=(*iter)->start(); it!=(*iter)->finish(); it++) {
+	   for (it = (*iter)->start(); it != (*iter)->finish(); it++) {
 	   cout << (*it)->get_code() << endl;
 	   }
 	   cout << endl;
@@ -135,10 +136,10 @@ void Fleet::optimise(Fleet& optimised_fl) {
 	   optimised_fl.unused_pickspace << endl;
 	   vector < Truck* >::iterator iter;
 	   vector < Customer* >::iterator it;
-	   for (iter=(optimised_fl.fleet).begin(); 
-	   iter!=(optimised_fl.fleet).end(); iter++) {
+	   for (iter = (optimised_fl.fleet).begin(); 
+	   iter != (optimised_fl.fleet).end(); iter++) {
 	   cout << "rl_point : " << (*iter)->get_rlpoint() << endl;
-	   for (it=(*iter)->start(); it!=(*iter)->finish(); it++) {
+	   for (it = (*iter)->start(); it != (*iter)->finish(); it++) {
 	   cout << (*it)->get_code() << endl;
 	   }
 	   cout << endl;
@@ -164,18 +165,19 @@ void Fleet::nested(Fleet& new_fleet, Fleet* optimised_fl, double temperature,
       new_fleet.generate_new(pos1, pos2);
 
       /* 
-	 for (iter=fleet.begin(); iter!=fleet.end(); iter++) {
+	 for (iter = fleet.begin(); iter != fleet.end(); iter++) {
 	 cout << "current truck : " << iter - fleet.begin() << ", cost: " << 
 	 (*iter)->get_cost() << endl;
-	 for (it=(*iter)->start(); it!=(*iter)->finish(); it++) {
+	 for (it = (*iter)->start(); it != (*iter)->finish(); it++) {
 	 cout << (*it)->get_code() << endl;
 	 }
 	 cout << endl;
 	 }
-	 for (iter=new_fleet.fleet.begin(); iter!=new_fleet.fleet.end(); iter++) {
+	 for (iter = new_fleet.fleet.begin(); 
+	 iter != new_fleet.fleet.end(); iter++) {
 	 cout << "new fleet truck : " << iter - new_fleet.fleet.begin() << 
 	 ", cost: " << (*iter)->get_cost() << endl;
-	 for (it=(*iter)->start(); it!=(*iter)->finish(); it++) {
+	 for (it = (*iter)->start(); it != (*iter)->finish(); it++) {
 	 cout << (*it)->get_code() << endl;
 	 }
 	 cout << endl;
@@ -191,9 +193,9 @@ void Fleet::nested(Fleet& new_fleet, Fleet* optimised_fl, double temperature,
     if (new_fleet.total_cost < total_cost) {
 /*
   cout << "better" << endl;
-  for (iter=fleet.begin(); iter!=fleet.end(); iter++) {
+  for (iter = fleet.begin(); iter != fleet.end(); iter++) {
   cout << "current truck : " << iter - fleet.begin() << endl;
-  for (it=(*iter)->start(); it!=(*iter)->finish(); it++) {
+  for (it = (*iter)->start(); it != (*iter)->finish(); it++) {
   cout << (*it)->get_code() << endl;
   }
   cout << endl;
@@ -203,26 +205,26 @@ void Fleet::nested(Fleet& new_fleet, Fleet* optimised_fl, double temperature,
 	assignT(pos1, pos2, new_fleet);
 
 	/*      
-		for (iter=fleet.begin(); iter!=fleet.end(); iter++) {
+		for (iter = fleet.begin(); iter != fleet.end(); iter++) {
 		cout << "current truck : " << iter - fleet.begin() << endl;
-		for (it=(*iter)->start(); it!=(*iter)->finish(); it++) {
+		for (it = (*iter)->start(); it != (*iter)->finish(); it++) {
 		cout << (*it)->get_code() << endl;
 		}
 		cout << endl;
 		}
 	*/
 
-	total_cost=new_fleet.total_cost;
-	unused_delspace=new_fleet.unused_delspace;
+	total_cost = new_fleet.total_cost;
+	unused_delspace = new_fleet.unused_delspace;
       
 	if (total_cost < optimised_fl->total_cost) {
 	    optimised_fl->assign_best(*this);
 /*
-  for (iter=(optimised_fl->fleet).begin(); iter!=(optimised_fl->fleet).end(); 
-  iter++) {
+  for (iter = (optimised_fl->fleet).begin(); 
+  iter != (optimised_fl->fleet).end(); iter++) {
   cout << "best truck : " << iter - optimised_fl->fleet.begin() << 
   ", cost: " << (*iter)->get_cost() << endl;
-  for (it=(*iter)->start(); it!=(*iter)->finish(); it++) {
+  for (it = (*iter)->start(); it != (*iter)->finish(); it++) {
   cout << (*it)->get_code() << endl;
   }
   cout << endl;
@@ -238,9 +240,9 @@ void Fleet::nested(Fleet& new_fleet, Fleet* optimised_fl, double temperature,
     } else {
 	/*
 	  cout << "not accepted" << endl; 
-	  for (iter=fleet.begin(); iter!=fleet.end(); iter++) {
+	  for (iter = fleet.begin(); iter != fleet.end(); iter++) {
 	  cout << "current truck : " << iter - fleet.begin() << endl;
-	  for (it=(*iter)->start(); it!=(*iter)->finish(); it++) {
+	  for (it = (*iter)->start(); it != (*iter)->finish(); it++) {
 	  cout << (*it)->get_code() << endl;
 	  }
 	  cout << endl;
@@ -249,9 +251,9 @@ void Fleet::nested(Fleet& new_fleet, Fleet* optimised_fl, double temperature,
 
 	new_fleet.assignT(pos1, pos2, *this);
 	// cout << new_fleet.total_cost << "  ->  ";
-	new_fleet.total_cost=total_cost;
+	new_fleet.total_cost = total_cost;
 	// cout << new_fleet.total_cost << endl;
-	new_fleet.unused_delspace=unused_delspace;
+	new_fleet.unused_delspace = unused_delspace;
     }
     m -= 1;
 /*
@@ -259,16 +261,16 @@ void Fleet::nested(Fleet& new_fleet, Fleet* optimised_fl, double temperature,
   cout << "Current cost is : " << total_cost << endl;
   cout << "New cost is : " << new_fleet.total_cost << endl;
   cout << "Best cost is : " << optimised_fl->total_cost << endl << endl;
-  for (iter=new_fleet.fleet.begin(); iter!=new_fleet.fleet.end(); iter++) {
+  for (iter = new_fleet.fleet.begin(); iter != new_fleet.fleet.end(); iter++) {
   cout << "new fleet truck : " << iter - new_fleet.fleet.begin() << endl;
-  for (it=(*iter)->start(); it!=(*iter)->finish(); it++) {
+  for (it = (*iter)->start(); it != (*iter)->finish(); it++) {
   cout << (*it)->get_code() << endl;
   }
   cout << endl;
   }
-  for (iter=fleet.begin(); iter!=fleet.end(); iter++) {
+  for (iter = fleet.begin(); iter != fleet.end(); iter++) {
   cout << "current truck : " << iter - fleet.begin() << endl;
-  for (it=(*iter)->start(); it!=(*iter)->finish(); it++) {
+  for (it = (*iter)->start(); it != (*iter)->finish(); it++) {
   cout << (*it)->get_code() << endl;
   }
   cout << endl;
@@ -282,17 +284,17 @@ void Fleet::nested(Fleet& new_fleet, Fleet* optimised_fl, double temperature,
 void Fleet::generate_new(int& pos1, int& pos2) {
     // cout << "gen" << endl;
     vector < Customer* >::iterator it;
-    bool trap=false, same=false;
-    int i=0;
+    bool trap = false, same = false;
+    int i = 0;
 again:
-    if (i==1000)  {
+    if (i == 1000) {
 	cout << "INFINITE" << endl;
 	i=0;
     }
     i++;
-    pos1=irand()%fleet.size();
-    pos2=irand()%fleet.size();
-    (pos1==pos2) ? same=true : same=false;
+    pos1 = irand() % fleet.size();
+    pos2 = irand() % fleet.size();
+    (pos1 == pos2) ? same = true : same = false;
     // cout << " go exchange " << pos1 << " with " << pos2 << endl;
     fleet[pos1]->exchange(fleet[pos2], trap, same);
     if (trap) goto again;
@@ -301,12 +303,12 @@ again:
 
     /*
      cout << " truck position : " << pos1 << endl;
-     for (it=fleet[pos1]->start(); it!=fleet[pos1]->finish(); it++) {
+     for (it = fleet[pos1]->start(); it != fleet[pos1]->finish(); it++) {
 	 cout << (*it)->get_code() << endl;
      }
      cout << endl;
      cout << " truck position : " << pos2 << endl;
-     for (it=fleet[pos2]->start(); it!=fleet[pos2]->finish(); it++) {
+     for (it = fleet[pos2]->start(); it != fleet[pos2]->finish(); it++) {
 	 cout << (*it)->get_code() << endl;
      }
      cout << endl; 
@@ -326,18 +328,18 @@ void Fleet::assignT(int pos1, int pos2, Fleet source) {
 // Assigns a fleet object to "this".
 void Fleet::assign_all(Fleet source) {
     // cout << "assign all" << endl;
-    for (int i=0; i!=(int)source.fleet.size(); i++) {
+    for (int i = 0; i != (int)source.fleet.size(); i++) {
 	fleet[i]->assignC(source.fleet[i]);
     }
     // cout << "fleet size: " << fleet.size() << endl;
-    total_cost=source.total_cost;
-    unused_delspace=source.unused_delspace;
+    total_cost = source.total_cost;
+    unused_delspace = source.unused_delspace;
 }
 
 // Reassigns to a fleet (optimised) the best solution found so far.
 void Fleet::assign_best(Fleet source) {
     // cout << "assign best" << endl;
-    for (int i=0; i!=(int)source.fleet.size(); i++) {
+    for (int i = 0; i != (int)source.fleet.size(); i++) {
 	fleet[i]->reassignC(source.fleet[i]);
     }
     // cout << "fleet size: " << fleet.size() << endl;

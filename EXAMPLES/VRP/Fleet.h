@@ -28,12 +28,12 @@ class Fleet {
   int get_size();
   void set_size(int size);
   void deallocate();
-  void optimise( Fleet& best );
-  void nested(Fleet& new_fleet, Fleet* best, double temperature, double m );
-  void generate_new( int& pos1, int& pos2 );
+  void optimise(Fleet& best);
+  void nested(Fleet& new_fleet, Fleet* best, double temperature, double m);
+  void generate_new(int& pos1, int& pos2);
   void assign_all(Fleet source);
   void assign_best(Fleet source);
-  void assignT( int pos1, int pos2, Fleet source );
+  void assignT(int pos1, int pos2, Fleet source);
 };
 
 #endif
