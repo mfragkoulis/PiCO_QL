@@ -1,9 +1,224 @@
+# All code blocks for generation gathered in this class in class methods
+# in the form of HERE-documents.
+class CodeToGenerate
+
+  def CodeToGenerate.Cursor_current
+    return  <<-AG5
+    int index = stcsr->current;
+    iter = any_dstr->begin();
+    for(int i=0; i<stcsr->resultSet[index]; i++){
+        iter++;
+    }
+AG5
+  end
+
+
+  def CodeToGenerate.Error_case
+    return <<-EC
+    if ( stl->zErr ) {
+        sqlite3_free(stl->zErr);
+        return SQLITE_MISUSE;
+    }
+EC
+  end
+
+
+  def CodeToGenerate.Stl_fill_resultset
+    return <<-SFR
+        for (int j=0; j<size; j++){
+            stcsr->resultSet[j] = j;
+            stcsr->size++;
+	}
+        assert(stcsr->size <= stcsr->max_size);
+        assert(&stcsr->resultSet[stcsr->size] <= &stcsr->resultSet[stcsr->max_size]);
+SFR
+  end
+
+
+  def CodeToGenerate.Typesafe_block
+    return <<-TB
+            vtd_iter = vt_directory.find(stl->zName);
+            if ( (vtd_iter == vt_directory.end()) || (vtd_iter->second == 0) ) {
+                printf("Invalid cast to %s\\n", stl->zName);
+                return SQLITE_MISUSE;
+            }
+            vt_directory[stl->zName] = 0;
+TB
+  end
+
+
+  def CodeToGenerate.Resultset_alloc
+    return <<-RAL
+        int *temp_res;
+	temp_res = (int *)sqlite3_malloc(sizeof(int)  * stcsr->max_size);
+        if ( !temp_res ){
+            printf("Error in allocating memory\\n");
+            return SQLITE_NOMEM;
+        }
+RAL
+  end
+
+
+  def CodeToGenerate.Class_sign(signature)
+    return <<-CS
+STL class signature not properly given:
+template error in #{signature} \\n\\n NOW EXITING. \\n
+CS
+  end
+
+
+  def CodeToGenerate.Cls_search
+    return <<-CLS
+        if ( (re = compare_res(count, stcsr, temp_res)) != 0 )
+            return re;
+        sqlite3_free(temp_res);
+    }
+    return SQLITE_OK;
+}
+
+
+CLS
+  end
+
+  
+  def CodeToGenerate.Els_case
+    return <<-ELS
+    } else {
+        stl->data = NULL;
+        stl->embedded = 1;
+    }
+    vt_directory[stl->zName] = 0;
+}
+
+ELS
+  end
+
+
+  def CodeToGenerate.Prepare_thread(tables)
+      return <<-PRTD
+void * thread_sqlite(void *data){
+    const char **queries, **table_names;
+    queries = (const char **)sqlite3_malloc(sizeof(char *) *
+                   #{tables.length.to_s});
+    table_names = (const char **)sqlite3_malloc(sizeof(char *) *
+                   #{tables.length.to_s});
+    int failure = 0;
+PRTD
+  end
+
+
+  # Maybe adjust so that create queries are grouped by database.
+  def CodeToGenerate.Init_sqtl(tables) 
+    return <<-INSQTL
+    failure = register_table( "#{tables[0].db}" , #{tables.length.to_s}, queries, table_names, data);
+    printf(\"Thread sqlite returning..\\n\");
+    sqlite3_free(queries);
+    sqlite3_free(table_names);
+    return (void *)failure;
+}
+
+
+int call_sqtl() {
+    pthread_t sqlite_thread;
+    int re_sqlite = pthread_create(&sqlite_thread, NULL, thread_sqlite, NULL);
+    pthread_join(sqlite_thread, NULL);
+    return re_sqlite;
+}
+
+INSQTL
+  end
+
+
+  def CodeToGenerate.Directives(directives)
+    return <<-DIR
+#include <assert.h>
+#include <stdio.h>
+#include <string>
+#include <string.h>
+#include "stl_search.h"
+#include "user_functions.h"
+#include "workers.h"
+#include <map>
+#{directives}
+
+using namespace std;
+
+struct name_cmp {
+    bool operator()(const char *a, const char *b) {
+        return strcmp(a, b) < 0;
+    }
+};
+
+static map<const char *, int, name_cmp> vt_directory;
+static map<const char *, int, name_cmp>::iterator vtd_iter;
+DIR
+  end
+
+
+  def CodeToGenerate.Equals_base
+    return <<-EQB
+// hard-coded
+int equals_base(const char *zCol) {
+    int length = (int)strlen(zCol) + 1;
+    char copy[length], *token;
+    memcpy(copy, zCol, length);
+    token = strtok(copy, " ");
+    if ( token != NULL ) {
+        if ( !strcmp(token, "base") )
+            return true;
+        else
+            return false;
+    } else
+        return SQLITE_NOMEM;
+}
+EQB
+  end
+    
+
+  def CodeToGenerate.Makefile
+    return <<-MKF
+ifdef RELEASE
+CXXFLAGS=-D_NDEBUG -O2
+CFLAGS=-D_NDEBUG -O2
+else
+CXXFLAGS=-W -g -D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC -D_GLIBCXX_DEBUG -D_GLIBCXX_CONCEPT_CHECKS -D_GLIBCXX_FULLY_DYNAMIC_STRING -DTEST
+CFLAGS=-W -g -D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC -D_GLIBCXX_DEBUG -D_GLIBCXX_CONCEPT_CHECKS -D_GLIBCXX_FULLY_DYNAMIC_STRING -DTEST
+ifdef TYPESAFE
+CXXFLAGS+=-DTYPESAFE
+CFLAGS+=-DTYPESAFE
+endif
+endif
+ifdef DEBUG
+CXXFLAGS+=-DDEBUG
+CFLAGS+=-DDEBUG
+endif
+
+OBJ=main.o stl_search.o stl_to_sql.o user_functions.o workers.o stl_test.o
+
+executable: $(OBJ)
+        $(CXX) -lswill -lsqlite3 $(CXXFLAGS) $(OBJ) -o $@
+
+stl_search.o: stl_search.cpp stl_search.h user_functions.h workers.h
+
+stl_to_sql.o: stl_to_sql.c stl_to_sql.h stl_search.h
+
+user_functions.o: user_functions.c user_functions.h stl_test.h
+
+workers.o: workers.cpp workers.h stl_search.h
+
+stl_test.o: stl_test.c stl_test.h
+MKF
+  end
+
+end
+
+
 # Models a column of the Virtual Table (VT).
 class Column
   def initialize
     @name = ""
     @data_type = ""
-    @cpp_data_type = ""       # respective C++ data type. Used only 
+    @cpp_data_type = ""       # Respective C++ data type. Used only 
                               # for string so far.
     @related_to = ""          # Reference to other VT(like a FK).
     @access_path = ""         # The access statement for the column value.
@@ -70,7 +285,7 @@ end
     elsif @@text_data_types.include?(dt) || 
         tmp_text_array.reject! { |rgx| rgx.match(dt) != nil } != nil
                                     # If match against RegExp, reject.
-                                    # If array changed, enter.
+                                    # Then, if array changed, enter.
       case sqlite3_type
       when "search"
         column_cast.replace("(const unsigned char *)")
@@ -78,7 +293,9 @@ end
         column_cast.replace("(const char *)")
       end
       sqlite3_type.replace("text")
-      if @cpp_data_type == "string" : column_cast_back.replace(".c_str()") end
+      if @cpp_data_type == "string"
+        column_cast_back.replace(".c_str()") 
+      end
       sqlite3_parameters.replace(", -1, SQLITE_STATIC")
     end
     access_path.replace(@access_path)
@@ -112,7 +329,9 @@ end
   def set(column)
     column.lstrip!
     column.rstrip!
-    puts column
+    if $argD == "DEBUG"
+      puts "Column is: #{column}"
+    end
     if column.match(/\n/)
       column.gsub!(/\n/, "")
     end
@@ -177,11 +396,13 @@ end
     if @access_path.match(/self/)
       @access_path.gsub!(/self/,"")
     end
-    puts "Column name is: " + @name
-    puts "Column data type is: " + @data_type
-    puts "Column related to: " + @related_to
-    puts "Column access path is: " + @access_path
-    puts "Column type is: " + @type
+    if $argD == "DEBUG"
+      puts "Column name is: " + @name
+      puts "Column data type is: " + @data_type
+      puts "Column related to: " + @related_to
+      puts "Column access path is: " + @access_path
+      puts "Column type is: " + @type
+    end
   end
 
 end
@@ -199,7 +420,9 @@ class View
   def match_view(view_description)
     view_ptn = 
       /^create view (\w+)\.(\w+) as select \* from (.+) where(\s*) (.+)/im
-    puts view_description
+    if $argD == "DEBUG"
+      puts "View description is: #{view_description}"
+    end
     matchdata = view_ptn.match(view_description)
     @name = matchdata[2]
     @db = matchdata[1]
@@ -210,12 +433,17 @@ class View
     else
       raise "Invalid input for virtual tables: " + vts
     end
-    where.match(/ and /im) ? @where_clauses = where.split(/ and /) : 
+    if where.match(/ and /im)
+      @where_clauses = where.split(/ and /)
+    else      
       @where_clauses = where
-    puts "View name is: " + @name
-    puts "View lives in database named: " + @db
-    @virtual_tables.each { |vt| puts "View of virtual tables: " + vt }
-    @where_clauses.each { |wh| puts "View of where clauses: " + wh }
+    end
+    if $argD == "DEBUG"
+      puts "View name is: " + @name
+      puts "View lives in database named: " + @db
+      @virtual_tables.each { |vt| puts "View of virtual tables: " + vt }
+      @where_clauses.each { |wh| puts "View of where clauses: " + wh }
+    end
   end
 
 end
@@ -315,19 +543,12 @@ class VirtualTable
 # Generates code in retrieve method. Code makes the necessary arrangements 
 # for retrieve to happen successfully (condition checks, reallocation)
   def setup_retrieve(fw)
-        auto_gen5 = <<-AG5
-    int index = stcsr->current;
-    iter = any_dstr->begin();
-    for(int i=0; i<stcsr->resultSet[index]; i++){
-        iter++;
-    }
-AG5
     fw.puts "    stlTableCursor *stcsr = (stlTableCursor *)cur;"
     sign_retype, sign_untype  = cast_signature()
     fw.puts "    #{sign_retype} any_dstr = (#{sign_retype})stcsr->source;"
     if @stl_class.length > 0
       fw.puts "    #{sign_untype}:: iterator iter;"
-      fw.puts auto_gen5
+      fw.puts CodeToGenerate.Cursor_current
     end
   end
 
@@ -370,11 +591,13 @@ AG5
       else
         access_path.length == 0 ? iden = "any_dstr" : iden = "any_dstr->"
       end
-      #      puts "sqlite3_type: " + sqlite3_type
-      #      puts "column_cast: " + column_cast
-      #      puts "sqlite3_parameters: " + sqlite3_parameters
-      #      puts "column_cast_back: " + column_cast_back
-      #      puts "access_path: " + access_path
+      if $argD == "DEBUG"
+        puts "sqlite3_type: " + sqlite3_type
+        puts "column_cast: " + column_cast
+        puts "sqlite3_parameters: " + sqlite3_parameters
+        puts "column_cast_back: " + column_cast_back
+        puts "access_path: " + access_path
+      end
       case op
       when "gen_all"
         vt_type_spacing(fw)
@@ -399,42 +622,8 @@ AG5
 
   
 # Generates code in search method. Code makes the necessary arrangements 
-# for search to happen successfully (condition checks, reallocation)
+# for search to happen successfully (condition checks, reallocation).
   def setup_search(fw)
-    error_case = <<-EC
-    if ( stl->zErr ) {
-        sqlite3_free(stl->zErr);
-        return SQLITE_MISUSE;
-    }
-EC
-
-    stl_fill_resultset = <<-SFR
-        for (int j=0; j<size; j++){
-            stcsr->resultSet[j] = j;
-            stcsr->size++;
-	}
-        assert(stcsr->size <= stcsr->max_size);
-        assert(&stcsr->resultSet[stcsr->size] <= &stcsr->resultSet[stcsr->max_size]);
-SFR
-
-    typesafe_block = <<-TB
-            vtd_iter = vt_directory.find(stl->zName);
-            if ( (vtd_iter == vt_directory.end()) || (vtd_iter->second == 0) ) {
-                printf("Invalid cast to %s\\n", stl->zName);
-                return SQLITE_MISUSE;
-            }
-            vt_directory[stl->zName] = 0;
-TB
-
-    resultset_alloc = <<-RAL
-        int *temp_res;
-	temp_res = (int *)sqlite3_malloc(sizeof(int)  * stcsr->max_size);
-        if ( !temp_res ){
-            printf("Error in allocating memory\\n");
-            return SQLITE_NOMEM;
-        }
-RAL
-
     fw.puts "    stlTable *stl = (stlTable *)cur->pVtab;"
     fw.puts "    stlTableCursor *stcsr = (stlTableCursor *)cur;"
     sign_retype, sign_untype = cast_signature()
@@ -448,11 +637,11 @@ RAL
     else
       fw.puts "    int size;"
     end
-    if @base_var.length == 0 : fw.puts error_case end
+    if @base_var.length == 0 : fw.puts CodeToGenerate.Error_case end
     fw.puts "    if ( val==NULL ){"
     if @base_var.length > 0
       if @stl_class.length > 0
-        fw.puts stl_fill_resultset
+        fw.puts CodeToGenerate.Stl_fill_resultset
       else
         fw.puts "#{$s}stcsr->size++;"
       end
@@ -464,7 +653,7 @@ RAL
     fw.puts "#{$s}check_alloc((const char *)constr, op, iCol);"
     if @base_var.length == 0
       fw.puts "#{$s}if ( equals_base(stl->azColumn[iCol]) ) {"
-      if $argT == "typesafe" : fw.puts typesafe_block end
+      if $argT == "TYPESAFE" : fw.puts CodeToGenerate.Typesafe_block end
       fw.puts "#{$s}    stcsr->source = (void *)sqlite3_value_int64(val);"
       fw.puts "#{$s}    any_dstr = (#{sign_retype})stcsr->source;"
       if @stl_class.length > 0
@@ -473,18 +662,13 @@ RAL
       fw.puts "#{$s}}"
       fw.puts "#{$s}size = get_datastructure_size(cur);"
     end
-    fw.puts resultset_alloc
+    fw.puts CodeToGenerate.Resultset_alloc
   end
 
 
 # Validate the signature of an stl structure and extract signature traits.
 # Also for objects, extract class name.
   def verify_signature()
-    class_sign = <<-CS
-STL class signature not properly given:
-template error in #{@signature} \\n\\n NOW EXITING. \\n
-CS
-
     case @signature
     when /(\w+)<(.+)>(\**)/m
       matchdata = /(\w+)<(.+)>(\**)/m.match(@signature)
@@ -506,31 +690,37 @@ CS
       end
       if (@template_args == "single" && /(.+),(.+)/.match(@type)) ||
           (@template_args == "double" && !(/(.+),(.+)/.match(@type)))
-        raise ArgumentError.new(class_sign)
+        raise ArgumentError.new(CodeToGenerate.Class_sign(@signature))
       end
-      puts "Table STL class name is: " + @stl_class
-      puts "Table no of template args is: " + @template_args
-      puts "Table container type is: " + @container_type
-      puts "Table record is of type: " + @type
-      puts "Table type is of type pointer: " + @pointer
+      if $argD == "DEBUG"
+        puts "Table STL class name is: " + @stl_class
+        puts "Table no of template args is: " + @template_args
+        puts "Table container type is: " + @container_type
+        puts "Table record is of type: " + @type
+        puts "Table type is of type pointer: " + @pointer
+      end
     when /(\w+)\*|(\w+)/
       matchdata = /(\w+)(\**)/.match(@signature)
       @object_class = @signature
       @type = @signature
       @pointer = matchdata[2]
-      puts "Table object class name : " + @object_class
-      puts "Table record is of type: " + @type
-      puts "Table type is of type pointer: " + @pointer
+      if $argD == "DEBUG"
+        puts "Table object class name : " + @object_class
+        puts "Table record is of type: " + @type
+        puts "Table type is of type pointer: " + @pointer
+      end
     when /(.+)/
       raise "Template instantiation faulty.\\n"
     end
   end
 
-
+# Matches VT definitions against prototype patterns.
   def match_table(table_description)
     table_ptn1 = /^create table (\w+)\.(\w+) with base(\s*)=(\s*)(\w+) as select \* from (.+)/im
     table_ptn2 = /^create table (\w+)\.(\w+) as select \* from (.+)/im
-    puts table_description
+    if $argD == "DEBUG"
+      puts "Table description is: #{table_description}"
+    end
     case table_description
     when table_ptn1
       matchdata = table_ptn1.match(table_description)
@@ -563,11 +753,13 @@ CS
       @columns.push(Column.new).last.set("base INT FROM self") 
     end
     @columns = @columns | @element.columns
-    puts "Table name is: " + @name
-    puts "Table lives in database named: " + @db
-    puts "Table base variable name is: " + @base_var
-    puts "Table signature name is: " + @signature
-    puts "Table follows element: " + @element.name
+    if $argD == "DEBUG"
+      puts "Table name is: " + @name
+      puts "Table lives in database named: " + @db
+      puts "Table base variable name is: " + @base_var
+      puts "Table signature name is: " + @signature
+      puts "Table follows element: " + @element.name
+    end
   end
 
 end
@@ -591,7 +783,9 @@ class Element
   # Matches an element definition against the prototype pattern and 
   # extracts the characteristics.
   def match_element(element_description)
-    puts element_description
+    if $argD == "DEBUG"
+      puts "Element description is: #{element_description}"
+    end
     pattern = /^create element table (\w+)(\s*)\((.+)\)/im
     matchdata = pattern.match(element_description)
     if matchdata
@@ -607,7 +801,10 @@ class Element
       end
     end
     columns_str.each { |x| @columns.push(Column.new).last.set(x) }
-    @columns.each { |x| p x }
+    if $argD == "DEBUG"
+      puts "Columns follow:"
+      @columns.each { |x| p x }
+    end
   end
 
 end
@@ -647,22 +844,11 @@ class InputDescription
 # Calls the family of methods that generate the application-specific 
 # search method for each VT struct.
   def print_search_functions(fw)
-    cls_search = <<-CLS
-        if ( (re = compare_res(count, stcsr, temp_res)) != 0 )
-            return re;
-        sqlite3_free(temp_res);
-    }
-    return SQLITE_OK;
-}
-
-
-CLS
-
     @tables.each { |vt|
       fw.puts "int #{vt.name}_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){"
       vt.setup_search(fw)
       vt.search_columns(fw)
-      fw.puts cls_search
+      fw.puts CodeToGenerate.Cls_search
     }
     fw.puts "int search(sqlite3_vtab_cursor* cur, char *constr, sqlite3_value *val){"
     fw.puts "    stlTable *stl = (stlTable *)cur->pVtab;"
@@ -703,16 +889,6 @@ CLS
 # Generates the function that assigns a base variable to 
 # the respective VT struct.
   def print_register_vt(fw)
-    els_case = <<-ELS
-    } else {
-        stl->data = NULL;
-        stl->embedded = 1;
-    }
-    vt_directory[stl->zName] = 0;
-}
-
-ELS
-
     fw.puts "void register_vt(stlTable *stl) {"
     count = 0
     @tables.each_index { |vt| 
@@ -728,42 +904,13 @@ ELS
         fw.puts "#{$s}stl->embedded = 0;"
       end
     }
-    fw.puts els_case
+    fw.puts CodeToGenerate.Els_case
   end
 
 
 # Generates the thread function that starts the SQTL thread.
   def print_thread(fw)
-    auto_gen1_1 = <<-AG11
-void * thread_sqlite(void *data){
-    const char **queries, **table_names;
-    queries = (const char **)sqlite3_malloc(sizeof(char *) *
-                   #{@tables.length.to_s});
-    table_names = (const char **)sqlite3_malloc(sizeof(char *) *
-                   #{@tables.length.to_s});
-    int failure = 0;
-AG11
-
-# Maybe adjust so that create queries are grouped by database.
-      auto_gen2 = <<-AG2
-    failure = register_table( "#{@tables[0].db}" ,  #{@tables.length.to_s}, queries, table_names, data);
-    printf(\"Thread sqlite returning..\\n\");
-    sqlite3_free(queries);
-    sqlite3_free(table_names);
-    return (void *)failure;
-}
-
-
-int call_sqtl() {
-    pthread_t sqlite_thread;
-    int re_sqlite = pthread_create(&sqlite_thread, NULL, thread_sqlite, NULL);
-    pthread_join(sqlite_thread, NULL);
-    return re_sqlite;
-}
-
-AG2
-
-    fw.puts auto_gen1_1
+    fw.puts CodeToGenerate.Prepare_thread(@tables)
 # <db>.<table> does not work for some reason. test.
     @tables.each_index { |vt| 
 #      query =  "CREATE VIRTUAL TABLE #{@tables[vt].db}.#{@tables[vt].name} USING stl("
@@ -773,7 +920,7 @@ AG2
       fw.puts "    queries[#{vt}] = \"#{query}\";"
       fw.puts "    table_names[#{vt}] = \"#{@tables[vt].name}\";"
     }
-    fw.puts auto_gen2
+    fw.puts CodeToGenerate.Init_sqtl(@tables)
   end
 
 
@@ -791,61 +938,8 @@ AG2
 # Generates application-specific code to complement the SQTL library.
 # There is a call to each of the above generative functions.
   def generate()
-    directives = <<-dir
-#include <assert.h>
-#include <stdio.h>
-#include <string>
-#include <string.h>
-#include "stl_search.h"
-#include "user_functions.h"
-#include "workers.h"
-#include <map>
-#{@directives}
-
-using namespace std;
-
-struct name_cmp {
-    bool operator()(const char *a, const char *b) {
-        return strcmp(a, b) < 0;
-    }
-};
-
-static map<const char *, int, name_cmp> vt_directory;
-static map<const char *, int, name_cmp>::iterator vtd_iter;
-dir
-
-    print_equals_base = <<-EQB
-// hard-coded
-int equals_base(const char *zCol) {
-    int length = (int)strlen(zCol) + 1;
-    char copy[length], *token;
-    memcpy(copy, zCol, length);
-    token = strtok(copy, " ");
-    if ( token != NULL ) {
-        if ( !strcmp(token, "base") )
-            return true;
-        else
-            return false;
-    } else
-        return SQLITE_NOMEM;
-}
-EQB
-
-    makefile_part = <<-mkf
-
-stl_search.o: stl_search.cpp stl_search.h user_functions.h workers.h
-
-stl_to_sql.o: stl_to_sql.c stl_to_sql.h stl_search.h
-
-user_functions.o: user_functions.c user_functions.h stl_test.h
-
-workers.o: workers.cpp workers.h stl_search.h
-
-stl_test.o: stl_test.c stl_test.h
-mkf
-
     myfile = File.open("stl_search.cpp", "w") do |fw|
-      fw.puts directives
+      fw.puts CodeToGenerate.Directives(@directives)
       fw.puts "\n\n"
       print_extern_variables(fw)
       fw.puts "\n\n"
@@ -855,18 +949,14 @@ mkf
       fw.puts "\n\n"
       print_get_size(fw)
       fw.puts "\n\n"
-      fw.puts print_equals_base
+      fw.puts CodeToGenerate.Equals_base
       print_search_functions(fw)
       fw.puts "\n\n"
       print_retrieve_functions(fw)
     end
     puts "Created/updated stl_search.cpp ."
     myFile = File.open("makefile.append", "w") do |fw|
-      fw.print "executable: main.o stl_search.o stl_to_sql.o user_functions.o workers.o stl_test.o"
-      fw.print "\n\tg++ -lswill -lsqlite3 -W -g main.o stl_search.o stl_to_sql.o user_functions.o workers.o stl_test.o -o executable\n\n"
-      fw.print "main.o: main.cpp stl_search.h "
-      fw.puts "\n\tg++ -W -g -c main.cpp"
-      fw.puts makefile_part
+      fw.puts CodeToGenerate.Makefile
       fw.puts
     end
     puts "Created/updated makefile.append ."
@@ -878,13 +968,17 @@ mkf
 # according to which, the description is promoted to the 
 # appropriate class. Required directives are also extracted.
   def register_datastructures()
-    puts "Description before whitespace cleanup: "
-    @description.each { |x| p x }
+    if $argD == "DEBUG"
+      puts "Description before whitespace cleanup: "
+      @description.each { |x| p x }
+    end
     token_d = @description
     token_d = token_d.select { |x| x.length > 0 }
     @directives = token_d[0]
     token_d.delete_at(0)
-    puts "Directives: " + @directives
+    if $argD == "DEBUG"
+      puts "Directives: #{@directives}"
+    end
     x = 0
     while x < token_d.length            # Cleaning white space.
       token_d[x].lstrip!
@@ -901,13 +995,17 @@ mkf
       x += 1
     end
     @description = token_d
-    puts "Description after whitespace cleanup: "
-    @description.each { |x| p x }
+    if $argD == "DEBUG"
+      puts "Description after whitespace cleanup: "
+      @description.each { |x| p x }
+    end
     $elements = Array.new
     views = Array.new
     w = 0
     @description.each { |stmt|
-      puts "\nDESCRIPTION No: " + w.to_s + "\n"
+      if $argD == "DEBUG"
+        puts "\nDESCRIPTION No: " + w.to_s + "\n"
+      end
       stmt.lstrip!
       stmt.rstrip!
       case stmt
@@ -921,14 +1019,26 @@ mkf
       w += 1
     }
   end
+  
+end
 
+
+# Take cases on command-line arguments.
+def take_cases(argv)
+  case argv
+  when /debug/i
+    $argD = "DEBUG"
+  when /typesafe/i
+    $argT = "TYPESAFE"
+  end
 end
 
 
 # The main method.
 if __FILE__ == $0
   $argF = ARGV[0]
-  $argT = ARGV[1]
+  take_cases(ARGV[1])
+  take_cases(ARGV[2])
   if !File.file?($argF)
     raise "File #{$argF} does not exist.\\n"
   end
