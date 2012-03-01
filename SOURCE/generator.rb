@@ -1,4 +1,4 @@
-# Models a column of the virtual table
+# Models a column of the Virtual Table (VT).
 class Column
   def initialize
     @name = ""
@@ -36,14 +36,14 @@ end
 # and fills the passed variables with values accordingly.
   def bind_datatypes(sqlite3_type, column_cast, sqlite3_parameters, 
                      column_cast_back, access_path)
-    match_text_array = Array.new
-    match_text_array.replace(@@text_match_data_types)
-    if @related_to.length > 0       # Column refers to other virtual table.
+    tmp_text_array = Array.new      # Do not process the original array.
+    tmp_text_array.replace(@@text_match_data_types)
+    if @related_to.length > 0       # 'this' (column) refers to other VT.
       if sqlite3_type == "search" 
         return "fk", nil, nil 
       elsif sqlite3_type == "retrieve"
         /_ptr/.match(@name) ? @type = "pointer" : @type = "object"   # In
-                        # columns that reference other virtual tables
+                        # columns that reference other VTs
                         # users have to declare the type for generating
                         # correct access statement.
         sqlite3_type.replace("int64")
@@ -52,12 +52,12 @@ end
         return "fk", @related_to, @type
       end
     end
-    if @name == "base"
+    if @name == "base"               # 'base' column.
       sqlite3_type.replace("int64")
       column_cast.replace("(long int)")
       return "base", nil, nil
     end
-    dt = @data_type.downcase
+    dt = @data_type.downcase         # Normal data column.
     if @@int_data_types.include?(dt)
       sqlite3_type.replace("int")
     elsif (dt == "blob")
@@ -68,7 +68,9 @@ end
         /decimal/i.match(dt)
       sqlite3_type.replace("double")
     elsif @@text_data_types.include?(dt) || 
-        match_text_array.reject! { |rgx| rgx.match(dt) != nil } != nil
+        tmp_text_array.reject! { |rgx| rgx.match(dt) != nil } != nil
+                                    # If match against RegExp, reject.
+                                    # If array changed, enter.
       case sqlite3_type
       when "search"
         column_cast.replace("(const unsigned char *)")
@@ -76,8 +78,7 @@ end
         column_cast.replace("(const char *)")
       end
       sqlite3_type.replace("text")
-      if @cpp_data_type == "string" : 
-          column_cast_back.replace(".c_str()") end
+      if @cpp_data_type == "string" : column_cast_back.replace(".c_str()") end
       sqlite3_parameters.replace(", -1, SQLITE_STATIC")
     end
     access_path.replace(@access_path)
@@ -89,21 +90,22 @@ end
 # The following data types are the ones accepted by sqlite.
   def verify_data_type()
     dt = @data_type.downcase
-    match_text_array = Array.new
-    match_text_array.replace(@@text_match_data_types)
+    tmp_text_array = Array.new
+    tmp_text_array.replace(@@text_match_data_types)
     if dt == "string"
       @cpp_data_type.replace(dt)
       @data_type.replace("TEXT")
     elsif @@int_data_types.include?(dt) || 
-        @@double_data_types.include?(dt) || /decimal/i.match(dt) != nil ||
+        @@double_data_types.include?(dt) || 
+        /decimal/i.match(dt) != nil ||
         @@text_data_types.include?(dt) || 
-        match_text_array.reject! { |rgx| rgx.match(dt) != nil } != nil
+        tmp_text_array.reject! { |rgx| rgx.match(dt) != nil } != nil
       return dt
     else
       raise TypeError.new("No such data type #{dt.upcase}\\n")
     end
   end
-
+  
 
 # Matches each column description against a pattern and extracts 
 # column traits.
@@ -124,8 +126,10 @@ end
       index = 0
       this_element = $elements.last
       this_columns = this_element.columns
-      $elements.each { |el|        # Search all element definitions to 
-        if el.name == matchdata[1] # find the one specified and include it.
+      $elements.each { |el| 
+        if el.name == matchdata[1]     # Search all element 
+                                       # definitions to find the one 
+                                       # specified and include it.
           index = this_element.columns.length - 2
           if index < 0 : index = 0 end
           this_element.columns_delete_last()
@@ -140,18 +144,21 @@ end
           }
         end
       }
-      this_columns.each_index { |col|      # Adapt access path.
-        if col > index : 
-            this_columns[col].access_path.replace(matchdata[2] + 
-                                                  this_columns[col].access_path) end
+      this_columns.each_index { |col|     # Adapt access path.
+        if col > index 
+          this_columns[col].access_path.replace(matchdata[2] + 
+                                                this_columns[col].access_path)
+        end
       }
       return
-    when column_ptn2
+    when column_ptn2                      # Merely include an element 
+                                          # definition.
       matchdata = column_ptn2.match(column)
-      $elements.each { |el| if el.name == matchdata[1] : 
-                                $elements.last.columns = 
-                                $elements.last.columns_delete_last() | 
-                                el.columns end 
+      $elements.each { |el| 
+        if el.name == matchdata[1] : 
+            $elements.last.columns = 
+            $elements.last.columns_delete_last() | 
+            el.columns end
       }
       return
     when column_ptn3
@@ -293,6 +300,7 @@ class VirtualTable
   end
 
 
+# Adds/subtracts pointer semantics from signature accordingly.
   def cast_signature()
     if /\*/.match(@pointer) == nil
       sign_retype = "#{@signature}*"
@@ -346,7 +354,10 @@ AG5
       sqlite3_parameters = ""
       column_cast_back = ""
       access_path = ""
-      op, useless, uselesss = @columns[col].bind_datatypes(sqlite3_type, column_cast, sqlite3_parameters, column_cast_back, access_path)
+      op, useless, uselesss = 
+      @columns[col].bind_datatypes(sqlite3_type, 
+                                   column_cast, sqlite3_parameters, 
+                                   column_cast_back, access_path)
       if op == "fk"
         fw.puts "#{$s}    printf(\"Restricted area. Searching VT #{@name} column #{@columns[col].name}...makes no sense.\\n\");"
         fw.puts "#{$s}    return SQLITE_MISUSE;"
@@ -534,15 +545,23 @@ CS
       @signature = matchdata[3]
     end
     verify_signature()
-    @type.match(/\*/) ? element_type = @type.chomp('*') : element_type = @type                        # type is active for both stl_struct and object.
-    $elements.each { |el| if el.name == @name : @element = el end }
+    if @type.match(/\*/)                    # Use type. It is active for 
+      vtable_type = @type.chomp('*')        # both stl_struct and object.
+    else
+      vtable_type = @type
+    end
+    $elements.each { |el| if el.name == @name : @element = el end }   
+                   # Try to match element definition using the VT's name 
+                   # first, its type then.
     if @element == nil
-      $elements.each { |el| if el.name == element_type : @element = el end }
+      $elements.each { |el| if el.name == vtable_type : @element = el end }
     end
     if @element == nil
       raise "Cannot match element for table #{@name}.\\n"
   end
-    if @base_var.length == 0 : @columns.push(Column.new).last.set("base INT FROM self") end           # base column for embedded structs.
+    if @base_var.length == 0            # base column for embedded structs.
+      @columns.push(Column.new).last.set("base INT FROM self") 
+    end
     @columns = @columns | @element.columns
     puts "Table name is: " + @name
     puts "Table lives in database named: " + @db
@@ -761,7 +780,11 @@ AG2
 # Generates the external base variables as prescribed 
 # from user in the description
   def print_extern_variables(fw)
-    @tables.each { |vt| if vt.base_var.length > 0 : fw.puts "extern #{vt.signature} #{vt.base_var};" end }
+    @tables.each { |vt| 
+      if vt.base_var.length > 0
+        fw.puts "extern #{vt.signature} #{vt.base_var};" 
+      end 
+    }
   end
 
 
@@ -837,6 +860,7 @@ mkf
       fw.puts "\n\n"
       print_retrieve_functions(fw)
     end
+    puts "Created/updated stl_search.cpp ."
     myFile = File.open("makefile.append", "w") do |fw|
       fw.print "executable: main.o stl_search.o stl_to_sql.o user_functions.o workers.o stl_test.o"
       fw.print "\n\tg++ -lswill -lsqlite3 -W -g main.o stl_search.o stl_to_sql.o user_functions.o workers.o stl_test.o -o executable\n\n"
@@ -845,6 +869,7 @@ mkf
       fw.puts makefile_part
       fw.puts
     end
+    puts "Created/updated makefile.append ."
   end
 
 
@@ -864,7 +889,9 @@ mkf
     while x < token_d.length            # Cleaning white space.
       token_d[x].lstrip!
       token_d[x].rstrip!
-      if /\n|\t|\r|\f/.match(token_d[x]) : token_d[x].gsub!(/\n|\t|\r|\f/, "") end
+      if /\n|\t|\r|\f/.match(token_d[x])
+        token_d[x].gsub!(/\n|\t|\r|\f/, "") 
+      end
       token_d[x].squeeze!(" ")           
       if / ,|, /.match(token_d[x]) : token_d[x].gsub!(/ ,|, /, ",") end
       if / \(/.match(token_d[x]) : token_d[x].gsub!(/ \(/, "(") end
