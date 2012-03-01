@@ -53,18 +53,9 @@ end
       end
     end
     if @name == "base"
-      s_type = ""
-      s_type.replace(sqlite3_type)
       sqlite3_type.replace("int64")
       column_cast.replace("(long int)")
-####
-      case s_type
-      when "search"
-        return "base", nil, nil
-      when "retrieve"  
-        return "base", nil, nil
-      end
-####
+      return "base", nil, nil
     end
     dt = @data_type.downcase
     if @@int_data_types.include?(dt)
@@ -302,6 +293,17 @@ class VirtualTable
   end
 
 
+  def cast_signature()
+    if /\*/.match(@pointer) == nil
+      sign_retype = "#{@signature}*"
+      sign_untype = @signature
+    else 
+      sign_retype = @signature
+      sign_untype = @signature.chomp("*")
+    end
+    return sign_retype, sign_untype
+  end
+
 # Generates code in retrieve method. Code makes the necessary arrangements 
 # for retrieve to happen successfully (condition checks, reallocation)
   def setup_retrieve(fw)
@@ -313,15 +315,7 @@ class VirtualTable
     }
 AG5
     fw.puts "    stlTableCursor *stcsr = (stlTableCursor *)cur;"
-####
-    if /\*/.match(@pointer) == nil
-      sign_retype = "#{@signature}*"
-      sign_untype = @signature
-    else 
-      sign_retype = @signature
-      sign_untype = @signature.chomp("*")
-    end
-####
+    sign_retype, sign_untype  = cast_signature()
     fw.puts "    #{sign_retype} any_dstr = (#{sign_retype})stcsr->source;"
     if @stl_class.length > 0
       fw.puts "    #{sign_untype}:: iterator iter;"
@@ -432,15 +426,7 @@ RAL
 
     fw.puts "    stlTable *stl = (stlTable *)cur->pVtab;"
     fw.puts "    stlTableCursor *stcsr = (stlTableCursor *)cur;"
-####
-    if /\*/.match(@pointer) == nil
-      sign_retype = "#{@signature}*"
-      sign_untype = @signature
-    else 
-      sign_retype = @signature
-      sign_untype = @signature.chomp("*")
-    end
-####
+    sign_retype, sign_untype = cast_signature()
     fw.puts "    #{sign_retype} any_dstr = (#{sign_retype})stcsr->source;"
     if @stl_class.length > 0
       fw.puts "    #{sign_untype}:: iterator iter;"

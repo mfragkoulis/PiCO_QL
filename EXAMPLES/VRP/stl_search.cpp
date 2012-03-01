@@ -154,8 +154,7 @@ int Truck_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
     Truck* any_dstr = (Truck*)stcsr->source;
     int op, iCol, i = 0, count = 0, re = 0;
     int size;
-    if ( stl->zErr!=NULL ) {
-	printf("Captured error..freeing zErr for %s\n", stl->zName);
+    if ( stl->zErr ) {
         sqlite3_free(stl->zErr);
         return SQLITE_MISUSE;
     }
@@ -215,8 +214,7 @@ int Customers_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val)
     vector<Customer*>:: iterator iter;
     int op, iCol, i = 0, count = 0, re = 0;
     int size;
-    if ( stl->zErr!=NULL ) {
-	printf("Captured error..freeing zErr for %s\n", stl->zName);
+    if ( stl->zErr ) {
         sqlite3_free(stl->zErr);
         return SQLITE_MISUSE;
     }
@@ -270,8 +268,7 @@ int Customer_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
     Customer* any_dstr = (Customer*)stcsr->source;
     int op, iCol, i = 0, count = 0, re = 0;
     int size;
-    if ( stl->zErr!=NULL ) {
-	printf("Captured error..freeing zErr for %s\n", stl->zName);
+    if ( stl->zErr ) {
         sqlite3_free(stl->zErr);
         return SQLITE_MISUSE;
     }
@@ -335,8 +332,7 @@ int Position_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
     Position* any_dstr = (Position*)stcsr->source;
     int op, iCol, i = 0, count = 0, re = 0;
     int size;
-    if ( stl->zErr!=NULL ) {
-	printf("Captured error..freeing zErr for %s\n", stl->zName);
+    if ( stl->zErr ) {
         sqlite3_free(stl->zErr);
         return SQLITE_MISUSE;
     }

@@ -99,7 +99,7 @@ int ChessRow_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val){
     stlTableCursor *stcsr = (stlTableCursor *)cur;
     vector<ChessPiece>* any_dstr = (vector<ChessPiece>*)stcsr->source;
     vector<ChessPiece>:: iterator iter;
-    int op, iCol, count = 0, i = 0, re = 0;
+    int op, iCol, i = 0, count = 0, re = 0;
     int size;
     if ( stl->zErr ) {
         sqlite3_free(stl->zErr);
@@ -163,7 +163,7 @@ int ChessBoard_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val
     stlTableCursor *stcsr = (stlTableCursor *)cur;
     vector<vector<ChessPiece> >* any_dstr = (vector<vector<ChessPiece> >*)stcsr->source;
     vector<vector<ChessPiece> >:: iterator iter;
-    int op, iCol, count = 0, i = 0, re = 0;
+    int op, iCol, i = 0, count = 0, re = 0;
     int size = get_datastructure_size(cur);
     if ( val==NULL ){
         for (int j=0; j<size; j++){
