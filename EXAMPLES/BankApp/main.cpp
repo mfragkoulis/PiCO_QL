@@ -6,13 +6,17 @@
 #include "SpecialAccount.h"
 #include "Account.h"
 #include "SuperAccount.h"
+/* SQTL header */
 #include "stl_search.h"
+/*------------*/
 
 using namespace std;
 
+/* At global scope to be accessible by SQTL */
 map<string,SuperAccount> superaccounts;
 list<SpecialAccount> specialaccounts;
 vector<Account> accounts;
+*/-----------------------------------------*/
 
 int main() {
     

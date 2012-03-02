@@ -1,9 +1,13 @@
 #include "ChessPiece.h"
 #include "Position.h"
-#include "stl_search.h"
 #include <stdio.h>
+/* SQTL header */
+#include "stl_search.h"
+*/-------------*/
 
+*/ At global scope to be accessible by SQTL */
 vector<vector<ChessPiece> > *chessBoard;
+*/------------------------------------------*/
 
 int main() {
     vector<vector<ChessPiece> > board;
@@ -11,7 +15,7 @@ int main() {
     vector<vector<ChessPiece> >::iterator iter;
     vector<ChessPiece>::iterator it;
 
-    for (int i = 0; i < 8; i++)
+    for (int i = 0; i < 8; i++)             // Set up the chess board.
 	board.push_back(vector<ChessPiece>());
     iter = board.begin();
     it = (*iter).begin();

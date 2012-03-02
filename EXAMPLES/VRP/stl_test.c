@@ -4,18 +4,18 @@
 #include <stdlib.h>
 
 // Takes care of query preparation and execution.
-int test_prep_exec(FILE *f, sqlite3 *db, const char *q){
+int test_prep_exec(FILE *f, sqlite3 *db, const char *q) {
   sqlite3_stmt  *stmt;
   int result, col, prepare;
-  if( (prepare = sqlite3_prepare_v2(db, q, -1, &stmt, 0)) == SQLITE_OK ){
+  if ((prepare = sqlite3_prepare_v2(db, q, -1, &stmt, 0)) == SQLITE_OK) {
     fprintf(f,"Statement prepared.\n");
-    for (col = 0; col < sqlite3_column_count(stmt); col++){
+    for (col = 0; col < sqlite3_column_count(stmt); col++) {
       fprintf(f, "%s ", sqlite3_column_name(stmt, col));
     }
     fprintf(f, "\n");
-    while ((result = sqlite3_step(stmt)) == SQLITE_ROW){
+    while ((result = sqlite3_step(stmt)) == SQLITE_ROW) {
       fprintf(f, "\n");
-      for (col = 0; col < sqlite3_column_count(stmt); col++){
+      for (col = 0; col < sqlite3_column_count(stmt); col++) {
 	switch(sqlite3_column_type(stmt, col)) {
 	case 1:
 	  fprintf(f, "%i ", sqlite3_column_int(stmt, col));
@@ -35,13 +35,13 @@ int test_prep_exec(FILE *f, sqlite3 *db, const char *q){
 	}
       }
     }
-    if( result==SQLITE_DONE ){
+    if (result == SQLITE_DONE) {
       fprintf(f, "\n\nDone\n");
-    }else if( result==SQLITE_OK ){
+    }else if (result == SQLITE_OK) {
       fprintf(f, "\n\nOK\n");
-    }else if( result==SQLITE_ERROR ){
+    }else if (result == SQLITE_ERROR) {
       fprintf(f, "\n\nSQL error or missing database\n");
-    }else if( result==SQLITE_MISUSE ){
+    }else if (result == SQLITE_MISUSE) {
       fprintf(f, "\n\nLibrary used incorrectly\n");
     }else {
       fprintf(f, "\n\nError code: %i.\nPlease advise Sqlite error codes (http://www.sqlite.org/c3ref/c_abort.html)", result);

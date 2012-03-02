@@ -90,7 +90,7 @@ vector < BackhaulCustomer* >::iterator BackhaulCustomer::get_nonser() {
 // Clears the list of backhaul customers currently active.
 // When the one is empty, the other is full.
 void BackhaulCustomer::clear_list(int i) {
-  if (i%2==0) {
+    if ((i % 2) == 0) {
     list_b.clear();
     list_b.push_back(list_bb[0]);
   } else {

@@ -9,7 +9,7 @@ using namespace std;
 class LinehaulCustomer: public Customer {
 
  public:
-  LinehaulCustomer( string c, int d, Position* pos, bool depot );
+  LinehaulCustomer(string c, int d, Position* pos, bool depot);
   Position* get_pos();
   static bool all_Lserviced;
   static map < string, double > dist_l;

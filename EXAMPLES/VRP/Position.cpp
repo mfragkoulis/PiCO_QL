@@ -8,15 +8,19 @@ Position::Position (int xx, int yy) {
   y=yy;
 }
 
+
 int Position::get_x() {
   return x;
 }
+
 
 int Position::get_y() {
   return y;
 }
 
+
+// Calculates the distance between two positions.
 double Position::distance( Position* pos) {
- return sqrt( pow( pos->get_x() - this->get_x(),2 ) + pow( pos->get_y() - 
-							   this->get_y(),2 ) );
+ return sqrt(pow(pos->get_x() - this->get_x(), 2) + pow(pos->get_y() - 
+							   this->get_y(), 2));
 }

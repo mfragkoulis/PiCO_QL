@@ -21,8 +21,8 @@ extern MTRand_int32 irand;
 
 // Constructs a new LinehaulCustomer object.
 LinehaulCustomer::LinehaulCustomer(string c, int d, Position* pos, 
-				   bool depot) : Customer( c, d, pos, depot ) {
-  coord_l.insert( make_pair(c, pos) );
+				   bool depot) : Customer(c, d, pos, depot) {
+  coord_l.insert(make_pair(c, pos));
   list_l.push_back(this);
   if ( depot ) list_ll.push_back(this);
 //  cout << this->get_code() << " " << c << << ", serviced: " << depot << endl;
@@ -36,9 +36,9 @@ bool LinehaulCustomer::get_allLserviced() {
 
 // Sets all_Lserviced to true.
 void LinehaulCustomer::set_allLserviced() {
-    if ( !all_Lserviced ){
-	all_Lserviced=true;
-    } else all_Lserviced=false;
+    if (!all_Lserviced) {
+	all_Lserviced = true;
+    } else all_Lserviced = false;
 
     Customer::set_allserviced();               // This is the case in 
                                                // this distribution.
@@ -64,7 +64,7 @@ Position* LinehaulCustomer::get_pos() {
 // Picks a linehaul customer from the list at random.
 LinehaulCustomer* LinehaulCustomer::random_sel(int& pos, int i) {
     vector<LinehaulCustomer*> *list_a, *list_b;
-    if ( i%2==0 ){
+    if ((i % 2) == 0) {
 	list_a = &list_l;
 	list_b = &list_ll;
     } else {
@@ -73,10 +73,10 @@ LinehaulCustomer* LinehaulCustomer::random_sel(int& pos, int i) {
     }
     // cout << " list_a size : " << list_a->size() << endl;
     // cout << "list_b size : " << list_b->size() << endl;
-    if ( list_a->size() > 1 ) {        // the depot will (should) 
+    if (list_a->size() > 1) {        // the depot will (should) 
 	                               // never be considered, therefore 1.
-	pos = irand()%list_a->size();
-	while  ( (*list_a)[pos]->get_serviced() ) {  // assumption: depot will
+	pos = irand() % list_a->size();
+	while ((*list_a)[pos]->get_serviced()) {  // assumption: depot will
 	                                             //  always be the first 
 	                                             // input "customer".
 	    pos=irand()%list_a->size();       // cnt: apparently depot is 
@@ -97,7 +97,7 @@ LinehaulCustomer* LinehaulCustomer::random_sel(int& pos, int i) {
 // The customer is placed in the other list.
 void LinehaulCustomer::erase_c(int pos, int i) {
     vector<LinehaulCustomer*> *list_a, *list_b;
-    if ( i%2==0 ){
+    if ((i % 2) == 0) {
 	list_a = &list_l;
 	list_b = &list_ll;
     } else {
@@ -124,9 +124,9 @@ void LinehaulCustomer::compute_dist() {
     map < string, Position* >::iterator top;
     map < string, Position* >::iterator nested;
     map < string, Position* >::iterator next;
-    for (top=coord_l.begin(); top!=coord_l.end(); top++) {
+    for (top = coord_l.begin(); top != coord_l.end(); top++) {
 	//    cout << top->first << endl;
-	next=top;
+	next = top;
 	next++;
 	for (nested=next; nested!=coord_l.end(); nested++) {
 	    double temp = sqrt( pow( nested->second->get_x() - 
