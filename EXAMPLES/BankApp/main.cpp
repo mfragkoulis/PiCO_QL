@@ -16,7 +16,7 @@ using namespace std;
 map<string,SuperAccount> superaccounts;
 list<SpecialAccount> specialaccounts;
 vector<Account> accounts;
-*/-----------------------------------------*/
+/*-----------------------------------------*/
 
 int main() {
     

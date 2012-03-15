@@ -192,6 +192,11 @@ DSL
    where more information about SQLite3's datatypes 
    can be retrieved.
 
+   An advice concerning character arrays is to declare all
+   as TEXT but those that belong to the STRING class.
+   The latter can be defined as STRING.
+
+
    BUILDING BLOCKS
    The user description, as per the DSL, is a 
    structured plain text description that contains 
