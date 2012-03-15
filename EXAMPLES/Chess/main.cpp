@@ -3,11 +3,11 @@
 #include <stdio.h>
 /* SQTL header */
 #include "stl_search.h"
-*/-------------*/
+/*-------------*/
 
-*/ At global scope to be accessible by SQTL */
+/* At global scope to be accessible by SQTL */
 vector<vector<ChessPiece> > *chessBoard;
-*/------------------------------------------*/
+/*------------------------------------------*/
 
 int main() {
     vector<vector<ChessPiece> > board;
