@@ -1,3 +1,21 @@
+/*   Copyright [2012] [Marios Fragkoulis]
+ *
+ *   Licensed under the Apache License, Version 2.0
+ *   (the "License");you may not use this file except in
+ *   compliance with the License.
+ *   You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *   Unless required by applicable law or agreed to in
+ *   writing, software distributed under the License is
+ *   distributed on an "AS IS" BASIS.
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ *   express or implied.
+ *   See the License for the specific language governing
+ *  permissions and limitations under the License.
+ */
+
 #include <stdlib.h>
 #include <swill.h>
 #include <time.h>
@@ -106,7 +124,7 @@ void app_index(FILE *f, sqlite3 *db) {
   swill_fprintf(f, "</style>");
   swill_fprintf(f, "</head>");
   swill_fprintf(f, "<body>");
-  swill_file("sqtl.png", "../EXTERN/sqtl.png");
+  swill_file("sqtl.png", "../bin/sqtl.png");
   swill_fprintf(f, "<img src=\"sqtl.png\" alt=\"SQTL logo\" />");
   swill_fprintf(f, "<div class=\"div_style\">");
   swill_fprintf(f, "<form action=\"serveQuery.html\" method=GET>");
@@ -173,7 +191,7 @@ void serve_query(FILE *f, sqlite3 *db) {
       swill_fprintf(f, "<b>Error code %i.<br>Please advise </b><a href=\"", 
 		    rc);
       swill_file("SQLite_error_codes.html", 
-		 "../EXTERN/SQLite_error_codes.html");
+		 "../bin/SQLite_error_codes.html");
       swill_printurl(f, "SQLite_error_codes.html", "", 0);
       swill_fprintf(f,"\">SQLite error codes</a>.<br><br>");
     }
