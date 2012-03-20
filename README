@@ -2,6 +2,11 @@ SQTL is a C/C++ plug-in library that sets up an SQL
 interface over containers of the C++ STL.
 
 
+PLATFORMS
+
+   Tested under Mac OS X 10.6.8.
+
+
 DEPENDENCIES
 
 -Ruby (http://www.ruby-lang.org/en)
