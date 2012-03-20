@@ -1,5 +1,0 @@
-Executable arguments:
-	   ./schedule cvrp/<input_file> <no_of_restarts>
-
-Restarts to leverage the stochastic construction and 
-	 optimisation of solutions to the VRP problem.

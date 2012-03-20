@@ -1,1 +1,0 @@
-../../SOURCE/diff_test.sh
