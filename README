@@ -49,7 +49,7 @@ DEPENDENCIES
 SQTL PACKAGE STRUCTURE
 
    At the EXAMPLES directory, users can browse:
-      - Examples.xslx, which contains description 
+      - Examples.ods, which contains description 
       	examples and the matchings 
       	at different levels (C++, description, SQL 
 	CREATE, SQL SELECT). The first three example 
@@ -63,13 +63,13 @@ SQTL PACKAGE STRUCTURE
 	2. "make" ["RELEASE=1"] | ["TYPESAFE=1"]
 	3. "./<executable>"
 
-   At the EXTERN directory reside binary files that 
+   At the bin directory reside binary files that 
    SQTL uses.
 
-   At the DOCS directory there is the BNF of the DSL 
+   At the doc directory there is the BNF of the DSL 
    that grounds the user description syntax.
 
-   At SOURCE directory, the library's source code is 
+   At src directory, the library's source code is 
    found.
 
 
@@ -83,8 +83,6 @@ RATIONALE
       management,
    b) show that faking is an enlighting alternative 
       when possible
-   c) provide quantitative evidence that support the 
-      superiority of this approach.
 
 
 GENERATIVE PROGRAMMING
