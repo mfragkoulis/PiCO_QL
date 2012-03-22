@@ -1,4 +1,9 @@
-/*   Copyright [2012] [Marios Fragkoulis]
+/*
+ *   Implement the callback functions that will allow 
+ *   SQLite to manage SQL queries towards the registered 
+ *   virtual tables.
+ *
+ *   Copyright 2012 Marios Fragkoulis
  *
  *   Licensed under the Apache License, Version 2.0
  *   (the "License");you may not use this file except in
@@ -24,7 +29,10 @@
 #include "stl_search.h"
 
 // Constructs the SQL CREATE query.
-void create(sqlite3 *db, int argc, const char * const * as, char *q) { 
+void create(sqlite3 *db, 
+	    int argc, 
+	    const char * const * as, 
+	    char *q) { 
   int i;
   q[0] = '\0';
   strcat(q, "CREATE TABLE ");
@@ -37,14 +45,22 @@ void create(sqlite3 *db, int argc, const char * const * as, char *q) {
   }
   q[strlen(q)] = '\0';
 #ifdef DEBUG
-  printf("Query is: %s with length %i \n", q, (int)strlen(q));
+  printf("Query is: %s with length %i \n", q, 
+	 (int)strlen(q));
 #endif
 }
 
-// Creates/connects a virtual table to the provided database.
-// isCreate for activating e.g. extra storage utilised. Not used so far.
-int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc, 
-		const char * const * argv, sqlite3_vtab **ppVtab,
+/* Creates/connects a virtual table to the provided 
+ * database.
+ * isCreate for activating e.g. extra storage utilised. 
+ * Not used so far.
+ */
+int init_vtable(int iscreate, 
+		sqlite3 *db, 
+		void *paux, 
+		int argc, 
+		const char * const * argv, 
+		sqlite3_vtab **ppVtab,
 		char **pzErr) {
   stlTable *stl;
   int nDb, nName, nByte, nCol, nString, i;
@@ -58,7 +74,8 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc,
   }
   nCol = argc - 3;
   assert(nCol > 0);
-  nByte = sizeof(stlTable) + nCol * sizeof(char *) + nDb + nName + nString;
+  nByte = sizeof(stlTable) + nCol * sizeof(char *) + 
+    nDb + nName + nString;
   stl = (stlTable *)sqlite3_malloc(nByte);
   if (stl == 0) {
     return SQLITE_NOMEM;
@@ -91,7 +108,7 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc,
 #ifdef DEBUG
   printf("Query is: %s \n", query);
 #endif
-  if( !(*pzErr) ){
+  if (!(*pzErr)) {
     int output = sqlite3_declare_vtab(db, query);
     if (output == 1) {
       *pzErr = sqlite3_mprintf("Error while declaring the virtual table.\n");
@@ -113,18 +130,25 @@ int init_vtable(int iscreate, sqlite3 *db, void *paux, int argc,
 }
 
 //xConnect
-int connect_vtable(sqlite3 *db, void *paux, int argc,
-		   const char * const * argv, sqlite3_vtab **ppVtab,
+int connect_vtable(sqlite3 *db, 
+		   void *paux, 
+		   int argc,
+		   const char * const * argv, 
+		   sqlite3_vtab **ppVtab,
 		   char **pzErr) {
 #ifdef DEBUG
   printf("Connecting vtable %s \n\n", argv[2]);
 #endif
-  return init_vtable(0, db, paux, argc, argv, ppVtab, pzErr);
+  return init_vtable(0, db, paux, argc, argv, 
+		     ppVtab, pzErr);
 }
 
 // xCreate
-int create_vtable(sqlite3 *db, void *paux, int argc,
-		  const char * const * argv, sqlite3_vtab **ppVtab,
+int create_vtable(sqlite3 *db, 
+		  void *paux, 
+		  int argc,
+		  const char * const * argv, 
+		  sqlite3_vtab **ppVtab,
 		  char **pzErr) {
 #ifdef DEBUG
   printf("Creating vtable %s \n\n", argv[2]);
@@ -133,7 +157,9 @@ int create_vtable(sqlite3 *db, void *paux, int argc,
 }
 
 // SQL update. Not provided.
-int update_vtable(sqlite3_vtab *pVtab, int argc, sqlite3_value **argv,
+int update_vtable(sqlite3_vtab *pVtab, 
+		  int argc, 
+		  sqlite3_value **argv, 
 		  sqlite_int64 *pRowid) {
   return SQLITE_OK;
 }
@@ -160,8 +186,14 @@ int disconnect_vtable(sqlite3_vtab *ppVtab) {
   return SQLITE_OK;
 }
 
-// Helper function for structuring an SQL WHERE constraint.
-void eval_constraint(int sqlite3_op, char iCol, int *j, char *nidxStr, int nidxLen) {
+/* Helper function for structuring an SQL WHERE 
+ * constraint.
+ */
+void eval_constraint(int sqlite3_op, 
+		     char iCol, 
+		     int *j, 
+		     char *nidxStr, 
+		     int nidxLen) {
   char op;
   switch (sqlite3_op) {
   case SQLITE_INDEX_CONSTRAINT_LT:
@@ -182,16 +214,19 @@ void eval_constraint(int sqlite3_op, char iCol, int *j, char *nidxStr, int nidxL
     //    case SQLITE_INDEX_CONSTRAINT_MATCH: nidxStr[i]="F"; break;
   }
 	
-  assert( *j<nidxLen-2 );
+  assert(*j < nidxLen - 2);
   nidxStr[(*j)++] = op;
   nidxStr[(*j)++] = iCol;
 }
 
-// xBestindex. Defines the query plan for an SQL query. 
-// Might be called multiple times with alternate plans.
-int bestindex_vtable(sqlite3_vtab *pVtab, sqlite3_index_info *pInfo) {
+/* xBestindex. Defines the query plan for an SQL query. 
+ * Might be called multiple times with alternate plans.
+ */
+int best_index_vtable(sqlite3_vtab *pVtab, 
+		     sqlite3_index_info *pInfo) {
   stlTable *st=(stlTable *)pVtab;
-  if (pInfo->nConstraint > 0) {            // no constraint no setting up
+  /* No constraint no setting up. */
+  if (pInfo->nConstraint > 0) {
     char iCol;
     int nCol;
     int nidxLen = pInfo->nConstraint*2 + 1;
@@ -202,10 +237,13 @@ int bestindex_vtable(sqlite3_vtab *pVtab, sqlite3_index_info *pInfo) {
     int i, j=0;
     if (!st->embedded) {
       for (i = 0; i < pInfo->nConstraint; i++){
-	struct sqlite3_index_constraint *pCons = &pInfo->aConstraint[i];
-	if (pCons->usable == 0) continue;
+	struct sqlite3_index_constraint *pCons = 
+	  &pInfo->aConstraint[i];
+	if (pCons->usable == 0) 
+	  continue;
 	iCol = pCons->iColumn - 1 + 'a';
-	eval_constraint(pCons->op, iCol, &j, nidxStr, nidxLen);
+	eval_constraint(pCons->op, iCol, &j, 
+			nidxStr, nidxLen);
 	pInfo->aConstraintUsage[i].argvIndex = i+1;
 	pInfo->aConstraintUsage[i].omit = 1;
       }
@@ -218,12 +256,16 @@ int bestindex_vtable(sqlite3_vtab *pVtab, sqlite3_index_info *pInfo) {
 #endif
       }
       for (i = 0; i < pInfo->nConstraint; i++) {
-	struct sqlite3_index_constraint *pCons = &pInfo->aConstraint[i];
-	if( pCons->usable==0 ) continue;
+	struct sqlite3_index_constraint *pCons = 
+	  &pInfo->aConstraint[i];
+	if( pCons->usable==0 ) 
+	  continue;
 	iCol = pCons->iColumn - 1 + 'a';
 	nCol = pCons->iColumn;
-	if (!equals_base(st->azColumn[nCol])) continue;
-	eval_constraint(pCons->op, iCol, &j, nidxStr, nidxLen);
+	if (!equals_base(st->azColumn[nCol])) 
+	  continue;
+	eval_constraint(pCons->op, iCol, &j, 
+			nidxStr, nidxLen);
 	pInfo->aConstraintUsage[i].argvIndex = 1;
 	pInfo->aConstraintUsage[i].omit = 1;
       }
@@ -236,49 +278,57 @@ int bestindex_vtable(sqlite3_vtab *pVtab, sqlite3_index_info *pInfo) {
       }
       int counter = 2;
       for (i = 0; i < pInfo->nConstraint; i++) {
-	struct sqlite3_index_constraint *pCons = &pInfo->aConstraint[i];
-	if (pCons->usable == 0) continue;
+	struct sqlite3_index_constraint *pCons = 
+	  &pInfo->aConstraint[i];
+	if (pCons->usable == 0) 
+	  continue;
 	iCol = pCons->iColumn - 1 + 'a';
 	nCol = pCons->iColumn;
-	if (equals_base(st->azColumn[nCol])) continue;
-	eval_constraint(pCons->op, iCol, &j, nidxStr, nidxLen);
+	if (equals_base(st->azColumn[nCol])) 
+	  continue;
+	eval_constraint(pCons->op, iCol, &j, 
+			nidxStr, nidxLen);
 	pInfo->aConstraintUsage[i].argvIndex = counter++;
 	pInfo->aConstraintUsage[i].omit = 1;
       }
     }
     pInfo->needToFreeIdxStr = 1;
-    if ((j>0) && 0 == (pInfo->idxStr = sqlite3_mprintf("%s", nidxStr)))
+    if ((j>0) && 0 == (pInfo->idxStr = 
+		       sqlite3_mprintf("%s", nidxStr)))
       return SQLITE_NOMEM;
   }
   return SQLITE_OK;
 }
 
-// xFilter. Filters an SQL query. Calls the search family of callbacks 
-// at stl_search.cpp.
-int filter_vtable(sqlite3_vtab_cursor *cur, int idxNum, const char *idxStr,
-		  int argc, sqlite3_value **argv) {
+/* xFilter. Filters an SQL query. Calls the search 
+ * family of callbacks at stl_search.cpp.
+ */
+int filter_vtable(sqlite3_vtab_cursor *cur, 
+		  int idxNum, 
+		  const char *idxStr,
+		  int argc, 
+		  sqlite3_value **argv) {
   stlTableCursor *stc=(stlTableCursor *)cur;
-  int i, j=0, re = 0;
+  int i, j = 0, re = 0;
   char *constr = (char *)sqlite3_malloc(sizeof(char) * 3);
   memset(constr, 0, sizeof(constr));
-  // Initialize size of resultset data structure.
+  /* Initialize size of resultset data structure. */
   stc->size = 0;
+  stc->current = -1;      /* Initial cursor position. */
 
-  // Initial cursor position.
-  stc->current = -1;
-
-  // In case of a join, xfilter will be called many times, x times for x 
-  // eligible rows of the paired table in this case isEof will be set to 
-  // terminate at row level and has to be reset to allow matching all 
-  // eligible rows.
-  stc->isEof = 0;
-
-  // First_constr is used to signal that the current constr encountered is the
-  // first (value 1) or not (value 0).
-  stc->first_constr = 1;
-
-  //Empty where clause.
-  if (argc == 0) {
+  /* In case of a join, xfilter will be called many times, 
+   *  x times for x eligible rows of the paired table. 
+   * In this case isEof will be set to terminate at row 
+   * level and has to be reset to allow matching all 
+   * eligible rows.
+   */
+  stc->isEof = 0;         
+  /* First_constr is used to signal that the current 
+   * constr encountered is the first (value 1) 
+   * or not (value 0).
+   */
+  stc->first_constr = 1;  
+  if (argc == 0) {        /* Empty where clause. */
     if ((re = search(cur, NULL, NULL)) != 0 ) {
       sqlite3_free(constr);
       return re;
@@ -300,11 +350,12 @@ int filter_vtable(sqlite3_vtab_cursor *cur, int idxNum, const char *idxStr,
 
 //xNext. Advances the cursor to next record of resultset.
 int next_vtable(sqlite3_vtab_cursor *cur) {
-  stlTable *st=(stlTable *)cur->pVtab;
-  stlTableCursor *stc=(stlTableCursor *)cur;
+  stlTable *st = (stlTable *)cur->pVtab;
+  stlTableCursor *stc = (stlTableCursor *)cur;
   stc->current++;
 #ifdef DEBUG
-  printf("Table %s, now stc->current: %i \n\n", st->zName, stc->current);
+  printf("Table %s, now stc->current: %i \n\n", 
+	 st->zName, stc->current);
 #endif
   if (stc->current >= stc->size)
     stc->isEof = 1;
@@ -312,15 +363,18 @@ int next_vtable(sqlite3_vtab_cursor *cur) {
 }
 
 
-// xOpen. Opens the virtual table struct to be used in an SQL query.
-// Triggered by the FROM clause. Initialises cursor.
-int open_vtable(sqlite3_vtab *pVtab, sqlite3_vtab_cursor **ppCsr) {
+/* xOpen. Opens the virtual table struct to be used 
+ * in an SQL query. Triggered by the FROM clause. 
+ * Initialises cursor.
+ */
+int open_vtable(sqlite3_vtab *pVtab, 
+		sqlite3_vtab_cursor **ppCsr) {
   stlTable *st=(stlTable *)pVtab;
   int arraySize;
 #ifdef DEBUG
   printf("Opening vtable %s\n\n", st->zName);
 #endif
-  sqlite3_vtab_cursor *pCsr;               /* Allocated cursor */
+  sqlite3_vtab_cursor *pCsr;    /* Allocated cursor */
 
   *ppCsr = pCsr = 
     (sqlite3_vtab_cursor *)sqlite3_malloc(sizeof(stlTableCursor));
@@ -329,29 +383,36 @@ int open_vtable(sqlite3_vtab *pVtab, sqlite3_vtab_cursor **ppCsr) {
   }
   stlTableCursor *stc = (stlTableCursor *)pCsr;
   memset(pCsr, 0, sizeof(stlTableCursor));
-  // Keep copy of initial data. Might change in search.
-  // Useful when multiple instances of the VT are open.
+  /* Keep copy of initial data. Might change in search. 
+   * Useful when multiple instances of the VT are open.
+   */
   stc->source = st->data;
-
-  // To allocate space for the resultset.
-  // Will need space at most equal to the data structure size.
-  // This is fixed for autonomous structs, variable for embedded ones 
-  // (will be taken care of in search.
-  if ( !st->embedded ) {
+  /* To allocate space for the resultset.
+   * Will need space at most equal to the data structure 
+   * size. This is fixed for autonomous structs, variable 
+   * for embedded ones (will be taken care of in search).
+   */
+  if (!st->embedded) {
     pCsr->pVtab = &st->vtab;
     arraySize = get_datastructure_size(pCsr);
     pCsr->pVtab = NULL;
   } else 
-    arraySize = 1;     // Embedded struct. Size will be synced in search 
-                       // when powered from source.
-
+    /* Embedded struct. Size will be synced in search when 
+     * powered from source.
+     */
+    arraySize = 1;
   stc->max_size = arraySize;
 #ifdef DEBUG
-  printf("ppCsr = %lx, pCsr = %lx \n", (long unsigned int)ppCsr, (long unsigned int)pCsr);
-#endif
-  // A data structure to hold index positions of resultset so that in the end
-  // of the constraint evaluation the remaining resultset is the wanted one. 
-  stc->resultSet = (int *)sqlite3_malloc(sizeof(int) * arraySize);
+  printf("ppCsr = %lx, pCsr = %lx \n", 
+	 (long unsigned int)ppCsr, 
+	 (long unsigned int)pCsr);
+#endif 
+  /* A data structure to hold index positions of resultset
+   * so that in the end of the constraint evaluation the 
+   * remaining resultset is the wanted one. 
+   */
+  stc->resultSet = (int *)sqlite3_malloc(sizeof(int) * 
+					 arraySize); 
   if (!stc->resultSet) {
     return SQLITE_NOMEM;
   }
@@ -359,22 +420,31 @@ int open_vtable(sqlite3_vtab *pVtab, sqlite3_vtab_cursor **ppCsr) {
   return SQLITE_OK;
 }
 
-//xColumn. Calls the retrieve family of functions at stl_search.cpp.
-// Returns the value of column $n for record pointed at by $cur.
-int column_vtable(sqlite3_vtab_cursor *cur, sqlite3_context *con, int n) {
+/* xColumn. Calls the retrieve family of functions at 
+ * stl_search.cpp. Returns the value of column $n for 
+ * record pointed at by $cur.
+ */
+int column_vtable(sqlite3_vtab_cursor *cur, 
+		  sqlite3_context *con, 
+		  int n) {
   return retrieve(cur, n, con);
 }
 
-//xRowid. Returns the rowid of record pointed at by $cur in integer format.
-int rowid_vtable(sqlite3_vtab_cursor *cur, sqlite_int64 *pRowid) {
+/* xRowid. Returns the rowid of record pointed at by $cur 
+ * in integer format.
+ */
+int rowid_vtable(sqlite3_vtab_cursor *cur, 
+		 sqlite_int64 *pRowid) {
 }
 
-//xClose. Closes the virtual table after the completion of a query.
+/* xClose. Closes the virtual table after the completion 
+ * of a query.
+ */
 int close_vtable(sqlite3_vtab_cursor *cur) {
-  stlTable *st=(stlTable *)cur->pVtab;
-  stlTableCursor *stc=(stlTableCursor *)cur;
+  stlTable *st = (stlTable *)cur->pVtab;
+  stlTableCursor *stc = (stlTableCursor *)cur;
 #ifdef DEBUG
-  printf("Closing vtable %s \n\n",st->zName);
+  printf("Closing vtable %s \n\n", st->zName);
 #endif
   sqlite3_free(stc->resultSet);
   sqlite3_free(stc);
@@ -386,13 +456,14 @@ int eof_vtable(sqlite3_vtab_cursor *cur) {
   return ((stlTableCursor *)cur)->isEof;
 }
 
-// Fills virtual table module's function pointers with implemented callback 
-// functions.
+/* Fills virtual table module's function pointers with 
+ * implemented callback functions.
+ */
 void fill_module(sqlite3_module *m) {
   m->iVersion = 1;
   m->xCreate = create_vtable;
   m->xConnect = connect_vtable;
-  m->xBestIndex = bestindex_vtable;
+  m->xBestIndex = best_index_vtable;
   m->xDisconnect = disconnect_vtable;
   m->xDestroy = destroy_vtable;
   m->xOpen = open_vtable;
@@ -411,17 +482,20 @@ void fill_module(sqlite3_module *m) {
   m->xRename = 0;
 }
 
-// Estimates the query length by counting the length of the parameters passed.
+/* Estimates the query length by counting the length of 
+ * the parameters passed.
+ */
 int arrange_size(int argc, const char * const * argv) {
-  int length = 28;          // Length of standard keywords of sql queries.
+  /* Length of standard keywords of sql queries. */
+  int length = 28;
   int i;
+  /* + length for all keywords except db_name. + 1 for 
+   * following identifier.
+   */
   for (i = 0; i < argc; i++) {
-    // + length for all keywords except db_name.
-    // + 1 for following identifier.
     if (i != 1) length += strlen(argv[i]) + 1;
   }
-  // Sentinel character.
-  length += 1;
+  length += 1;         /*  Sentinel character. */
 #ifdef DEBUG
   printf("length is %i \n",length);
 #endif

@@ -1,4 +1,10 @@
-/*   Copyright [2012] [Marios Fragkoulis]
+/*
+ *   Set up local query preparation and execution
+ *   environment for testing purposes.
+ *   Execute the queries user has included and write the
+ *   output in test_current.txt.
+ *
+ *   Copyright [2012] [Marios Fragkoulis]
  *
  *   Licensed under the Apache License, Version 2.0
  *   (the "License");you may not use this file except in

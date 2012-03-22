@@ -1,4 +1,4 @@
- #   Copyright [2012] [Marios Fragkoulis]
+ #   Copyright 2012 Marios Fragkoulis
  #
  #   Licensed under the Apache License, Version 2.0
  #   (the "License");you may not use this file except in
@@ -21,7 +21,7 @@ CXXFLAGS=-D_NDEBUG -O2
 CFLAGS=-D_NDEBUG -O2
 else
 CXXFLAGS=-W -g -D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC -D_GLIBCXX_DEBUG -D_GLIBCXX_CONCEPT_CHECKS -DTEST
-CFLAGS=-W -g -D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC -D_GLIBCXX_DEBUG -D_GLIBCXX_CONCEPT_CHECKS -DTEST
+CFLAGS=-W -g -DTEST
 ifdef TYPESAFE
 CXXFLAGS+=-DTYPESAFE
 CFLAGS+=-DTYPESAFE

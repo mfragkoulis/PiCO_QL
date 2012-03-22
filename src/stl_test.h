@@ -1,4 +1,7 @@
-/*   Copyright [2012] [Marios Fragkoulis]
+/*
+ *   Declare the interface to stl_test.c
+ *
+ *   Copyright 2012 Marios Fragkoulis
  *
  *   Licensed under the Apache License, Version 2.0
  *   (the "License");you may not use this file except in
@@ -21,6 +24,7 @@
 
 #include "sqlite3.h"
 
-int call_test(sqlite3 *db);      // The interface for testing purposes.
-
+int call_test(sqlite3 *db);      /* The interface for 
+				    testing purposes.
+				 */
 #endif

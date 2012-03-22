@@ -1,4 +1,10 @@
-#   Copyright [2012] [Marios Fragkoulis]
+#!/bin/sh
+#
+#   Compare the current test results with the successful 
+#   prototype and print the outcome.
+#
+#
+#   Copyright 2012 Marios Fragkoulis
 #
 #   Licensed under the Apache License, Version 2.0
 #   (the "License");you may not use this file except in
@@ -15,8 +21,9 @@
 #   See the License for the specific language governing
 #   permissions and limitations under the License.
 
-#!/bin/bash
 if diff test_current.txt test_success.txt >/dev/null 2>&1
-    then echo "TEST SUCCESSFUL"
-    else echo "TEST PRODUCED UNEXPECTED RESULTS. See test_current.txt"
+then 
+    echo "TEST SUCCESSFUL"
+else 
+    echo "TEST PRODUCED UNEXPECTED RESULTS. See test_current.txt"
 fi

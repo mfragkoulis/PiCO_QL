@@ -1,4 +1,9 @@
-#   Copyright [2012] [Marios Fragkoulis]
+#
+#   Parse a user description, which conforms to the DSL, and generate the 
+#   application specific filter and projection functions for the virtual tables
+#   described.
+#
+#   Copyright 2012 Marios Fragkoulis
 #
 #   Licensed under the Apache License, Version 2.0
 #   (the "License");you may not use this file except in
@@ -150,15 +155,38 @@ INSQTL
 
   def CodeToGenerate.Directives(directives)
     return <<-DIR
-#include <assert.h>
-#include <stdio.h>
+/*                                                         
+ *   Implement the filter and projection functions for 
+ *   each of the registered virtual tables.
+ *                                                         
+ *   Copyright 2012 Marios Fragkoulis
+ *                                                         
+ *   Licensed under the Apache License, Version 2.0        
+ *   (the "License");you may not use this file except in   
+ *   compliance with the License.                          
+ *   You may obtain a copy of the License at               
+ *                                                         
+ *       http://www.apache.org/licenses/LICENSE-2.0        
+ *                                                         
+ *   Unless required by applicable law or agreed to in     
+ *   writing, software distributed under the License is    
+ *   distributed on an "AS IS" BASIS.                      
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either  
+ *   express or implied.                                   
+ *   See the License for the specific language governing   
+ *  permissions and limitations under the License.         
+ */
+
+#include <cassert>
+#include <cstdio>
+#include <cstring>
 #include <string>
-#include <string.h>
+#include <map>
+#{directives}
 #include "stl_search.h"
 #include "user_functions.h"
 #include "workers.h"
-#include <map>
-#{directives}
+
 
 using namespace std;
 
@@ -204,7 +232,7 @@ CXXFLAGS=-D_NDEBUG -O2
 CFLAGS=-D_NDEBUG -O2
 else
 CXXFLAGS=-W -g -D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC -D_GLIBCXX_DEBUG -D_GLIBCXX_CONCEPT_CHECKS -D_GLIBCXX_FULLY_DYNAMIC_STRING -DTEST
-CFLAGS=-W -g -D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC -D_GLIBCXX_DEBUG -D_GLIBCXX_CONCEPT_CHECKS -D_GLIBCXX_FULLY_DYNAMIC_STRING -DTEST
+CFLAGS=-W -g -DTEST
 ifdef TYPESAFE
 CXXFLAGS+=-DTYPESAFE
 CFLAGS+=-DTYPESAFE
@@ -660,7 +688,7 @@ class VirtualTable
       fw.puts "    int size;"
     end
     if @base_var.length == 0 : fw.puts CodeToGenerate.Error_case end
-    fw.puts "    if (val==NULL) {"
+    fw.puts "    if (val == NULL) {"
     if @base_var.length > 0
       if @stl_class.length > 0
         fw.puts CodeToGenerate.Stl_fill_resultset
