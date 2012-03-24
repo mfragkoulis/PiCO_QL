@@ -1,0 +1,351 @@
+SQTL is a C/C++ plug-in library that sets up an SQL 
+interface over containers of the C++ STL.
+
+
+PLATFORMS
+
+   Tested under Mac OS X 10.6.8.
+
+
+DEPENDENCIES
+
+-Ruby (http://www.ruby-lang.org/en)
+   Part of the library's source code (the description
+   parser/code generator) is written in Ruby.
+
+-Sqlite3 (http://www.sqlite.org)
+   While SQTL does not use a database or other store 
+   to copy and/or store data, it uses the virtual 
+   table (VT) mechanism of Sqlite3 to fake the 
+   underlying data model.
+
+-SWILL (http://swill.sourceforge.net)
+   Once plugged in an application, SQTL opens a 
+   separate thread and uses the SWILL library to 
+   present a local server with a web-like, user 
+   friendly query interface.
+
+
+SQTL PACKAGE STRUCTURE
+
+   At the EXAMPLES directory, users can browse:
+      - Examples.ods, which contains description 
+      	examples and the matchings 
+      	at different levels (C++, description, SQL 
+	CREATE, SQL SELECT). The first three example 
+	scenarios have been implemented and can be 
+	executed effortlessly (provided the 
+	dependencies are installed in one's system)
+	from within the worked example directories 
+	(Bank_App, Chess, VRP):
+	1. "ruby generator.rb input.txt" ["typesafe"] 
+	   	 	      		 ["debug"]
+	2. "make" ["RELEASE=1"] | ["TYPESAFE=1"]
+	3. "./<executable>"
+
+   At the bin directory reside binary files that 
+   SQTL uses.
+
+   At the doc directory there is the BNF of the DSL 
+   that grounds the user description syntax.
+
+   At src directory, the library's source code is 
+   found.
+
+
+RATIONALE
+
+   At a time when various technologies and models are 
+   connected to offer what they do best, we argue that
+   this is not a one-way road. 
+   This work is a proof of concept and attempts to:
+   a) bring forward the advantages of uniform data 
+      management,
+   b) show that faking is an enlighting alternative 
+      when possible
+
+
+GENERATIVE PROGRAMMING
+
+   To match the template instantiations of user's STL 
+   collections, the library uses a generative 
+   approach. 
+   The source code generated makes up the heart of the
+   library's functionality, that is contains the 
+   custom selection and projection functions for the 
+   particular template instantiations.
+   Code generation relies on a user description of 
+   those instantiations.
+
+
+DSL
+
+   From this point on, the term structure will appear 
+   a lot. This term covers the following:
+   (a) object instance
+   (b) STL container instance
+   Additionally, although it should be mentioned 
+   separately but for brevity reasons, the term 
+   structure also implies pointers to structures.
+
+   MAPPING
+   Prior to describing the building blocks of the DSL,
+   it is important to establish the mapping between 
+   the C++ layer and the VT/SQL layer.
+
+   Beginning from the latter layer, virtual tables 
+   take part in ordinary SQL SELECT computations.
+   Behind the scenes, the SQLite engine calls the 
+   implemented interface of a VT, ergo a number of 
+   callback methods that define the action at each 
+   occasion (open, close, filter, project etc) on a 
+   VT.
+   These make the VT querable.
+   As such, the mapping task comes down to 
+   representing the valuable information in our 
+   structure(s) with SQLite accepted datatypes each 
+   occupying a column in the VT.
+   
+   A roadblock in this process, also evident in the OR
+   impedance mismatch, is the possible depth of OO 
+   structures which theoretically may span at infinite
+   levels.
+   The answer to this is decomposition in a familiar 
+   style.
+   Specifically, users can rely on two prioritised 
+   rules to decompose their C++ structures.
+   If the structure registered with SQTL:
+   (a) contains a pointer to a structure, the latter 
+       should become a separate VT.
+   (b) contains an STL container instance, the latter
+       should become a separate VT.
+   The style is familiar because it resembles 
+   the normalisation process of relational schema 
+   creation.
+
+   Those virtual tables whose respective C++ 
+   structures do not touch the surface but are met 
+   inside other structures have a special column named
+   "base" while the VTs of the other, surface, 
+   structures devote a column to identify the guest 
+   structure.
+   This is also familiar style and resembles closely 
+   relations in the relational algebra.
+   What is more, queries engaging two or more related 
+   virtual tables are realised by joins using the 
+   implicit notation.
+   
+   Therefore, joins are commonly established between 
+   a VT's reference column to a second and the 
+   second's "base" column.
+   At this point, a type-handshake of some kind is 
+   required because a C++ structure is activated 
+   behind the scenes with no type information 
+   following it.
+   Type information has been knowingly dismissed in
+   the process to fit in the join mechanism which is 
+   basically a give-and-take of address information.
+   To protect users from mistakenly typing a 
+   conceptually illegal join, we give them the option 
+   to have the ruby parser generate code for type 
+   safety.
+
+   Conclusively, the set of guidelines to users is:
+   1. Users should not plan for the special "base" 
+      column, it is auto-generated.
+   2. Columns that reference another VT should:
+      (a) have INT data type
+      (b) include the name and access path to the 
+       	  referenced virtual table as per the syntax 
+       	  "FROM TABLE <embedded_VT_name> WITH 
+       	  BASE=<access_path>"
+      (c) suffix the name of the column with "_ptr" if
+          the access path returns a pointer to the 
+       	  referenced structure (require a type 
+	  handshake).
+   3. Users can specify queries in ordinary SQL syntax
+      leveraging all SQL facilities that SQLite 
+      provides with one restriction.
+      Due to the navigational nature of the underlying
+      (C++) structures, VTs in a query have to be 
+      opened, that is ordered in the FROM clause, from
+      the outside, i.e. surface, to the inside, i.e. 
+      embedded. 
+      Not doing so, will terminate the query with an 
+      illegal use error.
+
+   DATATYPES
+   Although SQTL does not use SQLIte3 for storing 
+   data, the VT create statements and the data 
+   manipulation in the query process has to be done 
+   in datatypes that SQLite3 understands.
+
+   Generally, SQLite3 uses a dynamic type system.
+   This means that a value type is associated with 
+   the value itself.
+   Except for an INTEGER PRIMARY KEY, any other column
+   can be used to store a value of any storage class.
+
+   Hence, SQLite3 uses storage classes to categorise 
+   types of data and storage classes are slightly more
+   general than datatypes.
+   For instance, the INTEGER storage class includes 
+   six different integer datatypes of different 
+   lengths.
+   This favours disk efficiency.
+   When the data are brought into memory, they are 
+   converted to the most general datatype.   
+   Consequently, for the most part the terms "storage 
+   class" and "datatype" can be used interchangeably.
+   
+   SQLite3's storage classes include:
+
+      - NULL. The value is a NULL value.
+
+      - INTEGER. The value is a signed integer, stored
+      	in 1, 2, 3, 4, 6, or 8 bytes depending on the 
+	magnitude of the value.
+
+      - REAL. The value is a floating point value, 
+        stored as an 8-byte IEEE floating point 
+	number.
+
+      - TEXT. The value is a text string, stored using
+      	the database encoding (UTF-8, UTF-16BE or 
+	UTF-16LE).
+
+      - BLOB. The value is a blob of data, stored 
+      	exactly as it was input.
+
+   The above information is taken from 
+          http://sqlite.org/datatype3.html
+   where more information about SQLite3's datatypes 
+   can be retrieved.
+
+   An advice concerning character arrays is to declare all
+   as TEXT but those that belong to the STRING class.
+   The latter can be defined as STRING.
+
+
+   BUILDING BLOCKS
+   The user description, as per the DSL, is a 
+   structured plain text description that contains 
+   three types of declarations, 
+   (a) the include header files for application 
+       software classes involved and utilised STL 
+       containers, 
+   (b) element definitions and 
+   (c) table declarations.
+
+   Element definitions resemble class declarations in
+   an even more imperative style. 
+   They include the element's name and its attributes,
+   where attribute information includes data type, 
+   name and access path. e.g. 
+   	    CREATE ELEMENT TABLE SuperAccount (
+	    balance DOUBLE FROM get_balance(), 
+	    account_no TEXT FROM get_account_no(), 
+	    rate DOUBLE FROM get_rate(), 
+	    isbn INT FROM get_isbn()
+	    );
+   From another perspective, one could observe that 
+   element definitions take after relational table 
+   definitions.
+
+   Table declarations, except for the VT's name, carry
+   information about the underlying nature of the VT, 
+   that is the base variable of structure it 
+   represents in C++ and its type. 
+   Either the type (or template instantiation) or the 
+   name of the VT refers to a previously defined 
+   element in the description. 
+   The rationale is to be able to reuse element 
+   definitions in table declarations as well as in 
+   other element definitions. e.g.
+   	    CREATE ELEMENT TABLE Account (
+	    $SuperAccount,        // Element reuse
+	    type TEXT FROM type
+	    );
+
+	    CREATE TABLE Bank.Accounts 
+	    WITH BASE=accounts
+	    AS SELECT * FROM vector<Account>;
+
+   The table declaration together with the respective 
+   element definition complete a VT definition.
+   Declarations end with a ';' and, as mentioned, 
+   element definitions should precede the table 
+   declarations that refer to them.
+   
+
+PLUG IN PROCESS
+
+   After the writing of the description, users should
+   be able to execute the ruby parser and generator 
+   successfully. 
+   This can be found in the SOURCE directory as 
+   "generator.rb" and takes at most three arguments, 
+   the file where the description resides (.txt) and, 
+   optionally, the option "typesafe" which instructs 
+   the generator to generate code for type safety and 
+   the option "debug" which prints debug information. 
+   In UNIX like systems, typing 
+
+      "ruby generator.rb description.txt typesafe"
+
+   would generate two files, "stl_search.cpp" and 
+   "makefile.append" to append to the application's 
+   makefile. 
+   As a last action, users should add the 
+   "stl_search.h" header file to the file where the 
+   library will be called from, add the line 
+
+   	     "int re = call_sqtl();"
+
+   and make sure that the structures they have 
+   described in the description are accessible from 
+   outside the file.
+
+
+   COMPILE OPTIONS
+   As can be seen in a number of examples located at 
+   the EXAMPLES directory, the makefile makes 
+   available the options/flags RELEASE, DEBUG, 
+   TYPESAFE, SEED and CLEAN.
+   Except for the DEBUG flag, which corresponds to 
+   DEBUG switches all over the C/C++ source code, the 
+   rest have limited applicability in the examples 
+   provided.
+   The RELEASE option sets up optimisation flags and 
+   no debug checks. 
+   The DEBUG option (default) sets up a number of 
+   compile debug flags and instead of starting the 
+   local server, prints state information and executes
+   the test queries it finds in "stl_test.c". 
+   Accordingly, it writes the results in a file called
+   "test_current.txt" and calls a small, simple script
+   (diff_test.sh) which compares the latter with 
+   "test_success.txt".
+   The SEED option copies the results from 
+   "test_current.txt" to "test_success.txt". 
+   The CLEAN option cleans unnecessary files.
+   The TYPESAFE flag only has meaning with the DEBUG 
+   flag. 
+   It should be set for safely executing queries, 
+   i.e. ones that need code for type safety to have 
+   been generated (this is achieved by providing 
+   "typesafe" as an argument to the ruby parser). 
+   Those queries have to be placed in an 
+   	 "#ifdef TYPESAFE" block in 
+   "stl_test.c", otherwise their execution will result
+   in a SEG_FAULT.
+
+
+USING SQTL
+
+   Executing in production mode (examples under 
+   RELEASE) effects in a new thread which opens port 
+   8080 at localhost where the local server is 
+   listening for query requests.
+   Opening a browser at this address reveals the query
+   interface.
