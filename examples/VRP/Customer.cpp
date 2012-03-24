@@ -1,4 +1,7 @@
-/*   Copyright [2012] [Marios Fragkoulis]
+/*
+ *   Implement the member methods of Customer class.
+ *
+ *   Copyright 2012 Marios Fragkoulis
  *
  *   Licensed under the Apache License, Version 2.0
  *   (the "License");you may not use this file except in
@@ -13,11 +16,11 @@
  *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
  *   express or implied.
  *   See the License for the specific language governing
- *  permissions and limitations under the License.
+ *   permissions and limitations under the License.
  */
 
 #include <iostream>
-#include <math.h>
+#include <cmath>
 #include <cstdlib>
 #include "Customer.h"
 
@@ -26,7 +29,8 @@ using namespace std;
 
 Customer::Customer() {}
 
-Customer::Customer(string c, int d, Position* pos, bool depot) {
+Customer::Customer(string c, int d, Position* pos, 
+		   bool depot) {
     code = c;
     demand = d;
     (depot) ? serviced = true : serviced = false;

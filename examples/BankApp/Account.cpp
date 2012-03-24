@@ -1,4 +1,7 @@
-/*   Copyright [2012] [Marios Fragkoulis]
+/*
+ *   Implement the member methods of Account class.
+ *
+ *   Copyright 2012 Marios Fragkoulis
  *
  *   Licensed under the Apache License, Version 2.0
  *   (the "License");you may not use this file except in
@@ -16,17 +19,20 @@
  *  permissions and limitations under the License.
  */
 
+#include <cstring>
+#include <cstdio>
 #include "Account.h"
-#include <string.h>
-#include <stdio.h>
 
 using namespace std;
 
-Account::Account(const char *acc_no, float b, int i, const char *t) : SuperAccount(acc_no, b, i) {
+Account::Account(const char *acc_no, float b, int i, 
+		 const char *t) : 
+  SuperAccount(acc_no, b, i) {
     type = reinterpret_cast<const unsigned char *>(t);
 }
 
-Account::Account(const char *acc_no, float b) : SuperAccount(acc_no, b) {}
+Account::Account(const char *acc_no, float b) : 
+  SuperAccount(acc_no, b) {}
 
 Account & Account::operator=(Account const&) {}
 

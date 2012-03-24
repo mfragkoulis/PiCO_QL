@@ -1,4 +1,7 @@
-/*   Copyright 2012 Marios Fragkoulis
+/*
+ *   Implement the member methods of the ChessPiece class.
+ *
+ *   Copyright 2012 Marios Fragkoulis
  *
  *   Licensed under the Apache License, Version 2.0
  *   (the "License");you may not use this file except in
@@ -16,10 +19,10 @@
  *  permissions and limitations under the License.
  */
 
-#include "ChessPiece.h"
-#include "Position.h"
 #include <vector>
 #include <iostream>
+#include "ChessPiece.h"
+#include "Position.h"
 
 using namespace std;
 

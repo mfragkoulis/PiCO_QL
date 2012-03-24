@@ -1,4 +1,7 @@
-/*   Copyright [2012] [Marios Fragkoulis]
+/*
+ *   Declare the interface to Truck class.
+ *
+ *   Copyright 2012 Marios Fragkoulis
  *
  *   Licensed under the Apache License, Version 2.0
  *   (the "License");you may not use this file except in
@@ -13,7 +16,7 @@
  *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
  *   express or implied.
  *   See the License for the specific language governing
- *  permissions and limitations under the License.
+ *   permissions and limitations under the License.
  */
 
 #ifndef TRUCK_H
@@ -29,8 +32,8 @@ class Truck {
 
  private:
   int del_capacity;
-  vector < Customer* > cargoArray;
-  vector < double > info;
+  vector<Customer*> cargoArray;
+  vector<double> info;
   double cost;
   int d_lowest;
   int d_highest;
@@ -49,12 +52,14 @@ class Truck {
   vector < Customer* >::iterator finish();
   vector < Customer* >::iterator start();
   void exchange( Truck* t, bool& trap, bool same);
-  void rearrange(int pos, string& pre, string& mid, string& other_mid, 
+  void rearrange(int pos, string& pre, string& mid, 
+		 string& other_mid, string& next);
+  void rearrange(int pos, string& pre, string& mid, 
 		 string& next);
-  void rearrange(int pos, string& pre, string& mid, string& next);
-  void add_costs(int pos, string pre, string mid, string next);
-  void add_costs(int pos, string pre, string mid, string other_mid, 
+  void add_costs(int pos, string pre, string mid, 
 		 string next);
+  void add_costs(int pos, string pre, string mid, 
+		 string other_mid, string next);
   void assignC(Truck* t);
   void reassignC(Truck* t);
 };

@@ -1,4 +1,7 @@
-/*   Copyright [2012] [Marios Fragkoulis]
+/*
+ *   Declare the interface to BackhaulCustomer class.
+ *
+ *   Copyright 2012 Marios Fragkoulis
  *
  *   Licensed under the Apache License, Version 2.0
  *   (the "License");you may not use this file except in
@@ -19,8 +22,8 @@
 #ifndef BACKHAULCUSTOMER_H
 #define BACKHAULCUSTOMER_H
 
-#include "Customer.h"
 #include "mtrand.h"
+#include "Customer.h"
 
 using namespace std;
 
@@ -28,16 +31,17 @@ class BackhaulCustomer : public Customer {
 
  private:
   int revenue;
-  static map < string, double > dist_b;
-  static map < string, Position* > coord_b;
+  static map<string, double> dist_b;
+  static map<string, Position*> coord_b;
   static int count_b;
-  static vector < BackhaulCustomer* > list_b;
-  static vector < BackhaulCustomer* > list_bb;
-  static vector < BackhaulCustomer* > nonser_list;
+  static vector<BackhaulCustomer*> list_b;
+  static vector<BackhaulCustomer*> list_bb;
+  static vector<BackhaulCustomer*> nonser_list;
   static bool selective;
 
  public:
-  BackhaulCustomer(string c, int d, int r, Position* pos, bool depot); 
+  BackhaulCustomer(string c, int d, int r, Position* pos, 
+		   bool depot); 
   Position* get_pos();
   int get_revenue();
   static BackhaulCustomer* get_depot();

@@ -1,4 +1,7 @@
-/*   Copyright [2012] [Marios Fragkoulis]
+/*
+ *   Implement the main method for the Bank Application.
+ *
+ *   Copyright 2012 Marios Fragkoulis
  *
  *   Licensed under the Apache License, Version 2.0
  *   (the "License");you may not use this file except in
@@ -16,7 +19,7 @@
  *  permissions and limitations under the License.
  */
 
-#include <stdio.h>
+#include <cstdio>
 #include <string>
 #include <map>
 #include <list>
@@ -39,11 +42,15 @@ vector<Account> accounts;
 int main() {
     
     Account acc1("10068", 500.0, 478923743, "credit");
-    Account acc2("10234", 394.28, 692346729, "debit-consuming");
-    Account acc3("22974", -347389, 580383483, "debit-first house");
+    Account acc2("10234", 394.28, 692346729, 
+		 "debit-consuming");
+    Account acc3("22974", -347389, 580383483, 
+		 "debit-first house");
     Account acc4("34369", 48923, 347304830, "credit");
-    Account acc5("47023", 445567, 830343479, "debit-business");
-    Account acc6("34807", 23489, 394847344, "credit-fundtrust");
+    Account acc5("47023", 445567, 830343479, 
+		 "debit-business");
+    Account acc6("34807", 23489, 394847344, 
+		 "credit-fundtrust");
     accounts.push_back(acc1);
     accounts.push_back(acc2);
     accounts.push_back(acc3);

@@ -1,4 +1,8 @@
-/*   Copyright [2012] [Marios Fragkoulis]
+/*
+ *   Implement the member methods for BackhaulCustomer 
+ *   class.
+ *
+ *   Copyright 2012 Marios Fragkoulis
  *
  *   Licensed under the Apache License, Version 2.0
  *   (the "License");you may not use this file except in
@@ -13,11 +17,11 @@
  *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
  *   express or implied.
  *   See the License for the specific language governing
- *  permissions and limitations under the License.
+ *   permissions and limitations under the License.
  */
 
 #include <iostream>
-#include <math.h>
+#include <cmath>
 #include "BackhaulCustomer.h"
 
 using namespace std;
@@ -28,7 +32,7 @@ vector < BackhaulCustomer* > BackhaulCustomer::list_b;
 
 vector < BackhaulCustomer* > BackhaulCustomer::list_bb;
 
-int BackhaulCustomer::count_b = 0 ;
+int BackhaulCustomer::count_b = 0;
 
 map < string, double > BackhaulCustomer::dist_b; 
 
@@ -39,9 +43,12 @@ bool BackhaulCustomer::selective=false;
 extern MTRand_int32 irand;
 
 // Constructs new Backhaul customer object.
-BackhaulCustomer::BackhaulCustomer (string c, int d, int r, Position* pos, bool depot) : Customer(c, d, pos, depot ) {
-  revenue=r;
-  coord_b.insert( make_pair(c, pos) );
+BackhaulCustomer::BackhaulCustomer (string c, int d, 
+				    int r, Position* pos, 
+				    bool depot) : 
+  Customer(c, d, pos, depot) {
+  revenue = r;
+  coord_b.insert(make_pair(c, pos));
   list_b.push_back(this);
   count_b++;
   // cout <<"b" << endl;
@@ -54,7 +61,9 @@ int BackhaulCustomer::get_countb() {
 
 // Returns the depot object.
 BackhaulCustomer* BackhaulCustomer::get_depot() {
-  return list_b[0];             // Careful not to delete depot in erase_c. 
+  return list_b[0];     /* Careful not to delete depot 
+			   in erase_c. 
+			*/
 }
 
 // Returns the position of a Backhaul customer.
@@ -75,11 +84,12 @@ bool BackhaulCustomer::get_selective() {
 
 // Sets truw if VRPSB.
 void BackhaulCustomer::set_selective(bool s) {
-  selective=s;
+  selective = s;
 }
 
 // Selects a Backhaul customer at random.
-BackhaulCustomer* BackhaulCustomer::random_sel( int& pos, int i) {}
+BackhaulCustomer* BackhaulCustomer::random_sel(int& pos, 
+						int i) {}
 
 // Erases a Backhaul customer picked for service.
 void BackhaulCustomer::erase_c(int random, int i) {}
@@ -89,10 +99,14 @@ double BackhaulCustomer::get_dist(string pair) {
   return dist_b[pair];
 }
  
-// Computes the distance between all pairs of backhaul customers.
+/* Computes the distance between all pairs of backhaul 
+ * customers.
+ */
 void BackhaulCustomer::compute_dist() {}
 
-// Returns the non-serviced backhaul customers. Applicable in VRPSB. 
+/* Returns the non-serviced backhaul customers. Applicable 
+ * in VRPSB. 
+ */
 void BackhaulCustomer::non_serviced(int k) {}
 
 // Returns an iterator to the end of the non-serviced list.
@@ -102,11 +116,11 @@ vector < BackhaulCustomer* >::iterator BackhaulCustomer::get_nonser() {
   it=nonser_list.end() - 1;
   // cout << (*it)->get_code() << endl;
   return it;
-
 }
 
-// Clears the list of backhaul customers currently active.
-// When the one is empty, the other is full.
+/* Clears the list of backhaul customers currently active.
+ * When the one is empty, the other is full.
+ */
 void BackhaulCustomer::clear_list(int i) {
     if ((i % 2) == 0) {
     list_b.clear();
@@ -117,7 +131,9 @@ void BackhaulCustomer::clear_list(int i) {
   }
 }
 
-// Copies the non-serviced customers to the non-serviced list.x
+/* Copies the non-serviced customers to the non-serviced 
+ * list.x
+ */
 void BackhaulCustomer::cp_list(int i) {
   // vector < BackhaulCustomer* >::iterator it;
     if ((i % 2) == 0) {
@@ -126,5 +142,6 @@ void BackhaulCustomer::cp_list(int i) {
     for (it = list_b.begin(); it != list_b.end(); it++) {
       cout << (*it)->get_code() << endl;
       }*/
-  } else nonser_list=list_bb;
+  } else 
+      nonser_list = list_bb;
 }

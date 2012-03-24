@@ -1,4 +1,7 @@
-/*   Copyright [2012] [Marios Fragkoulis]
+/*
+ *   Declare the interface to LinehaulCustomer class.
+ *
+ *   Copyright 2012 Marios Fragkoulis
  *
  *   Licensed under the Apache License, Version 2.0
  *   (the "License");you may not use this file except in
@@ -27,14 +30,15 @@ using namespace std;
 class LinehaulCustomer: public Customer {
 
  public:
-  LinehaulCustomer(string c, int d, Position* pos, bool depot);
+  LinehaulCustomer(string c, int d, Position* pos, 
+		   bool depot);
   Position* get_pos();
   static bool all_Lserviced;
-  static map < string, double > dist_l;
-  static map < string, Position* > coord_l;
+  static map<string, double> dist_l;
+  static map<string, Position*> coord_l;
   static int count_l;
-  static vector < LinehaulCustomer* > list_l;
-  static vector < LinehaulCustomer* > list_ll;
+  static vector<LinehaulCustomer*> list_l;
+  static vector<LinehaulCustomer*> list_ll;
   static LinehaulCustomer* get_depot();
   static bool get_allLserviced();
   static void compute_dist();

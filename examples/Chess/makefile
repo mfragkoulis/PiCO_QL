@@ -1,4 +1,7 @@
- #   Copyright [2012] [Marios Fragkoulis]
+ #
+ #   Describe the source files dependencies.
+ #
+ #   Copyright 2012 Marios Fragkoulis
  #
  #   Licensed under the Apache License, Version 2.0
  #   (the "License");you may not use this file except in

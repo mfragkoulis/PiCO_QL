@@ -1,4 +1,7 @@
-/*   Copyright [2012] [Marios Fragkoulis]
+/*
+ *   Declare the interface to Customer class.
+ *
+ *   Copyright 2012 Marios Fragkoulis
  *
  *   Licensed under the Apache License, Version 2.0
  *   (the "License");you may not use this file except in
@@ -13,16 +16,16 @@
  *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
  *   express or implied.
  *   See the License for the specific language governing
- *  permissions and limitations under the License.
+ *   permissions and limitations under the License.
  */
 
 #ifndef CUSTOMER_H
 #define CUSTOMER_H
 
-#include "Position.h"
 #include <string>
 #include <map>
 #include <vector>
+#include "Position.h"
 
 using namespace std;
 

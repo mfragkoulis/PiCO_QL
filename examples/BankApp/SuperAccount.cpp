@@ -1,4 +1,7 @@
-/*   Copyright [2012] [Marios Fragkoulis]
+/*
+ *   Implement the member methods of SuperAccount class.
+ *
+ *   Copyright 2012 Marios Fragkoulis
  *
  *   Licensed under the Apache License, Version 2.0
  *   (the "License");you may not use this file except in
@@ -20,7 +23,8 @@
 
 using namespace std;
 
-SuperAccount::SuperAccount(const char *acc_no, float b, int i) {
+SuperAccount::SuperAccount(const char *acc_no, float b, 
+			   int i) {
     account_no = acc_no;
     balance = b;
     isbn = i;

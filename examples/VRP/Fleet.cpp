@@ -1,4 +1,7 @@
-/*   Copyright [2012] [Marios Fragkoulis]
+/*
+ *   Implement the meber methods for Fleet
+ *
+ *   Copyright 2012 Marios Fragkoulis
  *
  *   Licensed under the Apache License, Version 2.0
  *   (the "License");you may not use this file except in
@@ -16,11 +19,11 @@
  *  permissions and limitations under the License.
  */
 
-#include <math.h>
-#include <stdlib.h>
-#include "Fleet.h"
+#include <cmath>
+#include <cstdlib>
 #include <iostream>
 #include <fstream>
+#include "Fleet.h"
 
 using namespace std;
 
@@ -50,10 +53,12 @@ Truck* Fleet::get_current() {
 // Sets the total cost for the fleet.
 void Fleet::set_totalcost() {
     total_cost = 0;
-    vector < Truck* >:: iterator iter;
+    vector<Truck*>:: iterator iter;
     for (iter = fleet.begin(); iter != fleet.end(); iter++) {
 	total_cost += (*iter)->get_cost();
-	// cout << total_cost << " " << (*iter)->get_cost() << endl;
+	/* cout << total_cost << " " << 
+	   (*iter)->get_cost() << endl;
+	*/
     }
 }
 
@@ -109,21 +114,17 @@ void Fleet::deallocate() {
 
 // Optimises the customer allocations in the fleet.
 void Fleet::optimise(Fleet& optimised_fl) {
-
-    double iterations = 10000.0, temperature = 100.0,  // Parameters for 
-                                                       // Simulated Annealing
-	m = 20.0, cool = 0.9, spend = 1.1, counter = 0 ;  // algorithm.
-    vector < Truck* >::iterator iter;
-    vector < Customer* >::iterator it;
-    
+    // Parameters for Simulated Annealing algorithm
+    double iterations = 10000.0, temperature = 100.0,
+	m = 20.0, cool = 0.9, spend = 1.1, counter = 0 ;
+    vector<Truck*>::iterator iter;
+    vector<Customer*>::iterator it;
     Fleet new_fleet;
     new_fleet.set_size(this->get_size());
     new_fleet.assign_all(*this);
-
     optimised_fl.assign_all(*this);
-
     while (counter <= iterations) {
-	/* 
+	/*
 	   cout << "Optimised_fl: " << optimised_fl.total_cost << 
 	   " | " << endl;
 	   cout << " COUNTER : " << counter << endl;
@@ -139,7 +140,7 @@ void Fleet::optimise(Fleet& optimised_fl) {
 	   cout << "before nested new_cost is:  " << new_fleet.total_cost << 
 	   endl;
 	*/
-	
+
 	nested(new_fleet, &optimised_fl, temperature, m);
 	/* cout << "after nested new_cost is:  " << new_fleet.total_cost << 
 	   endl; */
@@ -147,8 +148,7 @@ void Fleet::optimise(Fleet& optimised_fl) {
 	counter += m;
 	m *= spend;
 	temperature *= cool;
-	
-	/* 
+	/*
 	   cout << optimised_fl.total_cost << " " << 
 	   optimised_fl.unused_delspace << " " << 
 	   optimised_fl.unused_pickspace << endl;
@@ -164,12 +164,14 @@ void Fleet::optimise(Fleet& optimised_fl) {
 	   }
 	*/
     }
-    new_fleet.deallocate();  
+    new_fleet.deallocate();
 }
 
-// Schedules exchanges and keeps track of the optimisation process.
-void Fleet::nested(Fleet& new_fleet, Fleet* optimised_fl, double temperature, 
-		   double m) {
+/* Schedules exchanges and keeps track of the optimisation 
+ * process.
+ */
+void Fleet::nested(Fleet& new_fleet, Fleet* optimised_fl, 
+		   double temperature, double m) {
   // cout << "nested" << endl;
   vector < Truck* >::iterator iter;
   vector < Customer* >::iterator it;
@@ -297,8 +299,9 @@ void Fleet::nested(Fleet& new_fleet, Fleet* optimised_fl, double temperature,
   }
 }
 
-// Arranges which trucks will engage in exchange of customers as part of 
-// the optimisation process.
+/* Arranges which trucks will engage in exchange of 
+ * customers as part of the optimisation process.
+ */
 void Fleet::generate_new(int& pos1, int& pos2) {
     // cout << "gen" << endl;
     vector < Customer* >::iterator it;
@@ -307,7 +310,7 @@ void Fleet::generate_new(int& pos1, int& pos2) {
 again:
     if (i == 1000) {
 	cout << "INFINITE" << endl;
-	i=0;
+	i = 0;
     }
     i++;
     pos1 = irand() % fleet.size();
@@ -333,10 +336,12 @@ again:
     */
 }
 
-// Arranges the swapping of Customers between two trucks as part of the 
-// optimisation process (when accepting a solution).
-// Brute force: Swap customers between the two trucks engaged in the 
-// last exchange.
+/* Arranges the swapping of Customers between two trucks 
+ * as part of the optimisation process (when accepting a 
+ * solution).
+ * Brute force: Swap customers between the two trucks 
+ * engaged in the last exchange.
+ */
 void Fleet::assignT(int pos1, int pos2, Fleet source) {
     // cout << "assignT" << endl;
     fleet[pos1]->reassignC(source.fleet[pos1]);
@@ -354,7 +359,9 @@ void Fleet::assign_all(Fleet source) {
     unused_delspace = source.unused_delspace;
 }
 
-// Reassigns to a fleet (optimised) the best solution found so far.
+/* Reassigns to a fleet (optimised) the best solution found
+ * so far.
+ */
 void Fleet::assign_best(Fleet source) {
     // cout << "assign best" << endl;
     for (int i = 0; i != (int)source.fleet.size(); i++) {

@@ -1,4 +1,7 @@
-/*   Copyright [2012] [Marios Fragkoulis]
+/*
+ *   Implement the main method for Chess.
+ *
+ *   Copyright 2012 Marios Fragkoulis
  *
  *   Licensed under the Apache License, Version 2.0
  *   (the "License");you may not use this file except in
@@ -33,7 +36,7 @@ int main() {
     vector<vector<ChessPiece> >::iterator iter;
     vector<ChessPiece>::iterator it;
 
-    for (int i = 0; i < 8; i++)             // Set up the chess board.
+    for (int i = 0; i < 8; i++) /*Set up the chess board.*/
 	board.push_back(vector<ChessPiece>());
     iter = board.begin();
     it = (*iter).begin();
@@ -99,18 +102,20 @@ int main() {
 
 /*                                                                              
     for (iter = board.begin(); iter != board.end(); iter++) {                       
-    cout << "Row " << iter + 1 - board.begin() << ":" << endl << endl;      
+    cout << "Row " << iter + 1 - board.begin() << ":" << 
+    endl << endl;      
         for (it = (*iter).begin(); it != (*iter).end(); it++) {                     
-	cout << "Column " << ((char)(it - (*iter).begin() + 'a')) << ": " <\
-	< (*it).get_color() << " " << (*it).get_name() << endl;                         
-        }                                                                       
-        cout << endl << "---------------------------" << endl << endl;          
-    }                                                                           
+	cout << "Column " << ((char)(it - 
+	(*iter).begin() + 'a')) << ": " << 
+	(*it).get_color() << " " << (*it).get_name() << 
+	endl;                         
+        } 
+	cout << endl << "---------------------------" << 
+	endl << endl;          
+    }
 */
 }
 
-int move(Position from, Position to) {
-
-}
+int move(Position from, Position to) {}
 
 

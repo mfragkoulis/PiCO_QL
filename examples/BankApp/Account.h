@@ -1,4 +1,7 @@
-/*   Copyright [2012] [Marios Fragkoulis]
+/*
+ *   Declare the inerface to Account class.
+ *
+ *   Copyright 2012 Marios Fragkoulis
  *
  *   Licensed under the Apache License, Version 2.0
  *   (the "License");you may not use this file except in
@@ -24,7 +27,8 @@
 class Account: public SuperAccount {
 
  public:
-  Account(const char *acc_no, float b, int i, const char *);
+  Account(const char *acc_no, float b, int i, 
+	  const char *);
   Account(const char *acc_no, float b);
   Account & operator=(Account const&);
   double get_rate();

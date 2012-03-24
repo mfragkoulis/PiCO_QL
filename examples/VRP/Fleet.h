@@ -1,4 +1,7 @@
-/*   Copyright [2012] [Marios Fragkoulis]
+/*
+ *   Declare the interface to Fleet class.
+ *
+ *   Copyright 2012 Marios Fragkoulis
  *
  *   Licensed under the Apache License, Version 2.0
  *   (the "License");you may not use this file except in
@@ -28,13 +31,13 @@ using namespace std;
 class Fleet {
 
  private:
-  vector < Truck* > fleet;
+  vector<Truck*> fleet;
   double total_cost;
   int unused_delspace;
 
  public:
   Fleet();
-  vector<Truck *> * get_fleet();
+  vector<Truck *>* get_fleet();
   void  add();
   Truck* get_current();
   void set_totalcost();
@@ -47,7 +50,8 @@ class Fleet {
   void set_size(int size);
   void deallocate();
   void optimise(Fleet& best);
-  void nested(Fleet& new_fleet, Fleet* best, double temperature, double m);
+  void nested(Fleet& new_fleet, Fleet* best, 
+	      double temperature, double m);
   void generate_new(int& pos1, int& pos2);
   void assign_all(Fleet source);
   void assign_best(Fleet source);
