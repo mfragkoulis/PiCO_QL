@@ -80,7 +80,6 @@ int init_vtable(int iscreate,
   if (stl == 0) {
     return SQLITE_NOMEM;
   }
-  memset(stl, 0, nByte);
   stl->zErr = NULL;
   stl->db = db;
   stl->nColumn = nCol;
@@ -231,7 +230,6 @@ int best_index_vtable(sqlite3_vtab *pVtab,
     int nCol;
     int nidxLen = pInfo->nConstraint*2 + 1;
     char nidxStr[nidxLen];
-    memset(nidxStr, 0, sizeof(nidxStr));
 
     assert(pInfo->idxStr == 0);
     int i, j=0;
@@ -311,7 +309,6 @@ int filter_vtable(sqlite3_vtab_cursor *cur,
   stlTableCursor *stc=(stlTableCursor *)cur;
   int i, j = 0, re = 0;
   char *constr = (char *)sqlite3_malloc(sizeof(char) * 3);
-  memset(constr, 0, sizeof(constr));
   /* Initialize size of resultset data structure. */
   stc->size = 0;
   stc->current = -1;      /* Initial cursor position. */
@@ -382,7 +379,6 @@ int open_vtable(sqlite3_vtab *pVtab,
     return SQLITE_NOMEM;
   }
   stlTableCursor *stc = (stlTableCursor *)pCsr;
-  memset(pCsr, 0, sizeof(stlTableCursor));
   /* Keep copy of initial data. Might change in search. 
    * Useful when multiple instances of the VT are open.
    */
@@ -416,6 +412,7 @@ int open_vtable(sqlite3_vtab *pVtab,
   if (!stc->resultSet) {
     return SQLITE_NOMEM;
   }
+  /* Fill resultset with -1. */
   memset(stc->resultSet, -1, sizeof(int) * arraySize);
   return SQLITE_OK;
 }

@@ -43,6 +43,7 @@ int realloc_resultset(sqlite3_vtab_cursor *cur) {
 				     arraySize);
         if (res != NULL) {
             stcsr->resultSet = res;
+	    /* Fill resultset with -1. */
             memset(stcsr->resultSet, -1,
                    sizeof(int) * arraySize);
             stcsr->max_size = arraySize;
