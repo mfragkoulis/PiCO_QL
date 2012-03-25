@@ -130,51 +130,51 @@ int file_prep_exec(FILE *f, sqlite3_stmt *stmt,
  * queries to sqlite_engine.
  */
 void app_index(FILE *f, sqlite3 *db) {
-  swill_fprintf(f, "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"\n\"http://www.w3.org/TR/html4/loose.dtd\">");
-  swill_fprintf(f, "<html>");
-  swill_fprintf(f, "<head>");
-  swill_fprintf(f, "<style type=\"text/css\">");
-  swill_fprintf(f, "img{height:116px;width:109px;align:left}");
-  swill_fprintf(f, ".div_style{width:500px; border:2px solid; background-color:#ccc;margin:0px auto;margin-top:-40px;}");
-  swill_fprintf(f, ".top{border-bottom:1px solid;padding-top:10px;padding-left:10px;padding-bottom:2px;}");
-  swill_fprintf(f, ".middle{padding-top:5px;padding-left:9px; padding-bottom:5px;}");
-  swill_fprintf(f, ".bottom{border-top:1px solid;padding-top:5px; padding-bottom:10px; text-align:center;}");
-  swill_fprintf(f, ".button{height:7em; width:10em; font-size:22px;}");
-  swill_fprintf(f, ".style_text{font-family:Times New Roman;font-size:20px;}");
-  swill_fprintf(f, ".style_input{font-family:Times New Roman;font-size:15px;}");
-  swill_fprintf(f, "table,td{border:1px double;}");
-  swill_fprintf(f, ".div_tbl{margin-top:20px;}");
-  swill_fprintf(f, "p.aligned{text-align:left;}");
-  swill_fprintf(f, "</style>");
-  swill_fprintf(f, "</head>");
-  swill_fprintf(f, "<body>");
+  swill_fprintf(f, "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"\n\"http://www.w3.org/TR/html4/loose.dtd\">"
+		"<html>"
+		"<head>"
+		"<style type=\"text/css\">"
+		"img{height:116px;width:109px;align:left}"
+		".div_style{width:500px; border:2px solid; background-color:#ccc;margin:0px auto;margin-top:-40px;}"
+		".top{border-bottom:1px solid;padding-top:10px;padding-left:10px;padding-bottom:2px;}"
+		".middle{padding-top:5px;padding-left:9px; padding-bottom:5px;}"
+		".bottom{border-top:1px solid;padding-top:5px; padding-bottom:10px; text-align:center;}"
+		".button{height:7em; width:10em; font-size:22px;}"
+		".style_text{font-family:Times New Roman;font-size:20px;}"
+		".style_input{font-family:Times New Roman;font-size:15px;}"
+		"table,td{border:1px double;}"
+		".div_tbl{margin-top:20px;}"
+		"p.aligned{text-align:left;}"
+		"</style>"
+		"</head>"
+		"<body>");
   swill_file("sqtl.png", "../bin/sqtl.png");
-  swill_fprintf(f, "<img src=\"sqtl.png\" alt=\"SQTL logo\" />");
-  swill_fprintf(f, "<div class=\"div_style\">");
-  swill_fprintf(f, "<form action=\"serveQuery.html\" method=GET>");
-  swill_fprintf(f, "<div class=\"top\">");
-  swill_fprintf(f, "<span class=\"style_text\"><b>Input your SQL query:</b></span>");
-  swill_fprintf(f, "</div>");
-  swill_fprintf(f, "<div class=\"middle\">");
-  swill_fprintf(f, "<textarea name=\"query\" cols=\"72\" rows=\"10\" class=\"style_input\"></textarea><br>");
-  swill_fprintf(f, "</div>");
-  swill_fprintf(f, "<div class=\"bottom\">");
-  swill_fprintf(f, "<input type=\"submit\" value=\"Submit\" class=\"button\"></input>");
-  swill_fprintf(f, "</div>");
-  swill_fprintf(f, "</form>");
-  swill_fprintf(f, "</div>");
-  swill_fprintf(f, "<div class=\"div_tbl\">");
-  swill_fprintf(f, "<span class=\"style_text\"><b>Your database schema is:</b></span>");
+  swill_fprintf(f, "<img src=\"sqtl.png\" alt=\"SQTL logo\" />"
+		"<div class=\"div_style\">"
+		"<form action=\"serveQuery.html\" method=GET>"
+		"<div class=\"top\">"
+		"<span class=\"style_text\"><b>Input your SQL query:</b></span>"
+		"</div>"
+		"<div class=\"middle\">"
+		"<textarea name=\"query\" cols=\"72\" rows=\"10\" class=\"style_input\"></textarea><br>"
+  "</div>"
+		"<div class=\"bottom\">"
+		"<input type=\"submit\" value=\"Submit\" class=\"button\"></input>"
+		"</div>"
+		"</form>"
+		"</div>"
+		"<div class=\"div_tbl\">"
+		"<span class=\"style_text\"><b>Your database schema is:</b></span>");
   prep_exec(f, db, "SELECT * FROM sqlite_master;");
-  swill_fprintf(f, "</div>");
-  swill_fprintf(f, "<br>");
-  swill_fprintf(f, "<p class=\"aligned\">");
+  swill_fprintf(f, "</div>"
+		"<br>"
+		"<p class=\"aligned\">");
   swill_fprintf(f,"<a href=\"");
   swill_printurl(f,"terminateConnection.html", "", 0);
-  swill_fprintf(f,"\">[ Terminate Server Connection ]</a>");
-  swill_fprintf(f, "</p>");
-  swill_fprintf(f, "</body>");
-  swill_fprintf(f, "</html>");
+  swill_fprintf(f,"\">[ Terminate Server Connection ]</a>"
+		"</p>"
+		"</body>"
+		"</html>");
 }
 
 
@@ -184,17 +184,17 @@ void app_index(FILE *f, sqlite3 *db) {
  */
 void serve_query(FILE *f, sqlite3 *db) {
   const char *query = "\0";
-  swill_fprintf(f, "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"\n\"http://www.w3.org/TR/html4/loose.dtd\">");
-  swill_fprintf(f, "<html>");
-  swill_fprintf(f, "<head>");
-  swill_fprintf(f, "<style type=\"text/css\">");
-  swill_fprintf(f, "body{bgcolor=\"#ffffff\";}");
-  swill_fprintf(f, "span.styled{color:blue;}");
-  swill_fprintf(f, "table, td{border:1px double;}");
-  swill_fprintf(f, "p.aligned{text-align:left;}");
-  swill_fprintf(f, "</style>");
-  swill_fprintf(f, "</head>");
-  swill_fprintf(f, "<body>");
+  swill_fprintf(f, "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"\n\"http://www.w3.org/TR/html4/loose.dtd\">"
+		"<html>"
+		"<head>"
+		"<style type=\"text/css\">"
+		"body{bgcolor=\"#ffffff\";}"
+		"span.styled{color:blue;}"
+		"table, td{border:1px double;}"
+		"p.aligned{text-align:left;}"
+		"</style>"
+		"</head>"
+		"<body>");
   if (swill_getargs("s(query)", &query)) {
     int rc;
     clock_t start_clock,finish_clock;
@@ -227,27 +227,27 @@ void serve_query(FILE *f, sqlite3 *db) {
     swill_fprintf(f,"\">[ Input new Query ]</a>");
     swill_fprintf(f, "<a href=\"");
     swill_printurl(f,"terminateConnection.html", "", 0);
-    swill_fprintf(f,"\">[ Terminate Server Connection ]</a>");
-    swill_fprintf(f, "</p>");
-    swill_fprintf(f, "</body>");
-    swill_fprintf(f, "</html>");
+    swill_fprintf(f,"\">[ Terminate Server Connection ]</a>"
+		  "</p>"
+		  "</body>"
+		  "</html>");
   }
 }
 
 // Terminates connection to the embedded web-server.
 void terminate(FILE *f, sqlite3 *db) {
-  swill_fprintf(f, "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"\n\"http://www.w3.org/TR/html4/loose.dtd\">");
-  swill_fprintf(f, "<html>");
-  swill_fprintf(f, "<head>");
-  swill_fprintf(f, "<style type=\"text/css\">");
-  swill_fprintf(f, "body{bgcolor=\"#ffffff\";}");
-  swill_fprintf(f, "</style>");
-  swill_fprintf(f, "</head>");
-  swill_fprintf(f, "<body>");
+  swill_fprintf(f, "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"\n\"http://www.w3.org/TR/html4/loose.dtd\">"
+		"<html>"
+		"<head>"
+		"<style type=\"text/css\">"
+		"body{bgcolor=\"#ffffff\";}"
+		"</style>"
+		"</head>"
+		"<body>");
   sqlite3_close(db);
-  swill_fprintf(f, "<b>TERMINATED CONNECTION...</b>");
-  swill_fprintf(f, "</body>");
-  swill_fprintf(f, "</html>");
+  swill_fprintf(f, "<b>TERMINATED CONNECTION...</b>"
+		"</body>"
+		"</html>");
   swill_close();
 }
 
