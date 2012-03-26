@@ -20,269 +20,7 @@
 #   See the License for the specific language governing
 #   permissions and limitations under the License.
 
-# All code blocks for generation gathered in this class in class methods
-# in the form of HERE-documents.
-class CodeToGenerate
-
-  def CodeToGenerate.Cursor_current
-    return  <<-AG5
-    int index = stcsr->current;
-    iter = any_dstr->begin();
-    for (int i = 0; i < stcsr->resultSet[index]; i++) {
-        iter++;
-    }
-AG5
-  end
-
-
-  def CodeToGenerate.Error_case
-    return <<-EC
-    if (stl->zErr) {
-        sqlite3_free(stl->zErr);
-        return SQLITE_MISUSE;
-    }
-EC
-  end
-
-
-  def CodeToGenerate.Stl_fill_resultset
-    return <<-SFR
-        for (int j = 0; j < size; j++) {
-            stcsr->resultSet[j] = j;
-            stcsr->size++;
-	}
-        assert(stcsr->size <= stcsr->max_size);
-        assert(&stcsr->resultSet[stcsr->size] <= &stcsr->resultSet[stcsr->max_size]);
-SFR
-  end
-
-
-  def CodeToGenerate.Typesafe_block
-    return <<-TB
-            vtd_iter = vt_directory.find(stl->zName);
-            if ((vtd_iter == vt_directory.end()) || (vtd_iter->second == 0)) {
-                printf("Invalid cast to %s\\n", stl->zName);
-                return SQLITE_MISUSE;
-            }
-            vt_directory[stl->zName] = 0;
-TB
-  end
-
-
-  def CodeToGenerate.Resultset_alloc
-    return <<-RAL
-        int *temp_res;
-	temp_res = (int *)sqlite3_malloc(sizeof(int)  * stcsr->max_size);
-        if (!temp_res) {
-            printf("Error in allocating memory\\n");
-            return SQLITE_NOMEM;
-        }
-RAL
-  end
-
-
-  def CodeToGenerate.Class_sign(signature)
-    return <<-CS
-STL class signature not properly given:
-template error in #{signature} \\n\\n NOW EXITING. \\n
-CS
-  end
-
-
-  def CodeToGenerate.Cls_search
-    return <<-CLS
-        if ((re = compare_res(count, stcsr, temp_res)) != 0)
-            return re;
-        sqlite3_free(temp_res);
-    }
-    return SQLITE_OK;
-}
-
-
-CLS
-  end
-
-  
-  def CodeToGenerate.Els_case
-    return <<-ELS
-    } else {
-        stl->data = NULL;
-        stl->embedded = 1;
-    }
-    vt_directory[stl->zName] = 0;
-}
-
-ELS
-  end
-
-
-  def CodeToGenerate.Prepare_thread(tables)
-      return <<-PRTD
-// Thread. Creates the queries and passes them on to SQTL.
-void * thread_sqlite(void *data) {
-    const char **queries, **table_names;
-    queries = (const char **)sqlite3_malloc(sizeof(char *) *
-                   #{tables.length.to_s});
-    table_names = (const char **)sqlite3_malloc(sizeof(char *) *
-                   #{tables.length.to_s});
-    int failure = 0;
-PRTD
-  end
-
-
-  # Maybe adjust so that create queries are grouped by database.
-  def CodeToGenerate.Init_sqtl(tables) 
-    return <<-INSQTL
-    failure = register_table( "#{tables[0].db}" , #{tables.length.to_s}, queries, table_names, data);
-    printf(\"Thread sqlite returning..\\n\");
-    sqlite3_free(queries);
-    sqlite3_free(table_names);
-    return (void *)failure;
-}
-
-
-// The API with user application code. Creates the SQTL thread.
-int call_sqtl() {
-    pthread_t sqlite_thread;
-    int re_sqlite = pthread_create(&sqlite_thread, NULL, thread_sqlite, NULL);
-    pthread_join(sqlite_thread, NULL);
-    return re_sqlite;
-}
-
-INSQTL
-  end
-
-
-  def CodeToGenerate.Directives(directives)
-    return <<-DIR
-/*                                                         
- *   Implement the filter and projection functions for 
- *   each of the registered virtual tables.
- *                                                         
- *   Copyright 2012 Marios Fragkoulis
- *                                                         
- *   Licensed under the Apache License, Version 2.0        
- *   (the "License");you may not use this file except in   
- *   compliance with the License.                          
- *   You may obtain a copy of the License at               
- *                                                         
- *       http://www.apache.org/licenses/LICENSE-2.0        
- *                                                         
- *   Unless required by applicable law or agreed to in     
- *   writing, software distributed under the License is    
- *   distributed on an "AS IS" BASIS.                      
- *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either  
- *   express or implied.                                   
- *   See the License for the specific language governing   
- *   permissions and limitations under the License.
- */
-
-#include <cassert>
-#include <cstdio>
-#include <cstring>
-#include <string>
-#include <map>
-#{directives}
-#include "stl_search.h"
-#include "user_functions.h"
-#include "workers.h"
-
-
-using namespace std;
-
-struct name_cmp {
-    bool operator()(const char *a, const char *b) {
-        return strcmp(a, b) < 0;
-    }
-};
-
-static map<const char *, int, name_cmp> vt_directory;
-static map<const char *, int, name_cmp>::iterator vtd_iter;
-DIR
-  end
-
-
-  def CodeToGenerate.Equals_base
-    return <<-EQB
-// Each embedded virtual table has a column named 'base'.
-// This function checks if a provided column name is indeed 'base'.
-int equals_base(const char *zCol) {
-    int length = (int)strlen(zCol) + 1;
-    char copy[length], *token;
-    memcpy(copy, zCol, length);
-    token = strtok(copy, " ");
-    if (token != NULL) {
-        if (!strcmp(token, "base"))
-            return true;
-        else
-            return false;
-    } else
-        return SQLITE_NOMEM;
-}
-
-
-EQB
-  end
-    
-
-  def CodeToGenerate.Makefile
-    return <<-MKF
-/*                                                         
- *   Descsribe the source files dependencies.
- *                                                         
- *   Copyright 2012 Marios Fragkoulis
- *                                                         
- *   Licensed under the Apache License, Version 2.0        
- *   (the "License");you may not use this file except in   
- *   compliance with the License.                          
- *   You may obtain a copy of the License at               
- *                                                         
- *       http://www.apache.org/licenses/LICENSE-2.0        
- *                                                         
- *   Unless required by applicable law or agreed to in     
- *   writing, software distributed under the License is    
- *   distributed on an "AS IS" BASIS.                      
- *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either  
- *   express or implied.                                   
- *   See the License for the specific language governing   
- *   permissions and limitations under the License.
- */
-
-ifdef RELEASE
-CXXFLAGS=-D_NDEBUG -O2
-CFLAGS=-D_NDEBUG -O2
-else
-CXXFLAGS=-W -g -D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC -D_GLIBCXX_DEBUG -D_GLIBCXX_CONCEPT_CHECKS -D_GLIBCXX_FULLY_DYNAMIC_STRING -DTEST
-CFLAGS=-W -g -DTEST
-ifdef TYPESAFE
-CXXFLAGS+=-DTYPESAFE
-CFLAGS+=-DTYPESAFE
-endif
-endif
-ifdef DEBUG
-CXXFLAGS+=-DDEBUG
-CFLAGS+=-DDEBUG
-endif
-
-OBJ=main.o stl_search.o stl_to_sql.o user_functions.o workers.o stl_test.o
-
-executable: $(OBJ)
-        $(CXX) -lswill -lsqlite3 $(CXXFLAGS) $(OBJ) -o $@
-
-stl_search.o: stl_search.cpp stl_search.h user_functions.h workers.h
-
-stl_to_sql.o: stl_to_sql.c stl_to_sql.h stl_search.h
-
-user_functions.o: user_functions.c user_functions.h stl_test.h
-
-workers.o: workers.cpp workers.h stl_search.h
-
-stl_test.o: stl_test.c stl_test.h
-MKF
-  end
-
-end
-
+require 'erb'
 
 # Models a column of the Virtual Table (VT).
 class Column
@@ -542,6 +280,19 @@ class VirtualTable
   attr_accessor(:name,:base_var,:element,:db,:signature,:stl_class,:type,
                 :pointer,:object_class,:template_args,:columns)
 
+# Support templating of member data
+  def get_binding
+    binding
+  end
+
+# Calls template to generates code in retrieve method. Code makes the 
+# necessary arrangements for retrieve to happen successfully 
+# (condition checks, reallocation)
+  def finish_retrieve(fw)
+    file = File.open("erb_templates/post_retrieve.erb").read
+    post_retrieve = ERB.new(file, 0, '>')
+    fw.puts post_retrieve.result(get_binding)
+  end
 
 # Method performs case analysis to generate 
 # the correct form of the variable
@@ -554,7 +305,6 @@ class VirtualTable
     end
     return iden
   end
-
 
 # Generates code to retrieve each VT struct.
 # Each retrieve case matches a specific column of the VT.
@@ -598,31 +348,23 @@ class VirtualTable
     }
   end
 
-
-# Adds/subtracts pointer semantics from signature accordingly.
-  def cast_signature()
-    if /\*/.match(@pointer) == nil
-      sign_retype = "#{@signature}*"
-      sign_untype = @signature
-    else 
-      sign_retype = @signature
-      sign_untype = @signature.chomp("*")
-    end
-    return sign_retype, sign_untype
-  end
-
-# Generates code in retrieve method. Code makes the necessary arrangements 
-# for retrieve to happen successfully (condition checks, reallocation)
+# Calls template to generate code in retrieve method. 
+# Code makes the necessary arrangements for retrieve to happen successfully 
+# (condition checks, reallocation)
   def setup_retrieve(fw)
-    fw.puts "    stlTableCursor *stcsr = (stlTableCursor *)cur;"
-    sign_retype, sign_untype  = cast_signature()
-    fw.puts "    #{sign_retype} any_dstr = (#{sign_retype})stcsr->source;"
-    if @stl_class.length > 0
-      fw.puts "    #{sign_untype}:: iterator iter;"
-      fw.puts CodeToGenerate.Cursor_current
-    end
+    file = File.open("erb_templates/pre_retrieve.erb").read
+    pre_retrieve = ERB.new(file, 0 , '>')
+    fw.puts pre_retrieve.result(get_binding)
   end
 
+# Calls template to generates code in retrieve method. Code makes the 
+# necessary arrangements for retrieve to happen successfully 
+# (condition checks, reallocation)
+  def finish_search(fw)
+    file = File.open("erb_templates/post_search.erb").read
+    post_search = ERB.new(file, 0, '>')
+    fw.puts post_search.result(get_binding)
+  end
 
 # Generates spaces to convene properly aligned code generation.
   def vt_type_spacing(fw)
@@ -633,7 +375,6 @@ class VirtualTable
       fw.print "    "
     end
   end
-
 
 # Generates code to search each VT struct.
 # Each search case matches a specific column of the VT.
@@ -691,51 +432,14 @@ class VirtualTable
     fw.puts "#{$s}}"
   end
 
-  
-# Generates code in search method. Code makes the necessary arrangements 
-# for search to happen successfully (condition checks, reallocation).
+# Calls template to generate code in search method. 
+# Code makes the necessary arrangements for search to happen successfully 
+# (condition checks, reallocation).
   def setup_search(fw)
-    fw.puts "    stlTable *stl = (stlTable *)cur->pVtab;"
-    fw.puts "    stlTableCursor *stcsr = (stlTableCursor *)cur;"
-    sign_retype, sign_untype = cast_signature()
-    fw.puts "    #{sign_retype} any_dstr = (#{sign_retype})stcsr->source;"
-    if @stl_class.length > 0
-      fw.puts "    #{sign_untype}:: iterator iter;"
-    end
-    fw.puts "    int op, iCol, i = 0, count = 0, re = 0;"
-    if @base_var.length > 0
-      fw.puts "    int size = get_datastructure_size(cur);"
-    else
-      fw.puts "    int size;"
-    end
-    if @base_var.length == 0 : fw.puts CodeToGenerate.Error_case end
-    fw.puts "    if (val == NULL) {"
-    if @base_var.length > 0
-      if @stl_class.length > 0
-        fw.puts CodeToGenerate.Stl_fill_resultset
-      else
-        fw.puts "#{$s}stcsr->size++;"
-      end
-    else
-      fw.puts "#{$s}printf(\"Searching VT #{@name} with no BASE constraint...makes no sense.\\n\");"
-      fw.puts "#{$s}return SQLITE_MISUSE;"
-    end
-    fw.puts "    } else {"
-    fw.puts "#{$s}check_alloc((const char *)constr, op, iCol);"
-    if @base_var.length == 0
-      fw.puts "#{$s}if (equals_base(stl->azColumn[iCol])) {"
-      if $argT == "TYPESAFE" : fw.puts CodeToGenerate.Typesafe_block end
-      fw.puts "#{$s}    stcsr->source = (void *)sqlite3_value_int64(val);"
-      fw.puts "#{$s}    any_dstr = (#{sign_retype})stcsr->source;"
-      if @stl_class.length > 0
-        fw.puts "#{$s}    realloc_resultset(cur);"
-      end
-      fw.puts "#{$s}}"
-      fw.puts "#{$s}size = get_datastructure_size(cur);"
-    end
-    fw.puts CodeToGenerate.Resultset_alloc
+    file = File.open("erb_templates/pre_search.erb").read
+    pre_search = ERB.new(file, 0, '>')
+    fw.puts pre_search.result(get_binding)
   end
-
 
 # Validate the signature of an stl structure and extract signature traits.
 # Also for objects, extract class name.
@@ -761,7 +465,9 @@ class VirtualTable
       end
       if (@template_args == "single" && /(.+),(.+)/.match(@type)) ||
           (@template_args == "double" && !(/(.+),(.+)/.match(@type)))
-        raise ArgumentError.new(CodeToGenerate.Class_sign(@signature))
+        file = File.open("erb_templates/stl_class_error.erb").read
+        stl_class_error = ERB.new(file, 0, '>')
+        raise ArgumentError.new(stl_class_error.result(get_binding))
       end
       if $argD == "DEBUG"
         puts "Table STL class name is: " + @stl_class
@@ -891,25 +597,40 @@ class InputDescription
   end
   attr_accessor(:description,:tables,:directives)
 
+# Support templating of member data
+  def get_binding
+    binding
+  end
+
+# Calls template to generate code in retrieve method. 
+# Code makes the necessary arrangements for retrieve to happen successfully 
+# (condition checks, reallocation)
+  def wrap_retrieve(fw)
+    file = File.open("erb_templates/wrapper_retrieve.erb").read
+    wrapper_retrieve = ERB.new(file, 0, '>')
+    fw.puts wrapper_retrieve.result(get_binding)
+  end
+
+
 # Calls the family of methods that generate the application-specific 
 # retrieve method for each VT struct.
   def print_retrieve_functions(fw)
     @tables.each { |vt|
-      fw.puts "// Retrieves column values of virtual table #{vt.name}."
-      fw.puts "int #{vt.name}_retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con) {"
       vt.setup_retrieve(fw)
       vt.retrieve_columns(fw)
-      fw.puts "    }"
-      fw.puts "    return SQLITE_OK;"
-      fw.puts "}\n\n\n"
+      vt.finish_retrieve(fw)
     }
-    fw.puts "int retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con) {"
-    fw.puts "    stlTable *stl = (stlTable *)cur->pVtab;"
-    @tables.each { |vt|
-      fw.puts "    if (!strcmp(stl->zName, \"#{vt.name}\"))"
-      fw.puts "        return #{vt.name}_retrieve(cur, n, con);"
-    }
-    fw.puts "}"
+    wrap_retrieve(fw)
+  end
+
+
+# Calls template to generate code in search method. 
+# Code makes the necessary arrangements for retrieve to happen successfully 
+# (condition checks, reallocation)
+  def wrap_search(fw)
+    file = File.open("erb_templates/wrapper_search.erb").read
+    wrapper_search = ERB.new(file, 0, '>')
+    fw.puts wrapper_search.result(get_binding)
   end
 
 
@@ -917,125 +638,34 @@ class InputDescription
 # search method for each VT struct.
   def print_search_functions(fw)
     @tables.each { |vt|
-      fw.puts "// Filters column values of virtual table #{vt.name}."
-      fw.puts "int #{vt.name}_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val) {"
       vt.setup_search(fw)
       vt.search_columns(fw)
-      fw.puts CodeToGenerate.Cls_search
+      vt.finish_search(fw)
     }
-    fw.puts "int search(sqlite3_vtab_cursor* cur, char *constr, sqlite3_value *val) {"
-    fw.puts "    stlTable *stl = (stlTable *)cur->pVtab;"
-    @tables.each { |vt|
-      fw.puts "    if (!strcmp(stl->zName, \"#{vt.name}\"))"
-      fw.puts "#{$s}return #{vt.name}_search(cur, constr, val);"
-    }
-    fw.puts "}"
+    wrap_search(fw)
   end
 
-
-# Generates the function that retrieves the size of 
-# data structures registered with sqtl.
-  def print_get_size(fw)
-    fw.puts "// Returns the size (records) for each virtual table."
-    fw.puts "int get_datastructure_size(sqlite3_vtab_cursor *cur) {"
-    fw.puts "    stlTableCursor *stc = (stlTableCursor *)cur;"
-    fw.puts "    stlTable *stl = (stlTable *)cur->pVtab;"
-    count = 0
-    @tables.each_index { |vt|
-      if @tables[vt].stl_class.length > 0
-        if count == 0
-          fw.puts "    if (!strcmp(stl->zName, \"#{@tables[vt].name}\")) {"
-	  count += 1
-        else
-          fw.puts "    } else if (!strcmp(stl->zName, \"#{@tables[vt].name}\")) {"
-        end
-        /\*/.match(@tables[vt].pointer) == nil ? retype = "*" : retype = "" 
-        fw.puts "#{$s}#{@tables[vt].signature}#{retype} any_dstr = (#{@tables[vt].signature}#{retype})stc->source;"
-        fw.puts "#{$s}return (int)any_dstr->size();"
-      end
-    }
-    fw.puts "    }"
-    fw.puts "    return 1;"
-    fw.puts "}"
-  end
-
-
-# Generates the function that assigns a base variable to 
-# the respective VT struct.
-  def print_register_vt(fw)
-    fw.puts "// Registers the base variables of user application code"
-    fw.puts "// with their virtual table representation."
-    fw.puts "void register_vt(stlTable *stl) {"
-    count = 0
-    @tables.each_index { |vt| 
-      if @tables[vt].base_var.length > 0
-        if count == 0
-          fw.puts "    if (!strcmp(stl->zName, \"#{@tables[vt].name}\")) {"
-	  count += 1
-        else
-          fw.puts "    } else if (!strcmp(stl->zName, \"#{@tables[vt].name}\")) {"
-        end
-        /\*/.match(@tables[vt].pointer) == nil ? retype = "&" : retype = "" 
-        fw.puts "#{$s}stl->data = (void *)#{retype}#{@tables[vt].base_var};"
-        fw.puts "#{$s}stl->embedded = 0;"
-      end
-    }
-    fw.puts CodeToGenerate.Els_case
-  end
-
-
-# Generates the thread function that starts the SQTL thread.
-  def print_thread(fw)
-    fw.puts CodeToGenerate.Prepare_thread(@tables)
-# <db>.<table> does not work for some reason. test.
-    @tables.each_index { |vt| 
-#      query =  "CREATE VIRTUAL TABLE #{@tables[vt].db}.#{@tables[vt].name} USING stl("
-      query =  "CREATE VIRTUAL TABLE #{@tables[vt].name} USING stl("
-      @tables[vt].columns.each { |c| 
-        query += "#{c.name} #{c.data_type}, "
-      }
-      query = query.chomp(", ") + ")"
-      fw.puts "    queries[#{vt}] = \"#{query}\";"
-      fw.puts "    table_names[#{vt}] = \"#{@tables[vt].name}\";"
-    }
-    fw.puts CodeToGenerate.Init_sqtl(@tables)
-  end
-
-
-# Generates the external base variables as prescribed 
+# Generates the LICENSE copyright notice and directives as prescribed 
 # from user in the description
-  def print_extern_variables(fw)
-    @tables.each { |vt| 
-      if vt.base_var.length > 0
-        fw.puts "extern #{vt.signature} #{vt.base_var};" 
-      end 
-    }
-  end
-
+def print_directives_util_functions(fw)
+  file = File.open("erb_templates/directives_util_functions.erb").read
+  directives = ERB.new(file, 0, '>')
+  fw.puts directives.result(get_binding)
+end
 
 # Generates application-specific code to complement the SQTL library.
 # There is a call to each of the above generative functions.
   def generate()
     myfile = File.open("stl_search.cpp", "w") do |fw|
-      fw.puts CodeToGenerate.Directives(@directives)
-      fw.puts "\n\n"
-      print_extern_variables(fw)
-      fw.puts "\n\n"
-      print_thread(fw)
-      fw.puts "\n\n"
-      print_register_vt(fw)
-      fw.puts "\n\n"
-      print_get_size(fw)
-      fw.puts "\n\n"
-      fw.puts CodeToGenerate.Equals_base
+      print_directives_util_functions(fw)
       print_search_functions(fw)
-      fw.puts "\n\n"
       print_retrieve_functions(fw)
     end
     puts "Created/updated stl_search.cpp ."
     myFile = File.open("makefile.append", "w") do |fw|
-      fw.puts CodeToGenerate.Makefile
-      fw.puts
+      file = File.open("erb_templates/makefile.erb").read
+      makefile = ERB.new(file, 0, '>')
+      fw.puts makefile.result(get_binding)
     end
     puts "Created/updated makefile.append ."
   end

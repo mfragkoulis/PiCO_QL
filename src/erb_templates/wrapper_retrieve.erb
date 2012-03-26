@@ -1,0 +1,8 @@
+// Redirect to the appropriate retrieve function for a virtual table.
+int retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con) {
+    stlTable *stl = (stlTable *)cur->pVtab;
+<%    @tables.each { |vt| %>
+    if (!strcmp(stl->zName, "<%= vt.name %>"))
+        return <%= vt.name %>_retrieve(cur, n, con);
+<%    } %>
+}

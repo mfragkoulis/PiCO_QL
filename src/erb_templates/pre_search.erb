@@ -1,0 +1,69 @@
+// Filters column values of virtual table <%= @name %>.
+int <%= @name %>_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val) {
+    stlTable *stl = (stlTable *)cur->pVtab;
+    stlTableCursor *stcsr = (stlTableCursor *)cur;
+<%      if /\*/.match(@pointer) == nil %>
+<%        sign_retype = "#{@signature}*" %>
+<%        sign_untype = @signature %>
+<%      else %>
+<%        sign_retype = @signature %>
+<%        sign_untype = @signature.chomp("*") %>
+<%      end %>
+    <%= sign_retype %> any_dstr = (<%= sign_retype %>)stcsr->source;
+<%      if @stl_class.length > 0 %>
+    <%= sign_untype %>:: iterator iter;
+<%      end %>
+    int op, iCol, i = 0, count = 0, re = 0;
+<%      if @base_var.length > 0 %>
+    int size = get_datastructure_size(cur);
+<%      else %>
+    int size;
+<%      end %>
+<%      if @base_var.length == 0 %> 
+    if (stl->zErr) {
+        sqlite3_free(stl->zErr);
+        return SQLITE_MISUSE;
+    }
+<%      end %>
+    if (val == NULL) {
+<%      if @base_var.length > 0 %>
+<%        if @stl_class.length > 0 %>
+        for (int j = 0; j < size; j++) {
+            stcsr->resultSet[j] = j;
+            stcsr->size++;
+	}
+        assert(stcsr->size <= stcsr->max_size);
+        assert(&stcsr->resultSet[stcsr->size] <= &stcsr->resultSet[stcsr->max_size]);
+<%        else %>
+        stcsr->size++;
+<%        end %>
+<%      else %>
+        printf("Searching VT <%= @name %> with no BASE constraint...makes no sense.\n");
+        return SQLITE_MISUSE;
+<%      end %>
+    } else {
+        check_alloc((const char *)constr, op, iCol);
+<%      if @base_var.length == 0 %>
+        if (equals_base(stl->azColumn[iCol])) {
+<%        if $argT == "TYPESAFE" %> 
+            vtd_iter = vt_directory.find(stl->zName);
+            if ((vtd_iter == vt_directory.end()) || (vtd_iter->second == 0)) {
+                printf("Invalid cast to %s\n", stl->zName);
+                return SQLITE_MISUSE;
+            }
+            vt_directory[stl->zName] = 0;
+<%        end %>
+            stcsr->source = (void *)sqlite3_value_int64(val);
+            any_dstr = (<%= sign_retype %>)stcsr->source;
+<%        if @stl_class.length > 0 %>
+            realloc_resultset(cur);
+<%        end %>
+        }
+        size = get_datastructure_size(cur);
+<%      end %>
+        int *temp_res;
+	temp_res = (int *)sqlite3_malloc(sizeof(int)  * stcsr->max_size);
+        if (!temp_res) {
+            printf("Error in allocating memory\\n");
+            return SQLITE_NOMEM;
+        }

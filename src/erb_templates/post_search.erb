@@ -1,0 +1,9 @@
+        if ((re = compare_res(count, stcsr, temp_res)) != 0)
+            return re;
+        sqlite3_free(temp_res);
+    }
+    return SQLITE_OK;
+}
+
+
+

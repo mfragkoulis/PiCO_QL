@@ -1,0 +1,19 @@
+// Retrieves column values of virtual table <%= @name %>.
+int <%= @name %>_retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con) {
+    stlTableCursor *stcsr = (stlTableCursor *)cur;
+<%      if /\*/.match(@pointer) == nil %>
+<%        sign_retype = "#{@signature}*" %>
+<%        sign_untype = @signature %>
+<%      else %>
+<%        sign_retype = @signature %>
+<%        sign_untype = @signature.chomp("*") %>
+<%      end %>
+    <%= sign_retype %> any_dstr = (<%= sign_retype %>)stcsr->source;
+<%    if @stl_class.length > 0 %>
+    <%= sign_untype %>:: iterator iter;
+    int index = stcsr->current;
+    iter = any_dstr->begin();
+    for (int i = 0; i < stcsr->resultSet[index]; i++) {
+        iter++;
+    }
+<%    end %>
