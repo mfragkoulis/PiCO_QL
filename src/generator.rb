@@ -496,7 +496,11 @@ class VirtualTable
                    # Try to match element definition using the VT's name 
                    # first, its type then.
     if @element == nil
-      $elements.each { |el| if el.name == vtable_type : @element = el end }
+      $elements.each { |el| if (el.name == vtable_type) ||
+                                (el.name == @signature)  # exp: special case.
+                              @element = el 
+                            end 
+      }
     end
     if @element == nil
       raise "Cannot match element for table #{@name}.\\n"
@@ -538,7 +542,8 @@ class Element
     if $argD == "DEBUG"
       puts "Element description is: #{element_description}"
     end
-    pattern = /^create element table (\w+)(\s*)\((.+)\)/im
+    # exp: '(.+)' instead of '(\w+)' after 'create element table'.
+    pattern = /^create element table (.+)(\s*)\((.+)\)/im
     matchdata = pattern.match(element_description)
     if matchdata
       # First record of table_data contains the whole description of the 
@@ -658,6 +663,11 @@ end
     token_d = @description
     token_d = token_d.select { |x| x.length > 0 }
     @directives = token_d[0]
+    # Putback the ';' after the namespace.
+    if @directives.match(/using namespace (.+)/)
+      @directives.gsub!(/using namespace (.+)/, 'using namespace \1;')
+    end
+    puts @directives
     token_d.delete_at(0)
     if $argD == "DEBUG"
       puts "Directives: #{@directives}"
@@ -726,6 +736,11 @@ if __FILE__ == $0
     raise "File #{$argF} does not exist.\\n"
   end
   description = File.open($argF, "r") { |fw| fw.read }
+  # Remove the ';' from the namespace before splitting.
+  if description.match(/using namespace (.+);/)
+    description.gsub!(/using namespace (.+);/, 'using namespace \1')
+  end
+  puts description
   if description.match(/;/)
     token_description = description.split(/;/)
   else
