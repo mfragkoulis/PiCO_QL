@@ -23,7 +23,7 @@
 
 if diff test_current.txt test_success.txt >/dev/null 2>&1
 then 
-    echo "TEST SUCCESSFUL"
-else 
-    echo "TEST PRODUCED UNEXPECTED RESULTS. See test_current.txt"
+    echo "Test successful." > test_output.txt
+else
+    echo "Test produced unexpected results. See test_current.txt ." > test_output.txt
 fi
