@@ -38,8 +38,8 @@ unsigned long init[4] = {0x123, 0x234, 0x345, 0x456};
 unsigned long length = 4;  
 MTRand_int32 irand(init, length);
 /* To access in SQTL scope */
-vector<Truck*> *vehicles;
-map<int, Customer *> test;
+extern vector<Truck*> *vehicles;
+extern map<int, Customer*> test;
 /*-------------------------*/
 
 

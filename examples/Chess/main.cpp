@@ -27,7 +27,7 @@
 /*-------------*/
 
 /* At global scope to be accessible by SQTL */
-vector<vector<ChessPiece> > *chessBoard;
+extern vector<vector<ChessPiece> > *chessBoard;
 /*------------------------------------------*/
 
 int main() {

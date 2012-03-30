@@ -45,7 +45,7 @@ static map<const char *, int, name_cmp>::iterator vtd_iter;
 
 <%     @tables.each { |vt| %>
 <%      if vt.base_var.length > 0 %>
-extern <%= vt.signature %> <%= vt.base_var %>;
+<%= vt.signature %> <%= vt.base_var %>;
 <%      end %>
 <%     } %>
 

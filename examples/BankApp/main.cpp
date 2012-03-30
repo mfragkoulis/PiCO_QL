@@ -34,9 +34,9 @@
 using namespace std;
 
 /* At global scope to be accessible by SQTL */
-map<string,SuperAccount> superaccounts;
-list<SpecialAccount> specialaccounts;
-vector<Account> accounts;
+extern map<string,SuperAccount> superaccounts;
+extern list<SpecialAccount> specialaccounts;
+extern vector<Account> accounts;
 /*-----------------------------------------*/
 
 int main() {
