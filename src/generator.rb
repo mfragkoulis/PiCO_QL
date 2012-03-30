@@ -437,7 +437,7 @@ class VirtualTable
     fw.puts pre_search.result(get_binding)
   end
 
-# Validate the signature of an stl structure and extract signature traits.
+# Validate the signature of a container structure and extract signature traits.
 # Also for objects, extract class name.
   def verify_signature()
     case @signature
@@ -447,9 +447,9 @@ class VirtualTable
       @type = matchdata[2]
       @pointer = matchdata[3]
       if $argD == "DEBUG"
-        puts "Table STL class name is: " + @container_class
-        puts "Table record is of type: " + @type
-        puts "Table type is of type pointer: " + @pointer
+        puts "Virtual table container class name is: " + @container_class
+        puts "Virtual table record is of type: " + @type
+        puts "Virtual table type is of type pointer: " + @pointer
       end
     when /(\w+)\*|(\w+)/
       matchdata = /(\w+)(\**)/.match(@signature)
