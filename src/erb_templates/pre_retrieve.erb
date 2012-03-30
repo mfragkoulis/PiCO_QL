@@ -9,7 +9,7 @@ int <%= @name %>_retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con)
 <%        sign_untype = @signature.chomp("*") %>
 <%      end %>
     <%= sign_retype %> any_dstr = (<%= sign_retype %>)stcsr->source;
-<%    if @stl_class.length > 0 %>
+<%    if @container_class.length > 0 %>
     <%= sign_untype %>:: iterator iter;
     int index = stcsr->current;
     iter = any_dstr->begin();

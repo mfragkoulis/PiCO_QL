@@ -10,7 +10,7 @@ int <%= @name %>_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *v
 <%        sign_untype = @signature.chomp("*") %>
 <%      end %>
     <%= sign_retype %> any_dstr = (<%= sign_retype %>)stcsr->source;
-<%      if @stl_class.length > 0 %>
+<%      if @container_class.length > 0 %>
     <%= sign_untype %>:: iterator iter;
 <%      end %>
     int op, iCol, i = 0, count = 0, re = 0;
@@ -27,7 +27,7 @@ int <%= @name %>_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *v
 <%      end %>
     if (val == NULL) {
 <%      if @base_var.length > 0 %>
-<%        if @stl_class.length > 0 %>
+<%        if @container_class.length > 0 %>
         for (int j = 0; j < size; j++) {
             stcsr->resultSet[j] = j;
             stcsr->size++;
@@ -55,7 +55,7 @@ int <%= @name %>_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *v
 <%        end %>
             stcsr->source = (void *)sqlite3_value_int64(val);
             any_dstr = (<%= sign_retype %>)stcsr->source;
-<%        if @stl_class.length > 0 %>
+<%        if @container_class.length > 0 %>
             realloc_resultset(cur);
 <%        end %>
         }

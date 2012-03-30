@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #
 #   Parse a user description, which conforms to the DSL, and generate the 
 #   application specific filter and projection functions for the virtual tables
@@ -265,20 +266,15 @@ class VirtualTable
     @element              # Reference to the respective element definition.
     @db = ""              # Database name to be created/connected.
     @signature = ""       # The C++ signature of the struct.
-    @stl_class = ""       # If an STL struct instance.
+    @container_class = "" # If a container instance as per 
+                          # the SGI container concept.
     @type = ""            # The record type for the VT.
     @pointer = ""         # Type of the base_var.
     @object_class = ""    # If an object instance.
-    @template_args = ""   # For STL structs, number of template arguments.
     @columns = Array.new  # References to the VT columns.
-    @@stl_single_classes = ["list" , "deque" , "vector" , "set" , 
-                            "multiset"]
-    @@stl_double_classes = ["map" , "multimap"]
-    @@stl_sequence_classes = ["list", "vector", "deque"]
-    @@stl_associative_classes = ["set" , "multiset" , "map" , "multimap"]
   end
-  attr_accessor(:name,:base_var,:element,:db,:signature,:stl_class,:type,
-                :pointer,:object_class,:template_args,:columns)
+  attr_accessor(:name,:base_var,:element,:db,:signature,:container_class,:type,
+                :pointer,:object_class,:columns)
 
 # Support templating of member data
   def get_binding
@@ -298,7 +294,7 @@ class VirtualTable
 # the correct form of the variable
   def configure(access_path)
     iden = ""
-    if @stl_class.length > 0
+    if @container_class.length > 0
       access_path.length == 0 ? iden =  "*iter" : iden = "(*iter)."
     else
       access_path.length == 0 ? iden = "any_dstr" : iden = "any_dstr->"
@@ -369,7 +365,7 @@ class VirtualTable
 # Generates spaces to convene properly aligned code generation.
   def vt_type_spacing(fw)
     fw.print $s
-    if @stl_class.length > 0
+    if @container_class.length > 0
       fw.print $s
     else
       fw.print "    "
@@ -396,7 +392,7 @@ class VirtualTable
         fw.puts "#{$s}    return SQLITE_MISUSE;"
         next
       end
-      if @stl_class.length > 0
+      if @container_class.length > 0
         fw.puts "#{$s}    iter = any_dstr->begin();"
         fw.puts "#{$s}    for (int i = 0; i < size; i++) {"
         access_path.length == 0 ? iden = "(*iter)" : iden = "(*iter)."
@@ -422,7 +418,7 @@ class VirtualTable
         fw.print "temp_res[count++] = i;"
       end
       fw.puts
-      if @stl_class.length > 0
+      if @container_class.length > 0
         fw.puts "#{$s}#{$s}iter++;"
         fw.puts "#{$s}    }"
       end
@@ -447,32 +443,11 @@ class VirtualTable
     case @signature
     when /(\w+)<(.+)>(\**)/m
       matchdata = /(\w+)<(.+)>(\**)/m.match(@signature)
-      @stl_class = matchdata[1]
+      @container_class = matchdata[1]
       @type = matchdata[2]
       @pointer = matchdata[3]
-      if @@stl_single_classes.include?(@stl_class)
-        @template_args = "single"
-      elsif @@stl_double_classes.include?(@stl_class)
-        @template_args = "double"
-      else
-        raise TypeError.new("No such container class: " + @stl_class +
-                            "\n\n NOW EXITING. \n")
-      end
-      if @@stl_sequence_classes.include?(@stl_class)
-        @container_type="sequence"
-      elsif @@stl_associative_classes.include?(@stl_class)
-        @container_type="associative"
-      end
-      if (@template_args == "single" && /(.+),(.+)/.match(@type)) ||
-          (@template_args == "double" && !(/(.+),(.+)/.match(@type)))
-        file = File.open("erb_templates/stl_class_error.erb").read
-        stl_class_error = ERB.new(file, 0, '>')
-        raise ArgumentError.new(stl_class_error.result(get_binding))
-      end
       if $argD == "DEBUG"
-        puts "Table STL class name is: " + @stl_class
-        puts "Table no of template args is: " + @template_args
-        puts "Table container type is: " + @container_type
+        puts "Table STL class name is: " + @container_class
         puts "Table record is of type: " + @type
         puts "Table type is of type pointer: " + @pointer
       end
@@ -513,7 +488,7 @@ class VirtualTable
     end
     verify_signature()
     if @type.match(/\*/)                    # Use type. It is active for 
-      vtable_type = @type.chomp('*')        # both stl_struct and object.
+      vtable_type = @type.chomp('*')        # both container and object.
     else
       vtable_type = @type
     end

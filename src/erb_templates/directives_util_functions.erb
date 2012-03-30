@@ -118,7 +118,7 @@ int get_datastructure_size(sqlite3_vtab_cursor *cur) {
     stlTable *stl = (stlTable *)cur->pVtab;
 <%    count = 0 %>
 <%    @tables.each_index { |vt| %>
-<%      if @tables[vt].stl_class.length > 0 %>
+<%      if @tables[vt].container_class.length > 0 %>
 <%        if count == 0 %>
     if (!strcmp(stl->zName, "<%= @tables[vt].name %>")) {
 <%	  count += 1 %>
