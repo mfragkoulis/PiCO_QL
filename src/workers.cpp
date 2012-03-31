@@ -47,11 +47,11 @@ int realloc_resultset(sqlite3_vtab_cursor *cur) {
                    sizeof(int) * arraySize);
             stcsr->max_size = arraySize;
 #ifdef DEBUG
-            printf("\\nReallocating resultSet..now max size %i \\n\\n", stcsr->max_size);
+            printf("\nReallocating resultSet..now max size %i \n\n", stcsr->max_size);
 #endif
         }else{
             sqlite3_free(res);
-            printf("Error (re)allocating memory\\n");
+            printf("Error (re)allocating memory\n");
             return SQLITE_NOMEM;
         }
     }
