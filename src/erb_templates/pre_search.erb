@@ -64,6 +64,6 @@ int <%= @name %>_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *v
         int *temp_res;
 	temp_res = (int *)sqlite3_malloc(sizeof(int)  * stcsr->max_size);
         if (!temp_res) {
-            printf("Error in allocating memory\\n");
+            printf("Error in allocating memory\n");
             return SQLITE_NOMEM;
         }
