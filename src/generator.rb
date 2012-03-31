@@ -496,11 +496,7 @@ class VirtualTable
                    # Try to match element definition using the VT's name 
                    # first, its type then.
     if @element == nil
-      $elements.each { |el| if (el.name == vtable_type) ||
-                                (el.name == @signature)  # exp: special case.
-                              @element = el 
-                            end 
-      }
+      $elements.each { |el| if (el.name == vtable_type) : @element = el end }
     end
     if @element == nil
       raise "Cannot match element for table #{@name}.\\n"
@@ -542,8 +538,7 @@ class Element
     if $argD == "DEBUG"
       puts "Element description is: #{element_description}"
     end
-    # exp: '(.+)' instead of '(\w+)' after 'create element table'.
-    pattern = /^create element table (.+)(\s*)\((.+)\)/im
+    pattern = /^create element table (\w+)(\s*)\((.+)\)/im
     matchdata = pattern.match(element_description)
     if matchdata
       # First record of table_data contains the whole description of the 
@@ -667,7 +662,6 @@ end
     if @directives.match(/using namespace (.+)/)
       @directives.gsub!(/using namespace (.+)/, 'using namespace \1;')
     end
-    puts @directives
     token_d.delete_at(0)
     if $argD == "DEBUG"
       puts "Directives: #{@directives}"
@@ -740,7 +734,6 @@ if __FILE__ == $0
   if description.match(/using namespace (.+);/)
     description.gsub!(/using namespace (.+);/, 'using namespace \1')
   end
-  puts description
   if description.match(/;/)
     token_description = description.split(/;/)
   else
