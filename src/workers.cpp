@@ -176,7 +176,7 @@ int compare_res(int count, stlTableCursor *stcsr,
                                       stcsr->max_size);
         if (i_res == NULL) {
             sqlite3_free(i_res);
-            printf("Error (re)allocating memory\\n");
+            printf("Error (re)allocating memory\n");
             return SQLITE_NOMEM;
         }
         for (int a = 0; a < stcsr->size; a++) {
