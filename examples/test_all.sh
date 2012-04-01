@@ -1,6 +1,5 @@
 #!/bin/sh
 
-cd examples
 echo "\n*Testing examples with typesafety disabled.*\n"
 
 cd BankApp

@@ -1,5 +1,7 @@
 SQTL is a C/C++ plug-in library that sets up an SQL 
-interface over containers of the C++ STL.
+interface over containers compatible with the C++ SGI 
+container concept (http://www.sgi.com/tech/stl/Container.html). The container classes of the STL consist a prime 
+example of such.
 
 
 PLATFORMS
@@ -36,6 +38,7 @@ SQTL PACKAGE STRUCTURE
 	scenarios have been implemented and can be 
 	executed effortlessly (provided the 
 	dependencies are installed in one's system)
+	by executing test_all.sh located in examples/ or
 	from within the worked example directories 
 	(Bank_App, Chess, VRP):
 	1. "ruby generator.rb input.txt" ["typesafe"] 
@@ -67,9 +70,9 @@ RATIONALE
 
 GENERATIVE PROGRAMMING
 
-   To match the template instantiations of user's STL 
-   collections, the library uses a generative 
-   approach. 
+   To match the template instantiations of user's 
+   containers, the library uses a generative 
+   approach.
    The source code generated makes up the heart of the
    library's functionality, that is contains the 
    custom selection and projection functions for the 
@@ -83,7 +86,7 @@ DSL
    From this point on, the term structure will appear 
    a lot. This term covers the following:
    (a) object instance
-   (b) STL container instance
+   (b) container instance as per the SGI concept
    Additionally, although it should be mentioned 
    separately but for brevity reasons, the term 
    structure also implies pointers to structures.
@@ -223,7 +226,7 @@ DSL
    can be retrieved.
 
    An advice concerning character arrays is to declare all
-   as TEXT but those that belong to the STRING class.
+   as TEXT but those that belong to the std::string class.
    The latter can be defined as STRING.
 
 
@@ -273,10 +276,12 @@ DSL
 
    The table declaration together with the respective 
    element definition complete a VT definition.
-   Declarations end with a ';' and, as mentioned, 
+   Table declarations and element definitions end with 
+   a ';' (the primary delimeter) and, as mentioned, 
    element definitions should precede the table 
    declarations that refer to them.
-   
+   Columns in element definitions are separated by ','
+   (comma).
 
 PLUG IN PROCESS
 
@@ -294,7 +299,7 @@ PLUG IN PROCESS
       "ruby generator.rb description.txt typesafe"
 
    would generate two files, "stl_search.cpp" and 
-   "makefile.append" to append to the application's 
+   "makefile.append" to merge with the application's 
    makefile. 
    As a last action, users should add the 
    "stl_search.h" header file to the file where the 
@@ -304,24 +309,32 @@ PLUG IN PROCESS
 
    and make sure that the structures they have 
    described in the description are accessible from 
-   outside the file.
+   outside the file (file scope with an extern 
+   declaration). 
+   The definition will be generated in the 
+   "stl_search.cpp". 
+   Users may find it useful to use a pointer pointing 
+   at the structure's base address so as not to change 
+   scope to the original variable (see examples/).
 
 
    COMPILE OPTIONS
    As can be seen in a number of examples located at 
-   the EXAMPLES directory, the makefile makes 
-   available the options/flags RELEASE, DEBUG, 
+   the examples directory, the makefile makes 
+   available the options/flags RELEASE, DEBUG, TEST 
    TYPESAFE, SEED and CLEAN.
    Except for the DEBUG flag, which corresponds to 
-   DEBUG switches all over the C/C++ source code, the 
-   rest have limited applicability in the examples 
-   provided.
+   DEBUG switches all over the C/C++ source code and the 
+   TEST option which switches to TEST mode (explanation 
+   follows), the rest have limited applicability in the 
+   examples provided.
    The RELEASE option sets up optimisation flags and 
-   no debug checks. 
+   no debug checks.
    The DEBUG option (default) sets up a number of 
-   compile debug flags and instead of starting the 
-   local server, prints state information and executes
-   the test queries it finds in "stl_test.c". 
+   compile debug flags including the TEST option and 
+   instead of starting the local server, prints state 
+   information and executes the test queries it finds 
+   in "stl_test.c". 
    Accordingly, it writes the results in a file called
    "test_current.txt" and calls a small, simple script
    (diff_test.sh) which compares the latter with 
@@ -338,7 +351,7 @@ PLUG IN PROCESS
    Those queries have to be placed in an 
    	 "#ifdef TYPESAFE" block in 
    "stl_test.c", otherwise their execution will result
-   in a SEG_FAULT.
+   in a SEG_FAULT (see stl_test.c in examples/VRP/).
 
 
 USING SQTL

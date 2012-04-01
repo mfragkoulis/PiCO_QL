@@ -12,12 +12,16 @@ BASE=<base_variable>] 'AS SELECT * FROM' <struct_type> ';'
 
 <struct_type> ::= <container> | <object>
 
-<container> ::= <stl_class> '<' <type>
+<container> ::= <container_class> '<' <type>
 <--if associative container-->
 	    [',' <type>] '>' ['*']
 
+<container_class> ::= <stl_class> | <other_container_class>
+ 
 <stl_class> ::= 'list' | 'vector' | 'deque' | 'set' | 
 		  'multiset' | 'map' | 'multimap'
+
+<other_container_class> ::= 'SGI_container_concept_compatible'
 
 <type> ::= <struct_type> | <primitive_data_type> ['*']
 

@@ -36,6 +36,7 @@ SQTL PACKAGE STRUCTURE
 	scenarios have been implemented and can be 
 	executed effortlessly (provided the 
 	dependencies are installed in one's system)
+	either by executing test_all.sh in trunk or
 	from within the worked example directories 
 	(Bank_App, Chess, VRP):
 	1. "ruby generator.rb input.txt" ["typesafe"] 
