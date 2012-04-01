@@ -14,11 +14,7 @@ int <%= @name %>_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *v
     <%= sign_untype %>:: iterator iter;
 <%      end %>
     int op, iCol, i = 0, count = 0, re = 0;
-<%      if @base_var.length > 0 %>
-    int size = get_datastructure_size(cur);
-<%      else %>
-    int size;
-<%      end %>
+    int size = stcsr->max_size;
 <%      if @base_var.length == 0 %> 
     if (stl->zErr) {
         sqlite3_free(stl->zErr);
@@ -33,7 +29,7 @@ int <%= @name %>_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *v
             stcsr->size++;
 	}
         assert(stcsr->size <= stcsr->max_size);
-        assert(&stcsr->resultSet[stcsr->size] <= &stcsr->resultSet[stcsr->max_size]);
+        assert(&stcsr->resultSet[stcsr->size] <= &stcsr->resultSet[size]);
 <%        else %>
         stcsr->size++;
 <%        end %>
@@ -59,10 +55,10 @@ int <%= @name %>_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *v
             realloc_resultset(cur);
 <%        end %>
         }
-        size = get_datastructure_size(cur);
+        size = stcsr->max_size;
 <%      end %>
         int *temp_res;
-	temp_res = (int *)sqlite3_malloc(sizeof(int)  * stcsr->max_size);
+	temp_res = (int *)sqlite3_malloc(sizeof(int)  * size);
         if (!temp_res) {
             printf("Error in allocating memory\n");
             return SQLITE_NOMEM;

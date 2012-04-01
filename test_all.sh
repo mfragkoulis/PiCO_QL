@@ -37,6 +37,19 @@ echo "-> Executing tests."
 cat test_output.txt
 echo "(Expected failure.)"
 
+#cd ../bowtie
+#echo "\nIn bowtie..."
+#echo "-> Generating files."
+#ruby generator.rb sqtl_input.txt > /dev/null
+#echo "-> Building."
+#make clean > /dev/null
+#rm *.o /dev/null
+#make > /dev/null
+#echo "-> Executing tests."
+#./bowtie-debug c > /dev/null
+#cat test_output.txt
+#echo "(Expected failure.)"
+
 cd ..
 echo "\n*Testing examples with typesafety enabled.*\n"
 
