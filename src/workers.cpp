@@ -37,6 +37,10 @@ int realloc_resultset(sqlite3_vtab_cursor *cur) {
     int arraySize;
     int *res;
     arraySize = get_datastructure_size(cur);
+    if (arraySize == 0) {
+      printf("Empty container.\nExiting now.\n");
+      return SQLITE_MISUSE;
+    }
     if (arraySize != stcsr->max_size ) {
         res = (int *)sqlite3_realloc(stcsr->resultSet, 
 				     sizeof(int) * 

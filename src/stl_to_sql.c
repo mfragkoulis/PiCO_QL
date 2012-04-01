@@ -395,6 +395,10 @@ int open_vtable(sqlite3_vtab *pVtab,
   if (!st->embedded) {
     pCsr->pVtab = &st->vtab;
     arraySize = get_datastructure_size(pCsr);
+    if (arraySize == 0) {
+      printf("Empty container.\nExiting now.\n");
+      return SQLITE_MISUSE;
+    }
     pCsr->pVtab = NULL;
   } else 
     /* Embedded struct. Size will be synced in search when 
