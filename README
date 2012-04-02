@@ -1,6 +1,10 @@
 SQTL is a C/C++ plug-in library that sets up an SQL 
-interface over containers of the C++ STL.
-
+interface over containers compatible with the C++ SGI 
+container concept (http://www.sgi.com/tech/stl/Container.html). 
+The container classes of the STL consist a prime 
+example of such.
+The library is not pervasive, allows only SELECT
+statements.
 
 PLATFORMS
 
@@ -36,7 +40,7 @@ SQTL PACKAGE STRUCTURE
 	scenarios have been implemented and can be 
 	executed effortlessly (provided the 
 	dependencies are installed in one's system)
-	either by executing test_all.sh in trunk or
+	by executing test_all.sh located in examples/ or
 	from within the worked example directories 
 	(Bank_App, Chess, VRP):
 	1. "ruby generator.rb input.txt" ["typesafe"] 
