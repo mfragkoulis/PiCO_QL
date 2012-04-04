@@ -85,8 +85,8 @@ DSL
    From this point on, the term structure will appear 
    a lot. This term covers the following:
    (a) object instance
-   (b) container instance as per the SGI ForwardContainer 
-       concept
+   (b) container instance as per the SGI ForwardContainer
+       and ForwardIterator concepts
    Additionally, although it should be mentioned 
    separately but for brevity reasons, the term 
    structure also implies pointers to structures.
@@ -120,7 +120,7 @@ DSL
    If the structure registered with SQTL:
    (a) contains a pointer to a structure, the latter 
        should become a separate VT.
-   (b) contains an STL container instance, the latter
+   (b) contains a container instance, the latter
        should become a separate VT.
    The style is familiar because it resembles 
    the normalisation process of relational schema 
@@ -239,7 +239,7 @@ DSL
    structured plain text description that contains 
    three types of declarations, 
    (a) the include header files for application 
-       software classes involved and utilised STL 
+       software classes involved and utilised 
        containers, 
    (b) element definitions and 
    (c) table declarations.

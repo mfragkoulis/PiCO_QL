@@ -1,6 +1,6 @@
 SQTL is a C/C++ plug-in library that sets up an SQL SELECT
 interface over containers compatible with the C++ SGI 
-forward container concept (http://www.sgi.com/tech/stl/ForwardContainer.html). 
+forward container (http://www.sgi.com/tech/stl/ForwardContainer.html) and forward iterator concept (http://www.sgi.com/tech/stl/ForwardIterator.html). 
 The container classes of the STL consist a prime 
 example of such.
 
@@ -29,7 +29,8 @@ DEPENDENCIES
 
 -Boost (http://www.boost.org)
    The library accepts any container modelled by the 
-   ForwardContainer concept. To ensure this is the case,
+   ForwardContainer and ForwardIterator concepts. 
+   To ensure this is the case,
    the library carries out a concept-check (compile-time 
    check) as implemented by Boost.
 
