@@ -1,13 +1,70 @@
-RATIONALE
+QUICKSTART
 
-   At a time when various technologies and models are 
-   connected to offer what they do best, we argue that
-   this is not a one-way road. 
-   This work is a proof of concept and attempts to:
-   a) bring forward the advantages of uniform data 
-      management,
-   b) show that faking is an enlighting alternative 
-      when possible
+For
+
+  /******Code block*********/
+    #include <vector>
+    #include "Car.h"
+
+    using namespace std;
+
+    int main() {
+        vector<Car> cars;
+        car c1(plate, brand, model, color, horse_power);
+        ...
+        cars.push_back(c1);
+        ...
+    }
+  /*******Code block end******/
+
+1. Describe the data structure(s) using the DSL as in:
+
+  /******Code block*********/
+    CREATE ELEMENT TABLE Car (
+        colPlate STRING FROM get_plate(),
+        brandCol STRING FROM brand,
+        col_model STRING FROM model,
+        color STRING FROM color,
+        power INT FROM horse_power
+    );
+
+    CREATE TABLE AllCars 
+    WITH BASE = global_ptr_to_cars AS 
+    SELECT * FROM vector<Car>;
+  /*******Code block end********/
+
+2. Add the header file #include stl_search.h, 
+   the call to the library int re = call_sqtl(); and 
+   make the described data structure available to the 
+   library as in:
+
+  /******Code block*********/
+    #include <vector>
+    #include "Car.h"
+    #include "stl_search.h"
+
+    using namespace std;
+
+    extern vector<Car>* global_ptr_to_cars;
+
+    int main() {
+        vector<Car> cars;
+        car c1(plate, brand, model, color, horse_power);
+        ...
+        cars.push_back(c1);
+        ...
+        global_ptr_to_cars = &cars;
+        int re = call_sqtl();
+    }
+  /*******Code block end********/
+
+3. Execute: ruby generator.rb description.txt [typesafe]
+            -> Created/updated stl_search.cpp .
+            -> Created/updated makefile.append .
+4. Merge makefile.append with application makefile
+5. Compile with make
+6. Execute application and open browser at 
+   http://localhost:8080
 
 
 GENERATIVE PROGRAMMING
@@ -28,7 +85,8 @@ DSL
    From this point on, the term structure will appear 
    a lot. This term covers the following:
    (a) object instance
-   (b) container instance as per the SGI concept
+   (b) container instance as per the SGI ForwardContainer 
+       concept
    Additionally, although it should be mentioned 
    separately but for brevity reasons, the term 
    structure also implies pointers to structures.
@@ -101,9 +159,13 @@ DSL
    2. Columns that reference another VT should:
       (a) have INT data type
       (b) include the name and access path to the 
-       	  referenced virtual table as per the syntax 
+       	  referenced virtual table as per the avaialble 
+	  syntaxes 
        	  "FROM TABLE <embedded_VT_name> WITH 
-       	  BASE=<access_path>"
+       	  BASE = <access_path>" which enforces type safety 
+	  or 
+	  "FROM <access_path" with no type guarding 
+	  ability.
       (c) suffix the name of the column with "_ptr" if
           the access path returns a pointer to the 
        	  referenced structure (require a type 
@@ -213,7 +275,7 @@ DSL
 	    );
 
 	    CREATE TABLE Bank.Accounts 
-	    WITH BASE=accounts
+	    WITH BASE = accounts
 	    AS SELECT * FROM vector<Account>;
 
    The table declaration together with the respective 
