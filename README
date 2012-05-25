@@ -1,4 +1,4 @@
-SQTL is a C/C++ plug-in library that sets up an SQL SELECT
+PiCO QL is a C/C++ plug-in library that sets up an SQL SELECT
 interface over containers compatible with the C++ SGI 
 forward container (http://www.sgi.com/tech/stl/ForwardContainer.html) and forward iterator concept (http://www.sgi.com/tech/stl/ForwardIterator.html). 
 The container classes of the STL consist a prime 
@@ -16,13 +16,13 @@ DEPENDENCIES
    parser/code generator) is written in Ruby.
 
 -Sqlite3 (http://www.sqlite.org)
-   While SQTL does not use a database or other store 
+   While PiCO QL does not use a database or other store 
    to copy and/or store data, it uses the virtual 
    table (VT) mechanism of Sqlite3 to fake the 
    underlying data model.
 
 -SWILL (http://swill.sourceforge.net)
-   Once plugged in an application, SQTL opens a 
+   Once plugged in an application, PiCO QL opens a 
    separate thread and uses the SWILL library to 
    present a local server with a web-like, user 
    friendly query interface.
@@ -34,7 +34,7 @@ DEPENDENCIES
    the library carries out a concept-check (compile-time 
    check) as implemented by Boost.
 
-SQTL PACKAGE STRUCTURE
+PiCO QL PACKAGE STRUCTURE
 
    At the EXAMPLES directory, users can browse:
       - Examples.ods, which contains description 
@@ -53,7 +53,7 @@ SQTL PACKAGE STRUCTURE
 	3. "./<executable>"
 
    At the bin directory reside binary files that 
-   SQTL uses.
+   PiCO QL uses.
 
    At the doc directory there is the BNF of the DSL 
    that grounds the user description syntax and the user
