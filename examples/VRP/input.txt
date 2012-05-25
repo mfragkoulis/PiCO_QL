@@ -20,9 +20,6 @@ CREATE ELEMENT TABLE Truck (
 
 CREATE TABLE mydb.Truck AS SELECT * FROM Truck;
 
-CREATE VIEW mydb.TruckView AS SELECT * FROM Trucks, Truck WHERE 
-      Truck.base=Trucks.truck_ptr; 
-
 CREATE ELEMENT TABLE Customers (
       customer_ptr INT FROM TABLE Customer WITH BASE =self
 );
@@ -38,18 +35,12 @@ CREATE ELEMENT TABLE Customer (
 
 CREATE TABLE mydb.Customer AS SELECT * FROM Customer;
 
-CREATE VIEW mydb.CustomerView AS SELECT * FROM Customers, Customer WHERE
-      Customer.base=Customers.customer_ptr;
-
 CREATE ELEMENT TABLE Position (
       x_coord INT FROM get_x(),
       y_coord INT FROM get_y()
 );
 
 CREATE TABLE mydb.Position AS SELECT * FROM Position*;
-
-CREATE VIEW mydb.PositionView AS SELECT * FROM PositionId, Position
-      WHERE Position.base=PositionId.position_ptr;
 
 CREATE ELEMENT TABLE MapIndex (
       map_index INT FROM first,

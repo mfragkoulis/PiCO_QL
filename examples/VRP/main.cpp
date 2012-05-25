@@ -25,6 +25,7 @@
 #include <ctime>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include "Customer.h"
 #include "Position.h"
 #include "Truck.h"

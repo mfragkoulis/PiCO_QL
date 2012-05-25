@@ -54,14 +54,3 @@ BASE=<base_variable>] 'AS SELECT * FROM' <struct_type> ';'
 <--Instruct the parser to fill a current element from one defined
 previously by referencing the element table's name
 <element_table_reuse> ::= '#' <element_name> ['FROM' <access_statement>]
-
-<--CREATE VIEW DEFINITION-->
-
-
-<create_view_def> ::= 'CREATE VIEW' <db_name>.<view_name> 'AS SELECT * FROM'
-		  <virtual_table_name> {',' <virtual_table_name>}
-		  WHERE <constraint> {'AND' <constraint>}
-
-<view_name> ::= 'identifier'
-
-<constraint> ::= 'constraint_expression'

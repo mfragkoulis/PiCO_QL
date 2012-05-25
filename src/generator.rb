@@ -217,47 +217,6 @@ end
 
 end
 
-# Models a view.
-class View
-  def initialize
-    @name = ""
-    @db = ""
-    @virtual_tables = Array.new
-    @where_clauses = Array.new
-  end
-  attr_accessor(:name,:db,:virtual_tables,:where_clauses)
-
-  def match_view(view_description)
-    view_ptn = 
-      /^create view (\w+)\.(\w+) as select \* from (.+) where(\s*) (.+)/im
-    if $argD == "DEBUG"
-      puts "View description is: #{view_description}"
-    end
-    matchdata = view_ptn.match(view_description)
-    @name = matchdata[2]
-    @db = matchdata[1]
-    vts = matchdata[3]
-    where = matchdata[5]
-    if vts.match(/,/) 
-      @virtual_tables = vts.split(/,/) 
-    else
-      raise "Invalid input for virtual tables: " + vts
-    end
-    if where.match(/ and /im)
-      @where_clauses = where.split(/ and /)
-    else      
-      @where_clauses = where
-    end
-    if $argD == "DEBUG"
-      puts "View name is: " + @name
-      puts "View lives in database named: " + @db
-      @virtual_tables.each { |vt| puts "View of virtual tables: " + vt }
-      @where_clauses.each { |wh| puts "View of where clauses: " + wh }
-    end
-  end
-
-end
-
 # Models a virtual table.
 class VirtualTable
   def initialize
@@ -700,8 +659,6 @@ end
         $elements.push(Element.new).last.match_element(stmt)
       when /^create table/im
         @tables.push(VirtualTable.new).last.match_table(stmt)
-      when /^create view/im
-        views.push(View.new).last.match_view(stmt)
       end
       w += 1
     }
