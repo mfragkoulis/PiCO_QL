@@ -1,0 +1,179 @@
+== Quickstart ==
+1. Download the project's source code tree, e.g. '''git clone git@github.com:mfragkoulis/PiCO_QL.git'''
+
+2. Navigate and enter to the downloaded directory ''PiCO_QL''.
+
+3. Copy the contents of the ''src/'' source code folder in your application's source code folder, where the  C++ object collections of interest are located.
+
+4. Describe the collection(s) using the DSL, e.g. for the simple C++ source code provided below:
+ <nowiki>                       #include <vector>
+                        #include "Car.h"
+                        using namespace std;
+                        int main() {
+                            vector<Car> cars;
+                            car c1(plate, brand, model, color, horse_power);
+                            ...
+                            cars.push_back(c1);
+                            ...
+                        }</nowiki>
+
+the required definitions would be the following:
+ <nowiki>                        CREATE ELEMENT TABLE Car (
+                             colPlate STRING FROM get_plate(),
+                             brandCol STRING FROM brand,
+                             col_model STRING FROM model,
+                             color STRING FROM color,
+                             power INT FROM horse_power
+                         );
+
+                         CREATE TABLE AllCars 
+                         WITH BASE = global_ptr_to_cars AS 
+                         SELECT * FROM vector<Car>;</nowiki>
+5. Add the header file '''#include stl_search.h''' and the call to the library '''int re = call_sqtl();''' into a convenient place of the source code file, where your object collections are located, and make the described collection(s) available to the library as in:
+ <nowiki>                        #include <vector>
+                         #include "Car.h"
+                         #include "stl_search.h"              // Include library header file.
+                         using namespace std;
+                         extern vector<Car>* global_ptr_to_cars;
+                         int main() {
+                             vector<Car> cars;
+                             car c1(plate, brand, model, color, horse_power);
+                             ...
+                             cars.push_back(c1);
+                             ...
+                             global_ptr_to_cars = &cars;     // Make available the collection.   
+                             int re = call_sqtl();           // Call the library.
+                         }</nowiki>
+
+6. Execute:
+ <nowiki>                        ruby generator.rb description.txt [typesafe]
+                         -> Created/updated stl_search.cpp .
+                         -> Created/updated makefile.append .</nowiki>
+
+7. The generated file Makefile.append consists a guideline for modifying your application's makefile to compile with the PiCO QL library. There are three actions that need to be settled (shortened example follows).
+* Copy the targets and dependencies for the library's source code files from ''makefile.append'' to your application's makefile (the last five lines in the example below).
+* Embed the dependencies and recipe aimed for the linker from ''makefile.append'' to your application's makefile (the first three lines in the example below).
+* Include ''stl_search.h'' in the dependencies of the makefile target that matches the above mentioned modified source code file (see the fourth line in the example below).
+ <nowiki>           1            OBJ=main.o stl_search.o stl_to_sql.o user_functions.o workers.o stl_test.o
+            2            executable: $(OBJ)
+            3                    $(CXX) -lswill -lsqlite3 $(CXXFLAGS) $(OBJ) -o $@
+            4            main.o: main.cpp Car.h stl_search.h
+            5            Car.o: Car.cpp Car.h
+            6            stl_search.o: stl_search.cpp stl_search.h user_functions.h workers.h
+            7            stl_to_sql.o: stl_to_sql.c stl_to_sql.h stl_search.h
+            8            user_functions.o: user_functions.c user_functions.h stl_test.h
+            9            workers.o: workers.cpp workers.h stl_search.h
+           10            stl_test.o: stl_test.c stl_test.h</nowiki>
+
+
+8. Compile with:
+ <nowiki>                        make</nowiki>
+
+9. Execute application and open browser at:
+ <nowiki>                        http://localhost:8080</nowiki>
+
+== Generative programming  ==
+To match the template instantiations of user's containers, the library uses a generative approach.
+The source code generated makes up the heart of the library's functionality, that is contains the
+custom selection and projection functions for the particular template instantiations.
+Code generation relies on a user description of those instantiations.
+
+== DSL ==
+From this point on, the term structure will appear a lot. This term covers the following:
+* object instance
+* container instance as per the SGI '''ForwardContainer''' and '''ForwardIterator''' concepts
+Additionally, although it should be mentioned separately but for brevity reasons, the term structure also implies pointers to structures.
+
+=== Mapping ===
+Prior to describing the building blocks of the DSL, it is important to establish the mapping between the C++ layer and the VT/SQL layer.
+
+Beginning from the latter layer, virtual tables take part in ordinary SQL SELECT computations. Behind the scenes, the SQLite engine calls the implemented interface of a VT, ergo a number of callback methods that define the action at each occasion (open, close, filter, project etc) on a VT. These make the VT querable. As such, the mapping task comes down to representing the valuable information in our structure(s) with SQLite accepted datatypes each occupying a column in the VT.
+
+A roadblock in this process, also evident in the OR impedance mismatch, is the possible depth of OO structures which theoretically may span at infinite levels. The answer to this is decomposition in a familiar style. Specifically, users can rely on two prioritised rules to decompose their C++ structures. If the structure registered with SQTL:
+* contains a pointer to a structure, the latter should become a separate VT.
+* contains a container instance, the latter should become a separate VT.
+The style is familiar because it resembles the normalisation process of relational schema creation.
+
+Those virtual tables whose respective C++ structures do not touch the surface but are met inside other structures have a special column named ''base'' while the VTs of the other, surface, structures devote a column to identify the guest structure. This is also familiar style and resembles closely relations in the relational algebra. What is more, queries engaging two or more related virtual tables are realised by joins using the implicit notation.
+
+Therefore, joins are commonly established between a VT's reference column to a second and the second's ''base'' column. At this point, a type-handshake of some kind is required because a C++ structure is activated behind the scenes with no type information following it. Type information has been knowingly dismissed in the process to fit in the join mechanism which is basically a give-and-take of address information. To protect users from mistakenly typing a conceptually illegal join, we give them the option to have the ruby parser generate code for type safety.
+
+Conclusively, the set of guidelines to users is:
+
+1. Users should not plan for the special ''base'' column, it is auto-generated.
+
+2. Columns that reference another VT should:
+
+: 1. have INT data type
+
+: 2. include the name and access path to the referenced virtual table as per the available syntaxes
+
+ <nowiki>             FROM TABLE <embedded_VT_name> WITH BASE = <access_path>      # Typesafe syntax
+
+              FROM <access_path>       # No type guarding</nowiki>
+
+: 3. suffix the name of the column with ''_ptr'' if the access path returns a pointer to the referenced structure (require a type handshake).
+
+3. Users can specify queries in ordinary SQL syntax leveraging all SQL facilities that SQLite provides with one restriction. Due to the navigational nature of the underlying (C++) structures, VTs in a query have to be opened, that is ordered in the FROM clause, from the outside, i.e. surface, to the inside, i.e. embedded. Not doing so, will terminate the query with an illegal use error.
+
+=== Datatypes ===
+Although SQTL does not use SQLIte3 for storing data, the VT create statements and the data manipulation in the query process has to be done in datatypes that SQLite3 understands.
+
+Generally, SQLite3 uses a dynamic type system. This means that a value type is associated with the value itself. Except for an INTEGER PRIMARY KEY, any other column can be used to store a value of any storage class.
+
+Hence, SQLite3 uses storage classes to categorise types of data and storage classes are slightly more general than datatypes. For instance, the INTEGER storage class includes six different integer datatypes of different lengths. This favors disk efficiency. When the data are brought into memory, they are converted to the most general datatype. Consequently, for the most part the terms _storage class_ and _datatype_ can be used interchangeably.
+
+SQLite3's storage classes include:
+* NULL. The value is a NULL value.
+* INTEGER. The value is a signed integer, stored in 1, 2, 3, 4, 6, or 8 bytes depending on the magnitude of the value.
+* REAL. The value is a floating point value, stored as an 8-byte IEEE floating point number.
+* TEXT. The value is a text string, stored using the database encoding (UTF-8, UTF-16BE or UTF-16LE).
+* BLOB. The value is a blob of data, stored exactly as it was input.
+The above information is taken from http://sqlite.org/datatype3.html where more information about SQLite3's datatypes can be retrieved.
+
+An advice concerning character arrays is to declare all as TEXT but those that belong to the std::string class. The latter can be defined as STRING.
+
+
+=== Building blocks ===
+The user description, as per the DSL, is a structured plain text description that contains three types of declarations,
+* the include header files for application software classes involved and utilised containers,
+* element definitions and
+* table declarations.
+
+Element definitions resemble class declarations in an even more imperative style. They include the element's name and its attributes, where attribute information includes data type, name and access path. e.g.
+ <nowiki>           CREATE ELEMENT TABLE SuperAccount (
+            balance DOUBLE FROM get_balance(),
+            account_no TEXT FROM get_account_no(),
+            rate DOUBLE FROM get_rate(),
+            isbn INT FROM get_isbn()
+            );</nowiki>
+
+From another perspective, one could observe that element definitions take after relational table definitions.
+
+Table declarations, except for the VT's name, carry information about the underlying nature of the VT, that is the base variable of structure it represents in C++ and its type. Either the type (or template instantiation) or the name of the VT refers to a previously defined element in the description. The rationale is to be able to reuse element definitions in table declarations as well as in other element definitions. e.g.
+ <nowiki>           CREATE ELEMENT TABLE Account (
+            $SuperAccount,        // Element reuse
+            type TEXT FROM type
+            );
+            CREATE TABLE Bank.Accounts
+            WITH BASE=accounts
+            AS SELECT * FROM vector<Account>;</nowiki>
+
+The table declaration together with the respective element definition complete a VT definition. Table declarations and element definitions end with a ';' (the primary delimeter) and, as mentioned, element definitions should precede the table declarations that refer to them. Columns in element definitions are separated by ',' (comma).
+
+== Plug in process ==
+After the writing of the description, users should be able to execute the ruby parser and generator successfully. This can be found in the SOURCE directory as ''generator.rb'' and takes at most three arguments, the file where the description resides (.txt) and, optionally, the option ''typesafe'' which instructs the generator to generate code for type safety and the option ''debug'' which prints debug information. In UNIX like systems, typing 
+
+            ruby generator.rb description.txt typesafe
+
+would generate two files, ''stl_search.cpp'' and ''makefile.append'' to merge with the application's makefile. As a last action, users should add the ''stl_search.h'' header file to the file where the library will be called from, add the line 
+
+            int re = call_sqtl();   
+
+and make sure that the structures they have described in the description are accessible from outside the file (file scope with an extern declaration). The definition will be generated in the ''stl_search.cpp''. Users may find it useful to use a pointer pointing at the structure's base address so as not to change scope to the original variable (see ''examples/'').
+
+=== Compile options ===
+As can be seen in a number of examples located at the examples directory, the makefile makes available the options/flags RELEASE, DEBUG, TEST TYPESAFE, SEED and CLEAN. Except for the DEBUG flag, which corresponds to DEBUG switches all over the C/C++ source code and the TEST option which switches to TEST mode (explanation follows), the rest have limited applicability in the examples provided. The RELEASE option sets up optimisation flags and no debug checks. The DEBUG option (default) sets up a number of compile debug flags including the TEST option and instead of starting the local server, prints state information and executes the test queries it finds in ''stl_test.c''. Accordingly, it writes the results in a file called ''test_current.txt'' and calls a small, simple script (diff_test.sh) which compares the latter with ''test_success.txt''. The SEED option copies the results from ''test_current.txt'' to ''test_success.txt''. The CLEAN option cleans unnecessary files. The TYPESAFE flag only has meaning with the DEBUG flag. It should be set for safely executing queries, i.e. ones that need code for type safety to have been generated (this is achieved by providing ''typesafe'' as an argument to the ruby parser). Those queries have to be placed in an '''#ifdef TYPESAFE''' block in ''stl_test.c'', otherwise their execution will result in a SEG_FAULT (see ''stl_test.c'' in ''examples/VRP/'').
+
+== Using sqtl ==
+Executing in production mode (examples under RELEASE) effects in a new thread which opens port ''8080'' at ''localhost'' where the local server is listening for query requests. Opening a browser at this address reveals the query interface.
