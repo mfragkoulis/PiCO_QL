@@ -57,7 +57,8 @@ PiCO QL PACKAGE STRUCTURE
 
    At the doc directory there is the BNF of the DSL 
    that grounds the user description syntax and the user
-   manual.
+   manual, which contains installation and usage 
+   instructions. The latter can be found in the wiki too.
 
    At src directory, the library's source code is 
    found.
