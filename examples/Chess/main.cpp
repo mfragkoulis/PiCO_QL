@@ -22,11 +22,11 @@
 #include "ChessPiece.h"
 #include "Position.h"
 #include <stdio.h>
-/* SQTL header */
+/* PiCO_QL header */
 #include "stl_search.h"
 /*-------------*/
 
-/* At global scope to be accessible by SQTL */
+/* At global scope to be accessible by PiCO_QL */
 extern vector<vector<ChessPiece> > *chessBoard;
 /*------------------------------------------*/
 
@@ -96,8 +96,8 @@ int main() {
     (*iter).push_back(ChessPiece("knight", "black"));
     (*iter).push_back(ChessPiece("rook", "black"));
 
-    int re_sqtl = call_sqtl();
-    printf("Thread sqlite returned %i\n", re_sqtl);
+    int re_pico_ql = call_pico_ql();
+    printf("Thread sqlite returned %i\n", re_pico_ql);
 //    move(Position(1, 'c'), Position(2, 'c'));
 
 /*                                                                              

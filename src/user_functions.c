@@ -148,8 +148,8 @@ void app_index(FILE *f, sqlite3 *db) {
 		"</style>"
 		"</head>"
 		"<body>");
-  swill_file("sqtl.png", "../bin/sqtl.png");
-  swill_fprintf(f, "<img src=\"sqtl.png\" alt=\"SQTL logo\" />"
+  swill_file("pico_ql.png", "../bin/pico_ql.png");
+  swill_fprintf(f, "<img src=\"pico_ql.png\" alt=\"PiCO_QL logo\" />"
 		"<div class=\"div_style\">"
 		"<form action=\"serveQuery.html\" method=GET>"
 		"<div class=\"top\">"

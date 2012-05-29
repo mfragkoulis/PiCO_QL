@@ -55,7 +55,7 @@ extern "C" {
 		     * table. 
 		     */
 
-  int call_sqtl();
+  int call_pico_ql();
   void fill_module(sqlite3_module *stl);
   void register_vt(stlTable *stl);
   int equals_base(const char *zCol);

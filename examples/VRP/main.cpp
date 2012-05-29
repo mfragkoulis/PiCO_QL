@@ -31,14 +31,14 @@
 #include "Truck.h"
 #include "Fleet.h"
 #include "mtrand.h"
-#include "stl_search.h"     // For SQTL
+#include "stl_search.h"     // For PiCO_QL
 
 using namespace std;
 
 unsigned long init[4] = {0x123, 0x234, 0x345, 0x456};
 unsigned long length = 4;  
 MTRand_int32 irand(init, length);
-/* To access in SQTL scope */
+/* To access in PiCO_QL scope */
 extern vector<Truck*> *vehicles;
 extern map<int, Customer*> test;
 /*-------------------------*/
@@ -299,8 +299,8 @@ int main(int argc, const char *argv[]) {
 	}
     }
 
-    vehicles = best_fl.get_fleet();     // For SQTL
-    int re_sqlite = call_sqtl();
+    vehicles = best_fl.get_fleet();     // For PiCO_QL
+    int re_sqlite = call_pico_ql();
     printf("Thread sqlite returned %i\n", re_sqlite);
     
     cout << endl << "Optimised solution after " << 

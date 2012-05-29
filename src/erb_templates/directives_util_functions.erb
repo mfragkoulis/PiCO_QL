@@ -62,7 +62,7 @@ static map<const char *, int, name_cmp>::iterator vtd_iter;
 <%     } %>
 
 
-// Thread. Creates the queries and passes them on to SQTL.
+// Thread. Creates the queries and passes them on to PiCO_QL.
 void * thread_sqlite(void *data) {
     const char **queries, **table_names;
     queries = (const char **)sqlite3_malloc(sizeof(char *) *
@@ -89,8 +89,8 @@ void * thread_sqlite(void *data) {
 }
 
 
-// The API with user application code. Creates the SQTL thread.
-int call_sqtl() {
+// The API with user application code. Creates the PiCO_QL thread.
+int call_pico_ql() {
     pthread_t sqlite_thread;
     int re_sqlite = pthread_create(&sqlite_thread, NULL, thread_sqlite, NULL);
     pthread_join(sqlite_thread, NULL);

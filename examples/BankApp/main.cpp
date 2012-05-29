@@ -27,13 +27,13 @@
 #include "SpecialAccount.h"
 #include "Account.h"
 #include "SuperAccount.h"
-/* SQTL header */
+/* PiCO_QL header */
 #include "stl_search.h"
 /*------------*/
 
 using namespace std;
 
-/* At global scope to be accessible by SQTL */
+/* At global scope to be accessible by PiCO_QL */
 extern map<string,SuperAccount> superaccounts;
 extern list<SpecialAccount> specialaccounts;
 extern vector<Account> accounts;
@@ -103,8 +103,8 @@ int main() {
     superaccounts.insert(make_pair("9", sa5));
     superaccounts.insert(make_pair("21", sa6));
 
-    int re_sqtl = call_sqtl();
-    printf("Thread sqlite returned %i\n", re_sqtl);
+    int re_pico_ql = call_pico_ql();
+    printf("Thread sqlite returned %i\n", re_pico_ql);
 
     for (it = superaccounts.begin(); it != superaccounts.end(); it++) {
 	printf("%i\n", it->second.get_isbn());

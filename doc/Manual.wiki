@@ -18,7 +18,11 @@
                         }</nowiki>
 
 the required definitions would be the following:
- <nowiki>                        CREATE ELEMENT TABLE Car (
+ <nowiki>                       #include <vector>
+                        #include "Car.h"
+                        using namespace std;
+                        ;
+                        CREATE ELEMENT TABLE Car (
                              colPlate STRING FROM get_plate(),
                              brandCol STRING FROM brand,
                              col_model STRING FROM model,
@@ -28,8 +32,8 @@ the required definitions would be the following:
 
                          CREATE TABLE AllCars 
                          WITH BASE = global_ptr_to_cars AS 
-                         SELECT * FROM vector<Car>;</nowiki>
-5. Add the header file '''#include stl_search.h''' and the call to the library '''int re = call_sqtl();''' into a convenient place of the source code file, where your object collections are located, and make the described collection(s) available to the library as in:
+                         SELECT * FROM vector<Car>*;</nowiki>
+5. Add the header file '''#include stl_search.h''' and the call to the library '''int re = call_pico_ql();''' into a convenient place of the source code file, where your object collections are located, and make the described collection(s) available to the library as in:
  <nowiki>                        #include <vector>
                          #include "Car.h"
                          #include "stl_search.h"              // Include library header file.
@@ -41,12 +45,14 @@ the required definitions would be the following:
                              ...
                              cars.push_back(c1);
                              ...
-                             global_ptr_to_cars = &cars;     // Make available the collection.   
-                             int re = call_sqtl();           // Call the library.
+                             global_ptr_to_cars = &cars;     /* Make the collection visible at file scope   
+                                                              * so that the library can access it.
+                                                              */
+                             int re = call_pico_ql();        // Call the library.
                          }</nowiki>
 
 6. Execute:
- <nowiki>                        ruby generator.rb description.txt [typesafe]
+ <nowiki>                        ruby generator.rb vt_description.sql [typesafe]
                          -> Created/updated stl_search.cpp .
                          -> Created/updated makefile.append .</nowiki>
 
@@ -89,7 +95,7 @@ Prior to describing the building blocks of the DSL, it is important to establish
 
 Beginning from the latter layer, virtual tables take part in ordinary SQL SELECT computations. Behind the scenes, the SQLite engine calls the implemented interface of a VT, ergo a number of callback methods that define the action at each occasion (open, close, filter, project etc) on a VT. These make the VT querable. As such, the mapping task comes down to representing the valuable information in our structure(s) with SQLite accepted datatypes each occupying a column in the VT.
 
-A roadblock in this process, also evident in the OR impedance mismatch, is the possible depth of OO structures which theoretically may span at infinite levels. The answer to this is decomposition in a familiar style. Specifically, users can rely on two prioritised rules to decompose their C++ structures. If the structure registered with SQTL:
+A roadblock in this process, also evident in the OR impedance mismatch, is the possible depth of OO structures which theoretically may span at infinite levels. The answer to this is decomposition in a familiar style. Specifically, users can rely on two prioritised rules to decompose their C++ structures. If the structure registered with PiCO_QL:
 * contains a pointer to a structure, the latter should become a separate VT.
 * contains a container instance, the latter should become a separate VT.
 The style is familiar because it resembles the normalisation process of relational schema creation.
@@ -117,7 +123,7 @@ Conclusively, the set of guidelines to users is:
 3. Users can specify queries in ordinary SQL syntax leveraging all SQL facilities that SQLite provides with one restriction. Due to the navigational nature of the underlying (C++) structures, VTs in a query have to be opened, that is ordered in the FROM clause, from the outside, i.e. surface, to the inside, i.e. embedded. Not doing so, will terminate the query with an illegal use error.
 
 === Datatypes ===
-Although SQTL does not use SQLIte3 for storing data, the VT create statements and the data manipulation in the query process has to be done in datatypes that SQLite3 understands.
+Although PiCO_QL does not use SQLIte3 for storing data, the VT create statements and the data manipulation in the query process has to be done in datatypes that SQLite3 understands.
 
 Generally, SQLite3 uses a dynamic type system. This means that a value type is associated with the value itself. Except for an INTEGER PRIMARY KEY, any other column can be used to store a value of any storage class.
 
@@ -168,12 +174,12 @@ After the writing of the description, users should be able to execute the ruby p
 
 would generate two files, ''stl_search.cpp'' and ''makefile.append'' to merge with the application's makefile. As a last action, users should add the ''stl_search.h'' header file to the file where the library will be called from, add the line 
 
-            int re = call_sqtl();   
+            int re = call_pico_ql();   
 
 and make sure that the structures they have described in the description are accessible from outside the file (file scope with an extern declaration). The definition will be generated in the ''stl_search.cpp''. Users may find it useful to use a pointer pointing at the structure's base address so as not to change scope to the original variable (see ''examples/'').
 
 === Compile options ===
 As can be seen in a number of examples located at the examples directory, the makefile makes available the options/flags RELEASE, DEBUG, TEST TYPESAFE, SEED and CLEAN. Except for the DEBUG flag, which corresponds to DEBUG switches all over the C/C++ source code and the TEST option which switches to TEST mode (explanation follows), the rest have limited applicability in the examples provided. The RELEASE option sets up optimisation flags and no debug checks. The DEBUG option (default) sets up a number of compile debug flags including the TEST option and instead of starting the local server, prints state information and executes the test queries it finds in ''stl_test.c''. Accordingly, it writes the results in a file called ''test_current.txt'' and calls a small, simple script (diff_test.sh) which compares the latter with ''test_success.txt''. The SEED option copies the results from ''test_current.txt'' to ''test_success.txt''. The CLEAN option cleans unnecessary files. The TYPESAFE flag only has meaning with the DEBUG flag. It should be set for safely executing queries, i.e. ones that need code for type safety to have been generated (this is achieved by providing ''typesafe'' as an argument to the ruby parser). Those queries have to be placed in an '''#ifdef TYPESAFE''' block in ''stl_test.c'', otherwise their execution will result in a SEG_FAULT (see ''stl_test.c'' in ''examples/VRP/'').
 
-== Using sqtl ==
+== Using PiCO QL ==
 Executing in production mode (examples under RELEASE) effects in a new thread which opens port ''8080'' at ''localhost'' where the local server is listening for query requests. Opening a browser at this address reveals the query interface.
