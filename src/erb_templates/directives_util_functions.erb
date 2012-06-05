@@ -138,8 +138,8 @@ int get_datastructure_size(sqlite3_vtab_cursor *cur) {
     } else if (!strcmp(stl->zName, "<%= @tables[vt].name %>")) {
 <%        end %>
 <%        /\*/.match(@tables[vt].pointer) == nil ? retype = "*" : retype = "" %>
-        <%# Chomp the pointer from signature. %> 
-	<%# For non-pointers it will have zero effect. %>
+<%# Chomp the pointer from signature. %>
+<%# For non-pointers it will have zero effect. %>
         <%= @tables[vt].signature.chomp('*') %> container_instance;
         forward_container_concept_check(container_instance);
         forward_iterator_concept_class<<%= @tables[vt].signature.chomp('*') %>::iterator> it;

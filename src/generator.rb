@@ -627,11 +627,11 @@ end
     end
     x = 0
     while x < token_d.length            # Cleaning white space.
+      if /\n|\t|\r|\f/.match(token_d[x])
+        token_d[x].gsub!(/\n|\t|\r|\f/, " ") 
+      end
       token_d[x].lstrip!
       token_d[x].rstrip!
-      if /\n|\t|\r|\f/.match(token_d[x])
-        token_d[x].gsub!(/\n|\t|\r|\f/, "") 
-      end
       token_d[x].squeeze!(" ")           
       if / ,|, /.match(token_d[x]) : token_d[x].gsub!(/ ,|, /, ",") end
       if / \(/.match(token_d[x]) : token_d[x].gsub!(/ \(/, "(") end
