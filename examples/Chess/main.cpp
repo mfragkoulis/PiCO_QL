@@ -26,13 +26,9 @@
 #include "stl_search.h"
 /*-------------*/
 
-/* At global scope to be accessible by PiCO_QL */
-extern vector<vector<ChessPiece> > *chessBoard;
-/*------------------------------------------*/
-
 int main() {
     vector<vector<ChessPiece> > board;
-    chessBoard = &board;
+    register_pico_ql(&board, "board");
     vector<vector<ChessPiece> >::iterator iter;
     vector<ChessPiece>::iterator it;
 

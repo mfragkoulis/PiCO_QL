@@ -56,6 +56,7 @@ extern "C" {
 		     */
 
   int call_pico_ql();
+  void register_pico_ql(void *collection, const char * col_name);
   void fill_module(sqlite3_module *stl);
   void register_vt(stlTable *stl);
   int equals_base(const char *zCol);

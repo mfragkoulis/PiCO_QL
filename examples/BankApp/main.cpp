@@ -33,13 +33,11 @@
 
 using namespace std;
 
-/* At global scope to be accessible by PiCO_QL */
-extern map<string,SuperAccount> superaccounts;
-extern list<SpecialAccount> specialaccounts;
-extern vector<Account> accounts;
-/*-----------------------------------------*/
-
 int main() {
+
+    map<string,SuperAccount> superaccounts;
+    list<SpecialAccount> specialaccounts;
+    vector<Account> accounts;
     
     Account acc1("10068", 500.0, 478923743, "credit");
     Account acc2("10234", 394.28, 692346729, 
@@ -103,6 +101,9 @@ int main() {
     superaccounts.insert(make_pair("9", sa5));
     superaccounts.insert(make_pair("21", sa6));
 
+    register_pico_ql(&accounts, "accounts");
+    register_pico_ql(&superaccounts, "superaccounts");
+    register_pico_ql(&specialaccounts, "specialaccounts");
     int re_pico_ql = call_pico_ql();
     printf("Thread sqlite returned %i\n", re_pico_ql);
 

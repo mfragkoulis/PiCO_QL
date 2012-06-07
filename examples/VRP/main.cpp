@@ -38,11 +38,6 @@ using namespace std;
 unsigned long init[4] = {0x123, 0x234, 0x345, 0x456};
 unsigned long length = 4;  
 MTRand_int32 irand(init, length);
-/* To access in PiCO_QL scope */
-extern vector<Truck*> *vehicles;
-extern map<int, Customer*> test;
-/*-------------------------*/
-
 
 int main(int argc, const char *argv[]) {
     ifstream fin(argv[1]);
@@ -59,6 +54,7 @@ int main(int argc, const char *argv[]) {
     string data;
     clock_t start_clock = clock(), finish_clock;
     double c_time;
+    map<int, Customer*> test;
     Fleet *candidate_fl = new Fleet;
     candidate_fl->add();                
     /* Create first truck of fleet to record info about 
@@ -299,7 +295,13 @@ int main(int argc, const char *argv[]) {
 	}
     }
 
-    vehicles = best_fl.get_fleet();     // For PiCO_QL
+    // Code block for PicO QL
+    // The following mismatch between actual and passed
+    // variable name is ok as long as the passed variable 
+    // name (vehicles) is the same with base in DSL 
+    // description e.g. (WITH BASE = vehicles").
+    register_pico_ql(best_fl.get_fleet(), "vehicles");
+    register_pico_ql(&test, "test");
     int re_sqlite = call_pico_ql();
     printf("Thread sqlite returned %i\n", re_sqlite);
     
