@@ -30,25 +30,26 @@ the required definitions would be the following:
                              power INT FROM horse_power
                          );
 
-                         CREATE TABLE AllCars 
-                         WITH BASE = global_ptr_to_cars AS 
-                         SELECT * FROM vector<Car>*;</nowiki>
-5. Add the header file '''#include stl_search.h''' and the call to the library '''int re = call_pico_ql();''' into a convenient place of the source code file, where your object collections are located, and make the described collection(s) available to the library as in:
+                         CREATE TABLE CarsDB.AllCars
+                         WITH BASE = cars AS 
+                         SELECT * FROM vector<Car>;</nowiki>
+According to the latter definition, virtual table AllCars will belong to database CarsDB. This is only a representation, i.e. a virtual table. Only the table schema will be stored and no physical storage will ever be occupied.
+
+5. Add the header file '''#include stl_search.h''' and the calls to the library '''register_pico_ql(void *data_structure, const char *ds_name);''', '''int re = call_pico_ql();''' into a convenient place of the source code file, where your object collections are located. The former function makes a described collection available to the library, the latter initiates the library as in:
  <nowiki>                        #include <vector>
                          #include "Car.h"
-                         #include "stl_search.h"              // Include library header file.
+                         #include "stl_search.h"                 // Include library header file.
                          using namespace std;
-                         extern vector<Car>* global_ptr_to_cars;
                          int main() {
                              vector<Car> cars;
                              car c1(plate, brand, model, color, horse_power);
                              ...
                              cars.push_back(c1);
                              ...
-                             global_ptr_to_cars = &cars;     /* Make the collection visible at file scope   
-                                                              * so that the library can access it.
-                                                              */
-                             int re = call_pico_ql();        // Call the library.
+                             register_pico_ql(cars, "cars");     /* Export the collection and register it   
+                                                                  * with the library.
+                                                                  */
+                             int re = call_pico_ql();            // Call the library.
                          }</nowiki>
 
 6. Execute:
@@ -60,7 +61,7 @@ the required definitions would be the following:
 * Copy the targets and dependencies for the library's source code files from ''makefile.append'' to your application's makefile (the last five lines in the example below).
 * Embed the dependencies and recipe aimed for the linker from ''makefile.append'' to your application's makefile (the first three lines in the example below).
 * Include ''stl_search.h'' in the dependencies of the makefile target that matches the above mentioned modified source code file (see the fourth line in the example below).
- <nowiki>           1            OBJ=main.o stl_search.o stl_to_sql.o user_functions.o workers.o stl_test.o
+ <nowiki>           1            OBJ=main.o Car.o stl_search.o stl_to_sql.o user_functions.o workers.o stl_test.o
             2            executable: $(OBJ)
             3                    $(CXX) -lswill -lsqlite3 $(CXXFLAGS) $(OBJ) -o $@
             4            main.o: main.cpp Car.h stl_search.h
@@ -174,9 +175,13 @@ After the writing of the description, users should be able to execute the ruby p
 
 would generate two files, ''stl_search.cpp'' and ''makefile.append'' to merge with the application's makefile. As a last action, users should add the ''stl_search.h'' header file to the file where the library will be called from, add the line 
 
+            void register_pico_ql(void *data_structure, const char *ds_name) 
+
+for each data structure users want to represent as a virtual table and initiate the library by adding the call:
+
             int re = call_pico_ql();   
 
-and make sure that the structures they have described in the description are accessible from outside the file (file scope with an extern declaration). The definition will be generated in the ''stl_search.cpp''. Users may find it useful to use a pointer pointing at the structure's base address so as not to change scope to the original variable (see ''examples/'').
+That's it. '''void *data_structure''' is a pointer to a described C++ data structure and '''const char *ds_name''' is a name for the data structure that has to be identical to the variable name used in the DSL description (WITH BASE = ds_name). The definition will be generated in the ''stl_search.cpp''.
 
 === Compile options ===
 As can be seen in a number of examples located at the examples directory, the makefile makes available the options/flags RELEASE, DEBUG, TEST TYPESAFE, SEED and CLEAN. Except for the DEBUG flag, which corresponds to DEBUG switches all over the C/C++ source code and the TEST option which switches to TEST mode (explanation follows), the rest have limited applicability in the examples provided. The RELEASE option sets up optimisation flags and no debug checks. The DEBUG option (default) sets up a number of compile debug flags including the TEST option and instead of starting the local server, prints state information and executes the test queries it finds in ''stl_test.c''. Accordingly, it writes the results in a file called ''test_current.txt'' and calls a small, simple script (diff_test.sh) which compares the latter with ''test_success.txt''. The SEED option copies the results from ''test_current.txt'' to ''test_success.txt''. The CLEAN option cleans unnecessary files. The TYPESAFE flag only has meaning with the DEBUG flag. It should be set for safely executing queries, i.e. ones that need code for type safety to have been generated (this is achieved by providing ''typesafe'' as an argument to the ruby parser). Those queries have to be placed in an '''#ifdef TYPESAFE''' block in ''stl_test.c'', otherwise their execution will result in a SEG_FAULT (see ''stl_test.c'' in ''examples/VRP/'').
