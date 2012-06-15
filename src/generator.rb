@@ -66,17 +66,10 @@ end
     tmp_text_array = Array.new      # Do not process the original array.
     tmp_text_array.replace(@@text_match_data_types)
     if @related_to.length > 0       # 'this' (column) refers to other VT.
-      if sqlite3_type == "search" && access_path.length == 0 
-        return "fk_nested", nil, nil
-      elsif sqlite3_type == "retrieve" || access_path.length > 0
-                                    # fk column for top container
-                                    # should be fully functional, 
-                                    # i.e. searchable.
-        sqlite3_type.replace("int64")
-        column_cast.replace("(long int)")
-        access_path.replace(@access_path)
-        return "fk", @related_to, @type
-      end
+      sqlite3_type.replace("int64")
+      column_cast.replace("(long int)")
+      access_path.replace(@access_path)
+      return "fk", @related_to, @type
     end
     if @name == "base"               # 'base' column. refactor: elsif perhaps?
       sqlite3_type.replace("int64")
@@ -354,16 +347,12 @@ class VirtualTable
       column_cast = ""
       sqlite3_parameters = ""
       column_cast_back = ""
-      access_path = @base_var
+      access_path = ""
       op, useless, fk_type = 
       @columns[col].bind_datatypes(sqlite3_type, 
                                    column_cast, sqlite3_parameters, 
                                    column_cast_back, access_path)
-      if op == "fk_nested" 
-        fw.puts "#{$s}    printf(\"Restricted area. Searching VT #{@name} column #{@columns[col].name}...makes no sense.\\n\");"
-        fw.puts "#{$s}    return SQLITE_MISUSE;"
-        next
-      elsif op == "fk"
+      if op == "fk"
         if fk_type == "object" : column_cast.concat("&") end
         op = "gen_all"
       end
