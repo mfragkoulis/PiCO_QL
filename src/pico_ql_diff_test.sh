@@ -25,5 +25,5 @@ if diff pico_ql_test_current.txt pico_ql_test_success.txt >/dev/null 2>&1
 then 
     echo "Test successful." > pico_ql_test_output.txt
 else
-    echo "Test produced unexpected results. See test_current.txt ." > pico_ql_test_output.txt
+    echo "Test produced unexpected results. See pico_ql_test_current.txt ." > pico_ql_test_output.txt
 fi

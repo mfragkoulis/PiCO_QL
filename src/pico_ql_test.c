@@ -106,8 +106,8 @@ int call_test(sqlite3 *db) {
 
   sqlite3_close(db);
   fclose(f);
-  if (system("./diff_test.sh")) {
-    printf("Invoking diff_test script failed.\n");
+  if (system("./pico_ql_diff_test.sh")) {
+    printf("Invoking pico_ql_diff_test script failed.\n");
     exit(1);
   }
   return SQLITE_OK;

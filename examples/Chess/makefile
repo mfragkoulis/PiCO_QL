@@ -36,29 +36,29 @@ CXXFLAGS+=-DDEBUG
 CFLAGS+=-DDEBUG
 endif
 
-OBJ=main.o ChessPiece.o Position.o stl_search.o stl_to_sql.o user_functions.o workers.o stl_test.o
+OBJ=main.o ChessPiece.o Position.o pico_ql_search.o pico_ql_vt.o pico_ql_interface.o pico_ql_search_helper.o pico_ql_test.o
 
 chess: $(OBJ)
 	$(CXX) -lswill -lsqlite3 $(CXXFLAGS) $(OBJ) -o $@
 
-main.o: main.cpp ChessPiece.h Position.h stl_search.h
+main.o: main.cpp ChessPiece.h Position.h pico_ql_search.h
 
 ChessPiece.o: ChessPiece.cpp ChessPiece.h Position.h
 
 Position.o: Position.cpp Position.h
 
-stl_search.o: stl_search.cpp stl_search.h user_functions.h workers.h
+pico_ql_search.o: pico_ql_search.cpp pico_ql_search.h pico_ql_interface.h pico_ql_search_helper.h
 
-stl_to_sql.o: stl_to_sql.c stl_to_sql.h stl_search.h
+pico_ql_vt.o: pico_ql_vt.c pico_ql_vt.h pico_ql_search.h
 
-user_functions.o: user_functions.c user_functions.h stl_test.h
+pico_ql_interface.o: pico_ql_interface.c pico_ql_interface.h pico_ql_test.h
 
-workers.o: workers.cpp workers.h stl_search.h
+pico_ql_search_helper.o: pico_ql_search_helper.cpp pico_ql_interface.h pico_ql_search.h
 
-stl_test.o: stl_test.c stl_test.h
+pico_ql_test.o: pico_ql_test.c pico_ql_test.h
 
 seed:
-	cp test_current.txt test_success.txt
+	cp pico_ql_test_current.txt pico_ql_test_success.txt
 
 
 .PHONY= clean

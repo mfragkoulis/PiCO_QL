@@ -23,12 +23,12 @@
 #include "Position.h"
 #include <stdio.h>
 /* PiCO_QL header */
-#include "stl_search.h"
+#include "pico_ql_search.h"
 /*-------------*/
 
 int main() {
     vector<vector<ChessPiece> > board;
-    register_pico_ql(&board, "board");
+    pico_ql_register(&board, "board");
     vector<vector<ChessPiece> >::iterator iter;
     vector<ChessPiece>::iterator it;
 
@@ -92,7 +92,7 @@ int main() {
     (*iter).push_back(ChessPiece("knight", "black"));
     (*iter).push_back(ChessPiece("rook", "black"));
 
-    int re_pico_ql = call_pico_ql();
+    int re_pico_ql = pico_ql_start();
     printf("Thread sqlite returned %i\n", re_pico_ql);
 //    move(Position(1, 'c'), Position(2, 'c'));
 

@@ -28,7 +28,7 @@
 #include "Account.h"
 #include "SuperAccount.h"
 /* PiCO_QL header */
-#include "stl_search.h"
+#include "pico_ql_search.h"
 /*------------*/
 
 using namespace std;
@@ -101,10 +101,10 @@ int main() {
     superaccounts.insert(make_pair("9", sa5));
     superaccounts.insert(make_pair("21", sa6));
 
-    register_pico_ql(&accounts, "accounts");
-    register_pico_ql(&superaccounts, "superaccounts");
-    register_pico_ql(&specialaccounts, "specialaccounts");
-    int re_pico_ql = call_pico_ql();
+    pico_ql_register(&accounts, "accounts");
+    pico_ql_register(&superaccounts, "superaccounts");
+    pico_ql_register(&specialaccounts, "specialaccounts");
+    int re_pico_ql = pico_ql_start();
     printf("Thread sqlite returned %i\n", re_pico_ql);
 
     for (it = superaccounts.begin(); it != superaccounts.end(); it++) {

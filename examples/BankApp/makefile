@@ -35,12 +35,12 @@ CXXFLAGS+=-DDEBUG
 CFLAGS+=-DDEBUG
 endif
 
-OBJ=main.o Account.o SuperAccount.o SpecialAccount.o stl_search.o stl_to_sql.o user_functions.o workers.o stl_test.o
+OBJ=main.o Account.o SuperAccount.o SpecialAccount.o pico_ql_search.o pico_ql_vt.o pico_ql_interface.o pico_ql_search_helper.o pico_ql_test.o
 
 bank_app: $(OBJ)
 	$(CXX) -lswill -lsqlite3 $(CXXFLAGS) $(OBJ) -o $@
 
-main.o: main.cpp Account.h SuperAccount.h SpecialAccount.h stl_search.h
+main.o: main.cpp Account.h SuperAccount.h SpecialAccount.h pico_ql_search.h
 
 Account.o: Account.cpp Account.h
 
@@ -48,19 +48,18 @@ SuperAccount.o: SuperAccount.cpp SuperAccount.h
 
 SpecialAccount.o: SpecialAccount.cpp SpecialAccount.h
 
-stl_search.o: stl_search.cpp stl_search.h user_functions.h workers.h
+pico_ql_search.o: pico_ql_search.cpp pico_ql_search.h pico_ql_interface.h pico_ql_search_helper.h
 
-stl_to_sql.o: stl_to_sql.c stl_to_sql.h stl_search.h
+pico_ql_vt.o: pico_ql_vt.c pico_ql_vt.h pico_ql_search.h
 
-user_functions.o: user_functions.c user_functions.h stl_test.h
+pico_ql_interface.o: pico_ql_interface.c pico_ql_interface.h pico_ql_test.h
 
-workers.o: workers.cpp workers.h stl_search.h
+pico_ql_search_helper.o: pico_ql_search_helper.cpp pico_ql_interface.h pico_ql_search.h
 
-stl_test.o: stl_test.c stl_test.h
-
+pico_ql_test.o: pico_ql_test.c pico_ql_test.h
 
 seed:
-	cp test_current.txt test_success.txt
+	cp pico_ql_test_current.txt pico_ql_test_success.txt
 
 
 .PHONY= clean
