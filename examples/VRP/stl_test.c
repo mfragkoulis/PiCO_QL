@@ -118,6 +118,10 @@ int call_test(sqlite3 *db) {
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);
 
+  q = "select sum(map_index), demand from (select * from mapindex where map_index<187) as m, Customer where customer.base=m.customer_ptr group by demand";
+  fprintf(f, "Query %i:\n %s\n\n", i++, q);
+  result = test_prep_exec(f, db, q);
+
   q = "select * from customer;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);

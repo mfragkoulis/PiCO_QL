@@ -56,6 +56,8 @@ def construct(name, data_type, related_to, access_path, type)
     @type = type
 end
 
+# Fills variables
+
 
 # Performs case analysis with respect to the column data type (and other)
 # and fills the passed variables with values accordingly.
@@ -64,20 +66,19 @@ end
     tmp_text_array = Array.new      # Do not process the original array.
     tmp_text_array.replace(@@text_match_data_types)
     if @related_to.length > 0       # 'this' (column) refers to other VT.
-      if sqlite3_type == "search" 
-        return "fk", nil, nil 
-      elsif sqlite3_type == "retrieve"
-        /_ptr/.match(@name) ? @type = "pointer" : @type = "object"   # In
-                        # columns that reference other VTs
-                        # users have to declare the type for generating
-                        # correct access statement.
+      if sqlite3_type == "search" && access_path.length == 0 
+        return "fk_nested", nil, nil
+      elsif sqlite3_type == "retrieve" || access_path.length > 0
+                                    # fk column for top container
+                                    # should be fully functional, 
+                                    # i.e. searchable.
         sqlite3_type.replace("int64")
         column_cast.replace("(long int)")
         access_path.replace(@access_path)
         return "fk", @related_to, @type
       end
     end
-    if @name == "base"               # 'base' column.
+    if @name == "base"               # 'base' column. refactor: elsif perhaps?
       sqlite3_type.replace("int64")
       column_cast.replace("(long int)")
       return "base", nil, nil
@@ -111,6 +112,17 @@ end
     access_path.replace(@access_path)
     return "gen_all", nil, nil
   end
+
+# In case of a foreign key column this method is called to register the type
+# of the column, that is "pointer" or "object" (reference".
+  def parse_name()
+    raise "Referenced virtual table not registered.\\n" unless @related_to.length > 0
+    /_ptr/.match(@name) ? @type = "pointer" : @type = "object"   # In
+                        # columns that reference other VTs
+                        # users have to declare the type for generating
+                        # correct access statement.
+  end
+
 
 
 # Validates a column data type.
@@ -196,6 +208,7 @@ end
       @data_type = matchdata[2]
       @related_to = matchdata[3]
       @access_path = matchdata[6]
+      parse_name()
     when column_ptn4
       matchdata = column_ptn4.match(column)
       @name = matchdata[1]
@@ -341,15 +354,18 @@ class VirtualTable
       column_cast = ""
       sqlite3_parameters = ""
       column_cast_back = ""
-      access_path = ""
-      op, useless, uselesss = 
+      access_path = @base_var
+      op, useless, fk_type = 
       @columns[col].bind_datatypes(sqlite3_type, 
                                    column_cast, sqlite3_parameters, 
                                    column_cast_back, access_path)
-      if op == "fk"
+      if op == "fk_nested" 
         fw.puts "#{$s}    printf(\"Restricted area. Searching VT #{@name} column #{@columns[col].name}...makes no sense.\\n\");"
         fw.puts "#{$s}    return SQLITE_MISUSE;"
         next
+      elsif op == "fk"
+        if fk_type == "object" : column_cast.concat("&") end
+        op = "gen_all"
       end
       if @container_class.length > 0
         fw.puts "#{$s}    iter = any_dstr->begin();"

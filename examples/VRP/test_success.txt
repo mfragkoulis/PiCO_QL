@@ -164,6 +164,20 @@ code demand position_ptr x_coord y_coord code demand position_ptr x_coord y_coor
 Done
 
 Query 9:
+ select sum(map_index), demand from (select * from mapindex where map_index<187) as m, Customer where customer.base=m.customer_ptr group by demand
+
+Statement prepared.
+sum(map_index) demand 
+
+23 0 
+1133 10 
+858 20 
+391 30 
+79 40 
+
+Done
+
+Query 10:
  select * from customer;
 
 Statement prepared.
@@ -172,7 +186,7 @@ base position_ptr demand code serviced
 
 Library used incorrectly
 
-Query 10:
+Query 11:
  select * from trucks, customers;
 
 Statement prepared.
@@ -181,7 +195,7 @@ truck_ptr base customer_ptr
 
 Library used incorrectly
 
-Query 11:
+Query 12:
  select * from trucks, customers where customers.base=trucks.truck_ptr;
 
 Statement prepared.
@@ -190,7 +204,7 @@ truck_ptr base customer_ptr
 
 Library used incorrectly
 
-Query 12:
+Query 13:
  select c.code, c.demand, c.position_ptr, p.x_coord, p.y_coord, u.code, u.demand, u.position_ptr, o.x_coord, o.y_coord from trucks,truck, customers, customer c,mapindex,customer u, position p,position o where truck.base=trucks.truck_ptr and customers.base=truck.customers_ptr and c.base=customers.customer_ptr and p.base=c.position_ptr and c.code like '%99' and u.base=mapindex.customer_ptr and o.base=truck.base and o.x_coord>133 and p.y_coord=o.y_coord;
 
 Statement prepared.
@@ -199,7 +213,7 @@ code demand position_ptr x_coord y_coord code demand position_ptr x_coord y_coor
 
 Library used incorrectly
 
-Query 13:
+Query 14:
  select code, demand, x_coord, y_coord from trucks,truck,customers, customer, position where truck.base=trucks.truck_ptr and customers.base=truck.customers_ptr and customer.base=trucks.truck_ptr and position.base=customer.position_ptr and code like '%99' union select code, demand, x_coord,y_coord from mapindex,customer,position where customer.base=mapindex.customer_ptr and position.base=customer.position_ptr and x_coord>133;
 
 Statement prepared.
