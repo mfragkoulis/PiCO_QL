@@ -33,12 +33,12 @@ the required definitions would be the following:
                          CREATE TABLE CarsDB.AllCars
                          WITH BASE = cars AS 
                          SELECT * FROM vector<Car>;</nowiki>
-According to the latter definition, virtual table AllCars will belong to database CarsDB. This is only a representation, i.e. a virtual table. Only the table schema will be stored and no physical storage will ever be occupied.
+According to the latter definition, virtual table AllCars will belong to database CarsDB. This is only a representation, i.e. a virtual table. Only the table schema will be stored and no physical storage for data will be occupied.
 
-5. Add the header file '''#include stl_search.h''' and the calls to the library '''register_pico_ql(void *data_structure, const char *ds_name);''', '''int re = call_pico_ql();''' into a convenient place of the source code file, where your object collections are located. The former function makes a described collection available to the library, the latter initiates the library as in:
+5. Add the header file '''#include pico_ql_search.h''' and the calls to the library '''pico_ql_register(void *data_structure, const char *ds_name);''', '''pico_ql_start();''' into a convenient place of the source code file, where your object collections are located. The former function makes a described collection available to the library, the latter initiates the library as in:
  <nowiki>                        #include <vector>
                          #include "Car.h"
-                         #include "stl_search.h"                 // Include library header file.
+                         #include "pico_ql_search.h"              // Include library header file.
                          using namespace std;
                          int main() {
                              vector<Car> cars;
@@ -46,31 +46,31 @@ According to the latter definition, virtual table AllCars will belong to databas
                              ...
                              cars.push_back(c1);
                              ...
-                             register_pico_ql(cars, "cars");     /* Export the collection and register it   
-                                                                  * with the library.
-                                                                  */
-                             int re = call_pico_ql();            // Call the library.
+                             pico_ql_register(&cars, "cars");     /* Export the collection and register it   
+                                                                   * with the library.
+                                                                   */
+                             int pico_ql_ret = pico_ql_start();    // Start the query interface.
                          }</nowiki>
 
 6. Execute:
- <nowiki>                        ruby generator.rb vt_description.sql [typesafe]
-                         -> Created/updated stl_search.cpp .
-                         -> Created/updated makefile.append .</nowiki>
+ <nowiki>                        ruby pico_ql_generator.rb pico_ql_dsl.sql [typesafe]
+                         -> Created/updated pico_ql_search.cpp .
+                         -> Created/updated pico_ql_makefile.append .</nowiki>
 
-7. The generated file Makefile.append consists a guideline for modifying your application's makefile to compile with the PiCO QL library. There are three actions that need to be settled (shortened example follows).
-* Copy the targets and dependencies for the library's source code files from ''makefile.append'' to your application's makefile (the last five lines in the example below).
-* Embed the dependencies and recipe aimed for the linker from ''makefile.append'' to your application's makefile (the first three lines in the example below).
-* Include ''stl_search.h'' in the dependencies of the makefile target that matches the above mentioned modified source code file (see the fourth line in the example below).
- <nowiki>           1            OBJ=main.o Car.o stl_search.o stl_to_sql.o user_functions.o workers.o stl_test.o
+7. The generated file pico_ql_makefile.append is a guideline for modifying your application's makefile to compile with the PiCO QL library. There are three actions that need to be settled (shortened example follows).
+* Copy the targets and dependencies for the library's source code files from ''pico_ql_makefile.append'' to your application's makefile (the last five lines in the example below).
+* Embed the dependencies and recipe aimed for the linker from ''pico_ql_makefile.append'' to your application's makefile (the first three lines in the example below).
+* Include ''pico_ql_search.h'' in the dependencies of the makefile target that matches the above mentioned modified source code file (see the fourth line in the example below).
+ <nowiki>           1            OBJ=main.o Car.o pico_ql_search.o pico_ql_vt.o pico_ql_interface.o pico_ql_search_helper.o pico_ql_test.o
             2            executable: $(OBJ)
             3                    $(CXX) -lswill -lsqlite3 $(CXXFLAGS) $(OBJ) -o $@
-            4            main.o: main.cpp Car.h stl_search.h
+            4            main.o: main.cpp Car.h pico_ql_search.h
             5            Car.o: Car.cpp Car.h
-            6            stl_search.o: stl_search.cpp stl_search.h user_functions.h workers.h
-            7            stl_to_sql.o: stl_to_sql.c stl_to_sql.h stl_search.h
-            8            user_functions.o: user_functions.c user_functions.h stl_test.h
-            9            workers.o: workers.cpp workers.h stl_search.h
-           10            stl_test.o: stl_test.c stl_test.h</nowiki>
+            6            pico_ql_search.o: pico_ql_search.cpp pico_ql_search.h pico_ql_interface.h pico_ql_search_helper.h
+            7            pico_ql_vt.o: pico_ql_vt.c pico_ql_vt.h pico_ql_search.h
+            8            pico_ql_interface.o: pico_ql_interface.c pico_ql_interface.h pico_ql_test.h
+            9            pico_ql_search_helper.o: pico_ql_search_helper.cpp pico_ql_search_helper.h pico_ql_search.h
+           10            pico_ql_test.o: pico_ql_test.c pico_ql_test.h</nowiki>
 
 
 8. Compile with:
@@ -101,7 +101,7 @@ A roadblock in this process, also evident in the OR impedance mismatch, is the p
 * contains a container instance, the latter should become a separate VT.
 The style is familiar because it resembles the normalisation process of relational schema creation.
 
-Those virtual tables whose respective C++ structures do not touch the surface but are met inside other structures have a special column named ''base'' while the VTs of the other, surface, structures devote a column to identify the guest structure. This is also familiar style and resembles closely relations in the relational algebra. What is more, queries engaging two or more related virtual tables are realised by joins using the implicit notation.
+Those virtual tables whose respective C++ structures do not touch the surface but are met inside other structures have a special column named ''base'' while the VTs of the other, surface, structures devote a column to identify guest structure(s). This is also familiar style and resembles closely relations in the relational algebra. What is more, queries engaging two or more related virtual tables are realised by joins using the implicit notation.
 
 Therefore, joins are commonly established between a VT's reference column to a second and the second's ''base'' column. At this point, a type-handshake of some kind is required because a C++ structure is activated behind the scenes with no type information following it. Type information has been knowingly dismissed in the process to fit in the join mechanism which is basically a give-and-take of address information. To protect users from mistakenly typing a conceptually illegal join, we give them the option to have the ruby parser generate code for type safety.
 
@@ -169,22 +169,22 @@ Table declarations, except for the VT's name, carry information about the underl
 The table declaration together with the respective element definition complete a VT definition. Table declarations and element definitions end with a ';' (the primary delimeter) and, as mentioned, element definitions should precede the table declarations that refer to them. Columns in element definitions are separated by ',' (comma).
 
 == Plug in process ==
-After the writing of the description, users should be able to execute the ruby parser and generator successfully. This can be found in the SOURCE directory as ''generator.rb'' and takes at most three arguments, the file where the description resides (.txt) and, optionally, the option ''typesafe'' which instructs the generator to generate code for type safety and the option ''debug'' which prints debug information. In UNIX like systems, typing 
+After the writing of the description, users should be able to execute the ruby parser and generator successfully. This can be found in the SOURCE directory as ''pico_ql_generator.rb'' and takes at most three arguments, the file where the description resides and, optionally, the option ''typesafe'' which instructs the generator to generate code for type safety and the option ''debug'' which prints debug information. In UNIX like systems, typing 
 
-            ruby generator.rb description.txt typesafe
+            ruby pico_ql_generator.rb pico_ql_dsl.sql typesafe
 
-would generate two files, ''stl_search.cpp'' and ''makefile.append'' to merge with the application's makefile. As a last action, users should add the ''stl_search.h'' header file to the file where the library will be called from, add the line 
+would generate two files, ''pico_ql_search.cpp'' and ''pico_ql_makefile.append'' to merge with the application's makefile. As a last action, users should add the ''pico_ql_search.h'' header file to the file where the library will be called from, add the line 
 
-            void register_pico_ql(void *data_structure, const char *ds_name) 
+            void pico_ql_register(void *data_structure, const char *ds_name) 
 
 for each data structure users want to represent as a virtual table and initiate the library by adding the call:
 
-            int re = call_pico_ql();   
+            pico_ql_start();   
 
-That's it. '''void *data_structure''' is a pointer to a described C++ data structure and '''const char *ds_name''' is a name for the data structure that has to be identical to the variable name used in the DSL description (WITH BASE = ds_name). The definition will be generated in the ''stl_search.cpp''.
+That's it. '''void *data_structure''' is a pointer to a described C++ data structure and '''const char *ds_name''' is a name for the data structure that has to be identical to the variable name used in the DSL description (WITH BASE = ds_name). The definition will be generated in the ''pico_ql_search.cpp''.
 
 === Compile options ===
-As can be seen in a number of examples located at the examples directory, the makefile makes available the options/flags RELEASE, DEBUG, TEST TYPESAFE, SEED and CLEAN. Except for the DEBUG flag, which corresponds to DEBUG switches all over the C/C++ source code and the TEST option which switches to TEST mode (explanation follows), the rest have limited applicability in the examples provided. The RELEASE option sets up optimisation flags and no debug checks. The DEBUG option (default) sets up a number of compile debug flags including the TEST option and instead of starting the local server, prints state information and executes the test queries it finds in ''stl_test.c''. Accordingly, it writes the results in a file called ''test_current.txt'' and calls a small, simple script (diff_test.sh) which compares the latter with ''test_success.txt''. The SEED option copies the results from ''test_current.txt'' to ''test_success.txt''. The CLEAN option cleans unnecessary files. The TYPESAFE flag only has meaning with the DEBUG flag. It should be set for safely executing queries, i.e. ones that need code for type safety to have been generated (this is achieved by providing ''typesafe'' as an argument to the ruby parser). Those queries have to be placed in an '''#ifdef TYPESAFE''' block in ''stl_test.c'', otherwise their execution will result in a SEG_FAULT (see ''stl_test.c'' in ''examples/VRP/'').
+As can be seen in a number of examples located at the examples directory, the makefile makes available the options/flags RELEASE, DEBUG, TEST TYPESAFE, SEED and CLEAN. Except for the DEBUG flag, which corresponds to DEBUG switches all over the C/C++ source code and the TEST option which switches to TEST mode (explanation follows), the rest have limited applicability in the examples provided. The RELEASE option sets up optimisation flags and no debug checks. The DEBUG option (default) sets up a number of compile debug flags including the TEST option and instead of starting the local server, prints state information and executes the test queries it finds in ''pico_ql_test.c''. Accordingly, it writes the results in a file called ''pico_ql_test_current.txt'' and calls a small, simple script (pico_ql_diff_test.sh) which compares the latter with ''pico_ql_test_success.txt''. The SEED option copies the results from ''pico_ql_test_current.txt'' to ''pico_ql_test_success.txt''. The CLEAN option cleans unnecessary files. The TYPESAFE flag only has meaning with the DEBUG flag. It should be set for safely executing queries, i.e. ones that need code for type safety to have been generated (this is achieved by providing ''typesafe'' as an argument to the ruby parser). Those queries have to be placed in an '''#ifdef TYPESAFE''' block in ''pico_ql_test.c'', otherwise their execution will result in a SEG_FAULT (see ''pico_ql_test.c'' in ''examples/VRP/'') when TYPESAFE flag is disabled.
 
 == Using PiCO QL ==
 Executing in production mode (examples under RELEASE) effects in a new thread which opens port ''8080'' at ''localhost'' where the local server is listening for query requests. Opening a browser at this address reveals the query interface.
