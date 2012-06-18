@@ -60,7 +60,7 @@ pico_ql_search.o: pico_ql_search.cpp pico_ql_search.h pico_ql_interface.h pico_q
 
 pico_ql_vt.o: pico_ql_vt.c pico_ql_vt.h pico_ql_search.h
 
-pico_ql_interface.o: pico_ql_interface.c pico_ql_interface.h pico_ql_test.h
+pico_ql_interface.o: pico_ql_interface.c pico_ql_interface.h pico_ql_vt.h pico_ql_test.h
 
 pico_ql_search_helper.o: pico_ql_search_helper.cpp pico_ql_search_helper.h pico_ql_search.h
 

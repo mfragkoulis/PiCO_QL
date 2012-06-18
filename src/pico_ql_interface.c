@@ -26,7 +26,37 @@
 #include <time.h>
 #include <swill.h>
 #include "pico_ql_interface.h"
+#include "pico_ql_vt.h"
 #include "pico_ql_test.h"
+
+/* Calls step_query for query execution. 
+ * Collects and acts on the result status of a query 
+ * execution.
+ */
+int file_prep_exec(FILE *f, sqlite3_stmt *stmt, 
+		   const char *q) {
+  int result;
+  result = step_query(f, stmt);
+  switch (result) {
+  case SQLITE_DONE:
+#ifdef DEBUG
+    swill_fprintf(f, "<b>DONE<br></b>");
+#endif
+    break;
+  case SQLITE_OK:
+#ifdef DEBUG
+    swill_fprintf(f, "<b>OK<br></b>");
+#endif
+    break;
+  case SQLITE_ERROR:
+    swill_fprintf(f, "<b>SQL error or missing database.\n</b>");
+    break;
+  case SQLITE_MISUSE:
+    swill_fprintf(f, "<b>Library used incorrectly.<br></b>");
+    break;
+  }
+  return result;
+}
 
 // Takes care of query preparation and execution.
 int prep_exec(FILE *f, sqlite3 *db, const char *q){
@@ -94,36 +124,6 @@ int step_query(FILE *f, sqlite3_stmt *stmt) {
     swill_fprintf(f, "<br>");
     return result;
 }
-
-/* Calls step_query for query execution. 
- * Collects and acts on the result status of a query 
- * execution.
- */
-int file_prep_exec(FILE *f, sqlite3_stmt *stmt, 
-		   const char *q) {
-  int result;
-  result = step_query(f, stmt);
-  switch (result) {
-  case SQLITE_DONE:
-#ifdef DEBUG
-    swill_fprintf(f, "<b>DONE<br></b>");
-#endif
-    break;
-  case SQLITE_OK:
-#ifdef DEBUG
-    swill_fprintf(f, "<b>OK<br></b>");
-#endif
-    break;
-  case SQLITE_ERROR:
-    swill_fprintf(f, "<b>SQL error or missing database.\n</b>");
-    break;
-  case SQLITE_MISUSE:
-    swill_fprintf(f, "<b>Library used incorrectly.<br></b>");
-    break;
-  }
-  return result;
-}
-
 
 /* Builds the front page of the library's web interface, 
  * retrieves the database schema and promotes inputted 

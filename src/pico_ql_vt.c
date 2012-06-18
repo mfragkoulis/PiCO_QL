@@ -156,18 +156,10 @@ int create_vtable(sqlite3 *db,
   return init_vtable(1, db, paux, argc, argv, ppVtab, pzErr);
 }
 
-// SQL update. Not provided.
-int update_vtable(sqlite3_vtab *pVtab, 
-		  int argc, 
-		  sqlite3_value **argv, 
-		  sqlite_int64 *pRowid) {
-  return SQLITE_OK;
-}
-
 // xDestroy
 int destroy_vtable(sqlite3_vtab *ppVtab) {
-  stlTable *st = (stlTable *)ppVtab;
 #ifdef DEBUG
+  stlTable *st = (stlTable *)ppVtab;
   printf("Destroying vtable %s \n\n", st->zName);
 #endif
   int result;
@@ -350,10 +342,10 @@ int filter_vtable(sqlite3_vtab_cursor *cur,
 
 //xNext. Advances the cursor to next record of resultset.
 int next_vtable(sqlite3_vtab_cursor *cur) {
-  stlTable *st = (stlTable *)cur->pVtab;
   stlTableCursor *stc = (stlTableCursor *)cur;
   stc->current++;
 #ifdef DEBUG
+  stlTable *st = (stlTable *)cur->pVtab;
   printf("Table %s, now stc->current: %i \n\n", 
 	 st->zName, stc->current);
 #endif
@@ -434,20 +426,13 @@ int column_vtable(sqlite3_vtab_cursor *cur,
   return retrieve(cur, n, con);
 }
 
-/* xRowid. Returns the rowid of record pointed at by $cur 
- * in integer format.
- */
-int rowid_vtable(sqlite3_vtab_cursor *cur, 
-		 sqlite_int64 *pRowid) {
-}
-
 /* xClose. Closes the virtual table after the completion 
  * of a query.
  */
 int close_vtable(sqlite3_vtab_cursor *cur) {
-  stlTable *st = (stlTable *)cur->pVtab;
   stlTableCursor *stc = (stlTableCursor *)cur;
 #ifdef DEBUG
+  stlTable *st = (stlTable *)cur->pVtab;
   printf("Closing vtable %s \n\n", st->zName);
 #endif
   sqlite3_free(stc->resultSet);
@@ -476,7 +461,7 @@ void fill_module(sqlite3_module *m) {
   m->xFilter = filter_vtable;
   m->xNext = next_vtable;
   m->xColumn = column_vtable;
-  m->xRowid = rowid_vtable;
+  m->xRowid = 0;
   m->xUpdate = 0;
   m->xFindFunction = 0;
   m->xBegin = 0;

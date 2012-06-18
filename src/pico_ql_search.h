@@ -57,7 +57,6 @@ extern "C" {
 
   int pico_ql_start();
   void pico_ql_register(void *collection, const char * col_name);
-  void fill_module(sqlite3_module *stl);
   void register_vt(stlTable *stl);
   int equals_base(const char *zCol);
   int get_datastructure_size(sqlite3_vtab_cursor *cur);
