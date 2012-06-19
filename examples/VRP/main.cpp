@@ -302,8 +302,7 @@ int main(int argc, const char *argv[]) {
     // description e.g. (WITH BASE = vehicles").
     pico_ql_register(best_fl.get_fleet(), "vehicles");
     pico_ql_register(&test, "test");
-    int re_sqlite = pico_ql_start();
-    printf("Thread sqlite returned %i\n", re_sqlite);
+    while (pico_ql_serve()) {};
     
     cout << endl << "Optimised solution after " << 
         restarts << 

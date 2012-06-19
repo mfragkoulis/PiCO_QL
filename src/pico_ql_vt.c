@@ -44,7 +44,7 @@ void create(sqlite3 *db,
     else strcat(q, ");");
   }
   q[strlen(q)] = '\0';
-#ifdef DEBUG
+#ifdef PICO_QL_DEBUG
   printf("Query is: %s with length %i \n", q, 
 	 (int)strlen(q));
 #endif
@@ -105,7 +105,7 @@ int init_vtable(int iscreate,
 
   char query[arrange_size(argc, argv)];
   create(db, argc, argv, query);
-#ifdef DEBUG
+#ifdef PICO_QL_DEBUG
   printf("Query is: %s \n", query);
 #endif
   if (!(*pzErr)) {
@@ -117,7 +117,7 @@ int init_vtable(int iscreate,
     } else if (output == 0) {
       *ppVtab = &stl->vtab;
       register_vt(stl);
-#ifdef DEBUG
+#ifdef PICO_QL_DEBUG
       printf("Virtual table declared successfully.\n");
 #endif
       return SQLITE_OK;
@@ -136,7 +136,7 @@ int connect_vtable(sqlite3 *db,
 		   const char * const * argv, 
 		   sqlite3_vtab **ppVtab,
 		   char **pzErr) {
-#ifdef DEBUG
+#ifdef PICO_QL_DEBUG
   printf("Connecting vtable %s \n\n", argv[2]);
 #endif
   return init_vtable(0, db, paux, argc, argv, 
@@ -150,7 +150,7 @@ int create_vtable(sqlite3 *db,
 		  const char * const * argv, 
 		  sqlite3_vtab **ppVtab,
 		  char **pzErr) {
-#ifdef DEBUG
+#ifdef PICO_QL_DEBUG
   printf("Creating vtable %s \n\n", argv[2]);
 #endif
   return init_vtable(1, db, paux, argc, argv, ppVtab, pzErr);
@@ -158,7 +158,7 @@ int create_vtable(sqlite3 *db,
 
 // xDestroy
 int destroy_vtable(sqlite3_vtab *ppVtab) {
-#ifdef DEBUG
+#ifdef PICO_QL_DEBUG
   stlTable *st = (stlTable *)ppVtab;
   printf("Destroying vtable %s \n\n", st->zName);
 #endif
@@ -171,7 +171,7 @@ int destroy_vtable(sqlite3_vtab *ppVtab) {
 // xDisconnect. Called when closing a database connection.
 int disconnect_vtable(sqlite3_vtab *ppVtab) {
   stlTable *s=(stlTable *)ppVtab;
-#ifdef DEBUG
+#ifdef PICO_QL_DEBUG
   printf("Disconnecting vtable %s \n\n", s->zName);
 #endif
   sqlite3_free(s);
@@ -243,7 +243,7 @@ int best_index_vtable(sqlite3_vtab *pVtab,
       if (st->zErr != NULL) {
 	sqlite3_free(st->zErr);
 	st->zErr = NULL;
-#ifdef DEBUG
+#ifdef PICO_QL_DEBUG
 	printf("zErr freed for %s\n", st->zName);
 #endif
       }
@@ -263,7 +263,7 @@ int best_index_vtable(sqlite3_vtab *pVtab,
       }
       if (j == 0) {
 	st->zErr = sqlite3_mprintf("Query VT with no usable BASE constraint.Abort.\n");
-#ifdef DEBUG
+#ifdef PICO_QL_DEBUG
 	printf("j=0: NO BASE for %s\n", st->zName);
 #endif
 	return SQLITE_OK;
@@ -344,7 +344,7 @@ int filter_vtable(sqlite3_vtab_cursor *cur,
 int next_vtable(sqlite3_vtab_cursor *cur) {
   stlTableCursor *stc = (stlTableCursor *)cur;
   stc->current++;
-#ifdef DEBUG
+#ifdef PICO_QL_DEBUG
   stlTable *st = (stlTable *)cur->pVtab;
   printf("Table %s, now stc->current: %i \n\n", 
 	 st->zName, stc->current);
@@ -363,7 +363,7 @@ int open_vtable(sqlite3_vtab *pVtab,
 		sqlite3_vtab_cursor **ppCsr) {
   stlTable *st=(stlTable *)pVtab;
   int arraySize;
-#ifdef DEBUG
+#ifdef PICO_QL_DEBUG
   printf("Opening vtable %s\n\n", st->zName);
 #endif
   sqlite3_vtab_cursor *pCsr;    /* Allocated cursor */
@@ -398,7 +398,7 @@ int open_vtable(sqlite3_vtab *pVtab,
      */
     arraySize = 1;
   stc->max_size = arraySize;
-#ifdef DEBUG
+#ifdef PICO_QL_DEBUG
   printf("ppCsr = %lx, pCsr = %lx \n", 
 	 (long unsigned int)ppCsr, 
 	 (long unsigned int)pCsr);
@@ -431,7 +431,7 @@ int column_vtable(sqlite3_vtab_cursor *cur,
  */
 int close_vtable(sqlite3_vtab_cursor *cur) {
   stlTableCursor *stc = (stlTableCursor *)cur;
-#ifdef DEBUG
+#ifdef PICO_QL_DEBUG
   stlTable *st = (stlTable *)cur->pVtab;
   printf("Closing vtable %s \n\n", st->zName);
 #endif
@@ -485,7 +485,7 @@ int arrange_size(int argc, const char * const * argv) {
     if (i != 1) length += strlen(argv[i]) + 1;
   }
   length += 1;         /*  Sentinel character. */
-#ifdef DEBUG
+#ifdef PICO_QL_DEBUG
   printf("length is %i \n",length);
 #endif
   return length;

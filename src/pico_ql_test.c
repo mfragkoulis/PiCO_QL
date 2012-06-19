@@ -102,7 +102,9 @@ int call_test(sqlite3 *db) {
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);
 
-  More queries...
+#ifdef PICO_QL_TYPESAFE
+  Queries requiring typesafe code...
+#endif
   */
 
   sqlite3_close(db);

@@ -92,8 +92,7 @@ int main() {
     (*iter).push_back(ChessPiece("knight", "black"));
     (*iter).push_back(ChessPiece("rook", "black"));
 
-    int re_pico_ql = pico_ql_start();
-    printf("Thread sqlite returned %i\n", re_pico_ql);
+    while (pico_ql_serve()) {};
 //    move(Position(1, 'c'), Position(2, 'c'));
 
 /*                                                                              

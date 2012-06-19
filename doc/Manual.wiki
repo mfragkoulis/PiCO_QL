@@ -35,7 +35,7 @@ the required definitions would be the following:
                          SELECT * FROM vector<Car>;</nowiki>
 According to the latter definition, virtual table AllCars will belong to database CarsDB. This is only a representation, i.e. a virtual table. Only the table schema will be stored and no physical storage for data will be occupied.
 
-5. Add the header file '''#include pico_ql_search.h''' and the calls to the library '''pico_ql_register(void *data_structure, const char *ds_name);''', '''pico_ql_start();''' into a convenient place of the source code file, where your object collections are located. The former function makes a described collection available to the library, the latter initiates the library as in:
+5. Add the header file '''#include pico_ql_search.h''' and the calls to the library '''pico_ql_register(void *data_structure, const char *ds_name);''', '''pico_ql_serve();''' into a convenient place of the source code file, where your object collections are located. The former function makes a described collection available to the library, the latter initiates the library as in:
  <nowiki>                        #include <vector>
                          #include "Car.h"
                          #include "pico_ql_search.h"              // Include library header file.
@@ -49,7 +49,7 @@ According to the latter definition, virtual table AllCars will belong to databas
                              pico_ql_register(&cars, "cars");     /* Export the collection and register it   
                                                                    * with the library.
                                                                    */
-                             int pico_ql_ret = pico_ql_start();    // Start the query interface.
+                             while (pico_ql_serve()) {};           // Start the query interface.
                          }</nowiki>
 
 6. Execute:
@@ -74,7 +74,8 @@ According to the latter definition, virtual table AllCars will belong to databas
 
 
 8. Compile with:
- <nowiki>                        make</nowiki>
+ <nowiki>                        make </nowiki>
+For a complete list see [[Manual#Compile options|Compile options]]. 
 
 9. Execute application and open browser at:
  <nowiki>                        http://localhost:8080</nowiki>
@@ -179,12 +180,13 @@ would generate two files, ''pico_ql_search.cpp'' and ''pico_ql_makefile.append''
 
 for each data structure users want to represent as a virtual table and initiate the library by adding the call:
 
-            pico_ql_start();   
+            pico_ql_serve();   
 
 That's it. '''void *data_structure''' is a pointer to a described C++ data structure and '''const char *ds_name''' is a name for the data structure that has to be identical to the variable name used in the DSL description (WITH BASE = ds_name). The definition will be generated in the ''pico_ql_search.cpp''.
 
+
 === Compile options ===
-As can be seen in a number of examples located at the examples directory, the makefile makes available the options/flags RELEASE, DEBUG, TEST TYPESAFE, SEED and CLEAN. Except for the DEBUG flag, which corresponds to DEBUG switches all over the C/C++ source code and the TEST option which switches to TEST mode (explanation follows), the rest have limited applicability in the examples provided. The RELEASE option sets up optimisation flags and no debug checks. The DEBUG option (default) sets up a number of compile debug flags including the TEST option and instead of starting the local server, prints state information and executes the test queries it finds in ''pico_ql_test.c''. Accordingly, it writes the results in a file called ''pico_ql_test_current.txt'' and calls a small, simple script (pico_ql_diff_test.sh) which compares the latter with ''pico_ql_test_success.txt''. The SEED option copies the results from ''pico_ql_test_current.txt'' to ''pico_ql_test_success.txt''. The CLEAN option cleans unnecessary files. The TYPESAFE flag only has meaning with the DEBUG flag. It should be set for safely executing queries, i.e. ones that need code for type safety to have been generated (this is achieved by providing ''typesafe'' as an argument to the ruby parser). Those queries have to be placed in an '''#ifdef TYPESAFE''' block in ''pico_ql_test.c'', otherwise their execution will result in a SEG_FAULT (see ''pico_ql_test.c'' in ''examples/VRP/'') when TYPESAFE flag is disabled.
+The flags PICO_QL_DEBUG, PICO_QL_TEST, PICO_QL_TYPESAFE and PICO_QL_SINGLE_THREADED configure the source code. The PICO_QL_DEBUG flag corresponds to debug switches all over the C/C++ source code and the PICO_QL_TEST option switches to test mode. Instead of starting the local server, the latter prints state information and executes the test queries it finds in ''pico_ql_test.c''. Accordingly, it writes the results in a file called ''pico_ql_test_current.txt'' and calls a small, simple script (pico_ql_diff_test.sh) which compares the latter with ''pico_ql_test_success.txt''. A SEED option may be used to copy the results from ''pico_ql_test_current.txt'' to ''pico_ql_test_success.txt''. The PICO_QL_TYPESAFE flag only has meaning with the PICO_QL_TEST flag. It should be set for safely executing test queries, i.e. ones that need code for type safety to have been generated (this is achieved by providing ''typesafe'' as an argument to the ruby parser). Those queries have to be placed in an '''#ifdef PICO_QL_TYPESAFE''' block in ''pico_ql_test.c'', otherwise their execution will result in a SEG_FAULT (see ''pico_ql_test.c'' in ''examples/VRP/'') when PICO_QL_TYPESAFE flag is disabled. Finally, the PICO_QL_SINGLE_THREADED flag starts the library in the same thread as the application. If it is not defined PICO_QL operates in a separate thread.
 
 == Using PiCO QL ==
-Executing in production mode (examples under RELEASE) effects in a new thread which opens port ''8080'' at ''localhost'' where the local server is listening for query requests. Opening a browser at this address reveals the query interface.
+In production mode PICO QL opens port ''8080'' at ''localhost'' where the local server is listening for query requests. Opening a browser at this address reveals the query interface.

@@ -104,8 +104,7 @@ int main() {
     pico_ql_register(&accounts, "accounts");
     pico_ql_register(&superaccounts, "superaccounts");
     pico_ql_register(&specialaccounts, "specialaccounts");
-    int re_pico_ql = pico_ql_start();
-    printf("Thread sqlite returned %i\n", re_pico_ql);
+    while (pico_ql_serve()) {};
 
     for (it = superaccounts.begin(); it != superaccounts.end(); it++) {
 	printf("%i\n", it->second.get_isbn());

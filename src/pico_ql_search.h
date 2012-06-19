@@ -55,7 +55,7 @@ extern "C" {
 		     * table. 
 		     */
 
-  int pico_ql_start();
+  int pico_ql_serve();
   void pico_ql_register(void *collection, const char * col_name);
   void register_vt(stlTable *stl);
   int equals_base(const char *zCol);

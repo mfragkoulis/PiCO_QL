@@ -26,7 +26,9 @@
 #include <string>
 #include <map>
 #include <boost/concept_check.hpp>
+#ifndef PICO_QL_SINGLE_THREADED
 #include <pthread.h>
+#endif
 <%= directives %>
 #include "pico_ql_search.h"
 #include "pico_ql_interface.h"
@@ -104,19 +106,23 @@ void * thread_sqlite(void *data) {
     table_names[<%= vt %>] = "<%= @tables[vt].name %>";
 <%    } %>
     failure = register_table( "<%= @tables[0].db %>" , <%= @tables.length.to_s %>, queries, table_names, data);
-    printf("Thread sqlite returning..\n");
+    printf("Thread sqlite returns %i\n", failure);
     sqlite3_free(queries);
     sqlite3_free(table_names);
-    return (void *)failure;
+    return NULL;
 }
 
 
 // The API with user application code. Creates the PiCO_QL thread.
-int pico_ql_start() {
+int pico_ql_serve() {
+#ifndef PICO_QL_SINGLE_THREADED
     pthread_t sqlite_thread;
-    int re_sqlite = pthread_create(&sqlite_thread, NULL, thread_sqlite, NULL);
+    pthread_create(&sqlite_thread, NULL, thread_sqlite, NULL);
     pthread_join(sqlite_thread, NULL);
-    return re_sqlite;
+#else
+    thread_sqlite(NULL);
+#endif
+    return 0;
 }
 
 
