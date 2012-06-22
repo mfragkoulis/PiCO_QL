@@ -1,0 +1,7 @@
+== Single-threaded vs multi-threaded operation ==
+Users may execute PiCO_QL in the same thread as the application (single-threaded) or in a separate thread.
+In the former case, PiCO_QL has to be compiled with PICO_QL_SINGLE_THREADED flag enabled and ''pico_ql_serve()'' may be called from within a loop as in [[Quickstart]] if returning is a problem.
+In the latter case, a normal call to ''pico_ql_serve()'' is enough. When everything goes as planned ''pico_ql_serve()'' returns 1.
+
+== Using PiCO QL ==
+In production (non-test) mode PICO QL opens port ''8080'' at ''localhost'' where the local server is listening for query requests. Opening a browser at this address reveals the query interface.

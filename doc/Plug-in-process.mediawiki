@@ -1,0 +1,25 @@
+After the writing of the description, users should be able to execute the ruby parser and generator successfully. This can be found in the src/ directory as ''pico_ql_generator.rb'' and takes at most three arguments, the file where the description resides and, optionally, the option ''typesafe'' which instructs the generator to generate code for type safety and the option ''debug'' which prints debug information. In UNIX like systems, typing 
+
+            ruby pico_ql_generator.rb pico_ql_dsl.sql typesafe
+
+would generate two files, ''pico_ql_search.cpp'' and ''pico_ql_makefile.append'' to merge with the application's makefile. As a last action, users should add the ''pico_ql_search.h'' header file to the file where the library will be called from, add the line 
+
+            void pico_ql_register(void *data_structure, const char *ds_name) 
+
+for each data structure users want to represent as a virtual table and initiate the library by adding the call:
+
+            pico_ql_serve();   
+
+That's it. '''void *data_structure''' is a pointer to a described C++ data structure and '''const char *ds_name''' is a name for the data structure that has to be identical to the variable name used in the DSL description (WITH BASE = ds_name). The definition will be generated in the ''pico_ql_search.cpp''.
+
+
+== Compile options ==
+The flags PICO_QL_DEBUG, PICO_QL_TEST, PICO_QL_TYPESAFE and PICO_QL_SINGLE_THREADED configure the source code. 
+
+* PICO_QL_DEBUG corresponds to debug switches all over the C/C++ source code.
+
+* PICO_QL_TEST option switches to test mode. Instead of starting the local server, PICO_QL_TEST prints state information and executes the test queries it finds in ''pico_ql_test.c''. Accordingly, it writes the results in a file called ''pico_ql_test_current.txt'' and calls a small, simple script (pico_ql_diff_test.sh) which compares the latter with ''pico_ql_test_success.txt''. A SEED option may be used to copy the results from ''pico_ql_test_current.txt'' to ''pico_ql_test_success.txt''. 
+
+* PICO_QL_TYPESAFE only has meaning with the PICO_QL_TEST flag. It should be set for safely executing test queries, i.e. ones that need code for type safety to have been generated (this is achieved by providing ''typesafe'' as an argument to the ruby parser). Those queries have to be placed in an '''#ifdef PICO_QL_TYPESAFE''' block in ''pico_ql_test.c'', otherwise their execution will result in a SEG_FAULT (see ''pico_ql_test.c'' in ''examples/VRP/'') when PICO_QL_TYPESAFE flag is disabled. 
+
+* PICO_QL_SINGLE_THREADED starts the library in the same thread as the application. If it is not defined PICO_QL operates in a separate thread.
