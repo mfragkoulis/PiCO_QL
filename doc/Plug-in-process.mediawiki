@@ -14,7 +14,7 @@ That's it. '''void *data_structure''' is a pointer to a described C++ data struc
 
 
 == Compile options ==
-The flags PICO_QL_DEBUG, PICO_QL_TEST, PICO_QL_TYPESAFE and PICO_QL_SINGLE_THREADED configure the source code. 
+The flags PICO_QL_DEBUG, PICO_QL_TEST, PICO_QL_TYPESAFE, PICO_QL_SINGLE_THREADED and PICO_QL_JOIN_THREADS configure the source code. 
 
 * PICO_QL_DEBUG corresponds to debug switches all over the C/C++ source code.
 
@@ -23,3 +23,5 @@ The flags PICO_QL_DEBUG, PICO_QL_TEST, PICO_QL_TYPESAFE and PICO_QL_SINGLE_THREA
 * PICO_QL_TYPESAFE only has meaning with the PICO_QL_TEST flag. It should be set for safely executing test queries, i.e. ones that need code for type safety to have been generated (this is achieved by providing ''typesafe'' as an argument to the ruby parser). Those queries have to be placed in an '''#ifdef PICO_QL_TYPESAFE''' block in ''pico_ql_test.c'', otherwise their execution will result in a SEG_FAULT (see ''pico_ql_test.c'' in ''examples/VRP/'') when PICO_QL_TYPESAFE flag is disabled. 
 
 * PICO_QL_SINGLE_THREADED starts the library in the same thread as the application. If it is not defined PICO_QL operates in a separate thread.
+
+* PICO_QL_JOIN_THREADS is useful in multi-threaded mode to prevent the application from terminating.

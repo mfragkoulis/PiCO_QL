@@ -8,7 +8,7 @@ echo "-> Generating files."
 ruby pico_ql_generator.rb pico_ql_dsl.sql > /dev/null
 echo "-> Building."
 make clean > /dev/null
-make > /dev/null
+make PICO_QL_JOIN_THREADS=1 > /dev/null
 echo "-> Executing tests."
 ./bank_app > /dev/null
 cat pico_ql_test_output.txt
@@ -19,7 +19,7 @@ echo "-> Generating files."
 ruby pico_ql_generator.rb pico_ql_dsl.sql > /dev/null
 echo "-> Building."
 make clean > /dev/null
-make > /dev/null
+make PICO_QL_JOIN_THREADS=1 > /dev/null
 echo "-> Executing tests."
 ./chess > /dev/null
 cat pico_ql_test_output.txt
@@ -30,7 +30,7 @@ echo "-> Generating files."
 ruby pico_ql_generator.rb pico_ql_dsl.sql > /dev/null
 echo "-> Building."
 make clean > /dev/null
-make > /dev/null
+make PICO_QL_JOIN_THREADS=1 > /dev/null
 echo "-> Executing tests."
 ./schedule cvrp/solomon.txt 2 > /dev/null
 cat pico_ql_test_output.txt
@@ -58,7 +58,7 @@ echo "-> Generating files."
 ruby pico_ql_generator.rb pico_ql_dsl.sql typesafe > /dev/null
 echo "-> Building."
 make clean > /dev/null
-make PICO_QL_TYPESAFE=1 > /dev/null
+make PICO_QL_TYPESAFE=1 PICO_QL_JOIN_THREADS=1 > /dev/null
 echo "-> Executing tests."
 ./bank_app > /dev/null
 cat pico_ql_test_output.txt
@@ -69,7 +69,7 @@ echo "-> Generating files."
 ruby pico_ql_generator.rb pico_ql_dsl.sql typesafe > /dev/null
 echo "-> Building."
 make clean > /dev/null
-make PICO_QL_TYPESAFE=1 > /dev/null
+make PICO_QL_TYPESAFE=1 PICO_QL_JOIN_THREADS=1 > /dev/null
 echo "-> Executing tests."
 ./chess > /dev/null
 cat pico_ql_test_output.txt
@@ -80,7 +80,7 @@ echo "-> Generating files."
 ruby pico_ql_generator.rb pico_ql_dsl.sql typesafe > /dev/null
 echo "-> Building."
 make clean > /dev/null
-make PICO_QL_TYPESAFE=1 > /dev/null
+make PICO_QL_TYPESAFE=1 PICO_QL_JOIN_THREADS=1 > /dev/null
 echo "-> Executing tests."
 ./schedule cvrp/solomon.txt 2 > /dev/null
 cat pico_ql_test_output.txt

@@ -38,6 +38,10 @@ ifdef PICO_QL_SINGLE_THREADED
 CXXFLAGS+=-DPICO_QL_SINGLE_THREADED
 CFLAGS+=-DPICO_QL_SINGLE_THREADED
 endif
+ifdef PICO_QL_JOIN_THREADS
+CXXFLAGS+=-DPICO_QL_JOIN_THREADS
+CFLAGS+=-DPICO_QL_JOIN_THREADS
+endif
 
 OBJ=main.o Fleet.o Truck.o Customer.o LinehaulCustomer.o BackhaulCustomer.o Position.o mtrand.o pico_ql_search.o pico_ql_vt.o pico_ql_interface.o pico_ql_search_helper.o pico_ql_test.o
 

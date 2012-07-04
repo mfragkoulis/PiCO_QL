@@ -66,7 +66,7 @@ The user description, as per the DSL, is a structured plain text description tha
 * element definitions and
 * table declarations.
 
-Element definitions resemble class declarations in an even more imperative style. They include the element's name and its attributes, where attribute information includes data type, name and access path. e.g.
+Element definitions resemble class declarations in an even more imperative style. They include the element's name and its attributes, where attribute information includes name, data type and access path. e.g.
  <nowiki>           CREATE ELEMENT TABLE SuperAccount (
             balance DOUBLE FROM get_balance(),
             account_no TEXT FROM get_account_no(),
@@ -76,12 +76,14 @@ Element definitions resemble class declarations in an even more imperative style
 
 From another perspective, one could observe that element definitions take after relational table definitions.
 
-Table declarations, except for the VT's name, carry information about the underlying nature of the VT, that is the base variable of structure it represents in C++ and its type. Either the type (or template instantiation) or the name of the VT refers to a previously defined element in the description. The rationale is to be able to reuse element definitions in table declarations as well as in other element definitions. e.g.
+Element definitions may be reused. e.g.
  <nowiki>           CREATE ELEMENT TABLE Account (
             $SuperAccount,        // Element reuse
             type TEXT FROM type
-            );
-            CREATE TABLE Bank.Accounts
+            );</nowiki>
+
+Table declarations carry the virtual table's name and information about the C++ data structure it represents, that is its C++ base variable name and its type. The base variable name is required for registering the base memory location of the data structure with its virtual table representation, and its type for generating correct type information. A table declaration always links to an element definition through the table's name or through the template instantiation type. The rationale is to be able to reuse element definitions in table declarations as well as in other element definitions. e.g.
+ <nowiki>           CREATE TABLE Bank.Accounts
             WITH BASE=accounts
             AS SELECT * FROM vector<Account>;</nowiki>
 

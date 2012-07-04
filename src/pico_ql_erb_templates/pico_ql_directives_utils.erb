@@ -118,7 +118,9 @@ int pico_ql_serve() {
 #ifndef PICO_QL_SINGLE_THREADED
     pthread_t sqlite_thread;
     pthread_create(&sqlite_thread, NULL, thread_sqlite, NULL);
+#ifdef PICO_QL_JOIN_THREADS
     pthread_join(sqlite_thread, NULL);
+#endif
 #else
     thread_sqlite(NULL);
 #endif
