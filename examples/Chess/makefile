@@ -42,6 +42,10 @@ ifdef PICO_QL_JOIN_THREADS
 CXXFLAGS+=-DPICO_QL_JOIN_THREADS
 CFLAGS+=-DPICO_QL_JOIN_THREADS
 endif
+ifdef PICO_QL_HANDLE_POLYMORPHISM
+CXXFLAGS+=-DPICO_QL_HANDLE_POLYMORPHISM
+CFLAGS+=-DPICO_QL_HANDLE_POLYMORPHISM
+endif
 
 OBJ=main.o ChessPiece.o Position.o pico_ql_search.o pico_ql_vt.o pico_ql_interface.o pico_ql_search_helper.o pico_ql_test.o
 

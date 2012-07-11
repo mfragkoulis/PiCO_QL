@@ -127,12 +127,14 @@ end
     if dt == "string"
       @cpp_data_type.replace(dt)
       @data_type.replace("TEXT")
+      return 1
+    elsif @@text_data_types.include?(dt) || 
+        tmp_text_array.reject! { |rgx| rgx.match(dt) != nil } != nil
+      return 1
     elsif @@int_data_types.include?(dt) || 
         @@double_data_types.include?(dt) || 
-        /decimal/i.match(dt) != nil ||
-        @@text_data_types.include?(dt) || 
-        tmp_text_array.reject! { |rgx| rgx.match(dt) != nil } != nil
-      return dt
+        /decimal/i.match(dt) != nil
+      return 0
     else
       raise TypeError.new("No such data type #{dt.upcase}\\n")
     end
@@ -142,6 +144,7 @@ end
 # Matches each column description against a pattern and extracts 
 # column traits.
   def set(column)
+    col_type_text = 0
     column.lstrip!
     column.rstrip!
     if $argD == "DEBUG"
@@ -176,6 +179,7 @@ end
                                         coln.access_path.clone, 
                                         coln.type.clone)
           }
+	  col_type_text = el.include_text_col
         end
       }
       this_columns.each_index { |col|     # Adapt access path.
@@ -184,17 +188,19 @@ end
                                                 this_columns[col].access_path)
         end
       }
-      return
+      return col_type_text
     when column_ptn2                      # Merely include an element 
                                           # definition.
       matchdata = column_ptn2.match(column)
       $elements.each { |el| 
-        if el.name == matchdata[1] : 
-            $elements.last.columns = 
-            $elements.last.columns_delete_last() | 
-            el.columns end
+        if el.name == matchdata[1]
+          $elements.last.columns = 
+	    $elements.last.columns_delete_last() | 
+            el.columns
+	  col_type_text = el.include_text_col
+	end
       }
-      return
+      return col_type_text
     when column_ptn3
       matchdata = column_ptn3.match(column)
       @name = matchdata[1]
@@ -208,7 +214,7 @@ end
       @data_type = matchdata[2]
       @access_path = matchdata[3]
     end
-    verify_data_type()
+    col_type_text = verify_data_type()
     if @access_path.match(/self/)
       @access_path.gsub!(/self/,"")
     end
@@ -218,7 +224,9 @@ end
       puts "Column related to: " + @related_to
       puts "Column access path is: " + @access_path
       puts "Column type is: " + @type
+      puts "Column is of text type: " + col_type_text.to_s
     end
+    return col_type_text
   end
 
 end
@@ -237,9 +245,13 @@ class VirtualTable
     @pointer = ""         # Type of the base_var.
     @object_class = ""    # If an object instance.
     @columns = Array.new  # References to the VT columns.
+    @include_text_col = 0 # True if VirtualTable includes column
+    		      	  # of text data type. Required for
+			  # generating code for
+			  # PICO_QL_HANDLE_POLYMORPHISM C++ flag.
   end
   attr_accessor(:name,:base_var,:element,:db,:signature,:container_class,:type,
-                :pointer,:object_class,:columns)
+                :pointer,:object_class,:columns,:include_text_col)
 
 # Support templating of member data
   def get_binding
@@ -291,8 +303,10 @@ class VirtualTable
       when "fk"
         iden = configure(access_path)
         if fk_col_name != nil
-          fw.puts "#{$s}if ((vtd_iter = vt_directory.find(\"#{fk_col_name}\")) != vt_directory.end())"
-          fw.puts "#{$s}    vtd_iter->second = 1;"
+	  if $argT == "TYPESAFE"
+            fw.puts "#{$s}if ((vtd_iter = vt_directory.find(\"#{fk_col_name}\")) != vt_directory.end())"
+            fw.puts "#{$s}    vtd_iter->second = 1;"
+	  end
           if access_path.length == 0    # Access with (*iter) .
             @type.match(/\*/) ? record_type = "" : record_type = "&"
           else                          # Access with (*iter)[.|->]access .
@@ -303,7 +317,21 @@ class VirtualTable
         fw.puts "#{$s}break;"
       when "gen_all"
         iden = configure(access_path)
+	if sqlite3_type == "text"
+	  if column_cast_back == ".c_str()"
+	    string_construct_cast = ""
+	  else
+	    string_construct_cast = "(const char *)"
+	  end
+	  fw.puts "#ifdef PICO_QL_HANDLE_POLYMORPHISM"
+	  fw.puts "#{$s}tr->push_back(new string(#{string_construct_cast}#{iden}#{access_path}));"
+          fw.puts "#{$s}sqlite3_result_text(con, (const char *)(*tr->back()).c_str(), -1, SQLITE_STATIC);"
+          fw.puts "#else"
+	end
         fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{iden}#{access_path}#{column_cast_back}#{sqlite3_parameters});"
+        if sqlite3_type == "text"
+	  fw.puts "#endif"
+	end
         fw.puts "#{$s}break;"
       end
     }
@@ -468,6 +496,7 @@ class VirtualTable
     if @base_var.length == 0            # base column for embedded structs.
       @columns.push(Column.new).last.set("base INT FROM self") 
     end
+    @include_text_col = @element.include_text_col
     @columns = @columns | @element.columns
     if $argD == "DEBUG"
       puts "Table name is: " + @name
@@ -485,8 +514,12 @@ class Element
   def initialize
     @name = ""
     @columns = Array.new
+    @include_text_col = 0 # True if Element includes column
+    		      	  # of text data type. Required for
+			  # generating code for
+			  # PICO_QL_HANDLE_POLYMORPHISM C++ flag.
   end
-  attr_accessor(:name,:columns)
+  attr_accessor(:name,:columns,:include_text_col)
 
   # Removes the last entry in the columns table and returns the table 
   # itself. Useful when including an element definition to remove the 
@@ -516,8 +549,9 @@ class Element
         columns_str[0] = matchdata[3]
       end
     end
-    columns_str.each { |x| @columns.push(Column.new).last.set(x) }
+    columns_str.each { |x| @include_text_col += @columns.push(Column.new).last.set(x) }
     if $argD == "DEBUG"
+      puts "Element includes #{@include_text_col} columns of type text."
       puts "Columns follow:"
       @columns.each { |x| p x }
     end

@@ -14,7 +14,7 @@ That's it. '''void *data_structure''' is a pointer to a described C++ data struc
 
 
 == Compile options ==
-The flags PICO_QL_DEBUG, PICO_QL_TEST, PICO_QL_TYPESAFE, PICO_QL_SINGLE_THREADED and PICO_QL_JOIN_THREADS configure the source code. 
+The flags PICO_QL_DEBUG, PICO_QL_TEST, PICO_QL_TYPESAFE, PICO_QL_SINGLE_THREADED, PICO_QL_JOIN_THREADS and PICO_QL_HANDLE_POLYMORPHISM configure the source code. 
 
 * PICO_QL_DEBUG corresponds to debug switches all over the C/C++ source code.
 
@@ -25,3 +25,5 @@ The flags PICO_QL_DEBUG, PICO_QL_TEST, PICO_QL_TYPESAFE, PICO_QL_SINGLE_THREADED
 * PICO_QL_SINGLE_THREADED starts the library in the same thread as the application. If it is not defined PICO_QL operates in a separate thread.
 
 * PICO_QL_JOIN_THREADS is useful in multi-threaded mode to prevent the application from terminating.
+
+* PICO_QL_HANDLE_POLYMORPHISM forces the use of a dynamic vector<string*> to hold char array return values of methods. This is useful in case of virtual methods that write to the same or neighboring memory locations their return value and the columns that represent them coexist in a SELECT clause. Since SQLite collects each column's value and presents them when the whole row is complete, the return values of the virtual methods are messed up when SQLite uses the pointer to the character array provided to it.

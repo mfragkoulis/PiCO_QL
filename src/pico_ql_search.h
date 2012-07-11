@@ -48,6 +48,7 @@ extern "C" {
     int *resultSet;
     int size; 
     int current; 
+    void *textResults;
     int isEof; 
     int first_constr; 
     void *source;
@@ -59,6 +60,8 @@ extern "C" {
   void pico_ql_register(void *collection, const char * col_name);
   void register_vt(stlTable *stl);
   int equals_base(const char *zCol);
+  int init_text_vector(stlTableCursor *stc);
+  int deinit_text_vector(stlTableCursor *stc);
   int get_datastructure_size(sqlite3_vtab_cursor *cur);
   int search(sqlite3_vtab_cursor *cur, char *constraint, 
 	     sqlite3_value *val);

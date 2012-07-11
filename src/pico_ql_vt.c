@@ -402,6 +402,9 @@ int open_vtable(sqlite3_vtab *pVtab,
     return SQLITE_NOMEM;
   }
   memset(stc->resultSet, -1, sizeof(int) * arraySize);
+#ifdef PICO_QL_HANDLE_POLYMORPHISM
+  init_text_vector(stc);
+#endif
   return SQLITE_OK;
 }
 
@@ -425,6 +428,9 @@ int close_vtable(sqlite3_vtab_cursor *cur) {
   printf("Closing vtable %s \n\n", st->zName);
 #endif
   sqlite3_free(stc->resultSet);
+#ifdef PICO_QL_HANDLE_POLYMORPHISM
+  init_text_vector(stc);
+#endif
   sqlite3_free(stc);
   return SQLITE_OK;
 }

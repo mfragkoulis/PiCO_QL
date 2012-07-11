@@ -24,7 +24,12 @@
 #include <cstdio>
 #include <cstring>
 #include <string>
+<%     if $argT == "TYPESAFE" %>
 #include <map>
+<%     end %>
+#ifdef PICO_QL_HANDLE_POLYMORPHISM
+#include <vector>
+#endif
 #include <boost/concept_check.hpp>
 #ifndef PICO_QL_SINGLE_THREADED
 #include <pthread.h>
@@ -54,9 +59,10 @@ struct name_cmp {
     }
 };
 
+<%     if $argT == "TYPESAFE" %>
 static map<const char *, int, name_cmp> vt_directory;
 static map<const char *, int, name_cmp>::iterator vtd_iter;
-
+<%     end %>
 
 <%     @tables.each { |vt| %>
 <%      if vt.base_var.length > 0 %>
@@ -151,7 +157,9 @@ void register_vt(stlTable *stl) {
         stl->data = NULL;
         stl->embedded = 1;
     }
+<%    if $argT == "TYPESAFE" %>
     vt_directory[stl->zName] = 0;
+<%    end %>
 }
 
 
@@ -202,3 +210,27 @@ int equals_base(const char *zCol) {
 }
 
 
+/* Initiates dynamic vector which stores resultset column
+ * values of type char array so that they are retrievable
+ * by SQLite without conflict.
+ */
+int init_text_vector(stlTableCursor *stc) {
+  vector<string*> *tr = new vector<string*>();
+  stc->textResults = (void *)tr;
+  if (tr != NULL)
+    return SQLITE_OK;
+  else
+    return SQLITE_NOMEM;
+}
+
+
+/* Deinitiates dynamic vector which stores resultset
+ * column values of type char array so that they are
+ * retrievable by SQLite without conflict.
+ */
+int deinit_text_vector(stlTableCursor *stc) {
+  vector<string*> *tr = (vector<string*> *)stc->textResults;
+  for (int i = 0; i<tr->size(); i++)
+      delete tr->at(i);
+  delete tr;
+}
