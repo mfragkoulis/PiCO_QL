@@ -247,6 +247,7 @@ int best_index_vtable(sqlite3_vtab *pVtab,
 	printf("zErr freed for %s\n", st->zName);
 #endif
       }
+      int counter = 2, based = 0;      
       for (i = 0; i < pInfo->nConstraint; i++) {
 	struct sqlite3_index_constraint *pCons = 
 	  &pInfo->aConstraint[i];
@@ -255,33 +256,21 @@ int best_index_vtable(sqlite3_vtab *pVtab,
 	iCol = pCons->iColumn - 1 + 'a';
 	nCol = pCons->iColumn;
 	if (!equals_base(st->azColumn[nCol])) 
-	  continue;
+	  pInfo->aConstraintUsage[i].argvIndex = counter++;
+	else {
+	  pInfo->aConstraintUsage[i].argvIndex = 1;
+	  based = 1;
+	}
 	eval_constraint(pCons->op, iCol, &j, 
 			nidxStr, nidxLen);
-	pInfo->aConstraintUsage[i].argvIndex = 1;
 	pInfo->aConstraintUsage[i].omit = 1;
       }
-      if (j == 0) {
+      if ( !based ) {
 	st->zErr = sqlite3_mprintf("Query VT with no usable BASE constraint.Abort.\n");
 #ifdef PICO_QL_DEBUG
-	printf("j=0: NO BASE for %s\n", st->zName);
+	printf("NO BASE for embedded data structure %s\n", st->zName);
 #endif
 	return SQLITE_OK;
-      }
-      int counter = 2;
-      for (i = 0; i < pInfo->nConstraint; i++) {
-	struct sqlite3_index_constraint *pCons = 
-	  &pInfo->aConstraint[i];
-	if (pCons->usable == 0) 
-	  continue;
-	iCol = pCons->iColumn - 1 + 'a';
-	nCol = pCons->iColumn;
-	if (equals_base(st->azColumn[nCol])) 
-	  continue;
-	eval_constraint(pCons->op, iCol, &j, 
-			nidxStr, nidxLen);
-	pInfo->aConstraintUsage[i].argvIndex = counter++;
-	pInfo->aConstraintUsage[i].omit = 1;
       }
     }
     pInfo->needToFreeIdxStr = 1;
