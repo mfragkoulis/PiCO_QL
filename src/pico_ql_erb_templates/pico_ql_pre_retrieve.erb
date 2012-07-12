@@ -1,6 +1,16 @@
 // Retrieves column values of virtual table <%= @name %>.
 int <%= @name %>_retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con) {
     stlTableCursor *stcsr = (stlTableCursor *)cur;
+    if (stcsr->isInstanceNULL == 1) {
+        sqlite3_result_text(con, "(null)", -1, SQLITE_STATIC);
+	return SQLITE_OK;
+    }
+<%    if @container_class.length > 0 %>
+    if (stcsr->max_size == 0) {
+        sqlite3_result_text(con, "(empty)", -1, SQLITE_STATIC);
+	return SQLITE_OK;
+    }
+<%    end %>
 <%    if /\*/.match(@pointer) == nil %>
 <%      sign_retype = "#{@signature}*" %>
 <%      sign_untype = @signature %>

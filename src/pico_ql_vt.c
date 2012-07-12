@@ -375,22 +375,26 @@ int open_vtable(sqlite3_vtab *pVtab,
    */
   if (!st->embedded) {
     if (stc->source == NULL) {
-      printf("NULL pointer.\nExiting now.\n");
-      return SQLITE_MISUSE;
+      stc->isInstanceNULL = 1;
+      stc->max_size = 0;
+      arraySize = 1;
+    } else {
+      pCsr->pVtab = &st->vtab;
+      arraySize = get_datastructure_size(pCsr);
+      if (arraySize == 0) {
+	arraySize = 1;
+	stc->max_size = 0;
+      }	else
+	stc->max_size = arraySize;
+      pCsr->pVtab = NULL;
     }
-    pCsr->pVtab = &st->vtab;
-    arraySize = get_datastructure_size(pCsr);
-    if (arraySize == 0) {
-      printf("Empty container.\nExiting now.\n");
-      return SQLITE_MISUSE;
-    }
-    pCsr->pVtab = NULL;
-  } else 
+  } else {
     /* Embedded struct. Size will be synced in search when 
      * powered from source.
      */
     arraySize = 1;
-  stc->max_size = arraySize;
+    stc->max_size = arraySize;
+  }
 #ifdef PICO_QL_DEBUG
   printf("ppCsr = %lx, pCsr = %lx \n", 
 	 (long unsigned int)ppCsr, 
@@ -402,9 +406,8 @@ int open_vtable(sqlite3_vtab *pVtab,
    */
   stc->resultSet = (int *)sqlite3_malloc(sizeof(int) * 
 					 arraySize); 
-  if (!stc->resultSet) {
+  if (!stc->resultSet)
     return SQLITE_NOMEM;
-  }
   memset(stc->resultSet, -1, sizeof(int) * arraySize);
 #ifdef PICO_QL_HANDLE_POLYMORPHISM
   init_text_vector(stc);
