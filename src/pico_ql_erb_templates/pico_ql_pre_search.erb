@@ -90,7 +90,7 @@ int <%= @name %>_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *v
             if ((re = realloc_resultset(cur)) != SQLITE_OK) {
               return re;
             }
-	    if (stscr->max_size == 0) return SQLITE_OK;
+	    if (stcsr->max_size == 0) return SQLITE_OK;
 <%        end %>
         }
         size = stcsr->max_size;
