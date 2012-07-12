@@ -28,8 +28,10 @@ int <%= @name %>_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *v
     <%= sign_untype %>:: iterator iter;
 <%      end %>
     int op, iCol, i = 0, count = 0, re = 0;
+<%      if @base_var.length > 0 %>
     int size = stcsr->max_size;
-<%      if @base_var.length == 0 %>
+<%      else %>
+    int size;
     if (stl->zErr) {
         sqlite3_free(stl->zErr);
         return SQLITE_MISUSE;
@@ -89,6 +91,8 @@ int <%= @name %>_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *v
               return re;
             }
 	    if (stcsr->max_size == 0) return SQLITE_OK;
+<%        else %>
+	    stcsr->max_size = 1;
 <%        end %>
         }
         size = stcsr->max_size;
