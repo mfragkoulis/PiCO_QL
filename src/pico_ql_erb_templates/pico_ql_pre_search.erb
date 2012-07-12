@@ -78,6 +78,12 @@ int <%= @name %>_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *v
             vt_directory[stl->zName] = 0;
 <%        end %>
             stcsr->source = (void *)sqlite3_value_int64(val);
+	    if (stcsr->source == NULL) {
+	        stcsr->isInstanceNULL = 1;
+                stcsr->resultSet[0] = 0;
+                stcsr->size = 1;
+		return SQLITE_OK;
+            }
             any_dstr = (<%= sign_retype %>)stcsr->source;
 <%        if @container_class.length > 0 %>
             if ((re = realloc_resultset(cur)) != SQLITE_OK) {
