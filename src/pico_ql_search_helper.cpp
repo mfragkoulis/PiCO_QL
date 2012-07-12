@@ -193,7 +193,7 @@ int compare_res(int count, stlTableCursor *stcsr,
                     b = count;
             }
         }
-        assert( i_count <= stcsr->max_size );
+        assert(i_count <= stcsr->max_size);
         memcpy(stcsr->resultSet, i_res, sizeof(int) *
                i_count);
         stcsr->size = i_count;

@@ -251,7 +251,7 @@ int best_index_vtable(sqlite3_vtab *pVtab,
       for (i = 0; i < pInfo->nConstraint; i++) {
 	struct sqlite3_index_constraint *pCons = 
 	  &pInfo->aConstraint[i];
-	if( pCons->usable==0 ) 
+	if (pCons->usable == 0) 
 	  continue;
 	iCol = pCons->iColumn - 1 + 'a';
 	nCol = pCons->iColumn;
@@ -265,7 +265,7 @@ int best_index_vtable(sqlite3_vtab *pVtab,
 			nidxStr, nidxLen);
 	pInfo->aConstraintUsage[i].omit = 1;
       }
-      if ( !based ) {
+      if (!based) {
 	st->zErr = sqlite3_mprintf("Query VT with no usable BASE constraint.Abort.\n");
 #ifdef PICO_QL_DEBUG
 	printf("NO BASE for embedded data structure %s\n", st->zName);
@@ -374,6 +374,10 @@ int open_vtable(sqlite3_vtab *pVtab,
    * for embedded ones (will be taken care of in search).
    */
   if (!st->embedded) {
+    if (stc->source == NULL) {
+      printf("NULL pointer.\nExiting now.\n");
+      return SQLITE_MISUSE;
+    }
     pCsr->pVtab = &st->vtab;
     arraySize = get_datastructure_size(pCsr);
     if (arraySize == 0) {

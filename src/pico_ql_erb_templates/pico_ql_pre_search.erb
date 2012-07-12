@@ -50,6 +50,10 @@ int <%= @name %>_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *v
             vt_directory[stl->zName] = 0;
 <%        end %>
             stcsr->source = (void *)sqlite3_value_int64(val);
+            if (stcsr->source == NULL) {
+              printf("NULL pointer.\nExiting now.\n");
+              return SQLITE_MISUSE;
+            }
             any_dstr = (<%= sign_retype %>)stcsr->source;
 <%        if @container_class.length > 0 %>
             if ((re = realloc_resultset(cur)) != SQLITE_OK) {
