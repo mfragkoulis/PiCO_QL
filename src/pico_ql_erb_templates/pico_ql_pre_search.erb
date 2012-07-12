@@ -61,14 +61,12 @@ int <%= @name %>_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *v
                 stcsr->size = 1;
 		return SQLITE_OK;
             }
-<%        if @container_class.length > 0 %>
 	    if (!strcmp((const char *)sqlite3_value_text(val), "(empty)")) {
 	        stcsr->max_size = 0;
                 stcsr->resultSet[0] = 0;
                 stcsr->size = 1;
 		return SQLITE_OK;
             }
-<%        end %>
 <%        if $argT == "TYPESAFE" %>
             vtd_iter = vt_directory.find(stl->zName);
             if ((vtd_iter == vt_directory.end()) || (vtd_iter->second == 0)) {
