@@ -84,11 +84,13 @@ int <%= @name %>_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *v
                 stcsr->size = 1;
 		return SQLITE_OK;
             }
+	    stcsr->isInstanceNULL = 0;
             any_dstr = (<%= sign_retype %>)stcsr->source;
 <%        if @container_class.length > 0 %>
             if ((re = realloc_resultset(cur)) != SQLITE_OK) {
               return re;
             }
+	    if (stscr->max_size == 0) return SQLITE_OK;
 <%        end %>
         }
         size = stcsr->max_size;
