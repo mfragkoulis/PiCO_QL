@@ -376,7 +376,7 @@ int open_vtable(sqlite3_vtab *pVtab,
   if (!st->embedded) {
     if (stc->source == NULL) {
       stc->isInstanceNULL = 1;
-      stc->max_size = 0;
+      stc->max_size = 1;
       arraySize = 1;
     } else {
       stc->isInstanceNULL = 0;
@@ -385,7 +385,7 @@ int open_vtable(sqlite3_vtab *pVtab,
       if (arraySize == 0) {
 	stc->isInstanceEmpty = 1;
 	arraySize = 1;
-	stc->max_size = 0;
+	stc->max_size = 1;
       }	else {
 	stc->isInstanceEmpty = 0;
 	stc->max_size = arraySize;
