@@ -1,11 +1,11 @@
 // Retrieves column values of virtual table <%= @name %>.
 int <%= @name %>_retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con) {
     stlTableCursor *stcsr = (stlTableCursor *)cur;
-    if (stcsr->isInstanceNULL) {
+    if (stcsr->isInstanceNULL == 1) {
         sqlite3_result_text(con, "(null)", -1, SQLITE_STATIC);
 	return SQLITE_OK;
     }
-    if (stcsr->isInstanceEmpty) {
+    if (stcsr->isInstanceEmpty == 1) {
         sqlite3_result_text(con, "(empty)", -1, SQLITE_STATIC);
 	return SQLITE_OK;
     }

@@ -60,7 +60,7 @@ int realloc_resultset(sqlite3_vtab_cursor *cur) {
             return SQLITE_NOMEM;
         }
     }
-    if (stcsr->isInstanceEmpty) {
+    if (stcsr->isInstanceEmpty == 1) {
         stcsr->max_size = 0;
     } else
 	stcsr->max_size = arraySize;

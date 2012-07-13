@@ -3,12 +3,12 @@ int <%= @name %>_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *v
     stlTable *stl = (stlTable *)cur->pVtab;
     stlTableCursor *stcsr = (stlTableCursor *)cur;
 <%      if @base_var.length > 0 %>
-    if (stcsr->isInstanceNULL) {
+    if (stcsr->isInstanceNULL == 1) {
         stcsr->size = 1;
         return SQLITE_OK;
     }
 <%        if @container_class.length > 0 %>
-    if (stcsr->isInstanceEmpty) {
+    if (stcsr->isInstanceEmpty == 1) {
         stcsr->size = 1;
         return SQLITE_OK;
     }
@@ -86,7 +86,7 @@ int <%= @name %>_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *v
             if ((re = realloc_resultset(cur)) != SQLITE_OK) {
               return re;
             }
-	    if (stcsr->isInstanceEmpty) return SQLITE_OK;
+	    if (stcsr->isInstanceEmpty == 1) return SQLITE_OK;
 <%        else %>
 	    stcsr->isInstanceEmpty = 0;
 	    stcsr->max_size = 1;
