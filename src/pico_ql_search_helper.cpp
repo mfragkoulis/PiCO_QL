@@ -34,13 +34,16 @@ using namespace std;
  */
 int realloc_resultset(sqlite3_vtab_cursor *cur) {
     stlTableCursor *stcsr = (stlTableCursor *)cur;
-    int arraySize, empty = 0;
+    int arraySize;
     int *res;
     arraySize = get_datastructure_size(cur);
     if (arraySize == 0) {
+      stcsr->isInstanceEmpty = 1;
       arraySize = 1;
-      empty = 1;
-    }
+      stcsr->resultSet[0] = 0;
+      stcsr->size = 1;
+    } else
+      stcsr->isInstanceEmpty = 0;
     if (arraySize != stcsr->max_size ) {
         res = (int *)sqlite3_realloc(stcsr->resultSet, 
 				     sizeof(int) * 
@@ -49,12 +52,6 @@ int realloc_resultset(sqlite3_vtab_cursor *cur) {
             stcsr->resultSet = res;
             memset(stcsr->resultSet, -1,
                    sizeof(int) * arraySize);
-            if (empty) {
-	      stcsr->max_size = 0;
-	      stcsr->resultSet[0] = 0;
-	      stcsr->size = 1;
-	    } else
-	      stcsr->max_size = arraySize;
 #ifdef PICO_QL_DEBUG
             printf("\nReallocating resultSet..now max size %i \n\n", stcsr->max_size);
 #endif
@@ -64,6 +61,10 @@ int realloc_resultset(sqlite3_vtab_cursor *cur) {
             return SQLITE_NOMEM;
         }
     }
+    if (stcsr->isInstanceEmpty == 1) {
+        stcsr->max_size = 0;
+    } else
+	stcsr->max_size = arraySize;
     return SQLITE_OK;
 }
 

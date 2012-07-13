@@ -45,6 +45,7 @@ extern "C" {
   typedef struct {
     sqlite3_vtab_cursor pCsr; 
     int isInstanceNULL;
+    int isInstanceEmpty;
     int max_size; 
     int *resultSet;
     int size; 

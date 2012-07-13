@@ -379,13 +379,17 @@ int open_vtable(sqlite3_vtab *pVtab,
       stc->max_size = 0;
       arraySize = 1;
     } else {
+      stc->isInstanceNULL = 0;
       pCsr->pVtab = &st->vtab;
       arraySize = get_datastructure_size(pCsr);
       if (arraySize == 0) {
+	stc->isInstanceEmpty = 1;
 	arraySize = 1;
 	stc->max_size = 0;
-      }	else
+      }	else {
+	stc->isInstanceEmpty = 0;
 	stc->max_size = arraySize;
+      }
       pCsr->pVtab = NULL;
     }
   } else {
