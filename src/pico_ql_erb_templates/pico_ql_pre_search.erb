@@ -4,11 +4,13 @@ int <%= @name %>_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *v
     stlTableCursor *stcsr = (stlTableCursor *)cur;
 <%      if @base_var.length > 0 %>
     if (stcsr->isInstanceNULL == 1) {
+        stcsr->resultSet[0] = 0;
         stcsr->size = 1;
         return SQLITE_OK;
     }
 <%        if @container_class.length > 0 %>
     if (stcsr->isInstanceEmpty == 1) {
+        stcsr->resultSet[0] = 0;
         stcsr->size = 1;
         return SQLITE_OK;
     }
@@ -57,12 +59,14 @@ int <%= @name %>_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *v
         if (equals_base(stl->azColumn[iCol])) {
 	    if (!strcmp((const char *)sqlite3_value_text(val), "(null)")) {
 	        stcsr->isInstanceNULL = 1;
+                stcsr->resultSet[0] = 0;
                 stcsr->size = 1;
 		return SQLITE_OK;
             }
 	    if (!strcmp((const char *)sqlite3_value_text(val), "(empty)")) {
 	        stcsr->isInstanceEmpty = 1;
 	        stcsr->max_size = 0;
+                stcsr->resultSet[0] = 0;
                 stcsr->size = 1;
 		return SQLITE_OK;
             }
@@ -77,6 +81,7 @@ int <%= @name %>_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *v
             stcsr->source = (void *)sqlite3_value_int64(val);
 	    if (stcsr->source == NULL) {
 	        stcsr->isInstanceNULL = 1;
+                stcsr->resultSet[0] = 0;
                 stcsr->size = 1;
 		return SQLITE_OK;
             }

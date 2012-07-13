@@ -40,6 +40,7 @@ int realloc_resultset(sqlite3_vtab_cursor *cur) {
     if (arraySize == 0) {
       stcsr->isInstanceEmpty = 1;
       arraySize = 1;
+      stcsr->resultSet[0] = 0;
       stcsr->size = 1;
     } else
       stcsr->isInstanceEmpty = 0;
