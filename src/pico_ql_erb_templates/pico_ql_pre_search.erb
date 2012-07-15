@@ -1,6 +1,7 @@
 // Filters column values of virtual table <%= @name %>.
 int <%= @name %>_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val) {
     stlTable *stl = (stlTable *)cur->pVtab;
+    (void)stl;	// Silence compiler unused variable warning
     stlTableCursor *stcsr = (stlTableCursor *)cur;
 <%      if @base_var.length > 0 %>
     if (stcsr->isInstanceNULL) {   // Size 1 to print "(null)".

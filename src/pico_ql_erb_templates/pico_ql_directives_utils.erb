@@ -182,6 +182,7 @@ int get_datastructure_size(sqlite3_vtab_cursor *cur) {
         <%= @tables[vt].signature.chomp('*') %> container_instance;
         forward_container_concept_check(container_instance);
         forward_iterator_concept_class<<%= @tables[vt].signature.chomp('*') %>::iterator> it;
+	(void)it;	// Silence compiler unised variable warning
 <%# stc->source will definitely hold a pointer so retyping the signature as
 <%# follows is correct. %>
         <%= @tables[vt].signature %><%= retype %> any_dstr = (<%= @tables[vt].signature %><%= retype %>)stc->source;
@@ -230,7 +231,7 @@ int init_text_vector(stlTableCursor *stc) {
  */
 int deinit_text_vector(stlTableCursor *stc) {
   vector<string*> *tr = (vector<string*> *)stc->textResults;
-  for (int i = 0; i<tr->size(); i++)
+  for (size_t i = 0; i<tr->size(); i++)
       delete tr->at(i);
   delete tr;
 }
