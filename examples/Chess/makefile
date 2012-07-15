@@ -47,6 +47,13 @@ CXXFLAGS+=-DPICO_QL_HANDLE_POLYMORPHISM
 CFLAGS+=-DPICO_QL_HANDLE_POLYMORPHISM
 endif
 
+all: prep chess clean
+
+prep:
+	mkdir ../bin
+	cp -r ../../bin/ ../bin/
+	cp -r ../../src/ .
+
 OBJ=main.o ChessPiece.o Position.o pico_ql_search.o pico_ql_vt.o pico_ql_interface.o pico_ql_search_helper.o pico_ql_test.o
 
 chess: $(OBJ)
@@ -75,3 +82,4 @@ seed:
 .PHONY= clean
 clean:
 	rm *.o
+	rm -r ../bin
