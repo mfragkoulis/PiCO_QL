@@ -5,3 +5,11 @@ In the latter case, a normal call to ''pico_ql_serve()'' is enough. When everyth
 
 == Using PiCO QL ==
 In production (non-test) mode PICO QL opens port ''8080'' at ''localhost'' where the local server is listening for query requests. Opening a browser at this address reveals the query interface.
+
+== Updating virtual table definitions ==
+Users may update table definitions in the DSL, execute the generator, re-compile and execute the application.
+One further action is required, to drop the previous virtual table definition from the database either by executing a standard
+
+ DROP TABLE table_name;
+
+from PiCO QL's web interface or by removing the database file, which lies in the directory where the application is run. When PiCO QL starts it will reinstate all missing virtual table definitions but will not overwrite existing definitions.
