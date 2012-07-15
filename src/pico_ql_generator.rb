@@ -460,7 +460,7 @@ class VirtualTable
 
 # Matches VT definitions against prototype patterns.
   def match_table(table_description)
-    table_ptn1 = /^create table (\w+)\.(\w+) with base(\s*)=(\s*)(\w+) as select \* from (.+)/im
+    table_ptn1 = /^create table (\w+)\.(\w+) with base(\s*)=(\s*)(.+) as select \* from (.+)/im
     table_ptn2 = /^create table (\w+)\.(\w+) as select \* from (.+)/im
     if $argD == "DEBUG"
       puts "Table description is: #{table_description}"
@@ -551,6 +551,7 @@ class Element
     end
     columns_str.each { |x| @include_text_col += @columns.push(Column.new).last.set(x) }
     if $argD == "DEBUG"
+      puts "Element #{@name} registered."
       puts "Element includes #{@include_text_col} columns of type text."
       puts "Columns follow:"
       @columns.each { |x| p x }
@@ -725,7 +726,9 @@ if __FILE__ == $0
   if !File.file?($argF)
     raise "File #{$argF} does not exist.\\n"
   end
-  description = File.open($argF, "r") { |fw| fw.read }
+  # description_array = File.open($argF, "r") { |fw| fw.readlines.delete_if{ |line| line.match(/\/\//(.+)) } }
+  description_array = File.open($argF, "r") { |fw| fw.readlines.each{ |line| if line.match(/\/\/(.+)/) : line.gsub!(/\/\/(.+)/, "") end } }
+  description = description_array.to_s
   # Remove the ';' from the namespace before splitting.
   if description.match(/using namespace (.+);/)
     description.gsub!(/using namespace (.+);/, 'using namespace \1')

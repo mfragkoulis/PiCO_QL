@@ -28,11 +28,12 @@ CREATE TABLE mydb.Customers AS SELECT * FROM vector<Customer*>;
 
 CREATE ELEMENT TABLE Customer (
       position_ptr INT FROM TABLE Position WITH BASE= get_pos(),
-      demand INT FROM get_demand(),
+      demand INT FROM get_demand(),  // Demand column 
       code STRING FROM get_code(),
       serviced INT FROM get_serviced(),
 );
 
+// Customer description
 CREATE TABLE mydb.Customer AS SELECT * FROM Customer;
 
 CREATE ELEMENT TABLE Position (

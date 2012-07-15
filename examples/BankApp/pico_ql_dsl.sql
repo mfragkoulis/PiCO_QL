@@ -5,12 +5,12 @@
 #include <list>
 #include <vector>
 ;
-
+// SuperAccount description
 CREATE ELEMENT TABLE SuperAccount (
        balance DOUBLE FROM get_balance(),
        account_no TEXT FROM get_account_no(),
        rate DOUBLE FROM get_rate(),
-       isbn INT FROM get_isbn());
+       isbn INT FROM get_isbn());   // this is isbn
 
 CREATE ELEMENT TABLE SuperAccounts (
        id STRING FROM first,

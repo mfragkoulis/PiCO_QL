@@ -7,7 +7,7 @@ CREATE ELEMENT TABLE ChessPiece (
        color STRING FROM get_color());
 
 CREATE TABLE ChessDB.ChessRow AS SELECT * FROM vector<ChessPiece>;
-
+// Chessboard description
 CREATE ELEMENT TABLE ChessBoard (
        row_id INT FROM TABLE ChessRow WITH BASE=self);
 
