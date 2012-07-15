@@ -109,11 +109,16 @@ end
 # In case of a foreign key column this method is called to register the type
 # of the column, that is "pointer" or "object" (reference".
   def parse_name()
-    raise "Referenced virtual table not registered.\\n" unless @related_to.length > 0
-    /_ptr/.match(@name) ? @type = "pointer" : @type = "object"   # In
+    begin
+      @related_to.length > 0
+      /_ptr/.match(@name) ? @type = "pointer" : @type = "object"   # In
                         # columns that reference other VTs
                         # users have to declare the type for generating
                         # correct access statement.
+    rescue
+      puts "Referenced virtual table not registered.\\n"
+      exit(1)
+    end
   end
 
 
@@ -124,19 +129,24 @@ end
     dt = @data_type.downcase
     tmp_text_array = Array.new
     tmp_text_array.replace(@@text_match_data_types)
-    if dt == "string"
-      @cpp_data_type.replace(dt)
-      @data_type.replace("TEXT")
-      return 1
-    elsif @@text_data_types.include?(dt) || 
-        tmp_text_array.reject! { |rgx| rgx.match(dt) != nil } != nil
-      return 1
-    elsif @@int_data_types.include?(dt) || 
-        @@double_data_types.include?(dt) || 
-        /decimal/i.match(dt) != nil
-      return 0
-    else
-      raise TypeError.new("No such data type #{dt.upcase}\\n")
+    begin
+      if dt == "string"
+        @cpp_data_type.replace(dt)
+        @data_type.replace("TEXT")
+        return 1
+      elsif @@text_data_types.include?(dt) || 
+          tmp_text_array.reject! { |rgx| rgx.match(dt) != nil } != nil
+        return 1
+      elsif @@int_data_types.include?(dt) || 
+          @@double_data_types.include?(dt) || 
+          /decimal/i.match(dt) != nil
+        return 0
+      else
+        raise TypeError.new("No such data type #{dt.upcase}\\n")
+      end
+    rescue
+      puts "No such data type #{dt.upcase}\\n"
+      exit(1)
     end
   end
   
@@ -432,29 +442,34 @@ class VirtualTable
 # Validate the signature of a container structure and extract signature traits.
 # Also for objects, extract class name.
   def verify_signature()
-    case @signature
-    when /(\w+)<(.+)>(\**)/m
-      matchdata = /(\w+)<(.+)>(\**)/m.match(@signature)
-      @container_class = matchdata[1]
-      @type = matchdata[2]
-      @pointer = matchdata[3]
-      if $argD == "DEBUG"
-        puts "Virtual table container class name is: " + @container_class
-        puts "Virtual table record is of type: " + @type
-        puts "Virtual table type is of type pointer: " + @pointer
+    begin
+      case @signature
+      when /(\w+)<(.+)>(\**)/m
+        matchdata = /(\w+)<(.+)>(\**)/m.match(@signature)
+        @container_class = matchdata[1]
+        @type = matchdata[2]
+        @pointer = matchdata[3]
+        if $argD == "DEBUG"
+          puts "Virtual table container class name is: " + @container_class
+          puts "Virtual table record is of type: " + @type
+          puts "Virtual table type is of type pointer: " + @pointer
+        end
+      when /(\w+)\*|(\w+)/
+        matchdata = /(\w+)(\**)/.match(@signature)
+        @object_class = @signature
+        @type = @signature
+        @pointer = matchdata[2]
+        if $argD == "DEBUG"
+          puts "Table object class name : " + @object_class
+          puts "Table record is of type: " + @type
+          puts "Table type is of type pointer: " + @pointer
+        end
+      when /(.+)/
+        raise "Template instantiation faulty: #{@signature}.\\n"
       end
-    when /(\w+)\*|(\w+)/
-      matchdata = /(\w+)(\**)/.match(@signature)
-      @object_class = @signature
-      @type = @signature
-      @pointer = matchdata[2]
-      if $argD == "DEBUG"
-        puts "Table object class name : " + @object_class
-        puts "Table record is of type: " + @type
-        puts "Table type is of type pointer: " + @pointer
-      end
-    when /(.+)/
-      raise "Template instantiation faulty.\\n"
+    rescue
+      puts "Template instantiation faulty: #{@signature}.\\n"
+      exit(1)
     end
   end
 
@@ -490,9 +505,13 @@ class VirtualTable
     if @element == nil
       $elements.each { |el| if (el.name == vtable_type) : @element = el end }
     end
-    if @element == nil
-      raise "Cannot match element for table #{@name}.\\n"
-  end
+    begin
+      if @element == nil
+        raise "Cannot match element for table #{@name}.\\n"
+      end
+    rescue
+      puts "Cannot match element for table #{@name}.\\n"
+    end
     if @base_var.length == 0            # base column for embedded structs.
       @columns.push(Column.new).last.set("base INT FROM self") 
     end
@@ -723,20 +742,28 @@ if __FILE__ == $0
   $argF = ARGV[0]
   take_cases(ARGV[1])
   take_cases(ARGV[2])
-  if !File.file?($argF)
-    raise "File #{$argF} does not exist.\\n"
+  begin
+    description_array = File.open($argF, "r") { |fw| 
+      fw.readlines.each{ |line| 
+        if line.match(/\/\/(.+)/)
+          line.gsub!(/\/\/(.+)/, "") 
+        end 
+      } 
+    }
+  rescue Exception => e
+    puts e.message
+    exit(1)
   end
-  # description_array = File.open($argF, "r") { |fw| fw.readlines.delete_if{ |line| line.match(/\/\//(.+)) } }
-  description_array = File.open($argF, "r") { |fw| fw.readlines.each{ |line| if line.match(/\/\/(.+)/) : line.gsub!(/\/\/(.+)/, "") end } }
   description = description_array.to_s
   # Remove the ';' from the namespace before splitting.
   if description.match(/using namespace (.+);/)
     description.gsub!(/using namespace (.+);/, 'using namespace \1')
   end
-  if description.match(/;/)
+  begin
     token_description = description.split(/;/)
-  else
-    raise "Invalid description..delimeter ';' not used."
+  rescue
+    puts "Invalid description..delimeter ';' not used."
+    exit(1)
   end
   $s = "        "
   ip = InputDescription.new(token_description)
