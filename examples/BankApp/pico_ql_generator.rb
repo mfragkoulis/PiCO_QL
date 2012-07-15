@@ -1,1 +1,0 @@
-../../src/pico_ql_generator.rb
