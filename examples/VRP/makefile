@@ -49,13 +49,6 @@ endif
 
 OBJ=main.o Fleet.o Truck.o Customer.o LinehaulCustomer.o BackhaulCustomer.o Position.o mtrand.o pico_ql_search.o pico_ql_vt.o pico_ql_interface.o pico_ql_search_helper.o pico_ql_test.o
 
-all: prep schedule clean
-
-prep:
-	mkdir ../bin
-	cp -r ../../bin/ ../bin/
-	cp -r ../../src/ .
-
 schedule: $(OBJ)
 	$(CXX) -lswill -lsqlite3 $(CXXFLAGS) $(OBJ) -o $@
 
@@ -85,12 +78,19 @@ pico_ql_search_helper.o: pico_ql_search_helper.cpp pico_ql_search_helper.h pico_
 
 pico_ql_test.o: pico_ql_test.c pico_ql_test.h
 
-
-
 seed:
 	cp pico_ql_test_current.txt pico_ql_test_success.txt
+
+prep:
+	mkdir ../bin
+	cp -r ../../bin/ ../bin/
+	mv pico_ql_test.c test.c
+	cp -r ../../src/ .
+	mv test.c pico_ql_test.c
 
 .PHONY= clean
 clean:
 	rm *.o
+
+reset-prep:
 	rm -r ../bin

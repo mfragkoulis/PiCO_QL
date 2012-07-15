@@ -47,13 +47,6 @@ CXXFLAGS+=-DPICO_QL_HANDLE_POLYMORPHISM
 CFLAGS+=-DPICO_QL_HANDLE_POLYMORPHISM
 endif
 
-all: prep bank_app clean
-
-prep:
-	mkdir ../bin
-	cp -r ../../bin/ ../bin/
-	cp -r ../../src/ .
-
 OBJ=main.o Account.o SuperAccount.o SpecialAccount.o pico_ql_search.o pico_ql_vt.o pico_ql_interface.o pico_ql_search_helper.o pico_ql_test.o
 
 bank_app: $(OBJ)
@@ -80,8 +73,17 @@ pico_ql_test.o: pico_ql_test.c pico_ql_test.h
 seed:
 	cp pico_ql_test_current.txt pico_ql_test_success.txt
 
+prep:
+	mkdir ../bin
+	cp -r ../../bin/ ../bin/
+	mv pico_ql_test.c test.c
+	cp -r ../../src/ .
+	mv test.c pico_ql_test.c
+
 
 .PHONY= clean
 clean: 
 	rm *.o
+
+reset-prep:
 	rm -r ../bin
