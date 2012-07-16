@@ -25,8 +25,10 @@ int <%= @name %>_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *v
     <%= sign_retype %> any_dstr = (<%= sign_retype %>)stcsr->source;
 <%      if @container_class.length > 0 %>
     <%= sign_untype %>:: iterator iter;
+<%      else %>
+    int i = 0;
 <%      end %>
-    int op, iCol, i = 0, count = 0, re = 0;
+    int op, iCol, count = 0, re = 0;
 <%      if @base_var.length > 0 %>
     int size = stcsr->max_size;
 <%      else %>
