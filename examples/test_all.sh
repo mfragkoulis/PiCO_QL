@@ -1,12 +1,12 @@
 #!/bin/sh
 
-echo "\n*Testing examples with typesafety disabled.*\n"
+echo "\n*Testing examples with typesafety disabled and ruby debug enabled.*\n"
 
 cd BankApp
 echo "In BankApp..."
 echo "-> Generating files."
 make prep > /dev/null
-ruby pico_ql_generator.rb pico_ql_dsl.sql > /dev/null
+ruby pico_ql_generator.rb pico_ql_dsl.sql debug > /dev/null
 echo "-> Building."
 make clean > /dev/null
 make PICO_QL_JOIN_THREADS=1 > /dev/null
@@ -19,7 +19,7 @@ cd ../Chess
 echo "\nIn Chess..."
 echo "-> Generating files."
 make prep > /dev/null
-ruby pico_ql_generator.rb pico_ql_dsl.sql > /dev/null
+ruby pico_ql_generator.rb pico_ql_dsl.sql debug > /dev/null
 echo "-> Building."
 make clean > /dev/null
 make PICO_QL_JOIN_THREADS=1 > /dev/null
@@ -32,7 +32,7 @@ cd ../VRP
 echo "\nIn VRP..."
 echo "-> Generating files."
 make prep > /dev/null
-ruby pico_ql_generator.rb pico_ql_dsl.sql > /dev/null
+ruby pico_ql_generator.rb pico_ql_dsl.sql debug > /dev/null
 echo "-> Building."
 make clean > /dev/null
 make PICO_QL_JOIN_THREADS=1 > /dev/null

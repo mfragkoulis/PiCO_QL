@@ -27,6 +27,8 @@ require 'erb'
 class Column
   def initialize
     @name = ""
+    @line = 0                 # Line in DSL description that this table
+                              # is defined in.
     @data_type = ""
     @cpp_data_type = ""       # Respective C++ data type. Used only 
                               # for string so far.
@@ -44,16 +46,17 @@ class Column
                                /varying character/i, /native character/i,
                                /nchar/i]
   end
-  attr_accessor(:name,:data_type,:related_to,:access_path,:type)
+  attr_accessor(:name,:line,:data_type,:related_to,:access_path,:type)
 
 
 # Used to clone a Column object. Ruby does not support deep copies.
-def construct(name, data_type, related_to, access_path, type)
+def construct(name, data_type, related_to, access_path, type, line)
     @name = name
     @data_type = data_type
     @related_to = related_to
     @access_path = access_path
     @type = type
+    @line = line
 end
 
 # Fills variables
@@ -69,12 +72,12 @@ end
       sqlite3_type.replace("int64")
       column_cast.replace("(long int)")
       access_path.replace(@access_path)
-      return "fk", @related_to, @type
+      return "fk", @related_to, @type, @line
     end
     if @name == "base"               # 'base' column. refactor: elsif perhaps?
       sqlite3_type.replace("int64")
       column_cast.replace("(long int)")
-      return "base", nil, nil
+      return "base", nil, nil, nil
     end
     dt = @data_type.downcase         # Normal data column.
     if @@int_data_types.include?(dt)
@@ -103,7 +106,7 @@ end
       sqlite3_parameters.replace(", -1, SQLITE_STATIC")
     end
     access_path.replace(@access_path)
-    return "gen_all", nil, nil
+    return "gen_all", nil, nil, @line
   end
 
 # In case of a foreign key column this method is called to register the type
@@ -121,6 +124,21 @@ end
     end
   end
 
+# Register line that corresponds to the table in DSL description
+  def register_line()
+    $lined_description.each_index { |line|
+      if $lined_description[line].match(/#{@name} #{@data_type}/i)
+        @line = line
+        if $argD == "DEBUG"
+          puts "Column found at line #{@line + 1} of #{$argF}"
+        end
+        break
+        if $argD == "DEBUG"
+          puts "Line #{line + 1}"
+        end
+      end
+    }
+  end
 
 
 # Validates a column data type.
@@ -187,7 +205,8 @@ end
                                         coln.data_type.clone, 
                                         coln.related_to.clone, 
                                         coln.access_path.clone, 
-                                        coln.type.clone)
+                                        coln.type.clone,
+                                        coln.line)
           }
 	  col_type_text = el.include_text_col
         end
@@ -224,6 +243,7 @@ end
       @data_type = matchdata[2]
       @access_path = matchdata[3]
     end
+    register_line()
     col_type_text = verify_data_type()
     if @access_path.match(/self/)
       @access_path.gsub!(/self/,"")
@@ -245,6 +265,8 @@ end
 class VirtualTable
   def initialize
     @name = ""
+    @line = 0             # Line in DSL description that this table
+                          # is defined in.
     @base_var = ""        # Name of the base variable alive at C++ app.
     @element              # Reference to the respective element definition.
     @db = ""              # Database name to be created/connected.
@@ -260,7 +282,7 @@ class VirtualTable
 			  # generating code for
 			  # PICO_QL_HANDLE_POLYMORPHISM C++ flag.
   end
-  attr_accessor(:name,:base_var,:element,:db,:signature,:container_class,:type,
+  attr_accessor(:name,:line,:base_var,:element,:db,:signature,:container_class,:type,
                 :pointer,:object_class,:columns,:include_text_col)
 
 # Support templating of member data
@@ -301,11 +323,14 @@ class VirtualTable
       sqlite3_parameters = ""
       column_cast_back = ""
       access_path = ""
-      op, fk_col_name, column_type = 
+      op, fk_col_name, column_type, line = 
       @columns[col].bind_datatypes(
                                    sqlite3_type, column_cast, 
                                    sqlite3_parameters, column_cast_back, 
                                    access_path)
+      if $argD == "DEBUG" && line != nil
+        fw.puts "// Line #{line + 1} #{$argF}"
+      end
       case op
       when "base"
         fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, #{column_cast}any_dstr);"
@@ -386,7 +411,7 @@ class VirtualTable
       sqlite3_parameters = ""
       column_cast_back = ""
       access_path = ""
-      op, useless, fk_type = 
+      op, useless, fk_type, line = 
       @columns[col].bind_datatypes(sqlite3_type, 
                                    column_cast, sqlite3_parameters, 
                                    column_cast_back, access_path)
@@ -407,6 +432,14 @@ class VirtualTable
         puts "sqlite3_parameters: " + sqlite3_parameters
         puts "column_cast_back: " + column_cast_back
         puts "access_path: " + access_path
+        if line != nil
+          puts "line: " + (line + 1).to_s
+        else 
+          puts "line: nil"
+        end
+      end
+      if $argD == "DEBUG" && line != nil
+        fw.puts "// Line #{line + 1} #{$argF}"
       end
       case op
       when "gen_all"
@@ -437,6 +470,22 @@ class VirtualTable
     file = File.open("pico_ql_erb_templates/pico_ql_pre_search.erb").read
     pre_search = ERB.new(file, 0, '>')
     fw.puts pre_search.result(get_binding)
+  end
+
+# Register line that corresponds to the table in DSL description
+  def register_line()
+    $lined_description.each_index { |line|
+      if $lined_description[line].match(/(\w+)\.#{@name}/i)
+        @line = line
+        if $argD == "DEBUG"
+          puts "Table found at line #{@line + 1} of #{$argF}"
+        end
+        break
+        if $argD == "DEBUG"
+          puts "Line #{line + 1}"
+        end
+      end
+    }
   end
 
 # Validate the signature of a container structure and extract signature traits.
@@ -522,8 +571,10 @@ class VirtualTable
     end
     @include_text_col = @element.include_text_col
     @columns = @columns | @element.columns
+    register_line()
     if $argD == "DEBUG"
       puts "Table name is: " + @name
+      puts "Table defined at line #{@line + 1} of #{$argF}"
       puts "Table lives in database named: " + @db
       puts "Table base variable name is: " + @base_var
       puts "Table signature name is: " + @signature
@@ -542,8 +593,10 @@ class Element
     		      	  # of text data type. Required for
 			  # generating code for
 			  # PICO_QL_HANDLE_POLYMORPHISM C++ flag.
+    @line = 0             # Line in DSL description that this element
+                          # is defined in.
   end
-  attr_accessor(:name,:columns,:include_text_col)
+  attr_accessor(:name,:columns,:include_text_col,:line)
 
   # Removes the last entry in the columns table and returns the table 
   # itself. Useful when including an element definition to remove the 
@@ -551,6 +604,22 @@ class Element
   def columns_delete_last()
     @columns.delete(@columns.last)
     return @columns
+  end
+
+# Register line that corresponds to the table in DSL description
+  def register_line()
+    $lined_description.each_index { |line|
+      if $lined_description[line].match(/element table #{@name}/i)
+        @line = line
+        if $argD == "DEBUG"
+          puts "Element found at line #{@line + 1} of #{$argF}"
+        end
+        break
+        if $argD == "DEBUG"
+          puts "Line #{line + 1}"
+        end
+      end
+    }
   end
 
   # Matches an element definition against the prototype pattern and 
@@ -572,10 +641,12 @@ class Element
       else
         columns_str[0] = matchdata[3]
       end
+      register_line()
     end
     columns_str.each { |x| @include_text_col += @columns.push(Column.new).last.set(x) }
     if $argD == "DEBUG"
       puts "Element #{@name} registered."
+      puts "Element defined at line #{@line + 1} of #{$argF}."
       puts "Element includes #{@include_text_col} columns of type text."
       puts "Columns follow:"
       @columns.each { |x| p x }
@@ -587,7 +658,7 @@ end
 # Models the input description.
 class InputDescription
   def initialize(description)
-    # original description tokenised in an Array
+    # original description tokenised in an Array using ';' delimeter
     @description = description
     # array with entries the identity of each virtual table
     @tables = Array.new
@@ -687,7 +758,7 @@ end
     end
     token_d.delete_at(0)
     if $argD == "DEBUG"
-      line = -1              # Put line directives in include directives.
+      line = 0              # Put line directives in include directives.
       if @directives.match(/\n/)
         @directives.gsub!(/\n/){ |nl|
 	"    // Line #{(line += 1).to_s} #{$argF}" + nl
@@ -754,7 +825,7 @@ if __FILE__ == $0
   take_cases(ARGV[1])
   take_cases(ARGV[2])
   begin
-    description_array = File.open($argF, "r") { |fw| 
+    $lined_description = File.open($argF, "r") { |fw| 
       fw.readlines.each{ |line| 
         if line.match(/\/\/(.+)/)
           line.gsub!(/\/\/(.+)/, "") 
@@ -765,7 +836,7 @@ if __FILE__ == $0
     puts e.message
     exit(1)
   end
-  description = description_array.to_s
+  description = $lined_description.to_s
   # Remove the ';' from the namespace before splitting.
   if description.match(/using namespace (.+);/)
     description.gsub!(/using namespace (.+);/, 'using namespace \1')

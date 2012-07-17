@@ -67,6 +67,9 @@ static map<const char *, int, name_cmp>::iterator vtd_iter;
 <%     @tables.each { |vt| %>
 <%      if vt.base_var.length > 0 %>
 <%        /\*/.match(vt.pointer) == nil ? retype = "*" : retype = "" %>
+<%        if $argD == "DEBUG" %>
+// Close to line <%= vt.line + 1 %> <%= $argF %> 
+<%        end %>
 <%= vt.signature %> <%= retype %><%= vt.base_var %>;
 <%      end %>
 <%     } %>
@@ -83,6 +86,9 @@ void pico_ql_register(void *data_structure, const char *ds_name) {
 <%	  count += 1 %>
 <%        else %>
     } else if (!strcmp(ds_name, "<%= @tables[vt].base_var %>")) {
+<%        end %>
+<%        if $argD == "DEBUG" %>
+// Close to line <%= @tables[vt].line + 1 %> <%= $argF %> 
 <%        end %>
 <%        /\*/.match(@tables[vt].pointer) == nil ? retype = "*" : retype = "" %>
         <%= @tables[vt].base_var %> = (<%= @tables[vt].signature %> <%= retype %>)data_structure;
@@ -102,12 +108,15 @@ void * thread_sqlite(void *data) {
     int failure = 0;
 <%# <db>.<table> does not work for some reason. test. %>
 <%    @tables.each_index { |vt| %>
-<%#      query =  "CREATE VIRTUAL TABLE #{@tables[vt].db}.#{@tables[vt].name} USING stl(" %>
+<%#     query =  "CREATE VIRTUAL TABLE #{@tables[vt].db}.#{@tables[vt].name} USING stl(" %>
 <%      query =  "CREATE VIRTUAL TABLE #{@tables[vt].name} USING stl(" %>
 <%      @tables[vt].columns.each { |c| %>
 <%        query += "#{c.name} #{c.data_type}, " %>
 <%      } %>
 <%      query = query.chomp(", ") + ")" %>
+<%      if $argD == "DEBUG" %>
+// Close to line <%= @tables[vt].line + 1 %> <%= $argF %> 
+<%      end %>
     queries[<%= vt %>] = "<%= query %>";
     table_names[<%= vt %>] = "<%= @tables[vt].name %>";
 <%    } %>
@@ -149,6 +158,9 @@ void register_vt(stlTable *stl) {
 <%        end %>
 <%# Retyping has been taken care of in register_pico_ql %>
 <%#        /\*/.match(@tables[vt].pointer) == nil ? retype = "&" : retype = "" %>
+<%        if $argD == "DEBUG" %>
+// Close to line <%= @tables[vt].line + 1 %> <%= $argF %> 
+<%        end %>
         stl->data = (void *)<%= @tables[vt].base_var %>;
         stl->embedded = 0;
 <%      end %>
@@ -185,6 +197,9 @@ int get_datastructure_size(sqlite3_vtab_cursor *cur) {
 	(void)it;	// Silence compiler unised variable warning
 <%# stc->source will definitely hold a pointer so retyping the signature as
 <%# follows is correct. %>
+<%        if $argD == "DEBUG" %>
+// Close to line <%= @tables[vt].line + 1 %> <%= $argF %> 
+<%        end %>
         <%= @tables[vt].signature %><%= retype %> any_dstr = (<%= @tables[vt].signature %><%= retype %>)stc->source;
         return (int)any_dstr->size();
 <%      end %>

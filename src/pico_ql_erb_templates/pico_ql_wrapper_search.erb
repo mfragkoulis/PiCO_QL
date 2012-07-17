@@ -3,6 +3,9 @@ int search(sqlite3_vtab_cursor* cur, char *constr, sqlite3_value *val) {
     stlTable *stl = (stlTable *)cur->pVtab;
 <%    @tables.each { |vt| %>
     if (!strcmp(stl->zName, "<%= vt.name %>"))
+<%      if $argD == "DEBUG" %>
+// Close to line <%= vt.line + 1 %> <%= $argF %> 
+<%      end %>
         return <%= vt.name %>_search(cur, constr, val);
 <%    } %>
 }
