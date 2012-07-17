@@ -687,6 +687,12 @@ end
     end
     token_d.delete_at(0)
     if $argD == "DEBUG"
+      line = -1              # Put line directives in include directives.
+      if @directives.match(/\n/)
+        @directives.gsub!(/\n/){ |nl|
+	"    // Line #{(line += 1).to_s} #{$argF}" + nl
+        }
+      end
       puts "Directives: #{@directives}"
     end
     x = 0
@@ -752,8 +758,8 @@ if __FILE__ == $0
       fw.readlines.each{ |line| 
         if line.match(/\/\/(.+)/)
           line.gsub!(/\/\/(.+)/, "") 
-        end 
-      } 
+        end
+      }
     }
   rescue Exception => e
     puts e.message
