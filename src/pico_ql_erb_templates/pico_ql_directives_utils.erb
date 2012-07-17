@@ -216,12 +216,15 @@ int equals_base(const char *zCol) {
  * by SQLite without conflict.
  */
 int init_text_vector(stlTableCursor *stc) {
+#ifdef PICO_QL_HANDLE_POLYMORPHISM
   vector<string*> *tr = new vector<string*>();
   stc->textResults = (void *)tr;
   if (tr != NULL)
     return SQLITE_OK;
   else
     return SQLITE_NOMEM;
+#endif
+  return SQLITE_OK;
 }
 
 
@@ -230,8 +233,10 @@ int init_text_vector(stlTableCursor *stc) {
  * retrievable by SQLite without conflict.
  */
 void deinit_text_vector(stlTableCursor *stc) {
+#ifdef PICO_QL_HANDLE_POLYMORPHISM
   vector<string*> *tr = (vector<string*> *)stc->textResults;
   for (size_t i = 0; i<tr->size(); i++)
       delete tr->at(i);
   delete tr;
+#endif
 }
