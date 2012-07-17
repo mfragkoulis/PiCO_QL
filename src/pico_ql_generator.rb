@@ -510,7 +510,12 @@ class VirtualTable
         raise "Cannot match element for table #{@name}.\\n"
       end
     rescue
-      puts "Cannot match element for table #{@name}.\\n"
+      if @name.length == 0 
+        @name = "<empty_name>" 
+        puts "Perhaps you have forgotten to type the database name, e.g. CREATE TABLE DB_NAME.TABLE_NAME"
+      end
+      puts "Cannot match element for table #{@name}."
+      exit(1)
     end
     if @base_var.length == 0            # base column for embedded structs.
       @columns.push(Column.new).last.set("base INT FROM self") 

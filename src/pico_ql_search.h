@@ -63,7 +63,7 @@ extern "C" {
   void register_vt(stlTable *stl);
   int equals_base(const char *zCol);
   int init_text_vector(stlTableCursor *stc);
-  int deinit_text_vector(stlTableCursor *stc);
+  void deinit_text_vector(stlTableCursor *stc);
   int get_datastructure_size(sqlite3_vtab_cursor *cur);
   int search(sqlite3_vtab_cursor *cur, char *constraint, 
 	     sqlite3_value *val);

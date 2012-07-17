@@ -440,7 +440,7 @@ int close_vtable(sqlite3_vtab_cursor *cur) {
 #endif
   sqlite3_free(stc->resultSet);
 #ifdef PICO_QL_HANDLE_POLYMORPHISM
-  init_text_vector(stc);
+  deinit_text_vector(stc);
 #endif
   sqlite3_free(stc);
   return SQLITE_OK;
