@@ -475,7 +475,7 @@ class VirtualTable
 # Register line that corresponds to the table in DSL description
   def register_line()
     $lined_description.each_index { |line|
-      if $lined_description[line].match(/(\w+)\.#{@name}/i)
+      if $lined_description[line].match(/(\w+)\.#{@name} /i)
         @line = line
         if $argD == "DEBUG"
           puts "Table found at line #{@line + 1} of #{$argF}"
@@ -609,7 +609,7 @@ class Element
 # Register line that corresponds to the table in DSL description
   def register_line()
     $lined_description.each_index { |line|
-      if $lined_description[line].match(/element table #{@name}/i)
+      if $lined_description[line].match(/element table #{@name}(\s*)\(/i)
         @line = line
         if $argD == "DEBUG"
           puts "Element found at line #{@line + 1} of #{$argF}"
