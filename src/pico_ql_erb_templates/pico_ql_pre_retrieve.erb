@@ -1,6 +1,6 @@
 // Retrieves column values of virtual table <%= @name %>.
 int <%= @name %>_retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con) {
-    stlTableCursor *stcsr = (stlTableCursor *)cur;
+    picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
     if (stcsr->isInstanceNULL) {
         sqlite3_result_text(con, "(null)", -1, SQLITE_STATIC);
 	return SQLITE_OK;

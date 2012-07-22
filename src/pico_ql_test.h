@@ -1,5 +1,5 @@
 /*
- *   Declare the interface to stl_test.c
+ *   Declare the interface to pico_ql_test.c
  *
  *   Copyright 2012 Marios Fragkoulis
  *

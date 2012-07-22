@@ -1,8 +1,8 @@
 // Filters column values of virtual table <%= @name %>.
 int <%= @name %>_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val) {
-    stlTable *stl = (stlTable *)cur->pVtab;
-    (void)stl;	// Silence compiler unused variable warning
-    stlTableCursor *stcsr = (stlTableCursor *)cur;
+    picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
+    (void)picoQL;	// Silence compiler unused variable warning
+    picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
 <%      if @base_var.length > 0 %>
     if (stcsr->isInstanceNULL) {   // Size 1 to print "(null)".
         stcsr->size = 1;
@@ -36,8 +36,8 @@ int <%= @name %>_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *v
     int size = stcsr->max_size;
 <%      else %>
     int size;
-    if (stl->zErr) {
-        sqlite3_free(stl->zErr);
+    if (picoQL->zErr) {
+        sqlite3_free(picoQL->zErr);
         return SQLITE_MISUSE;
     }
 <%      end %>
@@ -60,7 +60,7 @@ int <%= @name %>_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *v
     } else {
         check_alloc((const char *)constr, op, iCol);
 <%      if @base_var.length == 0 %>
-        if (equals_base(stl->azColumn[iCol])) {
+        if (equals_base(picoQL->azColumn[iCol])) {
 	    if (!strcmp((const char *)sqlite3_value_text(val), "(null)")) {
 	        stcsr->isInstanceNULL = 1;
 		stcsr->max_size = 1;
@@ -74,12 +74,12 @@ int <%= @name %>_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *v
 		return SQLITE_OK;
             }
 <%        if $argT == "TYPESAFE" %>
-            vtd_iter = vt_directory.find(stl->zName);
+            vtd_iter = vt_directory.find(picoQL->zName);
             if ((vtd_iter == vt_directory.end()) || (vtd_iter->second == 0)) {
-                printf("Invalid cast to %s\n", stl->zName);
+                printf("Invalid cast to %s\n", picoQL->zName);
                 return SQLITE_MISUSE;
             }
-            vt_directory[stl->zName] = 0;
+            vt_directory[picoQL->zName] = 0;
 <%        end %>
             stcsr->source = (void *)sqlite3_value_int64(val);
 	    if (stcsr->source == NULL) {

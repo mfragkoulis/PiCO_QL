@@ -30,10 +30,10 @@
 using namespace std;
 
 /* Reallocates the space allocated to the resultset struct.
- * Useful for embedded stl data structures.
+ * Useful for embedded picoQL data structures.
  */
 int realloc_resultset(sqlite3_vtab_cursor *cur) {
-    stlTableCursor *stcsr = (stlTableCursor *)cur;
+    picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
     int arraySize;
     int *res;
     arraySize = get_datastructure_size(cur);
@@ -170,7 +170,7 @@ int compare(const unsigned char *dstr_value, int op,
 /* Compares the current resultset with the one stored in 
  * the cursor. Their intersection survives.
  */
-int compare_res(int count, stlTableCursor *stcsr, 
+int compare_res(int count, picoQLTableCursor *stcsr, 
 		int *temp_res) {
     int ia, ib;
     int *i_res;

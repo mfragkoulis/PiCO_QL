@@ -62,7 +62,7 @@ int init_vtable(int iscreate,
 		const char * const * argv, 
 		sqlite3_vtab **ppVtab,
 		char **pzErr) {
-  stlTable *stl;
+  picoQLTable *picoQL;
   int nDb, nName, nByte, nCol, nString, i;
   char *temp;
   nDb = (int)strlen(argv[1]) + 1;
@@ -74,23 +74,23 @@ int init_vtable(int iscreate,
   }
   nCol = argc - 3;
   assert(nCol > 0);
-  nByte = sizeof(stlTable) + nCol * sizeof(char *) + 
+  nByte = sizeof(picoQLTable) + nCol * sizeof(char *) + 
     nDb + nName + nString;
-  stl = (stlTable *)sqlite3_malloc(nByte);
-  if (stl == 0) {
+  picoQL = (picoQLTable *)sqlite3_malloc(nByte);
+  if (picoQL == 0) {
     return SQLITE_NOMEM;
   }
-  memset(stl, 0, nByte);
-  stl->zErr = NULL;
-  stl->db = db;
-  stl->nColumn = nCol;
-  stl->azColumn = (char **)&stl[1];
-  temp = (char *)&stl->azColumn[nCol];
+  memset(picoQL, 0, nByte);
+  picoQL->zErr = NULL;
+  picoQL->db = db;
+  picoQL->nColumn = nCol;
+  picoQL->azColumn = (char **)&picoQL[1];
+  temp = (char *)&picoQL->azColumn[nCol];
 
-  stl->zName = temp;
+  picoQL->zName = temp;
   memcpy(temp, argv[2], nName);
   temp += nName;
-  stl->zDb = temp;
+  picoQL->zDb = temp;
   memcpy(temp, argv[1], nDb);
   temp += nDb;
 
@@ -98,9 +98,9 @@ int init_vtable(int iscreate,
   for (i = 3; i < argc; i++){
     n = (int)strlen(argv[i]) + 1;
     memcpy(temp, argv[i], n);
-    stl->azColumn[i-3] = temp;
+    picoQL->azColumn[i-3] = temp;
     temp += n;
-    assert(temp <= &((char *)stl)[nByte]);
+    assert(temp <= &((char *)picoQL)[nByte]);
   }
 
   char query[arrange_size(argc, argv)];
@@ -115,8 +115,8 @@ int init_vtable(int iscreate,
       printf("%s \n", *pzErr);
       return SQLITE_ERROR;
     } else if (output == 0) {
-      *ppVtab = &stl->vtab;
-      register_vt(stl);
+      *ppVtab = &picoQL->vtab;
+      register_vt(picoQL);
 #ifdef PICO_QL_DEBUG
       printf("Virtual table declared successfully.\n");
 #endif
@@ -159,7 +159,7 @@ int create_vtable(sqlite3 *db,
 // xDestroy
 int destroy_vtable(sqlite3_vtab *ppVtab) {
 #ifdef PICO_QL_DEBUG
-  stlTable *st = (stlTable *)ppVtab;
+  picoQLTable *st = (picoQLTable *)ppVtab;
   printf("Destroying vtable %s \n\n", st->zName);
 #endif
   int result;
@@ -170,7 +170,7 @@ int destroy_vtable(sqlite3_vtab *ppVtab) {
 
 // xDisconnect. Called when closing a database connection.
 int disconnect_vtable(sqlite3_vtab *ppVtab) {
-  stlTable *s=(stlTable *)ppVtab;
+  picoQLTable *s=(picoQLTable *)ppVtab;
 #ifdef PICO_QL_DEBUG
   printf("Disconnecting vtable %s \n\n", s->zName);
 #endif
@@ -216,7 +216,7 @@ void eval_constraint(int sqlite3_op,
  */
 int best_index_vtable(sqlite3_vtab *pVtab, 
 		     sqlite3_index_info *pInfo) {
-  stlTable *st=(stlTable *)pVtab;
+  picoQLTable *st=(picoQLTable *)pVtab;
   /* No constraint no setting up. */
   if (pInfo->nConstraint > 0) {
     char iCol;
@@ -282,14 +282,14 @@ int best_index_vtable(sqlite3_vtab *pVtab,
 }
 
 /* xFilter. Filters an SQL query. Calls the search 
- * family of callbacks at stl_search.cpp.
+ * family of callbacks at pico_ql_search.cpp.
  */
 int filter_vtable(sqlite3_vtab_cursor *cur, 
 		  int idxNum, 
 		  const char *idxStr,
 		  int argc, 
 		  sqlite3_value **argv) {
-  stlTableCursor *stc=(stlTableCursor *)cur;
+  picoQLTableCursor *stc=(picoQLTableCursor *)cur;
   int i, j = 0, re = 0;
   char *constr = (char *)sqlite3_malloc(sizeof(char) * 3);
   memset(constr, 0, sizeof(constr));
@@ -331,10 +331,10 @@ int filter_vtable(sqlite3_vtab_cursor *cur,
 
 //xNext. Advances the cursor to next record of resultset.
 int next_vtable(sqlite3_vtab_cursor *cur) {
-  stlTableCursor *stc = (stlTableCursor *)cur;
+  picoQLTableCursor *stc = (picoQLTableCursor *)cur;
   stc->current++;
 #ifdef PICO_QL_DEBUG
-  stlTable *st = (stlTable *)cur->pVtab;
+  picoQLTable *st = (picoQLTable *)cur->pVtab;
   printf("Table %s, now stc->current: %i \n\n", 
 	 st->zName, stc->current);
 #endif
@@ -350,7 +350,7 @@ int next_vtable(sqlite3_vtab_cursor *cur) {
  */
 int open_vtable(sqlite3_vtab *pVtab, 
 		sqlite3_vtab_cursor **ppCsr) {
-  stlTable *st=(stlTable *)pVtab;
+  picoQLTable *st=(picoQLTable *)pVtab;
   int arraySize;
 #ifdef PICO_QL_DEBUG
   printf("Opening vtable %s\n\n", st->zName);
@@ -358,12 +358,12 @@ int open_vtable(sqlite3_vtab *pVtab,
   sqlite3_vtab_cursor *pCsr;    /* Allocated cursor */
 
   *ppCsr = pCsr = 
-    (sqlite3_vtab_cursor *)sqlite3_malloc(sizeof(stlTableCursor));
+    (sqlite3_vtab_cursor *)sqlite3_malloc(sizeof(picoQLTableCursor));
   if (!pCsr) {
     return SQLITE_NOMEM;
   }
-  stlTableCursor *stc = (stlTableCursor *)pCsr;
-  memset(pCsr, 0, sizeof(stlTableCursor));
+  picoQLTableCursor *stc = (picoQLTableCursor *)pCsr;
+  memset(pCsr, 0, sizeof(picoQLTableCursor));
   /* Keep copy of initial data. Might change in search. 
    * Useful when multiple instances of the VT are open.
    */
@@ -420,7 +420,7 @@ int open_vtable(sqlite3_vtab *pVtab,
 }
 
 /* xColumn. Calls the retrieve family of functions at 
- * stl_search.cpp. Returns the value of column $n for 
+ * pico_ql_search.cpp. Returns the value of column $n for 
  * record pointed at by $cur.
  */
 int column_vtable(sqlite3_vtab_cursor *cur, 
@@ -433,9 +433,9 @@ int column_vtable(sqlite3_vtab_cursor *cur,
  * of a query.
  */
 int close_vtable(sqlite3_vtab_cursor *cur) {
-  stlTableCursor *stc = (stlTableCursor *)cur;
+  picoQLTableCursor *stc = (picoQLTableCursor *)cur;
 #ifdef PICO_QL_DEBUG
-  stlTable *st = (stlTable *)cur->pVtab;
+  picoQLTable *st = (picoQLTable *)cur->pVtab;
   printf("Closing vtable %s \n\n", st->zName);
 #endif
   sqlite3_free(stc->resultSet);
@@ -448,7 +448,7 @@ int close_vtable(sqlite3_vtab_cursor *cur) {
 
 //xEof. Signifies the end of resultset.
 int eof_vtable(sqlite3_vtab_cursor *cur) {
-  return ((stlTableCursor *)cur)->isEof;
+  return ((picoQLTableCursor *)cur)->isEof;
 }
 
 /* Fills virtual table module's function pointers with 

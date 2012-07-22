@@ -1,5 +1,5 @@
 /*
- *   Declare the interface to stl_to_sql.c
+ *   Declare the interface to pico_ql_vt.c
  *
  *   Copyright 2012 Marios Fragkoulis
  *

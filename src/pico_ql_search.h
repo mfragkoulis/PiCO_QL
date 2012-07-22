@@ -1,7 +1,7 @@
 /*
  *   Define the virtual table structure and the virtual 
  *   table cursor structure.
- *   Declare the interface to stl_search.cpp.
+ *   Declare the interface to pico_ql_search.cpp.
  *
  *   Copyright 2012 Marios Fragkoulis
  *
@@ -40,7 +40,7 @@ extern "C" {
     char **azColumn;
     void *data; 
     char *zErr;
-  } stlTable;  // The virtual table struct.
+  } picoQLTable;  // The virtual table struct.
 
   typedef struct {
     sqlite3_vtab_cursor pCsr; 
@@ -54,16 +54,16 @@ extern "C" {
     int isEof; 
     int first_constr; 
     void *source;
-  } stlTableCursor; /* The cursor struct for the virtual 
-		     * table. 
-		     */
+  } picoQLTableCursor; /* The cursor struct for the 
+			* virtual table. 
+			*/
 
   int pico_ql_serve();
   void pico_ql_register(void *collection, const char * col_name);
-  void register_vt(stlTable *stl);
+  void register_vt(picoQLTable *picoQL);
   int equals_base(const char *zCol);
-  int init_text_vector(stlTableCursor *stc);
-  void deinit_text_vector(stlTableCursor *stc);
+  int init_text_vector(picoQLTableCursor *stc);
+  void deinit_text_vector(picoQLTableCursor *stc);
   int get_datastructure_size(sqlite3_vtab_cursor *cur);
   int search(sqlite3_vtab_cursor *cur, char *constraint, 
 	     sqlite3_value *val);

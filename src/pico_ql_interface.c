@@ -263,7 +263,7 @@ void call_swill(sqlite3 *db) {
 }
 
 /* Executes the SQL CREATE queries, opens the sqlite 
- * database connection and calls swill or stl_test 
+ * database connection and calls swill or pico_ql_test 
  * depending on the compile flag TEST.
  */
 int register_table(const char *nDb, 
@@ -292,7 +292,7 @@ int register_table(const char *nDb,
   sqlite3_module *mod;
   mod = (sqlite3_module *)sqlite3_malloc(sizeof(sqlite3_module));
   fill_module(mod);
-  int output = sqlite3_create_module(db, "stl", mod, data);
+  int output = sqlite3_create_module(db, "PicoQL", mod, data);
   if (output == 1) 
     printf("Error while registering module\n");
 #ifdef PICO_QL_DEBUG

@@ -1,8 +1,8 @@
 // Redirect to the appropriate search function for a virtual table.
 int search(sqlite3_vtab_cursor* cur, char *constr, sqlite3_value *val) {
-    stlTable *stl = (stlTable *)cur->pVtab;
+    picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
 <%    @tables.each { |vt| %>
-    if (!strcmp(stl->zName, "<%= vt.name %>"))
+    if (!strcmp(picoQL->zName, "<%= vt.name %>"))
 <%      if $argD == "DEBUG" %>
 // Close to line <%= vt.line + 1 %> <%= $argF %> 
 <%      end %>

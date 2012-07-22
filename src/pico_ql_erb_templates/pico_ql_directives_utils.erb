@@ -108,8 +108,8 @@ void * thread_sqlite(void *data) {
     int failure = 0;
 <%# <db>.<table> does not work for some reason. test. %>
 <%    @tables.each_index { |vt| %>
-<%#     query =  "CREATE VIRTUAL TABLE #{@tables[vt].db}.#{@tables[vt].name} USING stl(" %>
-<%      query =  "CREATE VIRTUAL TABLE #{@tables[vt].name} USING stl(" %>
+<%#     query =  "CREATE VIRTUAL TABLE #{@tables[vt].db}.#{@tables[vt].name} USING PicoQL(" %>
+<%      query =  "CREATE VIRTUAL TABLE #{@tables[vt].name} USING PicoQL(" %>
 <%      @tables[vt].columns.each { |c| %>
 <%        query += "#{c.name} #{c.data_type}, " %>
 <%      } %>
@@ -146,47 +146,47 @@ int pico_ql_serve() {
 /* Registers the base variables of user application code
  * with their virtual table representation.
  */
-void register_vt(stlTable *stl) {
+void register_vt(picoQLTable *picoQL) {
 <%    count = 0 %>
 <%    @tables.each_index { |vt| %>
 <%      if @tables[vt].base_var.length > 0 %>
 <%        if count == 0 %>
-    if (!strcmp(stl->zName, "<%= @tables[vt].name %>")) {
+    if (!strcmp(picoQL->zName, "<%= @tables[vt].name %>")) {
 <%	  count += 1 %>
 <%        else %>
-    } else if (!strcmp(stl->zName, "<%= @tables[vt].name %>")) {
+    } else if (!strcmp(picoQL->zName, "<%= @tables[vt].name %>")) {
 <%        end %>
 <%# Retyping has been taken care of in register_pico_ql %>
 <%#        /\*/.match(@tables[vt].pointer) == nil ? retype = "&" : retype = "" %>
 <%        if $argD == "DEBUG" %>
 // Close to line <%= @tables[vt].line + 1 %> <%= $argF %> 
 <%        end %>
-        stl->data = (void *)<%= @tables[vt].base_var %>;
-        stl->embedded = 0;
+        picoQL->data = (void *)<%= @tables[vt].base_var %>;
+        picoQL->embedded = 0;
 <%      end %>
 <%    } %>
     } else {
-        stl->data = NULL;
-        stl->embedded = 1;
+        picoQL->data = NULL;
+        picoQL->embedded = 1;
     }
 <%    if $argT == "TYPESAFE" %>
-    vt_directory[stl->zName] = 0;
+    vt_directory[picoQL->zName] = 0;
 <%    end %>
 }
 
 
 // Returns the size (records) for each virtual table.
 int get_datastructure_size(sqlite3_vtab_cursor *cur) {
-    stlTableCursor *stc = (stlTableCursor *)cur;
-    stlTable *stl = (stlTable *)cur->pVtab;
+    picoQLTableCursor *stc = (picoQLTableCursor *)cur;
+    picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
 <%    count = 0 %>
 <%    @tables.each_index { |vt| %>
 <%      if @tables[vt].container_class.length > 0 %>
 <%        if count == 0 %>
-    if (!strcmp(stl->zName, "<%= @tables[vt].name %>")) {
+    if (!strcmp(picoQL->zName, "<%= @tables[vt].name %>")) {
 <%	  count += 1 %>
 <%        else %>
-    } else if (!strcmp(stl->zName, "<%= @tables[vt].name %>")) {
+    } else if (!strcmp(picoQL->zName, "<%= @tables[vt].name %>")) {
 <%        end %>
 <%        /\*/.match(@tables[vt].pointer) == nil ? retype = "*" : retype = "" %>
 <%# Chomp the pointer from signature. %>
@@ -230,7 +230,7 @@ int equals_base(const char *zCol) {
  * values of type char array so that they are retrievable
  * by SQLite without conflict.
  */
-int init_text_vector(stlTableCursor *stc) {
+int init_text_vector(picoQLTableCursor *stc) {
 #ifdef PICO_QL_HANDLE_POLYMORPHISM
   vector<string*> *tr = new vector<string*>();
   stc->textResults = (void *)tr;
@@ -247,7 +247,7 @@ int init_text_vector(stlTableCursor *stc) {
  * column values of type char array so that they are
  * retrievable by SQLite without conflict.
  */
-void deinit_text_vector(stlTableCursor *stc) {
+void deinit_text_vector(picoQLTableCursor *stc) {
 #ifdef PICO_QL_HANDLE_POLYMORPHISM
   vector<string*> *tr = (vector<string*> *)stc->textResults;
   for (size_t i = 0; i<tr->size(); i++)
