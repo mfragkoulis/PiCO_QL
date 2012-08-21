@@ -78,11 +78,12 @@ pico_ql_logo.c: pico_ql.png
 	echo '#include <stdio.h>' >pico_ql_logo.c
 	echo '#include "logo.h"' >>pico_ql_logo.c
 	echo >>pico_ql_logo.c
-	echo 'void logo(FILE *fo) {' >>pico_ql_logo.c
-	echo '  const char logo_bytes[] = {' >>pico_ql_logo.c
+	echo 'const char logo_bytes[] = {' >>pico_ql_logo.c
 	od -vb pico_ql.png | tr -d "\r" | sed 's/^.......//;s/^ /0/;s/ /,0/g;s/$$/,/;s/^,$$//' >>pico_ql_logo.c
-	echo '  };' >>pico_ql_logo.c
-	echo '  int len = sizeof(logo_bytes);' >>pico_ql_logo.c
+	echo '};' >>pico_ql_logo.c
+	echo 'int len = sizeof(logo_bytes);' >>pico_ql_logo.c
+	echo >>pico_ql_logo.c
+	echo 'void logo(FILE *fo) {' >>pico_ql_logo.c
 	echo '  fwrite(logo_bytes, len, 1, fo);' >>pico_ql_logo.c
 	echo '}' >>pico_ql_logo.c
 
