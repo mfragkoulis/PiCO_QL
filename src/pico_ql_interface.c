@@ -126,9 +126,9 @@ int step_query(FILE *f, sqlite3_stmt *stmt) {
     return result;
 }
 
-/* Builds the PiCO QL logo (.PNG).
+/* Calls the function that draws the PiCO QL logo (.PNG).
  */
-void pico_ql_logo(FILE *f) {
+void draw_logo(FILE *f) {
   logo(f);
 }
 
@@ -155,9 +155,8 @@ void app_index(FILE *f, sqlite3 *db) {
 		"</style>"
 		"</head>"
 		"<body>");
-  swill_handle("pico_ql_logo.png", draw_logo, NULL);
-  swill_file("pico_ql_logo.png", NULL);
-  swill_fprintf(f, "<div class=\"div_style\">"
+  swill_fprintf(f, "<p><left><img src=\"logo.png\"></left>\n"
+		"<div class=\"div_style\">"
 		"<form action=\"serveQuery.html\" method=GET>"
 		"<div class=\"top\">"
 		"<span class=\"style_text\"><b>Input your SQL query:</b></span>"
@@ -261,6 +260,7 @@ void terminate(FILE *f, sqlite3 *db) {
 // Interface to the swill server functionality.
 void call_swill(sqlite3 *db) {
   swill_init(8080);
+  swill_handle("logo.png", draw_logo, 0);
   swill_handle("index.html", app_index, db);
   swill_handle("serveQuery.html", serve_query, db);
   swill_handle("terminateConnection.html", terminate, db);
