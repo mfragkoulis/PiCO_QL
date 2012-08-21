@@ -126,6 +126,12 @@ int step_query(FILE *f, sqlite3_stmt *stmt) {
     return result;
 }
 
+/* Builds the PiCO QL logo (.PNG).
+ */
+void pico_ql_logo(FILE *f) {
+  logo(f);
+}
+
 /* Builds the front page of the library's web interface, 
  * retrieves the database schema and promotes inputted 
  * queries to sqlite_engine.
@@ -149,7 +155,8 @@ void app_index(FILE *f, sqlite3 *db) {
 		"</style>"
 		"</head>"
 		"<body>");
-  logo(f);
+  swill_handle("pico_ql_logo.png", draw_logo, NULL);
+  swill_file("pico_ql_logo.png", NULL);
   swill_fprintf(f, "<div class=\"div_style\">"
 		"<form action=\"serveQuery.html\" method=GET>"
 		"<div class=\"top\">"
