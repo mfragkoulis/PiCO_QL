@@ -85,6 +85,8 @@ pico_ql_logo.c: pico_ql.png
 	echo >>pico_ql_logo.c
 	echo 'void logo(FILE *fo) {' >>pico_ql_logo.c
 	echo '  fwrite(logo_bytes, len, 1, fo);' >>pico_ql_logo.c
+	echo '  printf("%s\\n", logo_bytes);' >>pico_ql_logo.c
+	echo '  printf("%i\\n", len);' >>pico_ql_logo.c
 	echo '}' >>pico_ql_logo.c
 
 seed:
