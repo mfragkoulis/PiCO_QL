@@ -1,14 +1,7 @@
 // Retrieves column values of virtual table <%= @name %>.
 int <%= @name %>_retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con) {
     picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
-    if (stcsr->isInstanceNULL) {
-        sqlite3_result_text(con, "(null)", -1, SQLITE_STATIC);
-	return SQLITE_OK;
-    }
-    if (stcsr->isInstanceEmpty) {
-        sqlite3_result_text(con, "(empty)", -1, SQLITE_STATIC);
-	return SQLITE_OK;
-    }
+    if (struct_is_empty_null(cur, con)) return SQLITE_OK; 
 <%    if /\*/.match(@pointer) == nil %>
 <%      sign_retype = "#{@signature}*" %>
 <%      sign_untype = @signature %>

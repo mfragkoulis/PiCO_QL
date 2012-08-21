@@ -3,18 +3,7 @@ int <%= @name %>_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *v
     picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
     (void)picoQL;	// Silence compiler unused variable warning
     picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
-<%      if @base_var.length > 0 %>
-    if (stcsr->isInstanceNULL) {   // Size 1 to print "(null)".
-        stcsr->size = 1;
-        return SQLITE_OK;
-    }
-<%        if @container_class.length > 0 %>
-    if (stcsr->isInstanceEmpty) {  // Size 1 to print "(empty)".
-        stcsr->size = 1;
-        return SQLITE_OK;
-    }
-<%        end %>
-<%      end %>
+    if (struct_empty_null(cur, val)) return SQLITE_OK;
 <%      if /\*/.match(@pointer) == nil %>
 <%        sign_retype = "#{@signature}*" %>
 <%        sign_untype = @signature %>
@@ -61,18 +50,6 @@ int <%= @name %>_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *v
         check_alloc((const char *)constr, op, iCol);
 <%      if @base_var.length == 0 %>
         if (equals_base(picoQL->azColumn[iCol])) {
-	    if (!strcmp((const char *)sqlite3_value_text(val), "(null)")) {
-	        stcsr->isInstanceNULL = 1;
-		stcsr->max_size = 1;
-                stcsr->size = 1;
-		return SQLITE_OK;
-            }
-	    if (!strcmp((const char *)sqlite3_value_text(val), "(empty)")) {
-	        stcsr->isInstanceEmpty = 1;
-	        stcsr->max_size = 1;
-                stcsr->size = 1;
-		return SQLITE_OK;
-            }
 <%        if $argT == "TYPESAFE" %>
             vtd_iter = vt_directory.find(picoQL->zName);
             if ((vtd_iter == vt_directory.end()) || (vtd_iter->second == 0)) {

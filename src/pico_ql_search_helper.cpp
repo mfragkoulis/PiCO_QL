@@ -29,6 +29,42 @@
 
 using namespace std;
 
+/* Tests if current data structure or value passed by 
+ * sqlite are either null or empty and returns 1 if so.
+ */
+int struct_empty_null(sqlite3_vtab_cursor *cur, sqlite3_value *val) {
+  picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
+  if ((stcsr->isInstanceNULL) || ((val != NULL) && (!strcmp((const char *)sqlite3_value_text(val), "(null)")))) {
+    stcsr->isInstanceNULL = 1;
+    stcsr->max_size = 1;
+    stcsr->size = 1;     // Size 1 to print "(null)".
+    return 1;
+  }
+  if ((stcsr->isInstanceEmpty) || ((val != NULL) && (!strcmp((const char *)sqlite3_value_text(val), "(empty)")))) {
+    stcsr->isInstanceEmpty = 1;
+    stcsr->max_size = 1;
+    stcsr->size = 1;     // Size 1 to print "(empty)".
+    return 1;
+  }
+  return 0;
+}
+
+/* Tests if current data structure is null or empty and 
+ * passes "(null)"/"(empty)" to sqlite and returns 1 if so.
+ */
+int struct_is_empty_null(sqlite3_vtab_cursor *cur, sqlite3_context *con) {
+  picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
+  if (stcsr->isInstanceNULL) {
+    sqlite3_result_text(con, "(null)", -1, SQLITE_STATIC);
+    return 1;
+  }
+  if (stcsr->isInstanceEmpty) {
+    sqlite3_result_text(con, "(empty)", -1, SQLITE_STATIC);
+    return 1;
+  }
+  return 0;
+}
+
 /* Reallocates the space allocated to the resultset struct.
  * Useful for embedded picoQL data structures.
  */
