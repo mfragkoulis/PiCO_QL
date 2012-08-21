@@ -47,6 +47,8 @@ CXXFLAGS+=-DPICO_QL_HANDLE_POLYMORPHISM
 CFLAGS+=-DPICO_QL_HANDLE_POLYMORPHISM
 endif
 
+all: prep bank_app
+
 OBJ=main.o Account.o SuperAccount.o SpecialAccount.o pico_ql_search.o pico_ql_vt.o pico_ql_logo.o pico_ql_interface.o pico_ql_search_helper.o pico_ql_test.o
 
 bank_app: $(OBJ)
@@ -78,9 +80,9 @@ pico_ql_logo.c: pico_ql.png
 	echo >>pico_ql_logo.c
 	echo 'void logo(FILE *fo) {' >>pico_ql_logo.c
 	echo '  const char logo_bytes[] = {' >>pico_ql_logo.c
-	od -vb logo.png | tr -d "\r" | sed 's/^.......//;s/^ /0/;s/ /,0/g;s/$$/,/;s/^,$$//' >>pico_ql_logo.c
+	od -vb pico_ql.png | tr -d "\r" | sed 's/^.......//;s/^ /0/;s/ /,0/g;s/$$/,/;s/^,$$//' >>pico_ql_logo.c
 	echo '  };' >>pico_ql_logo.c
-	echo -n '  int len = sizeof(logo_bytes);' >>pico_ql_logo.c
+	echo '  int len = sizeof(logo_bytes);' >>pico_ql_logo.c
 	echo '  fwrite(logo_bytes, len, 1, fo);' >>pico_ql_logo.c
 	echo '}' >>pico_ql_logo.c
 
@@ -88,7 +90,6 @@ seed:
 	cp pico_ql_test_current.txt pico_ql_test_success.txt
 
 prep:
-	mkdir ../bin
 	cp -r ../../bin/ .
 	mv pico_ql_test.c test.c
 	cp -r ../../src/ .
