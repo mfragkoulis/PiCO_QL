@@ -28,6 +28,7 @@
 #include "pico_ql_interface.h"
 #include "pico_ql_vt.h"
 #include "pico_ql_test.h"
+#include "logo.h"
 
 /* Calls step_query for query execution. 
  * Collects and acts on the result status of a query 
@@ -148,9 +149,8 @@ void app_index(FILE *f, sqlite3 *db) {
 		"</style>"
 		"</head>"
 		"<body>");
-  swill_file("pico_ql.png", "../bin/pico_ql.png");
-  swill_fprintf(f, "<img src=\"pico_ql.png\" alt=\"PiCO_QL logo\" />"
-		"<div class=\"div_style\">"
+  logo(f);
+  swill_fprintf(f, "<div class=\"div_style\">"
 		"<form action=\"serveQuery.html\" method=GET>"
 		"<div class=\"top\">"
 		"<span class=\"style_text\"><b>Input your SQL query:</b></span>"
