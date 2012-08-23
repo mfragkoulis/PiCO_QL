@@ -3,7 +3,7 @@ int <%= @name %>_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *v
     picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
     (void)picoQL;	// Silence compiler unused variable warning
     picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
-    if (struct_empty_null(cur, val)) return SQLITE_OK;
+    if (struct_empty_null(cur, val, picoQL->embedded, constr)) return SQLITE_OK;
 <%      if /\*/.match(@pointer) == nil %>
 <%        sign_retype = "#{@signature}*" %>
 <%        sign_untype = @signature %>

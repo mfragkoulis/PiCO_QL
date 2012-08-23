@@ -32,15 +32,22 @@ using namespace std;
 /* Tests if current data structure or value passed by 
  * sqlite are either null or empty and returns 1 if so.
  */
-int struct_empty_null(sqlite3_vtab_cursor *cur, sqlite3_value *val) {
+int struct_empty_null(sqlite3_vtab_cursor *cur, sqlite3_value *val, int structEmbedded, const char *constr) {
   picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
-  if ((stcsr->isInstanceNULL) || ((val != NULL) && (!strcmp((const char *)sqlite3_value_text(val), "(null)")))) {
+  int iCol = -1;
+  if (val != NULL) iCol = constr[1] - 'a' + 1;
+  /* iCol > 0 allows to embedded structures
+   * to propagate their error condition. At first
+   * (always iCol = 0) their state has not been 
+   * initialised yet.
+   */
+  if (((stcsr->isInstanceNULL) && ((!structEmbedded) || (iCol > 0))) || ((val != NULL) && (!strcmp((const char *)sqlite3_value_text(val), "(null)")))) {
     stcsr->isInstanceNULL = 1;
     stcsr->max_size = 1;
     stcsr->size = 1;     // Size 1 to print "(null)".
     return 1;
   }
-  if ((stcsr->isInstanceEmpty) || ((val != NULL) && (!strcmp((const char *)sqlite3_value_text(val), "(empty)")))) {
+  if (((stcsr->isInstanceEmpty) && ((!structEmbedded) || (iCol > 0))) || ((val != NULL) && (!strcmp((const char *)sqlite3_value_text(val), "(empty)")))) {
     stcsr->isInstanceEmpty = 1;
     stcsr->max_size = 1;
     stcsr->size = 1;     // Size 1 to print "(empty)".

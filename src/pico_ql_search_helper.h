@@ -25,7 +25,7 @@
 #include <sqlite3.h>
 #include "pico_ql_search.h"
 
-int struct_empty_null(sqlite3_vtab_cursor *cur, sqlite3_value *val);
+int struct_empty_null(sqlite3_vtab_cursor *cur, sqlite3_value *val, int structEmbedded, const char *constr);
 int struct_is_empty_null(sqlite3_vtab_cursor *cur, sqlite3_context *con);
 int realloc_resultset(sqlite3_vtab_cursor *cur);
 int compare(int dstr_value, int op, int value);
