@@ -2,13 +2,18 @@
 #include <vector>
 ;
 
-CREATE ELEMENT TABLE ChessPiece (
+CREATE STRUCT VIEW ChessPiece (
        name STRING FROM get_name(),
        color STRING FROM get_color());
 
-CREATE TABLE ChessDB.ChessRow AS SELECT * FROM vector<ChessPiece>;
+CREATE VIRTUAL TABLE ChessDB.ChessRow 
+USING STRUCT VIEW ChessPiece
+WITH REGISTERED C TYPE vector<ChessPiece>;
 // Chessboard description
-CREATE ELEMENT TABLE ChessBoard (
-       row_id INT FROM TABLE ChessRow WITH BASE=self);
+CREATE STRUCT VIEW ChessBoard (
+       FOREIGN KEY(row_id) FROM self REFERENCES ChessRow);
 
-CREATE TABLE ChessDB.ChessBoard WITH BASE=board AS SELECT * FROM vector<vector<ChessPiece> >;
+CREATE VIRTUAL TABLE ChessDB.ChessBoard 
+USING STRUCT VIEW ChessBoard
+WITH REGISTERED C NAME board 
+WITH REGISTERED C TYPE vector<vector<ChessPiece> >;

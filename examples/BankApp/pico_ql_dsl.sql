@@ -6,27 +6,36 @@
 #include <vector>
 ;
 // SuperAccount description
-CREATE ELEMENT TABLE SuperAccount (
+CREATE STRUCT VIEW SuperAccount (
        balance DOUBLE FROM get_balance(),
        account_no TEXT FROM get_account_no(),
        rate DOUBLE FROM get_rate(),
        isbn INT FROM get_isbn());   // this is isbn
 
-CREATE ELEMENT TABLE SuperAccounts (
+CREATE STRUCT VIEW SuperAccounts (
        id STRING FROM first,
-       $SuperAccount FROM second.);
+       INHERITS STRUCT VIEW SuperAccount FROM second.);
 
-CREATE TABLE Bank.SuperAccounts WITH BASE = superaccounts AS SELECT * FROM map<string,SuperAccount>;
+CREATE VIRTUAL TABLE Bank.SuperAccounts 
+USING STRUCT VIEW SuperAccounts
+WITH REGISTERED C NAME superaccounts 
+WITH REGISTERED C TYPE map<string,SuperAccount>;
 
-CREATE ELEMENT TABLE Account (
-       $SuperAccount,
+CREATE STRUCT VIEW Account (
+       INHERITS STRUCT VIEW SuperAccount,
        type TEXT FROM type);
 
-CREATE TABLE Bank.Accounts WITH BASE=accounts AS SELECT * FROM vector<Account>;
+CREATE VIRTUAL TABLE Bank.Accounts 
+USING STRUCT VIEW Account
+WITH REGISTERED C NAME accounts 
+WITH REGISTERED C TYPE vector<Account>;
 
-CREATE ELEMENT TABLE SpecialAccount (
-       $SuperAccount,
+CREATE STRUCT VIEW SpecialAccount (
+       INHERITS STRUCT VIEW SuperAccount,
        bonus DOUBLE FROM bonus);
 
-CREATE TABLE Bank.Specialaccounts WITH BASE=specialaccounts AS SELECT * FROM list<SpecialAccount>;
+CREATE VIRTUAL TABLE Bank.Specialaccounts 
+USING STRUCT VIEW SpecialAccount
+WITH REGISTERED C NAME specialaccounts 
+WITH REGISTERED C TYPE list<SpecialAccount>;
 

@@ -109,20 +109,6 @@ end
     return "gen_all", nil, nil, @line
   end
 
-# In case of a foreign key column this method is called to register the type
-# of the column, that is "pointer" or "object" (reference".
-  def parse_name()
-    begin
-      @related_to.length > 0
-      /_ptr/.match(@name) ? @type = "pointer" : @type = "object"   # In
-                        # columns that reference other VTs
-                        # users have to declare the type for generating
-                        # correct access statement.
-    rescue
-      puts "Referenced virtual table not registered.\\n"
-      exit(1)
-    end
-  end
 
 # Register line that corresponds to the table in DSL description
   def register_line()
@@ -181,25 +167,25 @@ end
     if column.match(/\n/)
       column.gsub!(/\n/, "")
     end
-    column_ptn1 = /\$(\w+) FROM (.+)/im
-    column_ptn2 = /\$(\w+)/im
-    column_ptn3 = /(\w+) (\w+) from table (\w+) with base(\s*)=(\s*)(.+)/im
+    column_ptn1 = /inherits struct view (\w+) from (.+)/im
+    column_ptn2 = /inherits struct view (\w+)/im
+    column_ptn3 = /foreign key(\s*)\((\w+)\) from (.+) references (\w+) (pointer*)/im
     column_ptn4 = /(\w+) (\w+) from (.+)/im
     case column
     when column_ptn1
       matchdata = column_ptn1.match(column)
       index = 0
-      this_element = $elements.last
-      this_columns = this_element.columns
-      $elements.each { |el| 
-        if el.name == matchdata[1]     # Search all element 
+      this_struct_view = $struct_views.last
+      this_columns = this_struct_view.columns
+      $struct_views.each { |vs| 
+        if vs.name == matchdata[1]     # Search all struct_view 
                                        # definitions to find the one 
                                        # specified and include it.
-          index = this_element.columns.length - 2
+          index = this_struct_view.columns.length - 2
           if index < 0 : index = 0 end
-          this_element.columns_delete_last()
-          el.columns.each_index { |col| 
-            coln = el.columns[col]         # Manually construct a deep copy
+          this_struct_view.columns_delete_last()
+          vs.columns.each_index { |col| 
+            coln = vs.columns[col]         # Manually construct a deep copy
             this_columns.push(Column.new)  # of coln and push it to 'this'.
             this_columns.last.construct(coln.name.clone, 
                                         coln.data_type.clone, 
@@ -208,7 +194,7 @@ end
                                         coln.type.clone,
                                         coln.line)
           }
-	  col_type_text = el.include_text_col
+	  col_type_text = vs.include_text_col
         end
       }
       this_columns.each_index { |col|     # Adapt access path.
@@ -218,25 +204,34 @@ end
         end
       }
       return col_type_text
-    when column_ptn2                      # Merely include an element 
+    when column_ptn2                      # Merely include a struct_view 
                                           # definition.
       matchdata = column_ptn2.match(column)
-      $elements.each { |el| 
-        if el.name == matchdata[1]
-          $elements.last.columns = 
-	    $elements.last.columns_delete_last() | 
-            el.columns
-	  col_type_text = el.include_text_col
+      $struct_views.each { |vs| 
+        if vs.name == matchdata[1]
+          $struct_views.last.columns = 
+	    $struct_views.last.columns_delete_last() | 
+            vs.columns
+	  col_type_text = vs.include_text_col
 	end
       }
       return col_type_text
     when column_ptn3
       matchdata = column_ptn3.match(column)
-      @name = matchdata[1]
-      @data_type = matchdata[2]
-      @related_to = matchdata[3]
-      @access_path = matchdata[6]
-      parse_name()
+      @name = matchdata[2]
+      @data_type = "INT"
+      @related_to = matchdata[4]
+      @access_path = matchdata[3]
+      begin
+        @related_to.length > 0
+        matchdata[4] == nil ? @type = "object" : @type = "pointer"   # In
+                        # columns that reference other VTs
+                        # users have to declare the type for generating
+                        # correct access statement.
+      rescue
+        puts "Referenced virtual table not registered.\\n"
+        exit(1)
+      end
     when column_ptn4
       matchdata = column_ptn4.match(column)
       @name = matchdata[1]
@@ -268,7 +263,7 @@ class VirtualTable
     @line = 0             # Line in DSL description that this table
                           # is defined in.
     @base_var = ""        # Name of the base variable alive at C++ app.
-    @element              # Reference to the respective element definition.
+    @struct_view              # Reference to the respective struct_view definition.
     @db = ""              # Database name to be created/connected.
     @signature = ""       # The C++ signature of the struct.
     @container_class = "" # If a container instance as per 
@@ -282,7 +277,7 @@ class VirtualTable
 			  # generating code for
 			  # PICO_QL_HANDLE_POLYMORPHISM C++ flag.
   end
-  attr_accessor(:name,:line,:base_var,:element,:db,:signature,:container_class,:type,
+  attr_accessor(:name,:line,:base_var,:struct_view,:db,:signature,:container_class,:type,
                 :pointer,:object_class,:columns,:include_text_col)
 
 # Support templating of member data
@@ -524,23 +519,26 @@ class VirtualTable
 
 # Matches VT definitions against prototype patterns.
   def match_table(table_description)
-    table_ptn1 = /^create table (\w+)\.(\w+) with base(\s*)=(\s*)(.+) as select \* from (.+)/im
-    table_ptn2 = /^create table (\w+)\.(\w+) as select \* from (.+)/im
+    table_ptn1 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c name (.+) with registered c type (.+)/im
+    table_ptn2 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c type (.+)/im
     if $argD == "DEBUG"
       puts "Table description is: #{table_description}"
     end
+    struct_view_name = ""
     case table_description
     when table_ptn1
       matchdata = table_ptn1.match(table_description)
-      @name = matchdata[2]
       @db = matchdata[1]
-      @base_var = matchdata[5]
-      @signature = matchdata[6]
+      @name = matchdata[2]
+      struct_view_name = matchdata[3]
+      @base_var = matchdata[4]
+      @signature = matchdata[5]
     when table_ptn2
       matchdata = table_ptn2.match(table_description)
-      @name = matchdata[2]
       @db = matchdata[1]
-      @signature = matchdata[3]
+      @name = matchdata[2]
+      struct_view_name = matchdata[3]
+      @signature = matchdata[4]
     end
     verify_signature()
     if @type.match(/\*/)                    # Use type. It is active for 
@@ -548,29 +546,24 @@ class VirtualTable
     else
       vtable_type = @type
     end
-    $elements.each { |el| if el.name == @name : @element = el end }   
-                   # Try to match element definition using the VT's name 
-                   # first, its type then.
-    if @element == nil
-      $elements.each { |el| if (el.name == vtable_type) : @element = el end }
-    end
+    $struct_views.each { |sv| if sv.name == struct_view_name : @struct_view = sv end }   
     begin
-      if @element == nil
-        raise "Cannot match element for table #{@name}.\\n"
+      if @struct_view == nil
+        raise "Cannot match struct_view for table #{@name}.\\n"
       end
     rescue
       if @name.length == 0 
         @name = "<empty_name>" 
-        puts "Perhaps you have forgotten to type the database name, e.g. CREATE TABLE DB_NAME.TABLE_NAME"
+        puts "Perhaps you have forgotten to type the database name, e.g. CREATE VIRTUAL TABLE DB_NAME.TABLE_NAME"
       end
-      puts "Cannot match element for table #{@name}."
+      puts "Cannot match struct_view for table #{@name}."
       exit(1)
     end
     if @base_var.length == 0            # base column for embedded structs.
       @columns.push(Column.new).last.set("base INT FROM self") 
     end
-    @include_text_col = @element.include_text_col
-    @columns = @columns | @element.columns
+    @include_text_col = @struct_view.include_text_col
+    @columns = @columns | @struct_view.columns
     register_line()
     if $argD == "DEBUG"
       puts "Table name is: " + @name
@@ -578,28 +571,28 @@ class VirtualTable
       puts "Table lives in database named: " + @db
       puts "Table base variable name is: " + @base_var
       puts "Table signature name is: " + @signature
-      puts "Table follows element: " + @element.name
+      puts "Table follows struct_view: " + @struct_view.name
     end
   end
 
 end
 
-# Models an element table.
-class Element
+# Models a struct_view table.
+class StructView
   def initialize
     @name = ""
     @columns = Array.new
-    @include_text_col = 0 # True if Element includes column
+    @include_text_col = 0 # True if StructView includes column
     		      	  # of text data type. Required for
 			  # generating code for
 			  # PICO_QL_HANDLE_POLYMORPHISM C++ flag.
-    @line = 0             # Line in DSL description that this element
+    @line = 0             # Line in DSL description that this struct_view
                           # is defined in.
   end
   attr_accessor(:name,:columns,:include_text_col,:line)
 
   # Removes the last entry in the columns table and returns the table 
-  # itself. Useful when including an element definition to remove the 
+  # itself. Useful when including a struct_view definition to remove the 
   # entry left empty.
   def columns_delete_last()
     @columns.delete(@columns.last)
@@ -609,10 +602,10 @@ class Element
 # Register line that corresponds to the table in DSL description
   def register_line()
     $lined_description.each_index { |line|
-      if $lined_description[line].match(/element table #{@name}(\s*)\(/i)
+      if $lined_description[line].match(/struct view table #{@name}(\s*)\(/i)
         @line = line
         if $argD == "DEBUG"
-          puts "Element found at line #{@line + 1} of #{$argF}"
+          puts "StructView found at line #{@line + 1} of #{$argF}"
         end
         break
         if $argD == "DEBUG"
@@ -622,18 +615,18 @@ class Element
     }
   end
 
-  # Matches an element definition against the prototype pattern and 
+  # Matches a struct view definition against the prototype pattern and 
   # extracts the characteristics.
-  def match_element(element_description)
+  def match_struct_view(struct_view_description)
     if $argD == "DEBUG"
-      puts "Element description is: #{element_description}"
+      puts "Struct view description is: #{struct_view_description}"
     end
-    pattern = /^create element table (\w+)(\s*)\((.+)\)/im
-    matchdata = pattern.match(element_description)
+    pattern = /^create struct view (\w+)(\s*)\((.+)\)/im
+    matchdata = pattern.match(struct_view_description)
     if matchdata
       # First record of table_data contains the whole description of the 
-      # element.
-      # Second record contains the element's name
+      # struct_view.
+      # Second record contains the struct_view's name
       @name = matchdata[1]
       columns_str = Array.new
       if matchdata[3].match(/,/)
@@ -645,9 +638,9 @@ class Element
     end
     columns_str.each { |x| @include_text_col += @columns.push(Column.new).last.set(x) }
     if $argD == "DEBUG"
-      puts "Element #{@name} registered."
-      puts "Element defined at line #{@line + 1} of #{$argF}."
-      puts "Element includes #{@include_text_col} columns of type text."
+      puts "StructView #{@name} registered."
+      puts "StructView defined at line #{@line + 1} of #{$argF}."
+      puts "StructView includes #{@include_text_col} columns of type text."
       puts "Columns follow:"
       @columns.each { |x| p x }
     end
@@ -786,7 +779,7 @@ end
       puts "Description after whitespace cleanup: "
       @description.each { |x| p x }
     end
-    $elements = Array.new
+    $struct_views = Array.new
     views = Array.new
     w = 0
     @description.each { |stmt|
@@ -796,9 +789,9 @@ end
       stmt.lstrip!
       stmt.rstrip!
       case stmt
-      when /^create element table/im
-        $elements.push(Element.new).last.match_element(stmt)
-      when /^create table/im
+      when /^create struct view/im
+        $struct_views.push(StructView.new).last.match_struct_view(stmt)
+      when /^create virtual table/im
         @tables.push(VirtualTable.new).last.match_table(stmt)
       end
       w += 1

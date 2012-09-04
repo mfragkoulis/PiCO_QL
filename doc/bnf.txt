@@ -1,12 +1,16 @@
-<--TABLE DEFINITION-->
+<--VIRTUAL TABLE DEFINITION-->
 
 
-<table_def> ::= 'CREATE TABLE' <db_name>'.'<virtual_table_name> [WITH
-BASE=<base_variable>] 'AS SELECT * FROM' <struct_type> ';'
+<table_def> ::= 'CREATE VIRTUAL TABLE' <db_name>'.'<virtual_table_name> 
+	    	USING STRUCT VIEW  <struct_view_name> 
+		[WITH REGISTERED C NAME <base_variable>] 
+		'WITH REGISTERED C TYPE' <struct_type> ';'
 
 <db_name> ::= 'identifier'
 
 <virtual_table_name> ::= 'identifier'
+
+<struct_view_name> ::= 'identifier'
 
 <base_variable> ::= 'identifier'
 
@@ -21,36 +25,39 @@ BASE=<base_variable>] 'AS SELECT * FROM' <struct_type> ';'
 <stl_class> ::= 'list' | 'vector' | 'deque' | 'set' | 
 		  'multiset' | 'map' | 'multimap'
 
-<other_container_class> ::= 'SGI_container_concept_compatible'
+<other_container_class> ::= 'SGI_forward_container_concept_compatible'
 
 <type> ::= <struct_type> | <primitive_data_type> ['*']
 
 <object> ::= <class_name> ['*']
 
-<--ELEMENT TABLE DEFINITION-->
+<--STRUCT VIEW DEFINITION-->
 
 
-<element_table_def> ::= 'CREATE ELEMENT TABLE' <element_name> '{' <column_def> {',' <column_def>} '}'
+<struct_view_def> ::= 'CREATE STRUCT VIEW' <struct_view_name> '{' <column_def> {',' <column_def>} '}'
 
-<element_name> ::= 'identifier'
+<struct_view_name> ::= 'identifier'
 
-<column_def> ::= (<column_name>
-			( <primitive_column_def> | <struct_column_def>)  
-			(<access_statement> | 'self')) | <element_table_reuse>
+<column_def> ::=  <primitive_column_def> 
+	     	  | <struct_column_def>  
+		  | <struct_view_inheritance>
+
+
+<primitive_column_def> ::= <column_name> <primitive_data_type> 'FROM'
+		       	   (<access_statement> | 'self')
 
 <column_name> ::= 'identifier'
-
-<primitive_column_def> ::=  <primitive_data_type> 'FROM'
 
 <primitive_data_type> ::= 'int' | 'string' | 'double' | 'char' |
 	    	 'float' | 'real' | 'bool'
 
-<struct_column_def> ::= 'INT FROM' [<typesafe_column_def>]
-
-<typesafe_column_def> ::= 'TABLE' <virtual_table_name> 'WITH BASE='
+<struct_column_def> ::= 'FOREIGN KEY(<column_name>) FROM' 
+		    	(<access_statement> | 'self') 
+			[REFERENCES <virtual_table_name>] [POINTER]
 
 <access_statement> ::= 'how_access:eg_function_name()'
 
-<--Instruct the parser to fill a current element from one defined
-previously by referencing the element table's name
-<element_table_reuse> ::= '#' <element_name> ['FROM' <access_statement>]
+<--Instruct the parser to fill a current struct view from one defined
+previously by referencing the struct view's name
+<struct_view_inheritance> ::= 'INHERITS STRUCT VIEW' <struct_view_name> 
+			      ['FROM' <access_statement>]
