@@ -1,12 +1,12 @@
 #!/bin/sh
 
-echo "\n*Testing examples with typesafety disabled and ruby debug enabled.*\n"
+echo "\n*Testing examples with typesafety and ruby debug disabled.*\n"
 
 cd BankApp
 echo "In BankApp..."
 echo "-> Generating files."
 make prep > /dev/null
-ruby pico_ql_generator.rb pico_ql_dsl.sql debug > /dev/null
+ruby pico_ql_generator.rb pico_ql_dsl.sql
 echo "-> Building."
 make clean > /dev/null
 make PICO_QL_JOIN_THREADS=1 > /dev/null
@@ -19,7 +19,7 @@ cd ../Chess
 echo "\nIn Chess..."
 echo "-> Generating files."
 make prep > /dev/null
-ruby pico_ql_generator.rb pico_ql_dsl.sql debug > /dev/null
+ruby pico_ql_generator.rb pico_ql_dsl.sql
 echo "-> Building."
 make clean > /dev/null
 make PICO_QL_JOIN_THREADS=1 > /dev/null
@@ -32,7 +32,7 @@ cd ../VRP
 echo "\nIn VRP..."
 echo "-> Generating files."
 make prep > /dev/null
-ruby pico_ql_generator.rb pico_ql_dsl.sql debug > /dev/null
+ruby pico_ql_generator.rb pico_ql_dsl.sql
 echo "-> Building."
 make clean > /dev/null
 make PICO_QL_JOIN_THREADS=1 > /dev/null
@@ -98,13 +98,13 @@ cat pico_ql_test_output.txt
 make reset-prep > /dev/null
 
 cd ..
-echo "\n*Testing examples with single threaded version and type-safety enabled.*\n"
+echo "\n*Testing examples with single threaded version and type-safety enabled and ruby debug enabled.*\n"
 
 cd BankApp
 echo "In BankApp..."
 echo "-> Generating files."
 make prep > /dev/null
-ruby pico_ql_generator.rb pico_ql_dsl.sql typesafe > /dev/null
+ruby pico_ql_generator.rb pico_ql_dsl.sql typesafe debug > /dev/null
 echo "-> Building."
 make clean > /dev/null
 make PICO_QL_TYPESAFE=1 PICO_QL_SINGLE_THREADED=1 > /dev/null
@@ -117,7 +117,7 @@ cd ../Chess
 echo "\nIn Chess..."
 echo "-> Generating files."
 make prep > /dev/null
-ruby pico_ql_generator.rb pico_ql_dsl.sql typesafe > /dev/null
+ruby pico_ql_generator.rb pico_ql_dsl.sql typesafe debug > /dev/null
 echo "-> Building."
 make clean > /dev/null
 make PICO_QL_TYPESAFE=1 PICO_QL_SINGLE_THREADED=1 > /dev/null
@@ -130,7 +130,7 @@ cd ../VRP
 echo "\nIn VRP..."
 echo "-> Generating files."
 make prep > /dev/null
-ruby pico_ql_generator.rb pico_ql_dsl.sql typesafe > /dev/null
+ruby pico_ql_generator.rb pico_ql_dsl.sql typesafe debug > /dev/null
 echo "-> Building."
 make clean > /dev/null
 make PICO_QL_TYPESAFE=1 PICO_QL_SINGLE_THREADED=1 > /dev/null

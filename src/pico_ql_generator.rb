@@ -34,7 +34,7 @@ class Column
                               # for string so far.
     @related_to = ""          # Reference to other VT(like a FK).
     @access_path = ""         # The access statement for the column value.
-    @type = ""                # Record type (pointer or reference) for 
+    @col_type = ""                # Record type (pointer or reference) for 
                               # special columns, the ones that refer to 
                               # other VT.
     @@int_data_types = ["int", "integer", "tinyint", "smallint", 
@@ -46,7 +46,7 @@ class Column
                                /varying character/i, /native character/i,
                                /nchar/i]
   end
-  attr_accessor(:name,:line,:data_type,:related_to,:access_path,:type)
+  attr_accessor(:name,:line,:data_type,:related_to,:access_path,:col_type)
 
 
 # Used to clone a Column object. Ruby does not support deep copies.
@@ -55,7 +55,7 @@ def construct(name, data_type, related_to, access_path, type, line)
     @data_type = data_type
     @related_to = related_to
     @access_path = access_path
-    @type = type
+    @col_type = type
     @line = line
 end
 
@@ -72,7 +72,7 @@ end
       sqlite3_type.replace("int64")
       column_cast.replace("(long int)")
       access_path.replace(@access_path)
-      return "fk", @related_to, @type, @line
+      return "fk", @related_to, @col_type, @line
     end
     if @name == "base"               # 'base' column. refactor: elsif perhaps?
       sqlite3_type.replace("int64")
@@ -169,7 +169,7 @@ end
     end
     column_ptn1 = /inherits struct view (\w+) from (.+)/im
     column_ptn2 = /inherits struct view (\w+)/im
-    column_ptn3 = /foreign key(\s*)\((\w+)\) from (.+) references (\w+) (pointer*)/im
+    column_ptn3 = /foreign key(\s*)\((\s*)(\w+)(\s*)\) from (.+) references (\w+)(\s*)(\w*)/im
     column_ptn4 = /(\w+) (\w+) from (.+)/im
     case column
     when column_ptn1
@@ -191,7 +191,7 @@ end
                                         coln.data_type.clone, 
                                         coln.related_to.clone, 
                                         coln.access_path.clone, 
-                                        coln.type.clone,
+                                        coln.col_type.clone,
                                         coln.line)
           }
 	  col_type_text = vs.include_text_col
@@ -218,16 +218,19 @@ end
       return col_type_text
     when column_ptn3
       matchdata = column_ptn3.match(column)
-      @name = matchdata[2]
+      @name = matchdata[3]
       @data_type = "INT"
-      @related_to = matchdata[4]
-      @access_path = matchdata[3]
+      @related_to = matchdata[6]
+      @access_path = matchdata[5]
       begin
         @related_to.length > 0
-        matchdata[4] == nil ? @type = "object" : @type = "pointer"   # In
-                        # columns that reference other VTs
-                        # users have to declare the type for generating
-                        # correct access statement.
+        if matchdata[8].length == 0
+          @col_type = "object"
+	elsif matchdata[8].downcase == "pointer"
+          @col_type = "pointer"   # In
+        end                # columns that reference other VTs
+                           # users have to declare the type for generating
+                           # correct access statement.
       rescue
         puts "Referenced virtual table not registered.\\n"
         exit(1)
@@ -248,7 +251,7 @@ end
       puts "Column data type is: " + @data_type
       puts "Column related to: " + @related_to
       puts "Column access path is: " + @access_path
-      puts "Column type is: " + @type
+      puts "Column type is: " + @col_type
       puts "Column is of text type: " + col_type_text.to_s
     end
     return col_type_text
@@ -621,7 +624,7 @@ class StructView
     if $argD == "DEBUG"
       puts "Struct view description is: #{struct_view_description}"
     end
-    pattern = /^create struct view (\w+)(\s*)\((.+)\)/im
+    pattern = /^create struct view (\w+)(\s*)\((.+)(\s*)\)/im
     matchdata = pattern.match(struct_view_description)
     if matchdata
       # First record of table_data contains the whole description of the 
@@ -766,11 +769,11 @@ end
       end
       token_d[x].lstrip!
       token_d[x].rstrip!
-      token_d[x].squeeze!(" ")           
+      token_d[x].squeeze!(" ")
       if / ,|, /.match(token_d[x]) : token_d[x].gsub!(/ ,|, /, ",") end
-      if / \(/.match(token_d[x]) : token_d[x].gsub!(/ \(/, "(") end
+#      if / \(/.match(token_d[x]) : token_d[x].gsub!(/ \(/, "(") end
       if /\( /.match(token_d[x]) : token_d[x].gsub!(/\( /, "(") end
-      if /\) /.match(token_d[x]) : token_d[x].gsub!(/\) /, ")") end
+#      if /\) /.match(token_d[x]) : token_d[x].gsub!(/\) /, ")") end
       if / \)/.match(token_d[x]) : token_d[x].gsub!(/ \)/, ")") end
       x += 1
     end
@@ -821,7 +824,7 @@ if __FILE__ == $0
     $lined_description = File.open($argF, "r") { |fw| 
       fw.readlines.each{ |line| 
         if line.match(/\/\/(.+)/)
-          line.gsub!(/\/\/(.+)/, "") 
+          line.gsub!(/\/\/(.+)/, "")
         end
       }
     }
