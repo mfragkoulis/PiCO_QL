@@ -13,7 +13,6 @@ make PICO_QL_JOIN_THREADS=1 > /dev/null
 echo "-> Executing tests."
 ./bank_app > /dev/null
 cat pico_ql_test_output.txt
-make reset-prep > /dev/null
 
 cd ../Chess
 echo "\nIn Chess..."
@@ -26,7 +25,6 @@ make PICO_QL_JOIN_THREADS=1 > /dev/null
 echo "-> Executing tests."
 ./chess > /dev/null
 cat pico_ql_test_output.txt
-make reset-prep > /dev/null
 
 cd ../VRP
 echo "\nIn VRP..."
@@ -40,7 +38,6 @@ echo "-> Executing tests."
 ./schedule cvrp/solomon.txt 2 > /dev/null
 cat pico_ql_test_output.txt
 echo "(Expected failure.)"
-make reset-prep > /dev/null
 
 #cd ../bowtie
 #echo "\nIn bowtie..."
@@ -69,7 +66,6 @@ make PICO_QL_TYPESAFE=1 PICO_QL_JOIN_THREADS=1 > /dev/null
 echo "-> Executing tests."
 ./bank_app > /dev/null
 cat pico_ql_test_output.txt
-make reset-prep > /dev/null
 
 cd ../Chess
 echo "\nIn Chess..."
@@ -82,7 +78,6 @@ make PICO_QL_TYPESAFE=1 PICO_QL_JOIN_THREADS=1 > /dev/null
 echo "-> Executing tests."
 ./chess > /dev/null
 cat pico_ql_test_output.txt
-make reset-prep > /dev/null
 
 cd ../VRP
 echo "\nIn VRP..."
@@ -95,7 +90,6 @@ make PICO_QL_TYPESAFE=1 PICO_QL_JOIN_THREADS=1 > /dev/null
 echo "-> Executing tests."
 ./schedule cvrp/solomon.txt 2 > /dev/null
 cat pico_ql_test_output.txt
-make reset-prep > /dev/null
 
 cd ..
 echo "\n*Testing examples with single threaded version and type-safety enabled and ruby debug enabled.*\n"
@@ -111,7 +105,6 @@ make PICO_QL_TYPESAFE=1 PICO_QL_SINGLE_THREADED=1 > /dev/null
 echo "-> Executing tests."
 ./bank_app > /dev/null
 cat pico_ql_test_output.txt
-make reset-prep > /dev/null
 
 cd ../Chess
 echo "\nIn Chess..."
@@ -124,7 +117,6 @@ make PICO_QL_TYPESAFE=1 PICO_QL_SINGLE_THREADED=1 > /dev/null
 echo "-> Executing tests."
 ./chess > /dev/null
 cat pico_ql_test_output.txt
-make reset-prep > /dev/null
 
 cd ../VRP
 echo "\nIn VRP..."
@@ -137,7 +129,6 @@ make PICO_QL_TYPESAFE=1 PICO_QL_SINGLE_THREADED=1 > /dev/null
 echo "-> Executing tests."
 ./schedule cvrp/solomon.txt 2 > /dev/null
 cat pico_ql_test_output.txt
-make reset-prep > /dev/null
 
 cd ..
 echo "\n*Testing examples with single threaded version, typesafety enabled and polymorphism support.*\n"
@@ -153,7 +144,6 @@ make PICO_QL_TYPESAFE=1 PICO_QL_SINGLE_THREADED=1 PICO_QL_HANDLE_POLYMORPHISM=1 
 echo "-> Executing tests."
 ./bank_app > /dev/null
 cat pico_ql_test_output.txt
-make reset-prep > /dev/null
 
 cd ../Chess
 echo "\nIn Chess..."
@@ -166,7 +156,6 @@ make PICO_QL_TYPESAFE=1 PICO_QL_SINGLE_THREADED=1 PICO_QL_HANDLE_POLYMORPHISM=1 
 echo "-> Executing tests."
 ./chess > /dev/null
 cat pico_ql_test_output.txt
-make reset-prep > /dev/null
 
 cd ../VRP
 echo "\nIn VRP..."
@@ -179,6 +168,5 @@ make PICO_QL_TYPESAFE=1 PICO_QL_SINGLE_THREADED=1 PICO_QL_HANDLE_POLYMORPHISM=1 
 echo "-> Executing tests."
 ./schedule cvrp/solomon.txt 2 > /dev/null
 cat pico_ql_test_output.txt
-make reset-prep > /dev/null
 
 echo "\nEND"

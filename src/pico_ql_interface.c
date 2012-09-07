@@ -28,6 +28,7 @@
 #include "pico_ql_interface.h"
 #include "pico_ql_vt.h"
 #include "pico_ql_test.h"
+#include "pico_ql_swill_access_func.h"
 
 /* Calls step_query for query execution. 
  * Collects and acts on the result status of a query 
@@ -125,6 +126,18 @@ int step_query(FILE *f, sqlite3_stmt *stmt) {
     return result;
 }
 
+/* Calls the function that prints the PiCO QL error page (.html).
+ */
+void print_pico_ql_error_page(FILE *f) {
+  error_page(f);
+}
+
+/* Calls the function that prints the PiCO QL logo (.PNG).
+ */
+void print_pico_ql_logo(FILE *f) {
+  logo(f);
+}
+
 /* Builds the front page of the library's web interface, 
  * retrieves the database schema and promotes inputted 
  * queries to sqlite_engine.
@@ -148,8 +161,7 @@ void app_index(FILE *f, sqlite3 *db) {
 		"</style>"
 		"</head>"
 		"<body>");
-  swill_file("pico_ql.png", "../bin/pico_ql.png");
-  swill_fprintf(f, "<img src=\"pico_ql.png\" alt=\"PiCO_QL logo\" />"
+  swill_fprintf(f, "<p><left><img src=\"pico_ql_logo.png\"></left>\n"
 		"<div class=\"div_style\">"
 		"<form action=\"serveQuery.html\" method=GET>"
 		"<div class=\"top\">"
@@ -216,9 +228,7 @@ void serve_query(FILE *f, sqlite3 *db) {
       swill_fprintf(f,"Ellapsed time given by C++ : <b>%f</b>s.<br><br>", c_time);
     } else {
       swill_fprintf(f, "<b>Error code %i.<br>Please advise </b><a href=\"", rc);
-      swill_file("SQLite_error_codes.html", 
-		 "../bin/SQLite_error_codes.html");
-      swill_printurl(f, "SQLite_error_codes.html", "", 0);
+      swill_printurl(f, "pico_ql_error_page.html", "", 0);
       swill_fprintf(f,"\">SQLite error codes</a>.<br><br>");
     }
     swill_fprintf(f, "<p class=\"aligned\">");
@@ -254,6 +264,8 @@ void terminate(FILE *f, sqlite3 *db) {
 // Interface to the swill server functionality.
 void call_swill(sqlite3 *db) {
   swill_init(8080);
+  swill_handle("pico_ql_logo.png", print_pico_ql_logo, 0);
+  swill_handle("pico_ql_error_page.html", print_pico_ql_error_page, 0);
   swill_handle("index.html", app_index, db);
   swill_handle("serveQuery.html", serve_query, db);
   swill_handle("terminateConnection.html", terminate, db);

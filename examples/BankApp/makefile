@@ -47,7 +47,9 @@ CXXFLAGS+=-DPICO_QL_HANDLE_POLYMORPHISM
 CFLAGS+=-DPICO_QL_HANDLE_POLYMORPHISM
 endif
 
-OBJ=main.o Account.o SuperAccount.o SpecialAccount.o pico_ql_search.o pico_ql_vt.o pico_ql_interface.o pico_ql_search_helper.o pico_ql_test.o
+all: prep bank_app
+
+OBJ=main.o Account.o SuperAccount.o SpecialAccount.o pico_ql_search.o pico_ql_vt.o pico_ql_logo.o pico_ql_error_page.o pico_ql_interface.o pico_ql_search_helper.o pico_ql_test.o
 
 bank_app: $(OBJ)
 	$(CXX) -lswill -lsqlite3 $(CXXFLAGS) $(OBJ) -o $@
@@ -64,18 +66,47 @@ pico_ql_search.o: pico_ql_search.cpp pico_ql_search.h pico_ql_interface.h pico_q
 
 pico_ql_vt.o: pico_ql_vt.c pico_ql_vt.h pico_ql_search.h
 
-pico_ql_interface.o: pico_ql_interface.c pico_ql_interface.h pico_ql_vt.h pico_ql_test.h
+pico_ql_logo.o: pico_ql_logo.c pico_ql_swill_access_func.h
+
+pico_ql_error_page.o: pico_ql_error_page.c pico_ql_swill_access_func.h
+
+pico_ql_interface.o: pico_ql_interface.c pico_ql_interface.h pico_ql_vt.h pico_ql_test.h pico_ql_swill_access_func.h
 
 pico_ql_search_helper.o: pico_ql_search_helper.cpp pico_ql_interface.h pico_ql_search.h
 
 pico_ql_test.o: pico_ql_test.c pico_ql_test.h
 
+pico_ql_logo.c: pico_ql.png
+	echo '#include <stdio.h>' >pico_ql_logo.c
+	echo '#include "pico_ql_swill_access_func.h"' >>pico_ql_logo.c
+	echo >>pico_ql_logo.c
+	echo 'const char logo_bytes[] = {' >>pico_ql_logo.c
+	od -vb pico_ql.png | sed 's/^.......//;/^$$/d;s/^   /0/;s/  //g;s/$$/,/;s/ /,0/g;' >>pico_ql_logo.c
+	echo '};' >>pico_ql_logo.c
+	echo 'int logo_len = sizeof(logo_bytes);' >>pico_ql_logo.c
+	echo >>pico_ql_logo.c
+	echo 'void logo(FILE *fo) {' >>pico_ql_logo.c
+	echo '  fwrite(logo_bytes, logo_len, 1, fo);' >>pico_ql_logo.c
+	echo '}' >>pico_ql_logo.c
+
+pico_ql_error_page.c: SQLite_error_codes.html
+	echo '#include <stdio.h>' >pico_ql_error_page.c
+	echo '#include "pico_ql_swill_access_func.h"' >>pico_ql_error_page.c
+	echo >>pico_ql_error_page.c
+	echo 'const char error_page_bytes[] = {' >>pico_ql_error_page.c
+	sed 's/\\/\\\\/g;s/"/\\"/g;s/^/"/;s/$$/\\n"/' SQLite_error_codes.html >>pico_ql_error_page.c
+	echo '};' >>pico_ql_error_page.c
+	echo 'int len = sizeof(error_page_bytes);' >>pico_ql_error_page.c
+	echo >>pico_ql_error_page.c
+	echo 'void error_page(FILE *fo) {' >>pico_ql_error_page.c
+	echo '  fwrite(error_page_bytes, len, 1, fo);' >>pico_ql_error_page.c
+	echo '}' >>pico_ql_error_page.c
+
 seed:
 	cp pico_ql_test_current.txt pico_ql_test_success.txt
 
 prep:
-	mkdir ../bin
-	cp -r ../../bin/ ../bin/
+	cp -r ../../bin/ .
 	mv pico_ql_test.c test.c
 	cp -r ../../src/ .
 	mv test.c pico_ql_test.c
@@ -84,6 +115,3 @@ prep:
 .PHONY= clean
 clean: 
 	rm *.o
-
-reset-prep:
-	rm -r ../bin
