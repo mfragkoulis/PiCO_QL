@@ -15,7 +15,7 @@ main.c: pico_ql.png
 	echo '#include "logo.h"' >>main.c
 	echo >>main.c
 	echo 'const char logo_bytes[] = {' >>main.c
-	od -vb pico_ql.png | sed 's/^.......//;s/^ /0/;s/ /,0/g;s/$$/,/;s/^,$$//' >>main.c
+	od -vb pico_ql.png | sed 's/^.......//;/^$$/d;s/^   /0/;s/  //g;s/$$/,/;s/ /,0/g;' >>main.c
 	echo '};' >>main.c
 	echo 'int len = sizeof(logo_bytes);' >>main.c
 	echo >>main.c
