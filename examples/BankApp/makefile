@@ -88,3 +88,4 @@ prep:
 .PHONY= clean
 clean: 
 	rm *.o
+	rm Bank

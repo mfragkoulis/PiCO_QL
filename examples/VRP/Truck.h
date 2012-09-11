@@ -28,6 +28,8 @@
 
 using namespace std;
 
+double get_delcapacity_math_root(int del_capacity);
+
 class Truck {
 
  private:

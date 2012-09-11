@@ -2,7 +2,7 @@ Query 1:
  select * from trucks;
 
 Statement prepared.
-truck_ptr 
+truck_id 
 
 3770496 
 3767904 
@@ -30,112 +30,112 @@ Query 2:
  select * from truck;
 
 Statement prepared.
-base customers_ptr cost delcapacity 
+base customers_id cost delcapacity delcapacity_root 
 
 
 Library used incorrectly
 
 Query 3:
- select * from trucks,truck where truck.base=trucks.truck_ptr
+ select * from trucks,truck where truck.base=trucks.truck_id
 
 Statement prepared.
-truck_ptr base customers_ptr cost delcapacity 
+truck_id base customers_id cost delcapacity delcapacity_root 
 
-3770496 3770496 3770504 147.495530 0 
-3767904 3767904 3767912 225.946633 0 
-3759264 3759264 3759272 278.821496 0 
-3765072 3765072 3765080 280.375322 20 
-3765216 3765216 3765224 339.716572 10 
-3765360 3765360 3765368 354.388256 0 
-3765504 3765504 3765512 220.167122 0 
-3765648 3765648 3765656 219.628909 0 
-3765792 3765792 3765800 282.593461 20 
-3765936 3765936 3765944 358.126821 0 
-3766080 3766080 3766088 330.983943 0 
-3766224 3766224 3766232 270.269111 10 
-3766368 3766368 3766376 184.833567 10 
-3766512 3766512 3766520 451.609882 0 
-3766656 3766656 3766664 282.626045 0 
-3766800 3766800 3766808 321.479943 10 
-3766944 3766944 3766952 328.678482 0 
-3767088 3767088 3767096 220.882914 10 
-3767232 3767232 3767240 21.633308 180 
+3770496 3770496 3770504 147.495530 0 0.000000 
+3767904 3767904 3767912 225.946633 0 0.000000 
+3759264 3759264 3759272 278.821496 0 0.000000 
+3765072 3765072 3765080 280.375322 20 4.472136 
+3765216 3765216 3765224 339.716572 10 3.162278 
+3765360 3765360 3765368 354.388256 0 0.000000 
+3765504 3765504 3765512 220.167122 0 0.000000 
+3765648 3765648 3765656 219.628909 0 0.000000 
+3765792 3765792 3765800 282.593461 20 4.472136 
+3765936 3765936 3765944 358.126821 0 0.000000 
+3766080 3766080 3766088 330.983943 0 0.000000 
+3766224 3766224 3766232 270.269111 10 3.162278 
+3766368 3766368 3766376 184.833567 10 3.162278 
+3766512 3766512 3766520 451.609882 0 0.000000 
+3766656 3766656 3766664 282.626045 0 0.000000 
+3766800 3766800 3766808 321.479943 10 3.162278 
+3766944 3766944 3766952 328.678482 0 0.000000 
+3767088 3767088 3767096 220.882914 10 3.162278 
+3767232 3767232 3767240 21.633308 180 13.416408 
 
 Done
 
 Query 4:
- select * from trucks,truck where truck.base=trucks.truck_ptr and cost<800 and delcapacity>0;
+ select * from trucks,truck where truck.base=trucks.truck_id and cost<800 and delcapacity>0;
 
 Statement prepared.
-truck_ptr base customers_ptr cost delcapacity 
+truck_id base customers_id cost delcapacity delcapacity_root 
 
-3765072 3765072 3765080 280.375322 20 
-3765216 3765216 3765224 339.716572 10 
-3765792 3765792 3765800 282.593461 20 
-3766224 3766224 3766232 270.269111 10 
-3766368 3766368 3766376 184.833567 10 
-3766800 3766800 3766808 321.479943 10 
-3767088 3767088 3767096 220.882914 10 
-3767232 3767232 3767240 21.633308 180 
+3765072 3765072 3765080 280.375322 20 4.472136 
+3765216 3765216 3765224 339.716572 10 3.162278 
+3765792 3765792 3765800 282.593461 20 4.472136 
+3766224 3766224 3766232 270.269111 10 3.162278 
+3766368 3766368 3766376 184.833567 10 3.162278 
+3766800 3766800 3766808 321.479943 10 3.162278 
+3767088 3767088 3767096 220.882914 10 3.162278 
+3767232 3767232 3767240 21.633308 180 13.416408 
 
 Done
 
 Query 5:
- select * from trucks,truck,customers,customer where truck.base=trucks.truck_ptr and cost <800 and delcapacity>0 and customers.base=truck.customers_ptr and customer.base=customers.customer_ptr and code>100 and demand>10;
+ select * from trucks,truck,customers,customer where truck.base=trucks.truck_id and cost <800 and delcapacity>0 and customers.base=truck.customers_id and customer.base=customers.customer_id and code>100 and demand>10;
 
 Statement prepared.
-truck_ptr base customers_ptr cost delcapacity base customer_ptr base position_ptr demand code serviced 
+truck_id base customers_id cost delcapacity delcapacity_root base customer_id base position_id demand code serviced 
 
-3765072 3765072 3765080 280.375322 20 3765080 2125680 2125680 2125664 20 159 0 
-3765216 3765216 3765224 339.716572 10 3765224 2125504 2125504 2125488 20 158 0 
-3765216 3765216 3765224 339.716572 10 3765224 2131664 2131664 2131648 20 193 0 
-3765216 3765216 3765224 339.716572 10 3765224 2123744 2123744 2123728 20 148 0 
-3765792 3765792 3765800 282.593461 20 3765800 2115648 2115648 2115632 20 102 0 
-3765792 3765792 3765800 282.593461 20 3765800 2123392 2123392 2123376 20 146 0 
-3765792 3765792 3765800 282.593461 20 3765800 2122688 2122688 2122672 20 142 0 
-3765792 3765792 3765800 282.593461 20 3765800 2121456 2121456 2121440 20 135 0 
-3766224 3766224 3766232 270.269111 10 3766232 2127968 2127968 2127952 20 172 0 
-3766224 3766224 3766232 270.269111 10 3766232 2129904 2129904 2129888 20 183 0 
-3766368 3766368 3766376 184.833567 10 3766376 2126560 2126560 2126544 30 164 0 
-3766368 3766368 3766376 184.833567 10 3766376 2125856 2125856 2125840 40 160 0 
-3766800 3766800 3766808 321.479943 10 3766808 2129552 2129552 2129536 20 181 0 
-3766800 3766800 3766808 321.479943 10 3766808 2116000 2116000 2115984 20 104 0 
-3766800 3766800 3766808 321.479943 10 3766808 2129376 2129376 2129360 30 180 0 
-3767088 3767088 3767096 220.882914 10 3767096 2120752 2120752 2120736 30 131 0 
-3767088 3767088 3767096 220.882914 10 3767096 2123040 2123040 2123024 20 144 0 
-3767232 3767232 3767240 21.633308 180 3767240 2116528 2116528 2116512 20 107 0 
+3765072 3765072 3765080 280.375322 20 4.472136 3765080 2125680 2125680 2125664 20 159 0 
+3765216 3765216 3765224 339.716572 10 3.162278 3765224 2125504 2125504 2125488 20 158 0 
+3765216 3765216 3765224 339.716572 10 3.162278 3765224 2131664 2131664 2131648 20 193 0 
+3765216 3765216 3765224 339.716572 10 3.162278 3765224 2123744 2123744 2123728 20 148 0 
+3765792 3765792 3765800 282.593461 20 4.472136 3765800 2115648 2115648 2115632 20 102 0 
+3765792 3765792 3765800 282.593461 20 4.472136 3765800 2123392 2123392 2123376 20 146 0 
+3765792 3765792 3765800 282.593461 20 4.472136 3765800 2122688 2122688 2122672 20 142 0 
+3765792 3765792 3765800 282.593461 20 4.472136 3765800 2121456 2121456 2121440 20 135 0 
+3766224 3766224 3766232 270.269111 10 3.162278 3766232 2127968 2127968 2127952 20 172 0 
+3766224 3766224 3766232 270.269111 10 3.162278 3766232 2129904 2129904 2129888 20 183 0 
+3766368 3766368 3766376 184.833567 10 3.162278 3766376 2126560 2126560 2126544 30 164 0 
+3766368 3766368 3766376 184.833567 10 3.162278 3766376 2125856 2125856 2125840 40 160 0 
+3766800 3766800 3766808 321.479943 10 3.162278 3766808 2129552 2129552 2129536 20 181 0 
+3766800 3766800 3766808 321.479943 10 3.162278 3766808 2116000 2116000 2115984 20 104 0 
+3766800 3766800 3766808 321.479943 10 3.162278 3766808 2129376 2129376 2129360 30 180 0 
+3767088 3767088 3767096 220.882914 10 3.162278 3767096 2120752 2120752 2120736 30 131 0 
+3767088 3767088 3767096 220.882914 10 3.162278 3767096 2123040 2123040 2123024 20 144 0 
+3767232 3767232 3767240 21.633308 180 13.416408 3767240 2116528 2116528 2116512 20 107 0 
 
 Done
 
 Query 6:
- select * from trucks,truck,customers,customer where truck.base=trucks.truck_ptr and cost <800 and delcapacity>0 and customers.base=truck.customers_ptr and customer.base=customers.customer_ptr and code>100 and demand>10 order by code;
+ select * from trucks,truck,customers,customer where truck.base=trucks.truck_id and cost <800 and delcapacity>0 and customers.base=truck.customers_id and customer.base=customers.customer_id and code>100 and demand>10 order by code;
 
 Statement prepared.
-truck_ptr base customers_ptr cost delcapacity base customer_ptr base position_ptr demand code serviced 
+truck_id base customers_id cost delcapacity delcapacity_root base customer_id base position_id demand code serviced 
 
-3765792 3765792 3765800 282.593461 20 3765800 2115648 2115648 2115632 20 102 0 
-3766800 3766800 3766808 321.479943 10 3766808 2116000 2116000 2115984 20 104 0 
-3767232 3767232 3767240 21.633308 180 3767240 2116528 2116528 2116512 20 107 0 
-3767088 3767088 3767096 220.882914 10 3767096 2120752 2120752 2120736 30 131 0 
-3765792 3765792 3765800 282.593461 20 3765800 2121456 2121456 2121440 20 135 0 
-3765792 3765792 3765800 282.593461 20 3765800 2122688 2122688 2122672 20 142 0 
-3767088 3767088 3767096 220.882914 10 3767096 2123040 2123040 2123024 20 144 0 
-3765792 3765792 3765800 282.593461 20 3765800 2123392 2123392 2123376 20 146 0 
-3765216 3765216 3765224 339.716572 10 3765224 2123744 2123744 2123728 20 148 0 
-3765216 3765216 3765224 339.716572 10 3765224 2125504 2125504 2125488 20 158 0 
-3765072 3765072 3765080 280.375322 20 3765080 2125680 2125680 2125664 20 159 0 
-3766368 3766368 3766376 184.833567 10 3766376 2125856 2125856 2125840 40 160 0 
-3766368 3766368 3766376 184.833567 10 3766376 2126560 2126560 2126544 30 164 0 
-3766224 3766224 3766232 270.269111 10 3766232 2127968 2127968 2127952 20 172 0 
-3766800 3766800 3766808 321.479943 10 3766808 2129376 2129376 2129360 30 180 0 
-3766800 3766800 3766808 321.479943 10 3766808 2129552 2129552 2129536 20 181 0 
-3766224 3766224 3766232 270.269111 10 3766232 2129904 2129904 2129888 20 183 0 
-3765216 3765216 3765224 339.716572 10 3765224 2131664 2131664 2131648 20 193 0 
+3765792 3765792 3765800 282.593461 20 4.472136 3765800 2115648 2115648 2115632 20 102 0 
+3766800 3766800 3766808 321.479943 10 3.162278 3766808 2116000 2116000 2115984 20 104 0 
+3767232 3767232 3767240 21.633308 180 13.416408 3767240 2116528 2116528 2116512 20 107 0 
+3767088 3767088 3767096 220.882914 10 3.162278 3767096 2120752 2120752 2120736 30 131 0 
+3765792 3765792 3765800 282.593461 20 4.472136 3765800 2121456 2121456 2121440 20 135 0 
+3765792 3765792 3765800 282.593461 20 4.472136 3765800 2122688 2122688 2122672 20 142 0 
+3767088 3767088 3767096 220.882914 10 3.162278 3767096 2123040 2123040 2123024 20 144 0 
+3765792 3765792 3765800 282.593461 20 4.472136 3765800 2123392 2123392 2123376 20 146 0 
+3765216 3765216 3765224 339.716572 10 3.162278 3765224 2123744 2123744 2123728 20 148 0 
+3765216 3765216 3765224 339.716572 10 3.162278 3765224 2125504 2125504 2125488 20 158 0 
+3765072 3765072 3765080 280.375322 20 4.472136 3765080 2125680 2125680 2125664 20 159 0 
+3766368 3766368 3766376 184.833567 10 3.162278 3766376 2125856 2125856 2125840 40 160 0 
+3766368 3766368 3766376 184.833567 10 3.162278 3766376 2126560 2126560 2126544 30 164 0 
+3766224 3766224 3766232 270.269111 10 3.162278 3766232 2127968 2127968 2127952 20 172 0 
+3766800 3766800 3766808 321.479943 10 3.162278 3766808 2129376 2129376 2129360 30 180 0 
+3766800 3766800 3766808 321.479943 10 3.162278 3766808 2129552 2129552 2129536 20 181 0 
+3766224 3766224 3766232 270.269111 10 3.162278 3766232 2129904 2129904 2129888 20 183 0 
+3765216 3765216 3765224 339.716572 10 3.162278 3765224 2131664 2131664 2131648 20 193 0 
 
 Done
 
 Query 7:
- select code, demand, x_coord, y_coord from trucks,truck,customers, customer, position where truck.base=trucks.truck_ptr and customers.base=truck.customers_ptr and customer.base=customers.customer_ptr and position.base=customer.position_ptr and code like '%99' union select code, demand, x_coord,y_coord from mapindex,customer,position where customer.base=mapindex.customer_ptr and position.base=customer.position_ptr and x_coord>133;
+ select code, demand, x_coord, y_coord from trucks,truck,customers, customer, position where truck.base=trucks.truck_id and customers.base=truck.customers_id and customer.base=customers.customer_id and position.base=customer.position_id and code like '%99' union select code, demand, x_coord,y_coord from mapindex,customer,position where customer.base=mapindex.customer_id and position.base=customer.position_id and x_coord>133;
 
 Statement prepared.
 code demand x_coord y_coord 
@@ -155,16 +155,16 @@ code demand x_coord y_coord
 Done
 
 Query 8:
- select c.code, c.demand, c.position_ptr, p.x_coord, p.y_coord, u.code, u.demand, u.position_ptr, o.x_coord, o.y_coord from trucks,truck,customers, customer c,mapindex,customer u, position p, position o where truck.base=trucks.truck_ptr and customers.base=truck.customers_ptr and c.base=customers.customer_ptr and p.base=c.position_ptr and c.code like '%99' and u.base=mapindex.customer_ptr and o.base=u.position_ptr and o.x_coord>133 and p.y_coord=o.y_coord;
+ select c.code, c.demand, c.position_id, p.x_coord, p.y_coord, u.code, u.demand, u.position_id, o.x_coord, o.y_coord from trucks,truck,customers, customer c,mapindex,customer u, position p, position o where truck.base=trucks.truck_id and customers.base=truck.customers_id and c.base=customers.customer_id and p.base=c.position_id and c.code like '%99' and u.base=mapindex.customer_id and o.base=u.position_id and o.x_coord>133 and p.y_coord=o.y_coord;
 
 Statement prepared.
-code demand position_ptr x_coord y_coord code demand position_ptr x_coord y_coord 
+code demand position_id x_coord y_coord code demand position_id x_coord y_coord 
 
 
 Done
 
 Query 9:
- select sum(map_index), demand from (select * from mapindex where map_index<187) as m, Customer where customer.base=m.customer_ptr group by demand
+ select sum(map_index), demand from (select * from mapindex where map_index<187) as m, Customer where customer.base=m.customer_id group by demand
 
 Statement prepared.
 sum(map_index) demand 
@@ -181,7 +181,7 @@ Query 10:
  select * from customer;
 
 Statement prepared.
-base position_ptr demand code serviced 
+base position_id demand code serviced 
 
 
 Library used incorrectly
@@ -190,31 +190,31 @@ Query 11:
  select * from trucks, customers;
 
 Statement prepared.
-truck_ptr base customer_ptr 
+truck_id base customer_id 
 
 
 Library used incorrectly
 
 Query 12:
- select * from trucks, customers where customers.base=trucks.truck_ptr;
+ select * from trucks, customers where customers.base=trucks.truck_id;
 
 Statement prepared.
-truck_ptr base customer_ptr 
+truck_id base customer_id 
 
 
 Library used incorrectly
 
 Query 13:
- select c.code, c.demand, c.position_ptr, p.x_coord, p.y_coord, u.code, u.demand, u.position_ptr, o.x_coord, o.y_coord from trucks,truck, customers, customer c,mapindex,customer u, position p,position o where truck.base=trucks.truck_ptr and customers.base=truck.customers_ptr and c.base=customers.customer_ptr and p.base=c.position_ptr and c.code like '%99' and u.base=mapindex.customer_ptr and o.base=truck.base and o.x_coord>133 and p.y_coord=o.y_coord;
+ select c.code, c.demand, c.position_id, p.x_coord, p.y_coord, u.code, u.demand, u.position_id, o.x_coord, o.y_coord from trucks,truck, customers, customer c,mapindex,customer u, position p,position o where truck.base=trucks.truck_id and customers.base=truck.customers_id and c.base=customers.customer_id and p.base=c.position_id and c.code like '%99' and u.base=mapindex.customer_id and o.base=truck.base and o.x_coord>133 and p.y_coord=o.y_coord;
 
 Statement prepared.
-code demand position_ptr x_coord y_coord code demand position_ptr x_coord y_coord 
+code demand position_id x_coord y_coord code demand position_id x_coord y_coord 
 
 
 Library used incorrectly
 
 Query 14:
- select code, demand, x_coord, y_coord from trucks,truck,customers, customer, position where truck.base=trucks.truck_ptr and customers.base=truck.customers_ptr and customer.base=trucks.truck_ptr and position.base=customer.position_ptr and code like '%99' union select code, demand, x_coord,y_coord from mapindex,customer,position where customer.base=mapindex.customer_ptr and position.base=customer.position_ptr and x_coord>133;
+ select code, demand, x_coord, y_coord from trucks,truck,customers, customer, position where truck.base=trucks.truck_id and customers.base=truck.customers_id and customer.base=trucks.truck_id and position.base=customer.position_id and code like '%99' union select code, demand, x_coord,y_coord from mapindex,customer,position where customer.base=mapindex.customer_id and position.base=customer.position_id and x_coord>133;
 
 Statement prepared.
 code demand x_coord y_coord 

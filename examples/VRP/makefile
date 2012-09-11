@@ -95,3 +95,4 @@ prep:
 .PHONY= clean
 clean:
 	rm *.o
+	rm mydb

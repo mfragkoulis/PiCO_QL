@@ -21,6 +21,7 @@
 
 #include <iostream>
 #include <string>
+#include <math.h>
 #include "Truck.h"
 
 using namespace std;
@@ -533,3 +534,6 @@ void Truck::reassignC(Truck* t) {
   info = t->info;
 }
 
+double get_delcapacity_math_root(int del_capacity) {
+  return sqrt(del_capacity);
+}

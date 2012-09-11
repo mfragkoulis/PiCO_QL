@@ -350,6 +350,10 @@ class VirtualTable
         fw.puts "#{$s}break;"
       when "gen_all"
         iden = configure(access_path)
+        if access_path.match(/this\.|this->/)
+          access_path.gsub!(/this\.|this->/, "#{iden}")
+        else access_path = "#{iden}#{access_path}"
+        end
 	if sqlite3_type == "text"
 	  if column_cast_back == ".c_str()"
 	    string_construct_cast = ""
@@ -357,11 +361,11 @@ class VirtualTable
 	    string_construct_cast = "(const char *)"
 	  end
 	  fw.puts "#ifdef PICO_QL_HANDLE_POLYMORPHISM"
-	  fw.puts "#{$s}tr->push_back(new string(#{string_construct_cast}#{iden}#{access_path}));"
+	  fw.puts "#{$s}tr->push_back(new string(#{string_construct_cast}#{access_path}));"
           fw.puts "#{$s}sqlite3_result_text(con, (const char *)(*tr->back()).c_str(), -1, SQLITE_STATIC);"
           fw.puts "#else"
 	end
-        fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{iden}#{access_path}#{column_cast_back}#{sqlite3_parameters});"
+        fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{access_path}#{column_cast_back}#{sqlite3_parameters});"
         if sqlite3_type == "text"
 	  fw.puts "#endif"
 	end
@@ -442,7 +446,11 @@ class VirtualTable
       case op
       when "gen_all"
         vt_type_spacing(fw)
-        fw.print "if (compare(#{column_cast}#{iden}#{access_path}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val)) )"
+        if access_path.match(/this\.|this->/)
+          access_path.gsub!(/this\.|this->/, "#{iden}")
+        else access_path = "#{iden}#{access_path}"
+        end
+        fw.print "if (compare(#{column_cast}#{access_path}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val)) )"
         fw.puts
         vt_type_spacing(fw)
         fw.print "    temp_res[count++] = i;"

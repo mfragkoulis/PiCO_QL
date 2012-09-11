@@ -19,6 +19,7 @@ CREATE STRUCT VIEW Truck (
       FOREIGN KEY(customers_id) FROM get_Customers() REFERENCES Customers POINTER,
       cost DOUBLE FROM get_cost(),
       delcapacity INT FROM get_delcapacity(),
+      delcapacity_root DOUBLE FROM get_delcapacity_math_root(this.get_delcapacity())
 );
 
 CREATE VIRTUAL TABLE mydb.Truck 
