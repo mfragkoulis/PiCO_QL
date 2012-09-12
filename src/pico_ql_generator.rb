@@ -114,7 +114,7 @@ end
 # Register line that corresponds to the table in DSL description
   def register_line()
     $lined_description.each_index { |line|
-      if $lined_description[line].match(/foreign key(.+) from #{access_path}|from #{access_path}/i)
+      if $lined_description[line].match(/foreign key(\s*)\((\s*)#{@name}(\s*)\) from #{@access_path}|#{@name} #{@data_type} from #{@access_path}/i)
         @line = line
         if $argD == "DEBUG"
           puts "Column found at line #{@line + 1} of #{$argF}"
@@ -500,6 +500,7 @@ class VirtualTable
       if $lined_description[line].match(/with registered c type #{@signature}/i)
         @signature_line = line
         if $argD == "DEBUG"
+          puts"LINE is #{$lined_description[line]}"
           puts "Virtual table's C TYPE found at line #{@signature_line + 1} of #{$argF}"
         end
         break
