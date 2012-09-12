@@ -225,7 +225,7 @@ void serve_query(FILE *f, sqlite3 *db) {
       c_time = ((double)finish_clock - 
 		(double)start_clock)/CLOCKS_PER_SEC;
       swill_fprintf(f, "<b>\nQUERY SUCCESSFUL! </b><br><br>");
-      swill_fprintf(f,"Ellapsed time given by C++ : <b>%f</b>s.<br><br>", c_time);
+      swill_fprintf(f,"CPU time: <b>%f</b>s.<br><br>", c_time);
     } else {
       swill_fprintf(f, "<b>Error code %i.<br>Please advise </b><a href=\"", rc);
       swill_printurl(f, "pico_ql_error_page.html", "", 0);
