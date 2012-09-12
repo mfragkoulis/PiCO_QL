@@ -27,7 +27,8 @@ require 'erb'
 class Column
   def initialize
     @name = ""
-    @line = 0                 # Line in DSL description that this table
+    @line = 0                 # Line in DSL description that the column
+                              # (the column's access path to be precise)
                               # is defined in.
     @data_type = ""
     @cpp_data_type = ""       # Respective C++ data type. Used only 
@@ -113,7 +114,7 @@ end
 # Register line that corresponds to the table in DSL description
   def register_line()
     $lined_description.each_index { |line|
-      if $lined_description[line].match(/#{@name} #{@data_type}/i)
+      if $lined_description[line].match(/foreign key(.+) from #{access_path}|from #{access_path}/i)
         @line = line
         if $argD == "DEBUG"
           puts "Column found at line #{@line + 1} of #{$argF}"
@@ -263,8 +264,10 @@ end
 class VirtualTable
   def initialize
     @name = ""
-    @line = 0             # Line in DSL description that this table
-                          # is defined in.
+    @base_var_line = 0    # Line in DSL description that the C NAME 
+                          # identifier is defined.
+    @signature_line = 0   # Line in DSL description that the C TYPE 
+                          # identifier is defined.
     @base_var = ""        # Name of the base variable alive at C++ app.
     @struct_view              # Reference to the respective struct_view definition.
     @db = ""              # Database name to be created/connected.
@@ -280,7 +283,8 @@ class VirtualTable
 			  # generating code for
 			  # PICO_QL_HANDLE_POLYMORPHISM C++ flag.
   end
-  attr_accessor(:name,:line,:base_var,:struct_view,:db,:signature,:container_class,:type,
+  attr_accessor(:name,:base_var_line,:signature_line,:base_var,:struct_view,
+                :db,:signature,:container_class,:type,
                 :pointer,:object_class,:columns,:include_text_col)
 
 # Support templating of member data
@@ -481,10 +485,22 @@ class VirtualTable
 # Register line that corresponds to the table in DSL description
   def register_line()
     $lined_description.each_index { |line|
-      if $lined_description[line].match(/(\w+)\.#{@name} /i)
-        @line = line
+      if $lined_description[line].match(/with registered c name #{@base_var}/i)
+        @base_var_line = line
         if $argD == "DEBUG"
-          puts "Table found at line #{@line + 1} of #{$argF}"
+          puts "Virtual table's C NAME found at line #{@base_var_line + 1} of #{$argF}"
+        end
+        break
+        if $argD == "DEBUG"
+          puts "Line #{line + 1}"
+        end
+      end
+    }
+    $lined_description.each_index { |line|
+      if $lined_description[line].match(/with registered c type #{@signature}/i)
+        @signature_line = line
+        if $argD == "DEBUG"
+          puts "Virtual table's C TYPE found at line #{@signature_line + 1} of #{$argF}"
         end
         break
         if $argD == "DEBUG"
@@ -578,7 +594,8 @@ class VirtualTable
     register_line()
     if $argD == "DEBUG"
       puts "Table name is: " + @name
-      puts "Table defined at line #{@line + 1} of #{$argF}"
+      puts "Table's C NAME defined at line #{@base_var_line + 1} of #{$argF}"
+      puts "Table's C TYPE defined at line #{@signature_line + 1} of #{$argF}"
       puts "Table lives in database named: " + @db
       puts "Table base variable name is: " + @base_var
       puts "Table signature name is: " + @signature
@@ -597,10 +614,8 @@ class StructView
     		      	  # of text data type. Required for
 			  # generating code for
 			  # PICO_QL_HANDLE_POLYMORPHISM C++ flag.
-    @line = 0             # Line in DSL description that this struct_view
-                          # is defined in.
   end
-  attr_accessor(:name,:columns,:include_text_col,:line)
+  attr_accessor(:name,:columns,:include_text_col)
 
   # Removes the last entry in the columns table and returns the table 
   # itself. Useful when including a struct_view definition to remove the 
@@ -608,22 +623,6 @@ class StructView
   def columns_delete_last()
     @columns.delete(@columns.last)
     return @columns
-  end
-
-# Register line that corresponds to the table in DSL description
-  def register_line()
-    $lined_description.each_index { |line|
-      if $lined_description[line].match(/struct view table #{@name}(\s*)\(/i)
-        @line = line
-        if $argD == "DEBUG"
-          puts "StructView found at line #{@line + 1} of #{$argF}"
-        end
-        break
-        if $argD == "DEBUG"
-          puts "Line #{line + 1}"
-        end
-      end
-    }
   end
 
   # Matches a struct view definition against the prototype pattern and 
@@ -645,12 +644,10 @@ class StructView
       else
         columns_str[0] = matchdata[3]
       end
-      register_line()
     end
     columns_str.each { |x| @include_text_col += @columns.push(Column.new).last.set(x) }
     if $argD == "DEBUG"
       puts "StructView #{@name} registered."
-      puts "StructView defined at line #{@line + 1} of #{$argF}."
       puts "StructView includes #{@include_text_col} columns of type text."
       puts "Columns follow:"
       @columns.each { |x| p x }

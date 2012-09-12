@@ -73,7 +73,8 @@ static map<const char *, int, name_cmp>::iterator vtd_iter;
 <%      if vt.base_var.length > 0 %>
 <%        /\*/.match(vt.pointer) == nil ? retype = "*" : retype = "" %>
 <%        if $argD == "DEBUG" %>
-// Close to line <%= vt.line + 1 %> <%= $argF %>
+// C NAME <%= vt.base_var %> in line <%= vt.base_var_line + 1 %> <%= $argF %> 
+// C TYPE <%= vt.signature %> in line <%= vt.signature_line + 1 %> <%= $argF %> 
 <%        end %>
 static <%= vt.signature %> <%= retype %>pico_ql_table_<%= vt.base_var %>;
 <%      end %>
@@ -93,7 +94,8 @@ void pico_ql_register(void *data_structure, const char *ds_name) {
     } else if (!strcmp(ds_name, "<%= @tables[vt].base_var %>")) {
 <%        end %>
 <%        if $argD == "DEBUG" %>
-// Close to line <%= @tables[vt].line + 1 %> <%= $argF %>
+// C NAME <%= @tables[vt].base_var %> in line <%= @tables[vt].base_var_line + 1 %> <%= $argF %> 
+// C TYPE <%= @tables[vt].signature %> in line <%= @tables[vt].signature_line + 1 %> <%= $argF %> 
 <%        end %>
 <%        /\*/.match(@tables[vt].pointer) == nil ? retype = "*" : retype = "" %>
         pico_ql_table_<%= @tables[vt].base_var %> = (<%= @tables[vt].signature %> <%= retype %>)data_structure;
@@ -119,9 +121,6 @@ void * thread_sqlite(void *data) {
 <%        query += "#{c.name} #{c.data_type}, " %>
 <%      } %>
 <%      query = query.chomp(", ") + ")" %>
-<%      if $argD == "DEBUG" %>
-// Close to line <%= @tables[vt].line + 1 %> <%= $argF %>
-<%      end %>
     queries[<%= vt %>] = "<%= query %>";
     table_names[<%= vt %>] = "<%= @tables[vt].name %>";
 <%    } %>
@@ -164,7 +163,7 @@ void register_vt(picoQLTable *picoQL) {
 <%# Retyping has been taken care of in register_pico_ql %>
 <%#        /\*/.match(@tables[vt].pointer) == nil ? retype = "&" : retype = "" %>
 <%        if $argD == "DEBUG" %>
-// Close to line <%= @tables[vt].line + 1 %> <%= $argF %>
+// C NAME <%= @tables[vt].base_var %> in line <%= @tables[vt].base_var_line + 1 %> <%= $argF %> 
 <%        end %>
         picoQL->data = (void *)pico_ql_table_<%= @tables[vt].base_var %>;
         picoQL->embedded = 0;
@@ -203,7 +202,7 @@ int get_datastructure_size(sqlite3_vtab_cursor *cur) {
 <%# stc->source will definitely hold a pointer so retyping the signature as
 <%# follows is correct. %>
 <%        if $argD == "DEBUG" %>
-// Close to line <%= @tables[vt].line + 1 %> <%= $argF %>
+// C TYPE <%= @tables[vt].signature %> in line <%= @tables[vt].signature_line + 1 %> <%= $argF %> 
 <%        end %>
         <%= @tables[vt].signature %><%= retype %> any_dstr = (<%= @tables[vt].signature %><%= retype %>)stc->source;
         return (int)any_dstr->size();

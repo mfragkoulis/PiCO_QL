@@ -10,7 +10,7 @@ int <%= @name %>_retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con)
 <%      sign_untype = @signature.chomp("*") %>
 <%    end %>
 <%    if $argD == "DEBUG" %>
-// Close to line <%= @line + 1 %> <%= $argF %> 
+// C TYPE <%= @signature %> in line <%= @signature_line + 1 %> <%= $argF %> 
 <%    end %>
     <%= sign_retype %> any_dstr = (<%= sign_retype %>)stcsr->source;
 <%    if @include_text_col > 0 %>
