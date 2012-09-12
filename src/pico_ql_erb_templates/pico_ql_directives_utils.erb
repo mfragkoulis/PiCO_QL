@@ -75,7 +75,7 @@ static map<const char *, int, name_cmp>::iterator vtd_iter;
 <%        if $argD == "DEBUG" %>
 // Close to line <%= vt.line + 1 %> <%= $argF %>
 <%        end %>
-<%= vt.signature %> <%= retype %><%= vt.base_var %>;
+static <%= vt.signature %> <%= retype %>pico_ql_table_<%= vt.base_var %>;
 <%      end %>
 <%     } %>
 
@@ -96,7 +96,7 @@ void pico_ql_register(void *data_structure, const char *ds_name) {
 // Close to line <%= @tables[vt].line + 1 %> <%= $argF %>
 <%        end %>
 <%        /\*/.match(@tables[vt].pointer) == nil ? retype = "*" : retype = "" %>
-        <%= @tables[vt].base_var %> = (<%= @tables[vt].signature %> <%= retype %>)data_structure;
+        pico_ql_table_<%= @tables[vt].base_var %> = (<%= @tables[vt].signature %> <%= retype %>)data_structure;
 <%      end %>
 <%    } %>
     }
@@ -166,7 +166,7 @@ void register_vt(picoQLTable *picoQL) {
 <%        if $argD == "DEBUG" %>
 // Close to line <%= @tables[vt].line + 1 %> <%= $argF %>
 <%        end %>
-        picoQL->data = (void *)<%= @tables[vt].base_var %>;
+        picoQL->data = (void *)pico_ql_table_<%= @tables[vt].base_var %>;
         picoQL->embedded = 0;
 <%      end %>
 <%    } %>
