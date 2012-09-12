@@ -61,7 +61,7 @@ extern "C" {
   int pico_ql_serve();
   void pico_ql_register(void *collection, const char * col_name);
   void register_vt(picoQLTable *picoQL);
-  int equals_base(const char *zCol);
+  int equals(const char *zCol, const char *key);
   int init_text_vector(picoQLTableCursor *stc);
   void deinit_text_vector(picoQLTableCursor *stc);
   int get_datastructure_size(sqlite3_vtab_cursor *cur);

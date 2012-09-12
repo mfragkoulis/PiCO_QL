@@ -86,6 +86,18 @@ int call_test(sqlite3 *db) {
   int result, i = 1;
   char *q;
 
+  q = "select * from trucks where vt_pos=20;";
+  fprintf(f, "Query %i:\n %s\n\n", i++, q);
+  result = test_prep_exec(f, db, q);
+
+  q = "select * from trucks,truck,customers where truck.base=trucks.truck_id and customers.base=truck.customers_id and customers.vt_pos=4;";
+  fprintf(f, "Query %i:\n %s\n\n", i++, q);
+  result = test_prep_exec(f, db, q);
+
+  q = "select * from trucks,truck,mapindex,customers where truck.base=trucks.truck_id and customers.base=truck.customers_id and customers.vt_pos=mapindex.map_index;";
+  fprintf(f, "Query %i:\n %s\n\n", i++, q);
+  result = test_prep_exec(f, db, q);
+
   q = "select * from trucks;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);

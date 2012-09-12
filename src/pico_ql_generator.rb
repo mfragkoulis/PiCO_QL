@@ -79,6 +79,9 @@ end
       sqlite3_type.replace("int64")
       column_cast.replace("(long int)")
       return "base", nil, nil, nil
+    elsif @name == "vt_pos"           # 'vt_pos'column
+      sqlite3_type.replace("int")
+      return "vt_pos", nil, nil, nil
     end
     dt = @data_type.downcase         # Normal data column.
     if @@int_data_types.include?(dt)
@@ -337,6 +340,9 @@ class VirtualTable
       when "base"
         fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, #{column_cast}any_dstr);"
         fw.puts "#{$s}break;"
+      when "vt_pos"
+        fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, stcsr->resultSet[index]);"
+        fw.puts "#{$s}break;"
       when "fk"
         iden = configure(access_path)
         if fk_col_name != nil
@@ -425,7 +431,7 @@ class VirtualTable
         if fk_type == "object" : column_cast.concat("&") end
         op = "gen_all"
       end
-      if @container_class.length > 0
+      if @container_class.length > 0 && op != "vt_pos"
         fw.puts "#{$s}    iter = any_dstr->begin();"
         fw.puts "#{$s}    for (int i = 0; i < size; i++) {"
         access_path.length == 0 ? iden = "(*iter)" : iden = "(*iter)."
@@ -461,9 +467,11 @@ class VirtualTable
       when "base"
         vt_type_spacing(fw)
         fw.print "temp_res[count++] = i;"
+      when "vt_pos"
+        fw.print "#{$s}    temp_res[count++] = sqlite3_value_int(val);"
       end
       fw.puts
-      if @container_class.length > 0
+      if @container_class.length > 0 && op != "vt_pos"
         fw.puts "#{$s}#{$s}iter++;"
         fw.puts "#{$s}    }"
       end
@@ -589,6 +597,9 @@ class VirtualTable
     end
     if @base_var.length == 0            # base column for embedded structs.
       @columns.push(Column.new).last.set("base INT FROM self") 
+    end
+    if @container_class.length > 0     # vt_pos column for container structs.
+      @columns.push(Column.new).last.set("vt_pos INT FROM self") 
     end
     @include_text_col = @struct_view.include_text_col
     @columns = @columns | @struct_view.columns

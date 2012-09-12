@@ -215,13 +215,13 @@ int get_datastructure_size(sqlite3_vtab_cursor *cur) {
 
 // Each embedded virtual table has a column named 'base'.
 // This function checks if a provided column name is indeed 'base'.
-int equals_base(const char *zCol) {
+int equals(const char *zCol, const char *key) {
     int length = (int)strlen(zCol) + 1;
     char copy[length], *token;
     memcpy(copy, zCol, length);
     token = strtok(copy, " ");
     if (token != NULL) {
-        if (!strcmp(token, "base"))
+        if (!strcmp(token, key))
             return true;
         else
             return false;

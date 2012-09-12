@@ -226,7 +226,7 @@ int best_index_vtable(sqlite3_vtab *pVtab,
     memset(nidxStr, 0, sizeof(nidxStr));
 
     assert(pInfo->idxStr == 0);
-    int i, j=0;
+    int i, con, j = 0, counter = 1, mule;
     if (!st->embedded) {
       for (i = 0; i < pInfo->nConstraint; i++){
 	struct sqlite3_index_constraint *pCons = 
@@ -234,9 +234,18 @@ int best_index_vtable(sqlite3_vtab *pVtab,
 	if (pCons->usable == 0) 
 	  continue;
 	iCol = pCons->iColumn - 1 + 'a';
+	nCol = pCons->iColumn;
+	if (!equals(st->azColumn[nCol], "vt_index"))
+	  pInfo->aConstraintUsage[i].argvIndex = counter++;
+	else {
+	  pInfo->aConstraintUsage[i].argvIndex = 1;
+	  for (con = 0; con < i; con++) {
+	    pInfo->aConstraintUsage[con].argvIndex = con + 2;
+	  }
+	  counter++;
+	}
 	eval_constraint(pCons->op, iCol, &j, 
 			nidxStr, nidxLen);
-	pInfo->aConstraintUsage[i].argvIndex = i+1;
 	pInfo->aConstraintUsage[i].omit = 1;
       }
     } else {
@@ -247,7 +256,8 @@ int best_index_vtable(sqlite3_vtab *pVtab,
 	printf("zErr freed for %s\n", st->zName);
 #endif
       }
-      int counter = 2, based = 0;      
+      int based = 0;      
+      counter = 2;
       for (i = 0; i < pInfo->nConstraint; i++) {
 	struct sqlite3_index_constraint *pCons = 
 	  &pInfo->aConstraint[i];
@@ -255,11 +265,18 @@ int best_index_vtable(sqlite3_vtab *pVtab,
 	  continue;
 	iCol = pCons->iColumn - 1 + 'a';
 	nCol = pCons->iColumn;
-	if (!equals_base(st->azColumn[nCol])) 
-	  pInfo->aConstraintUsage[i].argvIndex = counter++;
-	else {
+	if (equals(st->azColumn[nCol], "base")) {
 	  pInfo->aConstraintUsage[i].argvIndex = 1;
 	  based = 1;
+	} else if (equals(st->azColumn[nCol], "vt_index")) {
+	  pInfo->aConstraintUsage[i].argvIndex = 2;
+	  for (con = 0; con < i; con++) {
+	    if (pInfo->aConstraintUsage[con].argvIndex != 1)
+	      pInfo->aConstraintUsage[con].argvIndex = con + 3;
+	  }
+	  counter++;
+	} else {
+	  pInfo->aConstraintUsage[i].argvIndex = counter++;
 	}
 	eval_constraint(pCons->op, iCol, &j, 
 			nidxStr, nidxLen);

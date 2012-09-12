@@ -49,7 +49,7 @@ int <%= @name %>_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *v
     } else {
         check_alloc((const char *)constr, op, iCol);
 <%      if @base_var.length == 0 %>
-        if (equals_base(picoQL->azColumn[iCol])) {
+        if (equals(picoQL->azColumn[iCol], "base")) {
 <%        if $argT == "TYPESAFE" %>
             vtd_iter = vt_directory.find(picoQL->zName);
             if ((vtd_iter == vt_directory.end()) || (vtd_iter->second == 0)) {
