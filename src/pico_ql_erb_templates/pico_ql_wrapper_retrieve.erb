@@ -8,4 +8,5 @@ int retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con) {
 <%      end %>
         return <%= vt.name %>_retrieve(cur, n, con);
 <%    } %>
+    return SQLITE_INTERNAL;
 }
