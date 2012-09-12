@@ -83,7 +83,7 @@ static <%= vt.signature %> <%= retype %>pico_ql_table_<%= vt.base_var %>;
 /* Registers the base variables of user application code
  * with PiCO QL.
  */
-void pico_ql_register(void *data_structure, const char *ds_name) {
+void pico_ql_register(const void *data_structure, const char *ds_name) {
 <%    count = 0 %>
 <%    @tables.each_index { |vt| %>
 <%      if @tables[vt].base_var.length > 0 %>

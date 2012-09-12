@@ -28,7 +28,7 @@
 
 int main() {
     vector<vector<ChessPiece> > board;
-    pico_ql_register(&board, "board");
+    pico_ql_register((const void *)&board, "board");
     vector<vector<ChessPiece> >::iterator iter;
     vector<ChessPiece>::iterator it;
 

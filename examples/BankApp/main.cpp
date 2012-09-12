@@ -101,9 +101,9 @@ int main() {
     superaccounts.insert(make_pair("9", sa5));
     superaccounts.insert(make_pair("21", sa6));
 
-    pico_ql_register(&accounts, "accounts");
-    pico_ql_register(&superaccounts, "superaccounts");
-    pico_ql_register(&specialaccounts, "specialaccounts");
+    pico_ql_register((const void *)&accounts, "accounts");
+    pico_ql_register((const void *)&superaccounts, "superaccounts");
+    pico_ql_register((const void *)&specialaccounts, "specialaccounts");
     while (pico_ql_serve()) {};
 
     for (it = superaccounts.begin(); it != superaccounts.end(); it++) {

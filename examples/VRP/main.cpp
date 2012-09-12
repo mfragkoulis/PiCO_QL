@@ -300,8 +300,8 @@ int main(int argc, const char *argv[]) {
     // variable name is ok as long as the passed variable 
     // name (vehicles) is the same with base in DSL 
     // description e.g. (WITH BASE = vehicles").
-    pico_ql_register(best_fl.get_fleet(), "vehicles");
-    pico_ql_register(&test, "test");
+    pico_ql_register((const void *)best_fl.get_fleet(), "vehicles");
+    pico_ql_register((const void *)&test, "test");
     while (pico_ql_serve()) {};
     
     cout << endl << "Optimised solution after " << 
