@@ -85,7 +85,7 @@ int prep_exec(FILE *f, sqlite3 *db, const char *q){
  * presents the resultset of a query.
  */
 int step_query(FILE *f, sqlite3_stmt *stmt) {
-  int col, result;
+  int col, result, rows = 0;
   swill_fprintf(f, "<table>");
   swill_fprintf(f, "</tr>");
   for (col = 0; col < sqlite3_column_count(stmt); col++) {
@@ -94,6 +94,7 @@ int step_query(FILE *f, sqlite3_stmt *stmt) {
   }
   swill_fprintf(f, "</tr>");
   while ((result = sqlite3_step(stmt)) == SQLITE_ROW) {
+    rows++;
     swill_fprintf(f, "<tr>");
     for (col = 0; col < sqlite3_column_count(stmt); col++) {
       switch (sqlite3_column_type(stmt, col)) {
@@ -121,9 +122,11 @@ int step_query(FILE *f, sqlite3_stmt *stmt) {
     }
     swill_fprintf(f, "</tr>");
   }
-    swill_fprintf(f,"</table>");
-    swill_fprintf(f, "<br>");
-    return result;
+  swill_fprintf(f,"</table>");
+  swill_fprintf(f, "<br>");
+  swill_fprintf(f, "<b>%i rows in result set.</b><br>", rows);
+  swill_fprintf(f, "<br>");
+  return result;
 }
 
 /* Calls the function that prints the PiCO QL error page (.html).
