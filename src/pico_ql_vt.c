@@ -239,7 +239,7 @@ int best_index_vtable(sqlite3_vtab *pVtab,
 	  continue;
 	iCol = pCons->iColumn - 1 + 'a';
 	nCol = pCons->iColumn;
-	if (!equals(st->azColumn[nCol], "vt_index"))
+	if (!equals(st->azColumn[nCol], "rownum"))
 	  pInfo->aConstraintUsage[i].argvIndex = counter++;
 	else {
 	  pInfo->aConstraintUsage[i].argvIndex = 1;
@@ -272,7 +272,7 @@ int best_index_vtable(sqlite3_vtab *pVtab,
 	if (equals(st->azColumn[nCol], "base")) {
 	  pInfo->aConstraintUsage[i].argvIndex = 1;
 	  based = 1;
-	} else if (equals(st->azColumn[nCol], "vt_index")) {
+	} else if (equals(st->azColumn[nCol], "rownum")) {
 	  pInfo->aConstraintUsage[i].argvIndex = 2;
 	  for (con = 0; con < i; con++) {
 	    if (pInfo->aConstraintUsage[con].argvIndex != 1)
