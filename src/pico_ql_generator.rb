@@ -117,7 +117,7 @@ end
 # Register line that corresponds to the table in DSL description
   def register_line()
     $lined_description.each_index { |line|
-      if $lined_description[line].match(/foreign key(\s*)\((\s*)#{@name}(\s*)\) from #{@access_path}|#{@name} #{@data_type} from #{@access_path}/i)
+      if $lined_description[line].match(/foreign key(\s*)\((\s*)#{Regexp.escape(@name)}(\s*)\) from #{Regexp.escape(@access_path)}|#{Regexp.escape(@name)} #{Regexp.escape(@data_type)} from #{Regexp.escape(@access_path)}/i)
         @line = line
         if $argD == "DEBUG"
           puts "Column found at line #{@line + 1} of #{$argF}"
@@ -493,7 +493,7 @@ class VirtualTable
 # Register line that corresponds to the table in DSL description
   def register_line()
     $lined_description.each_index { |line|
-      if $lined_description[line].match(/with registered c name #{@base_var}/i)
+      if $lined_description[line].match(/with registered c name #{Regexp.escape(@base_var)}/i)
         @base_var_line = line
         if $argD == "DEBUG"
           puts "Virtual table's C NAME found at line #{@base_var_line + 1} of #{$argF}"
@@ -505,7 +505,7 @@ class VirtualTable
       end
     }
     $lined_description.each_index { |line|
-      if $lined_description[line].match(/with registered c type #{@signature}/i)
+      if $lined_description[line].match(/with registered c type #{Regexp.escape(@signature)}/i)
         @signature_line = line
         if $argD == "DEBUG"
           puts"LINE is #{$lined_description[line]}"
@@ -788,10 +788,6 @@ end
       token_d[x].rstrip!
       token_d[x].squeeze!(" ")
       if / ,|, /.match(token_d[x]) : token_d[x].gsub!(/ ,|, /, ",") end
-#      if / \(/.match(token_d[x]) : token_d[x].gsub!(/ \(/, "(") end
-      if /\( /.match(token_d[x]) : token_d[x].gsub!(/\( /, "(") end
-#      if /\) /.match(token_d[x]) : token_d[x].gsub!(/\) /, ")") end
-      if / \)/.match(token_d[x]) : token_d[x].gsub!(/ \)/, ")") end
       x += 1
     end
     @description = token_d
@@ -849,6 +845,14 @@ if __FILE__ == $0
     puts e.message
     exit(1)
   end
+  $lined_description.each { |line|
+    line.squeeze!(" ")
+    if / ,|, /.match(line) : line.gsub!(/ ,|, /, ",") end
+    #      if / \(/.match(line) : line.gsub!(/ \(/, "(") end
+    if /\( /.match(line) : line.gsub!(/\( /, "(") end
+    #      if /\) /.match(line) : line.gsub!(/\) /, ")") end
+    if / \)/.match(line) : line.gsub!(/ \)/, ")") end
+  }
   description = $lined_description.to_s
   # Remove the ';' from the namespace before splitting.
   if description.match(/using namespace (.+);/)
