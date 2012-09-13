@@ -1,1 +1,0 @@
-Test produced unexpected results. See pico_ql_test_current.txt .
