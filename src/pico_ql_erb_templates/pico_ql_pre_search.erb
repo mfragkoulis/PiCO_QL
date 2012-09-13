@@ -58,7 +58,11 @@ int <%= @name %>_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *v
             }
             vt_directory[picoQL->zName] = 0;
 <%        end %>
+#ifdef ENVIRONMENT64
             stcsr->source = (void *)sqlite3_value_int64(val);
+#else
+            stcsr->source = (void *)sqlite3_value_int(val);
+#endif
 	    if (stcsr->source == NULL) {
 	        stcsr->isInstanceNULL = 1;
 		stcsr->max_size = 1;
