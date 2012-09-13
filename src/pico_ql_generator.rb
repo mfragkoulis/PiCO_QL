@@ -71,6 +71,7 @@ end
     tmp_text_array.replace(@@text_match_data_types)
     if @related_to.length > 0       # 'this' (column) refers to other VT.
       sqlite3_type.replace("int64")
+      sqlite3_parameters.replace("int")    # for 32-bit architectures.used in retrieve and search.
       column_cast.replace("(long int)")
       access_path.replace(@access_path)
       return "fk", @related_to, @col_type, @line
@@ -363,7 +364,11 @@ class VirtualTable
             column_type == "pointer" ? record_type = "" : record_type = "&"
           end
         end
-        fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{record_type}#{iden}#{access_path}#{column_cast_back}#{sqlite3_parameters});"
+        fw.puts "#ifdef ENVIRONMENT64"
+        fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{record_type}#{iden}#{access_path});"
+        fw.puts "#else"
+        fw.puts "#{$s}sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}#{record_type}#{iden}#{access_path});"
+        fw.puts "#endif"
         fw.puts "#{$s}break;"
       when "gen_all"
         iden = configure(access_path)
@@ -462,13 +467,24 @@ class VirtualTable
       end
       case op
       when "gen_all"
+        if sqlite3_type == "int64"
+          fw.puts "#ifdef ENVIRONMENT64"
+        end
         vt_type_spacing(fw)
         if access_path.match(/this\.|this->/)
           access_path.gsub!(/this\.|this->/, "#{iden}")
-        else access_path = "#{iden}#{access_path}"
+        else 
+          access_path = "#{iden}#{access_path}"
         end
         fw.print "if (compare(#{column_cast}#{access_path}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val)) )"
         fw.puts
+        if sqlite3_type == "int64"
+          fw.puts "#else"
+          vt_type_spacing(fw)
+          fw.print "if (compare(#{column_cast}#{access_path}#{column_cast_back}, op, sqlite3_value_#{sqlite3_parameters}(val)) )"
+          fw.puts
+          fw.puts "#endif"
+        end
         vt_type_spacing(fw)
         fw.print "    temp_res[count++] = i;"
       when "base"
