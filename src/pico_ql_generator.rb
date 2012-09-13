@@ -75,9 +75,10 @@ end
       access_path.replace(@access_path)
       return "fk", @related_to, @col_type, @line
     end
-    if @name == "base"               # 'base' column. refactor: elsif perhaps?
+    if @name == "base"              # 'base' column. refactor: elsif perhaps?
       sqlite3_type.replace("int64")
       column_cast.replace("(long int)")
+      sqlite3_parameters.replace("int");    # for 32-bit architectures.used in retrieve.
       return "base", nil, nil, nil
     elsif @name == "vt_pos"           # 'vt_pos'column
       sqlite3_type.replace("int")
@@ -338,7 +339,13 @@ class VirtualTable
       end
       case op
       when "base"
+        fw.puts "#ifdef ENVIRONMENT64"
+        # sqlite3_type = "int64" always in this case.
         fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, #{column_cast}any_dstr);"
+        fw.puts "#else"
+        # sqlite3_parameters = "int" always in this case.
+        fw.puts "#{$s}sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}any_dstr);"
+        fw.puts "#endif"
         fw.puts "#{$s}break;"
       when "vt_pos"
         fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, stcsr->resultSet[index]);"
@@ -372,7 +379,7 @@ class VirtualTable
 	  end
 	  fw.puts "#ifdef PICO_QL_HANDLE_POLYMORPHISM"
 	  fw.puts "#{$s}tr->push_back(new string(#{string_construct_cast}#{access_path}));"
-          fw.puts "#{$s}sqlite3_result_text(con, (const char *)(*tr->back()).c_str(), -1, SQLITE_STATIC);"
+          fw.puts "#{$s}sqlite3_result_text(con, (const char *)(*tr->back()).c_str()#{sqlite3_parameters});"
           fw.puts "#else"
 	end
         fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{access_path}#{column_cast_back}#{sqlite3_parameters});"
