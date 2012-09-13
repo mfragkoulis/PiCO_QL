@@ -463,6 +463,7 @@ int close_vtable(sqlite3_vtab_cursor *cur) {
 #ifdef PICO_QL_HANDLE_POLYMORPHISM
   deinit_text_vector(stc);
 #endif
+  deinit_temp_vector();
   sqlite3_free(stc);
   return SQLITE_OK;
 }

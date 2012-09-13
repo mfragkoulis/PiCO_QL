@@ -33,7 +33,7 @@ class Column
     @data_type = ""
     @cpp_data_type = ""       # Respective C++ data type. Used only 
                               # for string so far.
-    @related_to = ""          # Reference to other VT(like a FK).
+    @related_to = ""          # Reference to other VT's name (FK).
     @access_path = ""         # The access statement for the column value.
     @col_type = ""                # Record type (pointer or reference) for 
                               # special columns, the ones that refer to 
@@ -51,14 +51,14 @@ class Column
 
 
 # Used to clone a Column object. Ruby does not support deep copies.
-def construct(name, data_type, related_to, access_path, type, line)
+  def construct(name, data_type, related_to, access_path, type, line)
     @name = name
     @data_type = data_type
     @related_to = related_to
     @access_path = access_path
     @col_type = type
     @line = line
-end
+  end
 
 # Fills variables
 
@@ -279,7 +279,9 @@ class VirtualTable
     @signature = ""       # The C++ signature of the struct.
     @container_class = "" # If a container instance as per 
                           # the SGI container concept.
-    @type = ""            # The record type for the VT.
+    @type = ""            # The record type for the VT. 
+                          # Use @type for management. It is active for 
+                          # both container and object.
     @pointer = ""         # Type of the base_var.
     @object_class = ""    # If an object instance.
     @columns = Array.new  # References to the VT columns.
@@ -352,24 +354,31 @@ class VirtualTable
         fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, stcsr->resultSet[index]);"
         fw.puts "#{$s}break;"
       when "fk"
+        fw.puts "       {"
         iden = configure(access_path)
-        if fk_col_name != nil
+        if fk_col_name != nil       # ??
 	  if $argT == "TYPESAFE"
             fw.puts "#{$s}if ((vtd_iter = vt_directory.find(\"#{fk_col_name}\")) != vt_directory.end())"
             fw.puts "#{$s}    vtd_iter->second = 1;"
 	  end
           if access_path.length == 0    # Access with (*iter) .
-            @type.match(/\*/) ? record_type = "" : record_type = "&"
+            @type.match(/\*/) ? record_type = "*" : record_type = ""
           else                          # Access with (*iter)[.|->]access .
-            column_type == "pointer" ? record_type = "" : record_type = "&"
+            column_type == "pointer" ? record_type = "*" : record_type = ""
           end
         end
+        fk_type = $table_index[fk_col_name]
+        fk_type.end_with?('*') ? add_pointer = "" : add_pointer = "*"
+        fw.puts "#{$s}#{fk_type} #{add_pointer}#{fk_col_name.downcase}_tmp = (#{fk_type} #{add_pointer})sqlite3_malloc(sizeof(#{fk_type.chomp('*')}));"
+        fw.puts "#{$s}*#{fk_col_name.downcase}_tmp = #{record_type}#{iden}#{access_path};"
         fw.puts "#ifdef ENVIRONMENT64"
-        fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{record_type}#{iden}#{access_path});"
+        fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{fk_col_name.downcase}_tmp);"
         fw.puts "#else"
-        fw.puts "#{$s}sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}#{record_type}#{iden}#{access_path});"
+        fw.puts "#{$s}sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}#{fk_col_name.downcase}_tmp);"
         fw.puts "#endif"
+        fw.puts "#{$s}tmp.push_back((void *)#{fk_col_name.downcase}_tmp);"
         fw.puts "#{$s}break;"
+        fw.puts "       }"
       when "gen_all"
         iden = configure(access_path)
         if access_path.match(/this\.|this->/)
@@ -600,11 +609,6 @@ class VirtualTable
       @signature = matchdata[4]
     end
     verify_signature()
-    if @type.match(/\*/)                    # Use type. It is active for 
-      vtable_type = @type.chomp('*')        # both container and object.
-    else
-      vtable_type = @type
-    end
     $struct_views.each { |sv| if sv.name == struct_view_name : @struct_view = sv end }   
     begin
       if @struct_view == nil
@@ -618,6 +622,7 @@ class VirtualTable
       puts "Cannot match struct_view for table #{@name}."
       exit(1)
     end
+    $table_index[@name] = @signature
     if @base_var.length == 0            # base column for embedded structs.
       @columns.push(Column.new).last.set("base INT FROM self") 
     end
@@ -813,13 +818,13 @@ end
       if / ,|, /.match(token_d[x]) : token_d[x].gsub!(/ ,|, /, ",") end
       x += 1
     end
-    @description = token_d
+    @description = token_d.select{ |x| x.length > 0 }
     if $argD == "DEBUG"
       puts "Description after whitespace cleanup: "
       @description.each { |x| p x }
     end
     $struct_views = Array.new
-    views = Array.new
+    $table_index = Hash.new
     w = 0
     @description.each { |stmt|
       if $argD == "DEBUG"
@@ -835,6 +840,7 @@ end
       end
       w += 1
     }
+    $table_index.each_pair { |k,v| p "#{k}-#{v}"}
   end
   
 end
