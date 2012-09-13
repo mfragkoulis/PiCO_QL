@@ -111,12 +111,16 @@ int init_vtable(int iscreate,
   if (!(*pzErr)) {
     int output = sqlite3_declare_vtab(db, query);
     if (output == 1) {
-      *pzErr = sqlite3_mprintf("Error while declaring the virtual table.\n");
+      *pzErr = sqlite3_mprintf("Error while declaring virtual table %s.\n", picoQL->zName);
       printf("%s \n", *pzErr);
       return SQLITE_ERROR;
     } else if (output == 0) {
       *ppVtab = &picoQL->vtab;
-      register_vt(picoQL);
+      if (register_vt(picoQL) == SQLITE_ERROR) {
+	*pzErr = sqlite3_mprintf("Error: Virtual table %s not registered.\n", picoQL->zName);
+	printf("%s \n", *pzErr);
+	return SQLITE_ERROR;
+      }
 #ifdef PICO_QL_DEBUG
       printf("Virtual table declared successfully.\n");
 #endif

@@ -78,7 +78,7 @@ extern "C" {
 
   int pico_ql_serve();
   void pico_ql_register(const void *collection, const char * col_name);
-  void register_vt(picoQLTable *picoQL);
+  int register_vt(picoQLTable *picoQL);
   int equals(const char *zCol, const char *key);
   int init_text_vector(picoQLTableCursor *stc);
   void deinit_text_vector(picoQLTableCursor *stc);

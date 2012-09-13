@@ -322,7 +322,11 @@ int register_table(const char *nDb,
 #ifdef PICO_QL_DEBUG
       printf("Query %s returned %i\n", q[i], re);
 #endif
-      if (re != 101) return re;
+      if (re != 101) {
+	printf("Extended error code: %i.\n", sqlite3_extended_errcode(db));
+	printf("Extended error message:\n%s.\n", sqlite3_errmsg(db));
+	return re;
+      }
     }
   }
 #ifndef PICO_QL_TEST

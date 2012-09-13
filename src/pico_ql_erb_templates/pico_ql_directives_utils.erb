@@ -76,7 +76,7 @@ static map<const char *, int, name_cmp>::iterator vtd_iter;
 // C NAME (pico_ql_table_)<%= vt.base_var %> in line <%= vt.base_var_line + 1 %> <%= $argF %> 
 // C TYPE <%= vt.signature %> in line <%= vt.signature_line + 1 %> <%= $argF %> 
 <%        end %>
-static <%= vt.signature %> <%= retype %>pico_ql_table_<%= vt.base_var %>;
+static <%= vt.signature %> <%= retype %>pico_ql_table_<%= vt.base_var %> = NULL;
 <%      end %>
 <%     } %>
 
@@ -150,7 +150,7 @@ int pico_ql_serve() {
 /* Registers the base variables of user application code
  * with their virtual table representation.
  */
-void register_vt(picoQLTable *picoQL) {
+int register_vt(picoQLTable *picoQL) {
 <%    count = 0 %>
 <%    @tables.each_index { |vt| %>
 <%      if @tables[vt].base_var.length > 0 %>
@@ -165,6 +165,8 @@ void register_vt(picoQLTable *picoQL) {
 <%        if $argD == "DEBUG" %>
 // C NAME (pico_ql_table_)<%= @tables[vt].base_var %> in line <%= @tables[vt].base_var_line + 1 %> <%= $argF %> 
 <%        end %>
+	if (pico_ql_table_<%= @tables[vt].base_var %> == NULL)
+	    return SQLITE_ERROR;
         picoQL->data = (void *)pico_ql_table_<%= @tables[vt].base_var %>;
         picoQL->embedded = 0;
 <%      end %>
