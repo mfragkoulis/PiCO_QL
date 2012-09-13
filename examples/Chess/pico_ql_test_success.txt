@@ -2,7 +2,7 @@ Query 1:
  select * from ChessBoard;
 
 Statement prepared.
-vt_pos row_id 
+rownum row_id 
 
 0 1049104 
 1 1049160 
@@ -19,7 +19,7 @@ Query 2:
  select * from ChessRow;
 
 Statement prepared.
-base vt_pos name color 
+base rownum name color 
 
 
 Library used incorrectly
@@ -28,7 +28,7 @@ Query 3:
  select * from ChessBoard,ChessRow where ChessRow.base=ChessBoard.row_id
 
 Statement prepared.
-vt_pos row_id base vt_pos name color 
+rownum row_id base rownum name color 
 
 0 1049104 1049104 0 rook white 
 0 1049104 1049104 1 knight white 
@@ -105,7 +105,7 @@ Query 4:
  select * from ChessBoard,ChessRow where ChessRow.base=ChessBoard.row_id and color="white" and name="bishop";
 
 Statement prepared.
-vt_pos row_id base vt_pos name color 
+rownum row_id base rownum name color 
 
 0 1049104 1049104 2 bishop white 
 0 1049104 1049104 5 bishop white 

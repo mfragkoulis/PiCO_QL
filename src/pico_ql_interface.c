@@ -36,7 +36,7 @@
  */
 int file_prep_exec(FILE *f, sqlite3_stmt *stmt, 
 		   const char *q) {
-  int result;
+  int result = 0;
   result = step_query(f, stmt);
   switch (result) {
   case SQLITE_DONE:
@@ -211,7 +211,7 @@ void serve_query(FILE *f, sqlite3 *db) {
 		"</head>"
 		"<body>");
   if (swill_getargs("s(query)", &query)) {
-    int rc;
+    int rc = 0;
     clock_t start_clock,finish_clock;
     double c_time;
     start_clock = clock();
@@ -230,8 +230,8 @@ void serve_query(FILE *f, sqlite3 *db) {
       swill_fprintf(f, "<b>\nQUERY SUCCESSFUL! </b><br><br>");
       swill_fprintf(f,"CPU time: <b>%f</b>s.<br><br>", c_time);
     } else {
-      swill_fprintf(f, "<br><b>Extended error message:<br>%s</b><br><br>", sqlite3_errmsg(db));
-      swill_fprintf(f, "<b>Extended error code %i.<br>Please advise </b><a href=\"", sqlite3_extended_errcode(db));
+      swill_fprintf(f, "<br><b>Extended error message:<br><b>%s</b><br><br>", sqlite3_errmsg(db));
+      swill_fprintf(f, "Extended error code <b>%i.<br>Please advise </b><a href=\"", sqlite3_extended_errcode(db));
       swill_printurl(f, "pico_ql_error_page.html", "", 0);
       swill_fprintf(f,"\">SQLite error codes</a>.<br><br>");
     }

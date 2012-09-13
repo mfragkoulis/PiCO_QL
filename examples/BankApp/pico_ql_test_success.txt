@@ -2,7 +2,7 @@ Query 1:
  select * from SuperAccounts;
 
 Statement prepared.
-vt_pos id balance account_no rate isbn 
+rownum id balance account_no rate isbn 
 
 0 0 500.000000 10068 5.000000 478923743 
 1 1 394.279999 10234 3.942800 692346729 
@@ -29,7 +29,7 @@ Query 2:
  select * from SuperAccounts where isbn > 0 and balance < 500 and account_no>1000 order by id;
 
 Statement prepared.
-vt_pos id balance account_no rate isbn 
+rownum id balance account_no rate isbn 
 
 1 1 394.279999 10234 3.942800 692346729 
 3 12 -347389.000000 22974 -3473.889893 580383483 
@@ -44,7 +44,7 @@ Query 3:
  select * from Accounts;
 
 Statement prepared.
-vt_pos balance account_no rate isbn type 
+rownum balance account_no rate isbn type 
 
 0 500.000000 10068 10.000000 478923743 credit 
 1 394.279999 10234 7.885600 692346729 debit-consuming 
@@ -59,7 +59,7 @@ Query 4:
  select * from Accounts where rate >10 and balance<20000 order by account_no;
 
 Statement prepared.
-vt_pos balance account_no rate isbn type 
+rownum balance account_no rate isbn type 
 
 
 Done
@@ -68,7 +68,7 @@ Query 5:
  select * from SpecialAccounts;
 
 Statement prepared.
-vt_pos balance account_no rate isbn bonus 
+rownum balance account_no rate isbn bonus 
 
 0 1000.000000 23999 50.000000 639269243 350.000000 
 1 131.000000 69263 6.550000 457349341 45.850001 
@@ -83,7 +83,7 @@ Query 6:
  select * from SpecialAccounts where bonus > 20 and rate >15 order by account_no;
 
 Statement prepared.
-vt_pos balance account_no rate isbn bonus 
+rownum balance account_no rate isbn bonus 
 
 0 1000.000000 23999 50.000000 639269243 350.000000 
 3 2784.590088 28902 139.229507 197396445 974.606552 
