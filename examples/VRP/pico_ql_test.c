@@ -86,15 +86,19 @@ int call_test(sqlite3 *db) {
   int result, i = 1;
   char *q;
 
-  q = "select * from trucks where rownun=20;";
+  q = "select customers_id, delcapacity_root from (select distinct truck_id from Trucks) t left join Truck on truck.base=t.truck_id where cost and not delcapacity and delcapacity_root=3;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);
 
-  q = "select * from trucks,truck,customers where truck.base=trucks.truck_id and customers.base=truck.customers_id and customers.rownun=4;";
+  q = "select * from trucks where rownum=20;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);
 
-  q = "select * from trucks,truck,mapindex,customers where truck.base=trucks.truck_id and customers.base=truck.customers_id and customers.rownun=mapindex.map_index;";
+  q = "select * from trucks,truck,customers where truck.base=trucks.truck_id and customers.base=truck.customers_id and customers.rownum=4;";
+  fprintf(f, "Query %i:\n %s\n\n", i++, q);
+  result = test_prep_exec(f, db, q);
+
+  q = "select * from trucks,truck,mapindex,customers where truck.base=trucks.truck_id and customers.base=truck.customers_id and customers.rownum=mapindex.map_index;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);
 
