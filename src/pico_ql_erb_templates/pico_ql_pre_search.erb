@@ -50,14 +50,6 @@ int <%= @name %>_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *v
         check_alloc((const char *)constr, op, iCol);
 <%      if @base_var.length == 0 %>
         if (equals(picoQL->azColumn[iCol], "base")) {
-<%        if $argT == "TYPESAFE" %>
-            vtd_iter = vt_directory.find(picoQL->zName);
-            if ((vtd_iter == vt_directory.end()) || (vtd_iter->second == 0)) {
-                printf("Invalid cast to %s\n", picoQL->zName);
-                return SQLITE_MISUSE;
-            }
-            vt_directory[picoQL->zName] = 0;
-<%        end %>
 #ifdef ENVIRONMENT64
             stcsr->source = (void *)sqlite3_value_int64(val);
 #else

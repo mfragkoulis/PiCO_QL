@@ -29,9 +29,6 @@
 #include <cstdio>
 #include <cstring>
 #include <string>
-<%     if $argT == "TYPESAFE" %>
-#include <map>
-<%     end %>
 #ifdef PICO_QL_HANDLE_POLYMORPHISM
 #include <vector>
 #endif
@@ -64,6 +61,7 @@ struct name_cmp {
     }
 };
 
+<<<<<<< HEAD
 static vector<void*> tmp;
 
 <%     if $argT == "TYPESAFE" %>
@@ -71,6 +69,8 @@ static map<const char *, int, name_cmp> vt_directory;
 static map<const char *, int, name_cmp>::iterator vtd_iter;
 <%     end %>
 
+=======
+>>>>>>> query_fault
 <%     @tables.each { |vt| %>
 <%      if vt.base_var.length > 0 %>
 <%        /\*/.match(vt.pointer) == nil ? retype = "*" : retype = "" %>
@@ -177,11 +177,7 @@ int register_vt(picoQLTable *picoQL) {
         picoQL->data = NULL;
         picoQL->embedded = 1;
     }
-<%    if $argT == "TYPESAFE" %>
-    vt_directory[picoQL->zName] = 0;
-<%    end %>
 }
-
 
 // Returns the size (records) for each virtual table.
 int get_datastructure_size(sqlite3_vtab_cursor *cur) {
@@ -262,14 +258,5 @@ void deinit_text_vector(picoQLTableCursor *stc) {
       delete tr->at(i);
   delete tr;
 #endif
-}
-
-/* Deinitiates dynamic vector which stores FK
- * column values of type void* so that they are
- * manageable by SQLite safely.
- */
-void deinit_temp_vector() {
-  for (size_t i = 0; i<tmp.size(); i++)
-      sqlite3_free(tmp.at(i));
 }
 
