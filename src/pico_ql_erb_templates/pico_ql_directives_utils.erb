@@ -61,6 +61,8 @@ struct name_cmp {
     }
 };
 
+static vector<void *> tmp;
+
 <%     @tables.each { |vt| %>
 <%      if vt.base_var.length > 0 %>
 <%        /\*/.match(vt.pointer) == nil ? retype = "*" : retype = "" %>
