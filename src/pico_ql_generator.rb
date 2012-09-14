@@ -840,7 +840,10 @@ end
       end
       w += 1
     }
-    $table_index.each_pair { |k,v| p "#{k}-#{v}"}
+    if $argD == "DEBUG"
+      puts "Table index entries:"
+      $table_index.each_pair { |k,v| p "#{k}-#{v}"}
+    end
   end
   
 end
