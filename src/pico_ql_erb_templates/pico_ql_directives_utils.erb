@@ -266,6 +266,8 @@ void deinit_text_vector(picoQLTableCursor *stc) {
  * from eligible virtual tables
  */
 void deinit_vt_directory(picoQLTable *st) {
+<%        if $argT == "TYPESAFE" %>
   vt_directory[st->zName] = 0;
   printf("%s vt_directory = 0\n", st->zName);
+<%        end %>
 }
