@@ -61,8 +61,6 @@ struct name_cmp {
     }
 };
 
-static vector<void *> tmp;
-
 <%     @tables.each { |vt| %>
 <%      if vt.base_var.length > 0 %>
 <%        /\*/.match(vt.pointer) == nil ? retype = "*" : retype = "" %>
@@ -252,11 +250,28 @@ void deinit_text_vector(picoQLTableCursor *stc) {
 #endif
 }
 
+/* Initiates dynamic vector which stores FK
+ * column values of type void* so that they are
+ * manageable by SQLite safely.
+ */
+int init_temp_vector(picoQLTableCursor *stc) {
+  vector<void*> *tmp = new vector<void*>();
+  stc->tmpVars = (void *)tmp;
+  if (tmp != NULL)
+    return SQLITE_OK;
+  else
+    return SQLITE_NOMEM;
+  return SQLITE_OK;
+}
+
+
 /* Deinitiates dynamic vector which stores FK
  * column values of type void* so that they are
  * manageable by SQLite safely.
  */
-void deinit_temp_vector() {
-  for (size_t i = 0; i<tmp.size(); i++)
-      sqlite3_free(tmp.at(i));
+void deinit_temp_vector(picoQLTableCursor *stc) {
+  vector<void*> *tmp = (vector<void*> *)stc->tmpVars;
+  for (size_t i = 0; i<tmp->size(); i++)
+      sqlite3_free(tmp->at(i));
+  delete tmp;
 }

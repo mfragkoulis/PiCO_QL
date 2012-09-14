@@ -71,6 +71,7 @@ extern "C" {
     void *textResults;
     int isEof; 
     int first_constr; 
+    void *tmpVars;
     void *source;
   } picoQLTableCursor; /* The cursor struct for the 
 			* virtual table. 
@@ -82,7 +83,8 @@ extern "C" {
   int equals(const char *zCol, const char *key);
   int init_text_vector(picoQLTableCursor *stc);
   void deinit_text_vector(picoQLTableCursor *stc);
-  void deinit_temp_vector();
+  int init_temp_vector(picoQLTableCursor *stc);
+  void deinit_temp_vector(picoQLTableCursor *stc);
   int get_datastructure_size(sqlite3_vtab_cursor *cur);
   int search(sqlite3_vtab_cursor *cur, char *constraint, 
 	     sqlite3_value *val);

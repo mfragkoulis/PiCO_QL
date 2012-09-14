@@ -372,7 +372,7 @@ class VirtualTable
         fw.puts "#else"
         fw.puts "#{$s}sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}#{fk_col_name.downcase}_tmp);"
         fw.puts "#endif"
-        fw.puts "#{$s}tmp.push_back((void *)#{fk_col_name.downcase}_tmp);"
+        fw.puts "#{$s}tmp->push_back((void *)#{fk_col_name.downcase}_tmp);"
         fw.puts "#{$s}break;"
         fw.puts "       }"
       when "gen_all"
@@ -850,8 +850,6 @@ def take_cases(argv)
   case argv
   when /debug/i
     $argD = "DEBUG"
-  when /typesafe/i
-    $argT = "TYPESAFE"    # Currently withdrawn option
   end
 end
 
