@@ -261,3 +261,11 @@ void deinit_text_vector(picoQLTableCursor *stc) {
   delete tr;
 #endif
 }
+
+/* Deinitiates static vector which stores join requests
+ * from eligible virtual tables
+ */
+void deinit_vt_directory(picoQLTable *st) {
+  vt_directory[st->zName] = 0;
+  printf("%s vt_directory = 0\n", st->zName);
+}

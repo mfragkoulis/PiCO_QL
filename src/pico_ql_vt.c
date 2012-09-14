@@ -304,7 +304,10 @@ int best_index_vtable(sqlite3_vtab *pVtab,
       if (equals(st->azColumn[nCol], "base")) {
 	pInfo->aConstraintUsage[i].argvIndex = 1;
       } else if (equals(st->azColumn[nCol], "rownum")) {
-	pInfo->aConstraintUsage[i].argvIndex = 2;
+	if (score > 2)
+	  pInfo->aConstraintUsage[i].argvIndex = 2;
+	else
+	  pInfo->aConstraintUsage[i].argvIndex = 1;	  
       } else {
 	pInfo->aConstraintUsage[i].argvIndex = counter++;
       }
@@ -480,6 +483,7 @@ int close_vtable(sqlite3_vtab_cursor *cur) {
   sqlite3_free(stc->resultSet);
 #ifdef PICO_QL_HANDLE_POLYMORPHISM
   deinit_text_vector(stc);
+  deinit_vt_directory(st);
 #endif
   sqlite3_free(stc);
   return SQLITE_OK;

@@ -86,7 +86,7 @@ int call_test(sqlite3 *db) {
   int result, i = 1;
   char *q;
 
-  q = "select customers_id, delcapacity_root from (select distinct truck_id from Trucks) t left join Truck on truck.base=t.truck_id where cost and not delcapacity and delcapacity_root=3;";
+  q = "select customers_id, delcapacity_root from (select distinct truck_id from Trucks) t left join Truck on truck.base=t.truck_id where cost and not delcapacity and delcapacity_root=0;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);
 

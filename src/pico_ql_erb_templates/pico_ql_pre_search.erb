@@ -57,6 +57,7 @@ int <%= @name %>_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *v
                 return SQLITE_MISUSE;
             }
             vt_directory[picoQL->zName] = 0;
+<%#            printf("%s -vtd_iter: %i\n", picoQL->zName, vtd_iter->second); %>
 <%        end %>
 #ifdef ENVIRONMENT64
             stcsr->source = (void *)sqlite3_value_int64(val);
