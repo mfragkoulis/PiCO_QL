@@ -1,16 +1,70 @@
 Query 1:
- select * from trucks where rownun=20;
+ select customers_id, delcapacity_root from (select distinct truck_id from Trucks) t left join Truck on truck.base=t.truck_id where cost and not delcapacity and delcapacity_root=0;
 
-Error in preparation of query: error no 1
+Statement prepared.
+customers_id delcapacity_root 
+
+3759272 0.000000 
+3765368 0.000000 
+3765512 0.000000 
+3765656 0.000000 
+3765944 0.000000 
+3766088 0.000000 
+3766520 0.000000 
+3766664 0.000000 
+3766952 0.000000 
+3767912 0.000000 
+3770504 0.000000 
+
+Done
+
 Query 2:
- select * from trucks,truck,customers where truck.base=trucks.truck_id and customers.base=truck.customers_id and customers.rownun=4;
+ select * from trucks where rownum=20;
 
-Error in preparation of query: error no 1
+Statement prepared.
+rownum truck_id 
+
+(invalid_rownum) (invalid_rownum) 
+
+Done
+
 Query 3:
- select * from trucks,truck,mapindex,customers where truck.base=trucks.truck_id and customers.base=truck.customers_id and customers.rownun=mapindex.map_index;
+ select * from trucks,truck,customers where truck.base=trucks.truck_id and customers.base=truck.customers_id and customers.rownum=4;
 
-Error in preparation of query: error no 1
+Statement prepared.
+rownum truck_id base customers_id cost delcapacity delcapacity_root base rownum customer_id 
+
+0 3770496 3770496 3770504 147.495530 0 0.000000 3770504 4 2124448 
+1 3767904 3767904 3767912 225.946633 0 0.000000 3767912 4 2099856 
+2 3759264 3759264 3759272 278.821496 0 0.000000 3759272 4 2100720 
+3 3765072 3765072 3765080 280.375322 20 4.472136 3765080 4 2098384 
+4 3765216 3765216 3765224 339.716572 10 3.162278 3765224 4 2101488 
+5 3765360 3765360 3765368 354.388256 0 0.000000 3765368 4 2112832 
+6 3765504 3765504 3765512 220.167122 0 0.000000 3765512 4 2113712 
+7 3765648 3765648 3765656 219.628909 0 0.000000 3765656 4 2101312 
+8 3765792 3765792 3765800 282.593461 20 4.472136 3765800 4 2105744 
+9 3765936 3765936 3765944 358.126821 0 0.000000 3765944 4 2126912 
+10 3766080 3766080 3766088 330.983943 0 0.000000 3766088 4 2103568 
+11 3766224 3766224 3766232 270.269111 10 3.162278 3766232 4 2111600 
+12 3766368 3766368 3766376 184.833567 10 3.162278 3766376 4 2113536 
+13 3766512 3766512 3766520 451.609882 0 0.000000 3766520 4 2130960 
+14 3766656 3766656 3766664 282.626045 0 0.000000 3766664 4 2127440 
+15 3766800 3766800 3766808 321.479943 10 3.162278 3766808 4 2112128 
+16 3766944 3766944 3766952 328.678482 0 0.000000 3766952 4 2101072 
+17 3767088 3767088 3767096 220.882914 10 3.162278 3767096 4 2110896 
+
+Done
+
 Query 4:
+ select * from trucks,truck,mapindex,customers where truck.base=trucks.truck_id and customers.base=truck.customers_id and customers.rownum=mapindex.map_index;
+
+Statement prepared.
+rownum truck_id base customers_id cost delcapacity delcapacity_root rownum map_index customer_id base rownum customer_id 
+
+
+Done
+
+Query 5:
  select * from trucks;
 
 Statement prepared.
@@ -38,7 +92,7 @@ rownum truck_id
 
 Done
 
-Query 5:
+Query 6:
  select * from truck;
 
 Statement prepared.
@@ -47,7 +101,7 @@ base customers_id cost delcapacity delcapacity_root
 
 Library used incorrectly
 
-Query 6:
+Query 7:
  select * from trucks,truck where truck.base=trucks.truck_id
 
 Statement prepared.
@@ -75,7 +129,7 @@ rownum truck_id base customers_id cost delcapacity delcapacity_root
 
 Done
 
-Query 7:
+Query 8:
  select * from trucks,truck where truck.base=trucks.truck_id and cost<800 and delcapacity>0;
 
 Statement prepared.
@@ -92,7 +146,7 @@ rownum truck_id base customers_id cost delcapacity delcapacity_root
 
 Done
 
-Query 8:
+Query 9:
  select * from trucks,truck,customers,customer where truck.base=trucks.truck_id and cost <800 and delcapacity>0 and customers.base=truck.customers_id and customer.base=customers.customer_id and code>100 and demand>10;
 
 Statement prepared.
@@ -119,7 +173,7 @@ rownum truck_id base customers_id cost delcapacity delcapacity_root base rownum 
 
 Done
 
-Query 9:
+Query 10:
  select * from trucks,truck,customers,customer where truck.base=trucks.truck_id and cost <800 and delcapacity>0 and customers.base=truck.customers_id and customer.base=customers.customer_id and code>100 and demand>10 order by code;
 
 Statement prepared.
@@ -146,7 +200,7 @@ rownum truck_id base customers_id cost delcapacity delcapacity_root base rownum 
 
 Done
 
-Query 10:
+Query 11:
  select code, demand, x_coord, y_coord from trucks,truck,customers, customer, position where truck.base=trucks.truck_id and customers.base=truck.customers_id and customer.base=customers.customer_id and position.base=customer.position_id and code like '%99' union select code, demand, x_coord,y_coord from mapindex,customer,position where customer.base=mapindex.customer_id and position.base=customer.position_id and x_coord>133;
 
 Statement prepared.
@@ -166,7 +220,7 @@ code demand x_coord y_coord
 
 Done
 
-Query 11:
+Query 12:
  select c.code, c.demand, c.position_id, p.x_coord, p.y_coord, u.code, u.demand, u.position_id, o.x_coord, o.y_coord from trucks,truck,customers, customer c,mapindex,customer u, position p, position o where truck.base=trucks.truck_id and customers.base=truck.customers_id and c.base=customers.customer_id and p.base=c.position_id and c.code like '%99' and u.base=mapindex.customer_id and o.base=u.position_id and o.x_coord>133 and p.y_coord=o.y_coord;
 
 Statement prepared.
@@ -175,7 +229,7 @@ code demand position_id x_coord y_coord code demand position_id x_coord y_coord
 
 Done
 
-Query 12:
+Query 13:
  select sum(map_index), demand from (select * from mapindex where map_index<187) as m, Customer where customer.base=m.customer_id group by demand
 
 Statement prepared.
@@ -189,7 +243,7 @@ sum(map_index) demand
 
 Done
 
-Query 13:
+Query 14:
  select * from customer;
 
 Statement prepared.
@@ -198,38 +252,11 @@ base position_id demand code serviced
 
 Library used incorrectly
 
-Query 14:
+Query 15:
  select * from trucks, customers;
 
 Statement prepared.
 rownum truck_id base rownum customer_id 
-
-
-Library used incorrectly
-
-Query 15:
- select * from trucks, customers where customers.base=trucks.truck_id;
-
-Statement prepared.
-rownum truck_id base rownum customer_id 
-
-
-Library used incorrectly
-
-Query 16:
- select c.code, c.demand, c.position_id, p.x_coord, p.y_coord, u.code, u.demand, u.position_id, o.x_coord, o.y_coord from trucks,truck, customers, customer c,mapindex,customer u, position p,position o where truck.base=trucks.truck_id and customers.base=truck.customers_id and c.base=customers.customer_id and p.base=c.position_id and c.code like '%99' and u.base=mapindex.customer_id and o.base=truck.base and o.x_coord>133 and p.y_coord=o.y_coord;
-
-Statement prepared.
-code demand position_id x_coord y_coord code demand position_id x_coord y_coord 
-
-
-Library used incorrectly
-
-Query 17:
- select code, demand, x_coord, y_coord from trucks,truck,customers, customer, position where truck.base=trucks.truck_id and customers.base=truck.customers_id and customer.base=trucks.truck_id and position.base=customer.position_id and code like '%99' union select code, demand, x_coord,y_coord from mapindex,customer,position where customer.base=mapindex.customer_id and position.base=customer.position_id and x_coord>133;
-
-Statement prepared.
-code demand x_coord y_coord 
 
 
 Library used incorrectly

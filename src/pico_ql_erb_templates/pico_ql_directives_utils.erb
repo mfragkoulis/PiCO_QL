@@ -29,9 +29,6 @@
 #include <cstdio>
 #include <cstring>
 #include <string>
-<%     if $argT == "TYPESAFE" %>
-#include <map>
-<%     end %>
 #ifdef PICO_QL_HANDLE_POLYMORPHISM
 #include <vector>
 #endif
@@ -63,11 +60,6 @@ struct name_cmp {
         return strcmp(a, b) < 0;
     }
 };
-
-<%     if $argT == "TYPESAFE" %>
-static map<const char *, int, name_cmp> vt_directory;
-static map<const char *, int, name_cmp>::iterator vtd_iter;
-<%     end %>
 
 <%     @tables.each { |vt| %>
 <%      if vt.base_var.length > 0 %>
@@ -175,11 +167,7 @@ int register_vt(picoQLTable *picoQL) {
         picoQL->data = NULL;
         picoQL->embedded = 1;
     }
-<%    if $argT == "TYPESAFE" %>
-    vt_directory[picoQL->zName] = 0;
-<%    end %>
 }
-
 
 // Returns the size (records) for each virtual table.
 int get_datastructure_size(sqlite3_vtab_cursor *cur) {
@@ -262,12 +250,3 @@ void deinit_text_vector(picoQLTableCursor *stc) {
 #endif
 }
 
-/* Deinitiates static vector which stores join requests
- * from eligible virtual tables
- */
-void deinit_vt_directory(picoQLTable *st) {
-<%        if $argT == "TYPESAFE" %>
-  vt_directory[st->zName] = 0;
-<%#  printf("%s vt_directory = 0\n", st->zName); %>
-<%        end %>
-}

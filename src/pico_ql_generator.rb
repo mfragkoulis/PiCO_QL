@@ -354,12 +354,6 @@ class VirtualTable
       when "fk"
         iden = configure(access_path)
         if fk_col_name != nil
-	  if $argT == "TYPESAFE"
-            fw.puts "#{$s}if ((vtd_iter = vt_directory.find(\"#{fk_col_name}\")) != vt_directory.end()) {"
-#            fw.puts "#{$s}    printf(\"#{fk_col_name} +vtd_iter: %i\\n\",vtd_iter->second);"
-            fw.puts "#{$s}    vtd_iter->second = 1;"
-            fw.puts "#{$s}}"
-          end
           if access_path.length == 0    # Access with (*iter) .
             @type.match(/\*/) ? record_type = "" : record_type = "&"
           else                          # Access with (*iter)[.|->]access .
@@ -848,7 +842,7 @@ def take_cases(argv)
   when /debug/i
     $argD = "DEBUG"
   when /typesafe/i
-    $argT = "TYPESAFE"
+    $argT = "TYPESAFE"    # Currently withdrawn option
   end
 end
 

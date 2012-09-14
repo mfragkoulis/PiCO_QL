@@ -146,20 +146,6 @@ int call_test(sqlite3 *db) {
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);
 
-#ifdef PICO_QL_TYPESAFE
-  q = "select * from trucks, customers where customers.base=trucks.truck_id;";
-  fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
-
-  q = "select c.code, c.demand, c.position_id, p.x_coord, p.y_coord, u.code, u.demand, u.position_id, o.x_coord, o.y_coord from trucks,truck, customers, customer c,mapindex,customer u, position p,position o where truck.base=trucks.truck_id and customers.base=truck.customers_id and c.base=customers.customer_id and p.base=c.position_id and c.code like '%99' and u.base=mapindex.customer_id and o.base=truck.base and o.x_coord>133 and p.y_coord=o.y_coord;";
-  fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
-
-  q = "select code, demand, x_coord, y_coord from trucks,truck,customers, customer, position where truck.base=trucks.truck_id and customers.base=truck.customers_id and customer.base=trucks.truck_id and position.base=customer.position_id and code like '%99' union select code, demand, x_coord,y_coord from mapindex,customer,position where customer.base=mapindex.customer_id and position.base=customer.position_id and x_coord>133;";
-  fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
-#endif
-
   sqlite3_close(db);
   fclose(f);
   if (system("./pico_ql_diff_test.sh")) {

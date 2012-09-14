@@ -476,15 +476,14 @@ int column_vtable(sqlite3_vtab_cursor *cur,
  */
 int close_vtable(sqlite3_vtab_cursor *cur) {
   picoQLTableCursor *stc = (picoQLTableCursor *)cur;
-  picoQLTable *st = (picoQLTable *)cur->pVtab;
 #ifdef PICO_QL_DEBUG
+  picoQLTable *st = (picoQLTable *)cur->pVtab;
   printf("Closing vtable %s \n\n", st->zName);
 #endif
   sqlite3_free(stc->resultSet);
 #ifdef PICO_QL_HANDLE_POLYMORPHISM
   deinit_text_vector(stc);
 #endif
-  deinit_vt_directory(st);
   sqlite3_free(stc);
   return SQLITE_OK;
 }
