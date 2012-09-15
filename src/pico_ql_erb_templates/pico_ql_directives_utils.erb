@@ -272,6 +272,6 @@ int init_temp_vector(picoQLTableCursor *stc) {
 void deinit_temp_vector(picoQLTableCursor *stc) {
   vector<void*> *tmp = (vector<void*> *)stc->tmpVars;
   for (size_t i = 0; i<tmp->size(); i++)
-      sqlite3_free(tmp->at(i));
+      delete tmp->at(i);
   delete tmp;
 }

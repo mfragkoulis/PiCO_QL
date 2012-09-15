@@ -354,27 +354,48 @@ class VirtualTable
         fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, stcsr->resultSet[index]);"
         fw.puts "#{$s}break;"
       when "fk"
-        fw.puts "       {"
         iden = configure(access_path)
         if fk_col_name != nil       # ??
           if access_path.length == 0    # Access with (*iter) .
-            @type.match(/\*/) ? record_type = "*" : record_type = ""
+            if @type.match(/\*/)
+              record_type = "*"
+              p_type = ""
+            else
+              record_type = ""
+              p_type = "&"
+            end
           else                          # Access with (*iter)[.|->]access .
-            column_type == "pointer" ? record_type = "*" : record_type = ""
+            if column_type == "pointer" 
+              record_type = "*" 
+              p_type = ""
+            else 
+              record_type = ""
+              p_type = "&"
+            end
           end
         end
-        fk_type = $table_index[fk_col_name]
-        fk_type.end_with?('*') ? add_pointer = "" : add_pointer = "*"
-        fw.puts "#{$s}#{fk_type} #{add_pointer}#{fk_col_name.downcase}_tmp = (#{fk_type} #{add_pointer})sqlite3_malloc(sizeof(#{fk_type.chomp('*')}));"
-        fw.puts "#{$s}*#{fk_col_name.downcase}_tmp = #{record_type}#{iden}#{access_path};"
-        fw.puts "#ifdef ENVIRONMENT64"
-        fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{fk_col_name.downcase}_tmp);"
-        fw.puts "#else"
-        fw.puts "#{$s}sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}#{fk_col_name.downcase}_tmp);"
-        fw.puts "#endif"
-        fw.puts "#{$s}tmp->push_back((void *)#{fk_col_name.downcase}_tmp);"
-        fw.puts "#{$s}break;"
-        fw.puts "       }"
+        if access_path.match(/(.+)\)/)  # returning from a method
+          fw.puts "       {"
+          fk_type = $table_index[fk_col_name]
+          fk_type.end_with?('*') ? add_pointer = "" : add_pointer = "*"
+          fw.puts "#{$s}#{fk_type} #{add_pointer}#{fk_col_name.downcase}_tmp = new #{fk_type.chomp('*')} ();"
+          fw.puts "#{$s}*#{fk_col_name.downcase}_tmp = #{record_type}#{iden}#{access_path};"
+          fw.puts "#ifdef ENVIRONMENT64"
+          fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{fk_col_name.downcase}_tmp);"
+          fw.puts "#else"
+          fw.puts "#{$s}sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}#{fk_col_name.downcase}_tmp);"
+          fw.puts "#endif"
+          fw.puts "#{$s}vector<void*> *tmp = (vector<void*> *)stcsr->tmpVars;"
+          fw.puts "#{$s}tmp->push_back((void *)#{fk_col_name.downcase}_tmp);"
+          fw.puts "#{$s}break;"
+          fw.puts "       }"
+        else
+          fw.puts "#ifdef ENVIRONMENT64"
+          fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{p_type}#{iden}#{access_path});"
+          fw.puts "#else"
+          fw.puts "#{$s}sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}#{p_type}#{iden}#{access_path});"
+          fw.puts "#endif"
+        end
       when "gen_all"
         iden = configure(access_path)
         if access_path.match(/this\.|this->/)

@@ -24,6 +24,11 @@
 
 using namespace std;
 
+Position::Position () {
+  x = 0;
+  y = 0;
+}
+
 Position::Position (int xx, int yy) {
   x = xx;
   y = yy;

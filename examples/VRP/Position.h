@@ -29,6 +29,7 @@ class Position {
   int y;
 
  public:
+  Position();
   Position(int xx, int yy);
   int get_x();
   int get_y();
