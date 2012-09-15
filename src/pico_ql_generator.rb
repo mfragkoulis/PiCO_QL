@@ -461,11 +461,18 @@ class VirtualTable
       sqlite3_parameters = ""
       column_cast_back = ""
       access_path = ""
+      fk_copy_temp = 0
       op, useless, fk_type, line = 
       @columns[col].bind_datatypes(sqlite3_type, 
                                    column_cast, sqlite3_parameters, 
                                    column_cast_back, access_path)
       if op == "fk"
+        if access_path.match(/(.+)\)/)    # returning from a method
+          fk_copy_temp = 1
+          vt_type_spacing(fw)
+          fw.print "{"
+          fw.puts
+        end
         if fk_type == "object" : column_cast.concat("&") end
         op = "gen_all"
       end
@@ -493,23 +500,36 @@ class VirtualTable
       end
       case op
       when "gen_all"
-        if sqlite3_type == "int64"
-          fw.puts "#ifdef ENVIRONMENT64"
-        end
-        vt_type_spacing(fw)
         if access_path.match(/this\.|this->/)
           access_path.gsub!(/this\.|this->/, "#{iden}")
         else 
           access_path = "#{iden}#{access_path}"
         end
-        fw.print "if (compare(#{column_cast}#{access_path}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val)) )"
-        fw.puts
-        if sqlite3_type == "int64"
+        if sqlite3_type == "int64"  # foreign key column
+          fw.puts "#ifdef ENVIRONMENT64"
+          vt_type_spacing(fw)
+          if fk_copy_temp == 1    # returning from a method
+            fw.print "typeof(#{access_path}) t = #{access_path};"
+            fw.puts
+            vt_type_spacing(fw)
+            fw.print "if (compare(#{column_cast}t#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val)) )"
+          else
+            fw.print "if (compare(#{column_cast}#{access_path}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val)) )"
+          end
+          fw.puts
           fw.puts "#else"
           vt_type_spacing(fw)
-          fw.print "if (compare(#{column_cast}#{access_path}#{column_cast_back}, op, sqlite3_value_#{sqlite3_parameters}(val)) )"
+          if fk_copy_temp == 1    # returning from a method
+            fw.print "if (compare(#{column_cast}t#{column_cast_back}, op, sqlite3_value_#{sqlite3_parameters}(val)) )"
+          else
+            fw.print "if (compare(#{column_cast}#{access_path}#{column_cast_back}, op, sqlite3_value_#{sqlite3_parameters}(val)) )"
+          end
           fw.puts
           fw.puts "#endif"
+        else
+          vt_type_spacing(fw)
+          fw.print "if (compare(#{column_cast}#{access_path}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val)) )"
+          fw.puts
         end
         vt_type_spacing(fw)
         fw.print "    temp_res[count++] = i;"
@@ -526,6 +546,11 @@ class VirtualTable
       end
       fw.puts "#{$s}    assert(count <= stcsr->max_size);"
       fw.puts "#{$s}    break;"
+      if fk_copy_temp == 1    # returning from a method
+        vt_type_spacing(fw)
+        fw.print "}"
+        fw.puts
+      end
     }
     fw.puts "#{$s}}"
   end
