@@ -389,11 +389,6 @@ class VirtualTable
         if fk_col_type.length > 0 
           fw.puts "       {"
           fw.puts "#{$s}saved_results_#{saved_results_index}.push_back(new #{fk_col_type.chomp('*')}(#{record_type}#{iden}#{access_path}));"
-#          if fk_col_type.match(/(\w+)<(.+)>/)
-#            fw.puts "#{$s}saved_results_#{saved_results_index}.back().insert(saved_results_#{saved_results_index}.back().begin(), #{record_type}#{iden}#{access_path}.begin(), #{record_type}#{iden}#{access_path}.end());"
-#          else
-#            fw.puts "#{$s}saved_results_#{saved_results_index}.back() = #{record_type}#{iden}#{access_path};"
-#          end
           fw.puts "#ifdef ENVIRONMENT64"
           fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, #{column_cast}&*(saved_results_#{saved_results_index}.back()));"
           fw.puts "#else"
