@@ -19,7 +19,7 @@ int <%= @name %>_retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con)
 #endif
 <%    end %>
 <%    if @container_class.length > 0 %>
-    <%= sign_untype %>:: iterator iter;
+    <%= sign_untype %>:: iterator iter, iter_last;
     int index = stcsr->current;
     iter = any_dstr->begin();
     if (stcsr->resultSet[index] >= stcsr->max_size) {

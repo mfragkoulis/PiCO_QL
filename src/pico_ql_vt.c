@@ -458,7 +458,6 @@ int open_vtable(sqlite3_vtab *pVtab,
 #ifdef PICO_QL_HANDLE_POLYMORPHISM
   init_text_vector(stc);
 #endif
-  init_temp_vector(stc);
   return SQLITE_OK;
 }
 
@@ -485,7 +484,6 @@ int close_vtable(sqlite3_vtab_cursor *cur) {
 #ifdef PICO_QL_HANDLE_POLYMORPHISM
   deinit_text_vector(stc);
 #endif
-  deinit_temp_vector(stc);
   sqlite3_free(stc);
   return SQLITE_OK;
 }
@@ -539,4 +537,11 @@ int arrange_size(int argc, const char * const * argv) {
   printf("length is %i \n",length);
 #endif
   return length;
+}
+
+/* Calls function to deallocate memory reserved
+ * for storing copies of temporary variables.
+ */
+void clear_temp_vectors() {
+  deinit_temp_vectors();
 }

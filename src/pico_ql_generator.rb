@@ -34,6 +34,10 @@ class Column
     @cpp_data_type = ""       # Respective C++ data type. Used only 
                               # for string so far.
     @related_to = ""          # Reference to other VT's name (FK).
+    @fk_col_type = ""         # Reference to other VT's type (FK).
+                              # Required for managing temporary variables. 
+    @saved_results_index = -1 # Required for naming the particular 
+                              # saved results instance.
     @access_path = ""         # The access statement for the column value.
     @col_type = ""                # Record type (pointer or reference) for 
                               # special columns, the ones that refer to 
@@ -47,14 +51,18 @@ class Column
                                /varying character/i, /native character/i,
                                /nchar/i]
   end
-  attr_accessor(:name,:line,:data_type,:related_to,:access_path,:col_type)
+  attr_accessor(:name,:line,:data_type,:related_to,:fk_col_type,
+                :saved_results_index,:access_path,:col_type)
 
 
 # Used to clone a Column object. Ruby does not support deep copies.
-  def construct(name, data_type, related_to, access_path, type, line)
+  def construct(name, data_type, related_to, fk_col_type,
+                saved_results_index,access_path, type, line)
     @name = name
     @data_type = data_type
     @related_to = related_to
+    @fk_col_type = fk_col_type
+    @saved_results_index = saved_results_index
     @access_path = access_path
     @col_type = type
     @line = line
@@ -74,7 +82,7 @@ class Column
       sqlite3_parameters.replace("int")    # for 32-bit architectures.used in retrieve and search.
       column_cast.replace("(long int)")
       access_path.replace(@access_path)
-      return "fk", @related_to, @col_type, @line
+      return "fk", @related_to, @col_type, @line, @fk_col_type, @saved_results_index
     end
     if @name == "base"              # 'base' column. refactor: elsif perhaps?
       sqlite3_type.replace("int64")
@@ -196,6 +204,8 @@ class Column
             this_columns.last.construct(coln.name.clone, 
                                         coln.data_type.clone, 
                                         coln.related_to.clone, 
+                                        coln.fk_col_type.clone,
+                                        coln.saved_results_index.clone,
                                         coln.access_path.clone, 
                                         coln.col_type.clone,
                                         coln.line)
@@ -256,6 +266,8 @@ class Column
       puts "Column name is: " + @name
       puts "Column data type is: " + @data_type
       puts "Column related to: " + @related_to
+      puts "Column fk_col_type: " + @fk_col_type
+      puts "Column saved_results_index: " + @saved_results_index.to_s
       puts "Column access path is: " + @access_path
       puts "Column type is: " + @col_type
       puts "Column is of text type: " + col_type_text.to_s
@@ -332,7 +344,7 @@ class VirtualTable
       sqlite3_parameters = ""
       column_cast_back = ""
       access_path = ""
-      op, fk_col_name, column_type, line = 
+      op, fk_col_name, column_type, line, fk_col_type, saved_results_index = 
       @columns[col].bind_datatypes(
                                    sqlite3_type, column_cast, 
                                    sqlite3_parameters, column_cast_back, 
@@ -374,19 +386,14 @@ class VirtualTable
             end
           end
         end
-        if access_path.match(/(.+)\)/)  # returning from a method
+        if fk_col_type.length > 0 
           fw.puts "       {"
-          fk_type = $table_index[fk_col_name]
-          fk_type.end_with?('*') ? add_pointer = "" : add_pointer = "*"
-          fw.puts "#{$s}#{fk_type} #{add_pointer}#{fk_col_name.downcase}_tmp = (#{fk_type} #{add_pointer})sqlite3_malloc(sizeof(#{fk_type.chomp('*')}));"
-          fw.puts "#{$s}*#{fk_col_name.downcase}_tmp = #{record_type}#{iden}#{access_path};"
+          fw.puts "#{$s}saved_results_#{saved_results_index}.push_back(#{record_type}#{iden}#{access_path});"
           fw.puts "#ifdef ENVIRONMENT64"
-          fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{fk_col_name.downcase}_tmp);"
+          fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, #{column_cast}&saved_results_#{saved_results_index}.back());"
           fw.puts "#else"
-          fw.puts "#{$s}sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}#{fk_col_name.downcase}_tmp);"
+          fw.puts "#{$s}sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}&saved_results_#{saved_results_index}.back());"
           fw.puts "#endif"
-          fw.puts "#{$s}vector<void*> *tmp = (vector<void*> *)stcsr->tmpVars;"
-          fw.puts "#{$s}tmp->push_back((void *)#{fk_col_name.downcase}_tmp);"
           fw.puts "#{$s}break;"
           fw.puts "       }"
         else
@@ -462,7 +469,7 @@ class VirtualTable
       column_cast_back = ""
       access_path = ""
       fk_copy_temp = 0
-      op, useless, fk_type, line = 
+      op, useless, fk_type, line, useless2, useless3 = 
       @columns[col].bind_datatypes(sqlite3_type, 
                                    column_cast, sqlite3_parameters, 
                                    column_cast_back, access_path)

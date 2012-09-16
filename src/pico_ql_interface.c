@@ -258,6 +258,7 @@ void terminate(FILE *f, sqlite3 *db) {
 		"</style>"
 		"</head>"
 		"<body>");
+  clear_temp_vectors();
   sqlite3_close(db);
   swill_fprintf(f, "<b>TERMINATED CONNECTION...</b>"
 		"</body>"

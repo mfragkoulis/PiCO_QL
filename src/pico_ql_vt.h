@@ -88,4 +88,6 @@ int disconnect_vtable(sqlite3_vtab *ppVtab);
 
 void fill_module(sqlite3_module *m);
 
+void clear_temp_vectors();
+
 #endif
