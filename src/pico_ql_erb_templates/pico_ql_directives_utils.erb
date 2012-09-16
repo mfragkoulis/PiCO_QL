@@ -66,7 +66,11 @@ struct name_cmp {
 <%      vt.columns.each { |col| %>
 <%       if col.related_to.length > 0 && col.access_path.match(/(.+)\)/) %>
 <%        col.fk_col_type = $table_index[col.related_to] %>
-vector <<%= col.fk_col_type.chomp('*') %> > saved_results_<%= i %>;
+<%        if col.fk_col_type.end_with?('*') %>
+vector <<%= col.fk_col_type %> > saved_results_<%= i %>;
+<%        else %>
+vector <<%= col.fk_col_type %>* > saved_results_<%= i %>;
+<%        end %>
 <%        col.saved_results_index = i %>
 <%        i += 1 %>
 <%       end %>
@@ -256,7 +260,7 @@ int init_text_vector(picoQLTableCursor *stc) {
 void deinit_text_vector(picoQLTableCursor *stc) {
 #ifdef PICO_QL_HANDLE_POLYMORPHISM
   vector<string*> *tr = (vector<string*> *)stc->textResults;
-  for (size_t i = 0; i<tr->size(); i++)
+  for (size_t i = 0; i < tr->size(); i++)
       delete tr->at(i);
   delete tr;
 #endif
@@ -271,7 +275,9 @@ void deinit_temp_vectors() {
 <%     @tables.each { |vt| %>
 <%      vt.columns.each { |col| %>
 <%       if col.fk_col_type.length > 0 %>
-saved_results_<%= col.saved_results_index %>.clear();
+  for (size_t i = 0; i < saved_results_<%= col.saved_results_index %>.size(); i++)
+    delete saved_results_<%= col.saved_results_index %>.at(i);
+  saved_results_<%= col.saved_results_index %>.clear();
 <%       end %>
 <%      } %>
 <%     } %>

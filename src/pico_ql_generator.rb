@@ -205,7 +205,7 @@ class Column
                                         coln.data_type.clone, 
                                         coln.related_to.clone, 
                                         coln.fk_col_type.clone,
-                                        coln.saved_results_index.clone,
+                                        coln.saved_results_index,
                                         coln.access_path.clone, 
                                         coln.col_type.clone,
                                         coln.line)
@@ -388,11 +388,16 @@ class VirtualTable
         end
         if fk_col_type.length > 0 
           fw.puts "       {"
-          fw.puts "#{$s}saved_results_#{saved_results_index}.push_back(#{record_type}#{iden}#{access_path});"
+          fw.puts "#{$s}saved_results_#{saved_results_index}.push_back(new #{fk_col_type.chomp('*')}(#{record_type}#{iden}#{access_path}));"
+#          if fk_col_type.match(/(\w+)<(.+)>/)
+#            fw.puts "#{$s}saved_results_#{saved_results_index}.back().insert(saved_results_#{saved_results_index}.back().begin(), #{record_type}#{iden}#{access_path}.begin(), #{record_type}#{iden}#{access_path}.end());"
+#          else
+#            fw.puts "#{$s}saved_results_#{saved_results_index}.back() = #{record_type}#{iden}#{access_path};"
+#          end
           fw.puts "#ifdef ENVIRONMENT64"
-          fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, #{column_cast}&saved_results_#{saved_results_index}.back());"
+          fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, #{column_cast}&*(saved_results_#{saved_results_index}.back()));"
           fw.puts "#else"
-          fw.puts "#{$s}sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}&saved_results_#{saved_results_index}.back());"
+          fw.puts "#{$s}sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}&*(saved_results_#{saved_results_index}.back()));"
           fw.puts "#endif"
           fw.puts "#{$s}break;"
           fw.puts "       }"
