@@ -378,7 +378,7 @@ class VirtualTable
           fw.puts "       {"
           fk_type = $table_index[fk_col_name]
           fk_type.end_with?('*') ? add_pointer = "" : add_pointer = "*"
-          fw.puts "#{$s}#{fk_type} #{add_pointer}#{fk_col_name.downcase}_tmp = new #{fk_type.chomp('*')} ();"
+          fw.puts "#{$s}#{fk_type} #{add_pointer}#{fk_col_name.downcase}_tmp = (#{fk_type} #{add_pointer})sqlite3_malloc(sizeof(#{fk_type.chomp('*')}));"
           fw.puts "#{$s}*#{fk_col_name.downcase}_tmp = #{record_type}#{iden}#{access_path};"
           fw.puts "#ifdef ENVIRONMENT64"
           fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{fk_col_name.downcase}_tmp);"
