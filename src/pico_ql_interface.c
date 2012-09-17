@@ -30,6 +30,54 @@
 #include "pico_ql_test.h"
 #include "pico_ql_swill_access_func.h"
 
+/* Forwards  a query for execution to sqlite and 
+ * presents the resultset of a query.
+ */
+int step_query(FILE *f, sqlite3_stmt *stmt) {
+  int col, result, rows = 0;
+  swill_fprintf(f, "<table>");
+  swill_fprintf(f, "</tr>");
+  for (col = 0; col < sqlite3_column_count(stmt); col++) {
+    swill_fprintf(f, "<td><b>%s</td></b>", 
+		  sqlite3_column_name(stmt, col));
+  }
+  swill_fprintf(f, "</tr>");
+  while ((result = sqlite3_step(stmt)) == SQLITE_ROW) {
+    rows++;
+    swill_fprintf(f, "<tr>");
+    for (col = 0; col < sqlite3_column_count(stmt); col++) {
+      switch (sqlite3_column_type(stmt, col)) {
+      case 1:
+	swill_fprintf(f, "<td><b>%i</b></td>", 
+		      sqlite3_column_int(stmt, col));
+	break;
+      case 2:
+	swill_fprintf(f, "<td><b>%f</b></td>", 
+		      sqlite3_column_double(stmt, col));
+	break;
+      case 3:
+	swill_fprintf(f, "<td><b>%s</b></td>", 
+		      sqlite3_column_text(stmt, col));
+	break;
+      case 4:
+	swill_fprintf(f, "<td><b>%s</b></td>", 
+		      (char *)sqlite3_column_blob(stmt, 
+						  col));
+	break;
+      case 5:
+	swill_fprintf(f, "<td><b>(null)</td></b>");
+	break;
+      }
+    }
+    swill_fprintf(f, "</tr>");
+  }
+  swill_fprintf(f,"</table>");
+  swill_fprintf(f, "<br>");
+  swill_fprintf(f, "<b>%i rows in result set.</b><br>", rows);
+  swill_fprintf(f, "<br>");
+  return result;
+}
+
 /* Calls step_query for query execution. 
  * Collects and acts on the result status of a query 
  * execution.
@@ -81,53 +129,6 @@ int prep_exec(FILE *f, sqlite3 *db, const char *q){
   return result;
 }
 
-/* Forwards  a query for execution to sqlite and 
- * presents the resultset of a query.
- */
-int step_query(FILE *f, sqlite3_stmt *stmt) {
-  int col, result, rows = 0;
-  swill_fprintf(f, "<table>");
-  swill_fprintf(f, "</tr>");
-  for (col = 0; col < sqlite3_column_count(stmt); col++) {
-    swill_fprintf(f, "<td><b>%s</td></b>", 
-		  sqlite3_column_name(stmt, col));
-  }
-  swill_fprintf(f, "</tr>");
-  while ((result = sqlite3_step(stmt)) == SQLITE_ROW) {
-    rows++;
-    swill_fprintf(f, "<tr>");
-    for (col = 0; col < sqlite3_column_count(stmt); col++) {
-      switch (sqlite3_column_type(stmt, col)) {
-      case 1:
-	swill_fprintf(f, "<td><b>%i</b></td>", 
-		      sqlite3_column_int(stmt, col));
-	break;
-      case 2:
-	swill_fprintf(f, "<td><b>%f</b></td>", 
-		      sqlite3_column_double(stmt, col));
-	break;
-      case 3:
-	swill_fprintf(f, "<td><b>%s</b></td>", 
-		      sqlite3_column_text(stmt, col));
-	break;
-      case 4:
-	swill_fprintf(f, "<td><b>%s</b></td>", 
-		      (char *)sqlite3_column_blob(stmt, 
-						  col));
-	break;
-      case 5:
-	swill_fprintf(f, "<td><b>(null)</td></b>");
-	break;
-      }
-    }
-    swill_fprintf(f, "</tr>");
-  }
-  swill_fprintf(f,"</table>");
-  swill_fprintf(f, "<br>");
-  swill_fprintf(f, "<b>%i rows in result set.</b><br>", rows);
-  swill_fprintf(f, "<br>");
-  return result;
-}
 
 /* Calls the function that prints the PiCO QL error page (.html).
  */

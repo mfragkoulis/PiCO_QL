@@ -126,6 +126,7 @@ int compare(int dstr_value, int op, int value) {
     case 4:
         return dstr_value > value;
     }
+    return SQLITE_INTERNAL;
 }
 
 /* Compares two long integers and returns the result of 
@@ -144,6 +145,7 @@ int compare(long int dstr_value, int op, long int value) {
     case 4:
         return dstr_value > value;
     }
+    return SQLITE_INTERNAL;
 }
 
 
@@ -163,6 +165,7 @@ int compare(double dstr_value, int op, double value) {
     case 4:
         return dstr_value > value;
     }
+    return SQLITE_INTERNAL;
 }
 
 
@@ -183,6 +186,7 @@ int compare(const void *dstr_value, int op,
     case 4:
         return dstr_value > value;
     }
+    return SQLITE_INTERNAL;
 }
 
 /* Compares two arrays of characters and returns the result
@@ -207,6 +211,7 @@ int compare(const unsigned char *dstr_value, int op,
         return strcmp((const char *)dstr_value,
 		      (const char *)value) > 0;
     }
+    return SQLITE_INTERNAL;
 }
 
 

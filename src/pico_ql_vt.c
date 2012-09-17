@@ -50,6 +50,34 @@ void create(sqlite3 *db,
 #endif
 }
 
+/* Estimates the query length by counting the length of 
+ * the parameters passed.
+ */
+int arrange_size(int argc, const char * const * argv) {
+  /* Length of standard keywords of sql queries. */
+  int length = 28;
+  int i;
+  /* + length for all keywords except db_name. + 1 for 
+   * following identifier.
+   */
+  for (i = 0; i < argc; i++) {
+    if (i != 1) length += strlen(argv[i]) + 1;
+  }
+  length += 1;         /*  Sentinel character. */
+#ifdef PICO_QL_DEBUG
+  printf("length is %i \n",length);
+#endif
+  return length;
+}
+
+/* Calls function to deallocate memory reserved
+ * for storing copies of temporary variables.
+ */
+void clear_temp_lists() {
+  deinit_temp_lists();
+}
+
+
 /* Creates/connects a virtual table to the provided 
  * database.
  * isCreate for activating e.g. extra storage utilised. 
@@ -131,6 +159,7 @@ int init_vtable(int iscreate,
     printf("%s \n", *pzErr);
     return SQLITE_ERROR;
   } 
+  return SQLITE_INTERNAL;
 }
 
 //xConnect
@@ -192,22 +221,22 @@ void eval_constraint(int sqlite3_op,
 		     int *j,
 		     char *nidxStr, 
 		     int nidxLen) {
-  char op;
+  char op = 'A';
   switch (sqlite3_op) {
   case SQLITE_INDEX_CONSTRAINT_LT:
-    op='A'; 
+    op = 'A'; 
     break;
   case SQLITE_INDEX_CONSTRAINT_LE:  
-    op='B'; 
+    op = 'B'; 
     break;
   case SQLITE_INDEX_CONSTRAINT_EQ:  
-    op='C'; 
+    op = 'C'; 
     break;
   case SQLITE_INDEX_CONSTRAINT_GE:  
-    op='D'; 
+    op = 'D'; 
     break;
   case SQLITE_INDEX_CONSTRAINT_GT:  
-    op='E'; 
+    op = 'E'; 
     break;
     //    case SQLITE_INDEX_CONSTRAINT_MATCH: nidxStr[i]="F"; break;
   }
@@ -267,7 +296,7 @@ int best_index_vtable(sqlite3_vtab *pVtab,
     char nidxStr[nidxLen];
     memset(nidxStr, 0, sizeof(nidxStr));
     assert(pInfo->idxStr == 0);
-    int i, con, j, counter, score = 0;
+    int i, j, counter, score = 0;
     if (st->zErr != NULL) {
       sqlite3_free(st->zErr);
       st->zErr = NULL;
@@ -517,31 +546,4 @@ void fill_module(sqlite3_module *m) {
   m->xCommit = 0;
   m->xRollback = 0;
   m->xRename = 0;
-}
-
-/* Estimates the query length by counting the length of 
- * the parameters passed.
- */
-int arrange_size(int argc, const char * const * argv) {
-  /* Length of standard keywords of sql queries. */
-  int length = 28;
-  int i;
-  /* + length for all keywords except db_name. + 1 for 
-   * following identifier.
-   */
-  for (i = 0; i < argc; i++) {
-    if (i != 1) length += strlen(argv[i]) + 1;
-  }
-  length += 1;         /*  Sentinel character. */
-#ifdef PICO_QL_DEBUG
-  printf("length is %i \n",length);
-#endif
-  return length;
-}
-
-/* Calls function to deallocate memory reserved
- * for storing copies of temporary variables.
- */
-void clear_temp_lists() {
-  deinit_temp_lists();
 }

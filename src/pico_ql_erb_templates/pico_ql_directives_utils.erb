@@ -181,6 +181,7 @@ int register_vt(picoQLTable *picoQL) {
         picoQL->data = NULL;
         picoQL->embedded = 1;
     }
+    return SQLITE_INTERNAL;
 }
 
 // Returns the size (records) for each virtual table.
