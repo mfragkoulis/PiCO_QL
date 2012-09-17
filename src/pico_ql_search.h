@@ -82,7 +82,7 @@ extern "C" {
   int equals(const char *zCol, const char *key);
   int init_text_vector(picoQLTableCursor *stc);
   void deinit_text_vector(picoQLTableCursor *stc);
-  void deinit_temp_vectors();
+  void deinit_temp_lists();
   int get_datastructure_size(sqlite3_vtab_cursor *cur);
   int search(sqlite3_vtab_cursor *cur, char *constraint, 
 	     sqlite3_value *val);

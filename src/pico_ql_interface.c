@@ -246,7 +246,7 @@ void serve_query(FILE *f, sqlite3 *db) {
 		  "</body>"
 		  "</html>");
   }
-  clear_temp_vectors();
+  clear_temp_lists();
 }
 
 // Terminates connection to the embedded web-server.
