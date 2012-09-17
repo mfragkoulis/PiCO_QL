@@ -26,6 +26,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "pico_ql_test.h"
+#include "pico_ql_search.h"
 
 /* Takes care of query preparation and execution. 
  * Writes results to file.
@@ -85,6 +86,7 @@ int test_prep_exec(FILE *f, sqlite3 *db, const char *q) {
     fprintf(f, "Error in preparation of query: error no %i\n", prepare);
     return prepare;
   }
+  deinit_temp_vectors();
   sqlite3_finalize(stmt);
   return result;
 }
