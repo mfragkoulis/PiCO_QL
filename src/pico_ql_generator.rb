@@ -521,17 +521,17 @@ class VirtualTable
           fw.puts "#ifdef ENVIRONMENT64"
           vt_type_spacing(fw)
           if fk_copy_temp == 1    # returning from a method
-            fw.print "if (compare(#{column_cast}t#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val)) )"
+            fw.print "if (compare(#{column_cast}t#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_type}(val)) )"
           else
-            fw.print "if (compare(#{column_cast}#{access_path}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val)) )"
+            fw.print "if (compare(#{column_cast}#{access_path}#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_type}(val)) )"
           end
           fw.puts
           fw.puts "#else"
           vt_type_spacing(fw)
           if fk_copy_temp == 1    # returning from a method
-            fw.print "if (compare(#{column_cast}t#{column_cast_back}, op, sqlite3_value_#{sqlite3_parameters}(val)) )"
+            fw.print "if (compare(#{column_cast}t#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_parameters}(val)) )"
           else
-            fw.print "if (compare(#{column_cast}#{access_path}#{column_cast_back}, op, sqlite3_value_#{sqlite3_parameters}(val)) )"
+            fw.print "if (compare(#{column_cast}#{access_path}#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_parameters}(val)) )"
           end
           fw.puts
           fw.puts "#endif"
