@@ -388,11 +388,11 @@ class VirtualTable
         end
         if fk_col_type.length > 0 
           fw.puts "       {"
-          fw.puts "#{$s}saved_results_#{saved_results_index}.push_back(new #{fk_col_type.chomp('*')}(#{record_type}#{iden}#{access_path}));"
+          fw.puts "#{$s}saved_results_#{saved_results_index}.push_back(#{record_type}#{iden}#{access_path});"
           fw.puts "#ifdef ENVIRONMENT64"
-          fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, #{column_cast}&*(saved_results_#{saved_results_index}.back()));"
+          fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, #{column_cast}&(saved_results_#{saved_results_index}.back()));"
           fw.puts "#else"
-          fw.puts "#{$s}sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}&*(saved_results_#{saved_results_index}.back()));"
+          fw.puts "#{$s}sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}&(saved_results_#{saved_results_index}.back()));"
           fw.puts "#endif"
           fw.puts "#{$s}break;"
           fw.puts "       }"
