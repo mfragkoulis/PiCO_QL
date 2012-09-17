@@ -513,12 +513,14 @@ class VirtualTable
           access_path = "#{iden}#{access_path}"
         end
         if sqlite3_type == "int64"  # foreign key column
+          if fk_copy_temp == 1    # returning from a method
+            vt_type_spacing(fw)
+            fw.print "typeof(#{access_path}) t = #{access_path};"
+            fw.puts
+          end
           fw.puts "#ifdef ENVIRONMENT64"
           vt_type_spacing(fw)
           if fk_copy_temp == 1    # returning from a method
-            fw.print "typeof(#{access_path}) t = #{access_path};"
-            fw.puts
-            vt_type_spacing(fw)
             fw.print "if (compare(#{column_cast}t#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val)) )"
           else
             fw.print "if (compare(#{column_cast}#{access_path}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val)) )"
