@@ -26,7 +26,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include "pico_ql_vt.h"
-#include "pico_ql_search.h"
+#include "pico_ql_internal.h"
 
 // Constructs the SQL CREATE query.
 void create(sqlite3 *db, 

@@ -34,6 +34,8 @@
 #include "pico_ql_search.h"     // For PiCO_QL
 
 using namespace std;
+using namespace picoQL;
+
 
 unsigned long init[4] = {0x123, 0x234, 0x345, 0x456};
 unsigned long length = 4;  

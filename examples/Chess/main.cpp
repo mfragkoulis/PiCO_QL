@@ -26,6 +26,8 @@
 #include "pico_ql_search.h"
 /*-------------*/
 
+using namespace picoQL;
+
 int main() {
     vector<vector<ChessPiece> > board;
     pico_ql_register((const void *)&board, "board");

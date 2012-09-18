@@ -40,12 +40,14 @@
 #endif
 <%= directives %>
 #include "pico_ql_search.h"
+#include "pico_ql_internal.h"
 #include "pico_ql_interface.h"
 #include "pico_ql_search_helper.h"
 
 
 using namespace std;
 using namespace boost;
+using namespace picoQL;
 
 template <class T>
 void forward_container_concept_check(T x) {
@@ -89,7 +91,7 @@ static <%= vt.signature %> <%= retype %>pico_ql_table_<%= vt.base_var %> = NULL;
 /* Registers the base variables of user application code
  * with PiCO QL.
  */
-void pico_ql_register(const void *data_structure, const char *ds_name) {
+void picoQL::pico_ql_register(const void *data_structure, const char *ds_name) {
 <%    count = 0 %>
 <%    @tables.each_index { |vt| %>
 <%      if @tables[vt].base_var.length > 0 %>
@@ -139,7 +141,7 @@ void * thread_sqlite(void *data) {
 
 
 // The API with user application code. Creates the PiCO_QL thread.
-int pico_ql_serve() {
+int picoQL::pico_ql_serve() {
 #ifndef PICO_QL_SINGLE_THREADED
     pthread_t sqlite_thread;
     pthread_create(&sqlite_thread, NULL, thread_sqlite, NULL);
@@ -156,7 +158,7 @@ int pico_ql_serve() {
 /* Registers the base variables of user application code
  * with their virtual table representation.
  */
-int register_vt(picoQLTable *picoQL) {
+int picoQL::register_vt(picoQLTable *picoQL) {
 <%    count = 0 %>
 <%    @tables.each_index { |vt| %>
 <%      if @tables[vt].base_var.length > 0 %>
@@ -185,7 +187,7 @@ int register_vt(picoQLTable *picoQL) {
 }
 
 // Returns the size (records) for each virtual table.
-int get_datastructure_size(sqlite3_vtab_cursor *cur) {
+int picoQL::get_datastructure_size(sqlite3_vtab_cursor *cur) {
     picoQLTableCursor *stc = (picoQLTableCursor *)cur;
     picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
 <%    count = 0 %>
@@ -220,7 +222,7 @@ int get_datastructure_size(sqlite3_vtab_cursor *cur) {
 
 // Each embedded virtual table has a column named 'base'.
 // This function checks if a provided column name is indeed 'base'.
-int equals(const char *zCol, const char *key) {
+int picoQL::equals(const char *zCol, const char *key) {
     int length = (int)strlen(zCol) + 1;
     char copy[length], *token;
     memcpy(copy, zCol, length);
@@ -239,7 +241,7 @@ int equals(const char *zCol, const char *key) {
  * values of type char array so that they are retrievable
  * by SQLite without conflict.
  */
-int init_text_vector(picoQLTableCursor *stc) {
+int picoQL::init_text_vector(picoQLTableCursor *stc) {
 #ifdef PICO_QL_HANDLE_POLYMORPHISM
   vector<string*> *tr = new vector<string*>();
   stc->textResults = (void *)tr;
@@ -256,7 +258,7 @@ int init_text_vector(picoQLTableCursor *stc) {
  * column values of type char array so that they are
  * retrievable by SQLite without conflict.
  */
-void deinit_text_vector(picoQLTableCursor *stc) {
+void picoQL::deinit_text_vector(picoQLTableCursor *stc) {
 #ifdef PICO_QL_HANDLE_POLYMORPHISM
   vector<string*> *tr = (vector<string*> *)stc->textResults;
   for (size_t i = 0; i < tr->size(); i++)
@@ -270,7 +272,7 @@ void deinit_text_vector(picoQLTableCursor *stc) {
  * column values so that they are
  * manageable by SQLite safely.
  */
-void deinit_temp_lists() {
+void picoQL::deinit_temp_lists() {
 <%     @tables.each { |vt| %>
 <%      vt.columns.each { |col| %>
 <%       if col.fk_col_type.length > 0 %>
