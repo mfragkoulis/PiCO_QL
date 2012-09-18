@@ -82,9 +82,9 @@ list <<%= col.fk_col_type.chomp('*') %> > saved_results_<%= i %>;
 <%        /\*/.match(vt.pointer) == nil ? retype = "*" : retype = "" %>
 <%        if $argD == "DEBUG" %>
 // C NAME (pico_ql_table_)<%= vt.base_var %> in line <%= vt.base_var_line + 1 %> <%= $argF %> 
-// C TYPE <%= vt.signature %> in line <%= vt.signature_line + 1 %> <%= $argF %> 
 <%        end %>
 static <%= vt.signature %> <%= retype %>pico_ql_table_<%= vt.base_var %> = NULL;
+#line <%= vt.signature_line + 1 %> "<%= $argF %>" 
 <%      end %>
 <%     } %>
 
@@ -101,12 +101,10 @@ void picoQL::pico_ql_register(const void *data_structure, const char *ds_name) {
 <%        else %>
     } else if (!strcmp(ds_name, "<%= @tables[vt].base_var %>")) {
 <%        end %>
-<%        if $argD == "DEBUG" %>
-// C NAME (pico_ql_table_)<%= @tables[vt].base_var %> in line <%= @tables[vt].base_var_line + 1 %> <%= $argF %> 
-// C TYPE <%= @tables[vt].signature %> in line <%= @tables[vt].signature_line + 1 %> <%= $argF %> 
-<%        end %>
+#line <%= @tables[vt].base_var_line + 1 %> "<%= $argF %>" 
 <%        /\*/.match(@tables[vt].pointer) == nil ? retype = "*" : retype = "" %>
         pico_ql_table_<%= @tables[vt].base_var %> = (<%= @tables[vt].signature %> <%= retype %>)data_structure;
+#line <%= @tables[vt].signature_line + 1 %> "<%= $argF %>" 
 <%      end %>
 <%    } %>
     }
@@ -170,9 +168,7 @@ int picoQL::register_vt(picoQLTable *picoQL) {
 <%        end %>
 <%# Retyping has been taken care of in register_pico_ql %>
 <%#        /\*/.match(@tables[vt].pointer) == nil ? retype = "&" : retype = "" %>
-<%        if $argD == "DEBUG" %>
-// C NAME (pico_ql_table_)<%= @tables[vt].base_var %> in line <%= @tables[vt].base_var_line + 1 %> <%= $argF %> 
-<%        end %>
+#line <%= @tables[vt].base_var_line + 1 %> "<%= $argF %>" 
 	if (pico_ql_table_<%= @tables[vt].base_var %> == NULL)
 	    return SQLITE_ERROR;
         picoQL->data = (void *)pico_ql_table_<%= @tables[vt].base_var %>;
@@ -208,10 +204,8 @@ int picoQL::get_datastructure_size(sqlite3_vtab_cursor *cur) {
 	(void)it;	// Silence compiler unised variable warning
 <%# stc->source will definitely hold a pointer so retyping the signature as
 <%# follows is correct. %>
-<%        if $argD == "DEBUG" %>
-// C TYPE <%= @tables[vt].signature %> in line <%= @tables[vt].signature_line + 1 %> <%= $argF %> 
-<%        end %>
         <%= @tables[vt].signature %><%= retype %> any_dstr = (<%= @tables[vt].signature %><%= retype %>)stc->source;
+#line <%= @tables[vt].signature_line + 1 %> "<%= $argF %>" 
         return (int)any_dstr->size();
 <%      end %>
 <%    } %>

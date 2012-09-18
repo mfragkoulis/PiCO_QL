@@ -332,6 +332,13 @@ class VirtualTable
     return iden
   end
 
+# Print line directive
+  def print_line_directive(fw, line)
+    if line != nil
+      fw.puts "#line #{line + 1} \"#{$argF}\""
+    end
+  end
+
 # Generates code to retrieve each VT struct.
 # Each retrieve case matches a specific column of the VT.
   def retrieve_columns(fw)
@@ -349,9 +356,6 @@ class VirtualTable
                                    sqlite3_type, column_cast, 
                                    sqlite3_parameters, column_cast_back, 
                                    access_path)
-      if $argD == "DEBUG" && line != nil
-        fw.puts "// Line #{line + 1} #{$argF}"
-      end
       case op
       when "base"
         fw.puts "#ifdef ENVIRONMENT64"
@@ -389,6 +393,7 @@ class VirtualTable
         if fk_col_type.length > 0 
           fw.puts "       {"
           fw.puts "#{$s}saved_results_#{saved_results_index}.push_back(#{record_type}#{iden}#{access_path});"
+          print_line_directive(fw, line)
           fw.puts "#ifdef ENVIRONMENT64"
           fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, #{column_cast}&(saved_results_#{saved_results_index}.back()));"
           fw.puts "#else"
@@ -399,8 +404,10 @@ class VirtualTable
         else
           fw.puts "#ifdef ENVIRONMENT64"
           fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{p_type}#{iden}#{access_path});"
+          print_line_directive(fw, line)
           fw.puts "#else"
           fw.puts "#{$s}sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}#{p_type}#{iden}#{access_path});"
+          print_line_directive(fw, line)
           fw.puts "#endif"
         end
       when "gen_all"
@@ -417,10 +424,12 @@ class VirtualTable
 	  end
 	  fw.puts "#ifdef PICO_QL_HANDLE_POLYMORPHISM"
 	  fw.puts "#{$s}tr->push_back(new string(#{string_construct_cast}#{access_path}));"
+          print_line_directive(fw, line)
           fw.puts "#{$s}sqlite3_result_text(con, (const char *)(*tr->back()).c_str()#{sqlite3_parameters});"
           fw.puts "#else"
 	end
         fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{access_path}#{column_cast_back}#{sqlite3_parameters});"
+        print_line_directive(fw, line)
         if sqlite3_type == "text"
 	  fw.puts "#endif"
 	end
@@ -502,9 +511,6 @@ class VirtualTable
           puts "line: nil"
         end
       end
-      if $argD == "DEBUG" && line != nil
-        fw.puts "// Line #{line + 1} #{$argF}"
-      end
       case op
       when "gen_all"
         if access_path.match(/this\.|this->/)
@@ -526,6 +532,7 @@ class VirtualTable
             fw.print "if (compare(#{column_cast}#{access_path}#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_type}(val)) )"
           end
           fw.puts
+          print_line_directive(fw, line)
           fw.puts "#else"
           vt_type_spacing(fw)
           if fk_copy_temp == 1    # returning from a method
@@ -534,11 +541,13 @@ class VirtualTable
             fw.print "if (compare(#{column_cast}#{access_path}#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_parameters}(val)) )"
           end
           fw.puts
+          print_line_directive(fw, line)
           fw.puts "#endif"
         else
           vt_type_spacing(fw)
           fw.print "if (compare(#{column_cast}#{access_path}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val)) )"
           fw.puts
+          print_line_directive(fw, line)
         end
         vt_type_spacing(fw)
         fw.print "    temp_res[count++] = i;"
@@ -849,15 +858,13 @@ end
       @directives.gsub!(/using namespace (.+)/, 'using namespace \1;')
     end
     token_d.delete_at(0)
-    if $argD == "DEBUG"
-      line = 0              # Put line directives in include directives.
-      if @directives.match(/\n/)
-        @directives.gsub!(/\n/){ |nl|
-	"    // Line #{(line += 1).to_s} #{$argF}" + nl
-        }
-      end
-      puts "Directives: #{@directives}"
+    line = 0              # Put line directives in include directives.
+    if @directives.match(/\n/)
+      @directives.gsub!(/\n/){ |nl|
+	"\n#line #{(line += 1).to_s} \"#{$argF}\"" + nl
+      }
     end
+    puts "Directives: #{@directives}"
     x = 0
     while x < token_d.length            # Cleaning white space.
       if /\n|\t|\r|\f/.match(token_d[x])
