@@ -1,5 +1,5 @@
 // Retrieves column values of virtual table <%= @name %>.
-int <%= @name %>_retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con) {
+int <%= @name %>_retrieve(sqlite3_vtab_cursor *cur, int nCol, sqlite3_context *con) {
     picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
     if (struct_is_empty_null(cur, con)) return SQLITE_OK; 
 <%    if /\*/.match(@pointer) == nil %>

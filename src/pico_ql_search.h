@@ -84,9 +84,9 @@ extern "C" {
   void deinit_text_vector(picoQLTableCursor *stc);
   void deinit_temp_lists();
   int get_datastructure_size(sqlite3_vtab_cursor *cur);
-  int search(sqlite3_vtab_cursor *cur, char *constraint, 
-	     sqlite3_value *val);
-  int retrieve(sqlite3_vtab_cursor *cur, int n, 
+  int search(sqlite3_vtab_cursor *cur, int op, 
+	     int nCol, sqlite3_value *val);
+  int retrieve(sqlite3_vtab_cursor *cur, int nCol, 
 	       sqlite3_context *con);
 
 

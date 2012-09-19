@@ -335,7 +335,7 @@ class VirtualTable
 # Generates code to retrieve each VT struct.
 # Each retrieve case matches a specific column of the VT.
   def retrieve_columns(fw)
-    fw.puts "    switch (n) {"
+    fw.puts "    switch (nCol) {"
     col_array = @columns
     col_array.each_index { |col|
       fw.puts "    case #{col}:"
@@ -460,7 +460,7 @@ class VirtualTable
 # Generates code to search each VT struct.
 # Each search case matches a specific column of the VT.
   def search_columns(fw)
-    fw.puts "#{$s}switch (iCol) {"
+    fw.puts "#{$s}switch (nCol) {"
     @columns.each_index { |col|
       fw.puts "#{$s}case #{col}:"
       sqlite3_type = "search"

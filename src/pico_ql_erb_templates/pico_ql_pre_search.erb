@@ -1,9 +1,9 @@
 // Filters column values of virtual table <%= @name %>.
-int <%= @name %>_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *val) {
+int <%= @name %>_search(sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_value *val) {
     picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
     (void)picoQL;	// Silence compiler unused variable warning
     picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
-    if (struct_empty_null(cur, val, picoQL->embedded, constr)) return SQLITE_OK;
+    if (struct_empty_null(cur, val, picoQL->embedded, nCol)) return SQLITE_OK;
 <%      if /\*/.match(@pointer) == nil %>
 <%        sign_retype = "#{@signature}*" %>
 <%        sign_untype = @signature %>
@@ -20,7 +20,7 @@ int <%= @name %>_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *v
 <%      else %>
     int i = 0;
 <%      end %>
-    int op, iCol, count = 0, re = 0;
+    int count = 0, re = 0;
 <%      if @base_var.length > 0 %>
     int size = stcsr->max_size;
 <%      else %>
@@ -47,9 +47,8 @@ int <%= @name %>_search(sqlite3_vtab_cursor *cur, char *constr, sqlite3_value *v
         return SQLITE_MISUSE;
 <%      end %>
     } else {
-        check_alloc((const char *)constr, op, iCol);
 <%      if @base_var.length == 0 %>
-        if (equals(picoQL->azColumn[iCol], "base")) {
+        if (equals(picoQL->azColumn[nCol], "base")) {
 #ifdef ENVIRONMENT64
             stcsr->source = (void *)sqlite3_value_int64(val);
 #else

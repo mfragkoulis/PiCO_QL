@@ -25,6 +25,7 @@
 #include <string.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <math.h>
 #include "pico_ql_vt.h"
 #include "pico_ql_search.h"
 
@@ -216,70 +217,85 @@ int disconnect_vtable(sqlite3_vtab *ppVtab) {
  */
 void eval_constraint(int sqlite3_op, 
 		     const char *colName,
-		     char iCol, 
+		     int nCol, 
 		     int score,
-		     int *j,
 		     char *nidxStr, 
 		     int nidxLen) {
-  char op = 'A';
+  char iOp[2], iCol[4]; // iCol supports up to 999 columns.
+  sprintf(iCol, "%d", nCol);
+  int op = 0;
   switch (sqlite3_op) {
   case SQLITE_INDEX_CONSTRAINT_LT:
-    op = 'A'; 
+    op = 0;
     break;
-  case SQLITE_INDEX_CONSTRAINT_LE:  
-    op = 'B'; 
+  case SQLITE_INDEX_CONSTRAINT_LE:
+    op = 1;
     break;
-  case SQLITE_INDEX_CONSTRAINT_EQ:  
-    op = 'C'; 
+  case SQLITE_INDEX_CONSTRAINT_EQ:
+    op = 2;
     break;
-  case SQLITE_INDEX_CONSTRAINT_GE:  
-    op = 'D'; 
+  case SQLITE_INDEX_CONSTRAINT_GE:
+    op = 3;
     break;
-  case SQLITE_INDEX_CONSTRAINT_GT:  
-    op = 'E'; 
+  case SQLITE_INDEX_CONSTRAINT_GT:
+    op = 4;
     break;
-    //    case SQLITE_INDEX_CONSTRAINT_MATCH: nidxStr[i]="F"; break;
   }
-	
+  sprintf(iOp, "%d", op); 
+  int iColLen = (int)strlen(iCol);
+  char op_iCol[iColLen + 5];
   if (equals(colName, "base")) {
-    nidxStr[0] = op;
-    nidxStr[1] = iCol;
+    assert(nCol == 0);
+    nidxStr[0] = '{';
+    nidxStr[1] = *iOp;     // 7 evaluation qualifiers
+    nidxStr[2] = '-';
+    nidxStr[3] = '0';      // should always be 0
+    nidxStr[4] = '}';
   } else if (equals(colName, "rownum")) {
-      if (score > 2) {
-	nidxStr[2] = op;
-	nidxStr[3] = iCol;
-      } else {
-	nidxStr[0] = op;
-	nidxStr[1] = iCol;	
-      }
+    assert((nCol == 0) || (nCol == 1));
+    if (score > 2) {
+      nidxStr[5] = '{';
+      nidxStr[6] = *iOp;     
+      nidxStr[7] = '-';
+      nidxStr[8] = *iCol;    // 0 or 1 always
+      nidxStr[9] = '}';
+    } else {
+      nidxStr[0] = '{';
+      nidxStr[1] = *iOp;
+      nidxStr[2] = '-';
+      nidxStr[3] = *iCol;    // 0 or 1 always
+      nidxStr[4] = '}';
+    }
   } else {
-    assert(*j < nidxLen - 2);
-    nidxStr[(*j)++] = op;
-    nidxStr[(*j)++] = iCol;
+    assert((int)strlen(nidxStr) < nidxLen - iColLen - 5);
+    sprintf(op_iCol, "{%s-%s}", iOp, iCol);
+    strcat(nidxStr, op_iCol);
   }
 }
 
 /*
  */
-void order_constraints(int score, int *j, int *counter) {
+void order_constraints(int score, int *j, int *counter, 
+		       char *nidxStr) {
   switch (score) {
   case 0:
     *j = 0;
     *counter = 1;
     break;
   case 1:
-    *j = 2;
+    *j = 5;
     *counter = 2;
     break;
   case 2:
-    *j = 2;
+    *j = 5;
     *counter = 2;
     break;
   case 3:
-    *j = 4;
+    *j = 10;
     *counter = 3;
     break;
   }
+  if (*j > 0) strncpy(nidxStr, "reservedsp", (size_t)*j);
 }
 
 /* xBestindex. Defines the query plan for an SQL query. 
@@ -290,9 +306,8 @@ int best_index_vtable(sqlite3_vtab *pVtab,
   picoQLTable *st=(picoQLTable *)pVtab;
   /* No constraint no setting up. */
   if (pInfo->nConstraint > 0) {
-    char iCol;
     int nCol;
-    int nidxLen = pInfo->nConstraint*2 + 1;
+    int nidxLen = pInfo->nConstraint*7 + 1;
     char nidxStr[nidxLen];
     memset(nidxStr, 0, sizeof(nidxStr));
     assert(pInfo->idxStr == 0);
@@ -322,13 +337,12 @@ int best_index_vtable(sqlite3_vtab *pVtab,
 #endif
       return SQLITE_OK;
     }
-    order_constraints(score, &j, &counter);
+    order_constraints(score, &j, &counter, nidxStr);
     for (i = 0; i < pInfo->nConstraint; i++) {
       struct sqlite3_index_constraint *pCons = 
 	&pInfo->aConstraint[i];
       if (pCons->usable == 0) 
 	continue;
-      iCol = pCons->iColumn - 1 + 'a';
       nCol = pCons->iColumn;
       if (equals(st->azColumn[nCol], "base")) {
 	pInfo->aConstraintUsage[i].argvIndex = 1;
@@ -340,13 +354,14 @@ int best_index_vtable(sqlite3_vtab *pVtab,
       } else {
 	pInfo->aConstraintUsage[i].argvIndex = counter++;
       }
-      eval_constraint(pCons->op, st->azColumn[nCol], iCol, score, &j, 
-		      nidxStr, nidxLen);
+      eval_constraint(pCons->op, st->azColumn[nCol], nCol,
+		      score, nidxStr, nidxLen);
       pInfo->aConstraintUsage[i].omit = 1;
     }
     pInfo->needToFreeIdxStr = 1;
-    if ((j>0) && 0 == (pInfo->idxStr = 
-		       sqlite3_mprintf("%s", nidxStr)))
+    if ((((int)strlen(nidxStr)) > 0) && 
+      0 == (pInfo->idxStr = 
+	    sqlite3_mprintf("%s", nidxStr)))
       return SQLITE_NOMEM;
   }
   return SQLITE_OK;
@@ -361,9 +376,7 @@ int filter_vtable(sqlite3_vtab_cursor *cur,
 		  int argc, 
 		  sqlite3_value **argv) {
   picoQLTableCursor *stc=(picoQLTableCursor *)cur;
-  int i, j = 0, re = 0;
-  char *constr = (char *)sqlite3_malloc(sizeof(char) * 3);
-  memset(constr, 0, sizeof(constr));
+  int re = 0;
   /* Initialize size of resultset data structure. */
   stc->size = 0;
   stc->current = -1;      /* Initial cursor position. */
@@ -381,22 +394,25 @@ int filter_vtable(sqlite3_vtab_cursor *cur,
    */
   stc->first_constr = 1;  
   if (argc == 0) {        /* Empty where clause. */
-    if ((re = search(cur, NULL, NULL)) != 0 ) {
-      sqlite3_free(constr);
+    if ((re = search(cur, 0, 0, NULL)) != 0)
       return re;
-    }
   } else {
-    for (i=0; i < argc; i++) {
-      constr[0] = idxStr[j++];
-      constr[1] = idxStr[j++];
-      constr[2] = '\0';
-      if ((re = search(cur, constr, argv[i])) != 0) {
-	sqlite3_free(constr);
+    int i = 0, op[argc], nCol[argc];
+    char *token, where[(int)strlen(idxStr)+1];
+    strcpy(where, idxStr);
+    token = strtok((char *)where, "{-}"); 
+    while (token != NULL) {     // constr: {<op>-<nCol>}
+      op[i] = atoi(token);
+      token = strtok(NULL, "{-}");
+      nCol[i] = atoi(token);
+      token = strtok(NULL, "{-}");
+      i++;
+    }
+    for (i = 0; i < argc; i++) {
+      if ((re = search(cur, op[i], nCol[i], argv[i])) != 0)
 	return re;
-      }
     }
   }
-  sqlite3_free(constr);
   return next_vtable(cur);
 }
 

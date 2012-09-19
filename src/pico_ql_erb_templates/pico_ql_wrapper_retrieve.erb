@@ -1,9 +1,9 @@
 // Redirect to the appropriate retrieve function for a virtual table.
-int retrieve(sqlite3_vtab_cursor *cur, int n, sqlite3_context *con) {
+int retrieve(sqlite3_vtab_cursor *cur, int nCol, sqlite3_context *con) {
     picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
 <%    @tables.each { |vt| %>
     if (!strcmp(picoQL->zName, "<%= vt.name %>"))
-        return <%= vt.name %>_retrieve(cur, n, con);
+        return <%= vt.name %>_retrieve(cur, nCol, con);
 <%    } %>
     return SQLITE_INTERNAL;
 }
