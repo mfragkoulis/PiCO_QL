@@ -402,6 +402,7 @@ class VirtualTable
           fw.puts "#else"
           fw.puts "#{$s}sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}#{p_type}#{iden}#{access_path});"
           fw.puts "#endif"
+          fw.puts "#{$s}break;"
         end
       when "gen_all"
         iden = configure(access_path)
