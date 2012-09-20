@@ -89,7 +89,7 @@ void BackhaulCustomer::set_selective(bool s) {
 
 // Selects a Backhaul customer at random.
 BackhaulCustomer* BackhaulCustomer::random_sel(int& pos, 
-						int i) {}
+					       int i) {return NULL;}
 
 // Erases a Backhaul customer picked for service.
 void BackhaulCustomer::erase_c(int random, int i) {}

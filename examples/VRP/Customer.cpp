@@ -63,7 +63,7 @@ int Customer::get_count() {
     return count;
 }
 
-Position* Customer::get_pos() {}
+Position* Customer::get_pos() {return NULL;}
 
 
 bool Customer::get_allserviced() {
@@ -77,14 +77,14 @@ void Customer::set_allserviced() {
 }
 
 
-Customer* Customer::get_depot() {}
+Customer* Customer::get_depot() {return NULL;}
 
-Customer* Customer::random_sel(int& pos, int i) {}
+Customer* Customer::random_sel(int& pos, int i) {return NULL;}
 
 
 void Customer::erase_c(int random, int i) {}
 
 
-double Customer::get_dist(string pair) {}
+double Customer::get_dist(string pair) {return 0;}
 
 void Customer::compute_dist() {}

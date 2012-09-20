@@ -34,7 +34,6 @@ Account::Account(const char *acc_no, float b, int i,
 Account::Account(const char *acc_no, float b) : 
   SuperAccount(acc_no, b) {}
 
-Account & Account::operator=(Account const&) {}
 
 double Account::get_rate() {
     return balance/50;

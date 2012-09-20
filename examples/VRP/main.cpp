@@ -74,7 +74,7 @@ int main(int argc, const char *argv[]) {
     fin.close();
     sprintf(total_code_string, "%d", lines);
     code_length = (int)strlen(total_code_string);
-    int x, y, demand, number, total_dem = 0;
+    int x = 0, y = 0, demand = 0, number, total_dem = 0;
     string code;
     bool is_depot;
     vector<Position*> positions;

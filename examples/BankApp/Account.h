@@ -30,7 +30,6 @@ class Account: public SuperAccount {
   Account(const char *acc_no, float b, int i, 
 	  const char *);
   Account(const char *acc_no, float b);
-  Account & operator=(Account const&);
   double get_rate();
   const unsigned char *type;
 };

@@ -311,7 +311,7 @@ int best_index_vtable(sqlite3_vtab *pVtab,
     char nidxStr[nidxLen];
     memset(nidxStr, 0, sizeof(nidxStr));
     assert(pInfo->idxStr == 0);
-    int i, j, counter, score = 0;
+    int i, j = 0, counter = 0, score = 0;
     if (st->zErr != NULL) {
       sqlite3_free(st->zErr);
       st->zErr = NULL;

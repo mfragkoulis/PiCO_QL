@@ -109,8 +109,9 @@ int main() {
 	endl << endl;          
     }
 */
+    return 0;
 }
 
-int move(Position from, Position to) {}
+int move(Position from, Position to) {return 0;}
 
 
