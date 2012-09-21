@@ -844,20 +844,22 @@ end
     end
     token_d = @description
     token_d = token_d.select { |x| x.length > 0 }
-    @directives = token_d[0]
+    if token_d[0].start_with?("#include")
+      @directives = token_d[0]
     # Putback the ';' after the namespace.
-    if @directives.match(/using namespace (.+)/)
-      @directives.gsub!(/using namespace (.+)/, 'using namespace \1;')
-    end
-    token_d.delete_at(0)
-    if $argD == "DEBUG"
-      line = 0              # Put line directives in include directives.
-      if @directives.match(/\n/)
-        @directives.gsub!(/\n/){ |nl|
-	"    // Line #{(line += 1).to_s} #{$argF}" + nl
-        }
+      if @directives.match(/using namespace (.+)/)
+        @directives.gsub!(/using namespace (.+)/, 'using namespace \1;')
       end
-      puts "Directives: #{@directives}"
+      token_d.delete_at(0)
+      if $argD == "DEBUG"
+        line = 0              # Put line directives in include directives.
+        if @directives.match(/\n/)
+          @directives.gsub!(/\n/){ |nl|
+            "    // Line #{(line += 1).to_s} #{$argF}" + nl
+          }
+        end
+        puts "Directives: #{@directives}"
+      end
     end
     x = 0
     while x < token_d.length            # Cleaning white space.
