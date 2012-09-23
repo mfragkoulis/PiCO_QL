@@ -92,7 +92,7 @@ int main() {
     (*iter).push_back(ChessPiece("knight", "black"));
     (*iter).push_back(ChessPiece("rook", "black"));
 
-    while (pico_ql_serve()) {};
+    while (pico_ql_serve(8082)) {};
 //    move(Position(1, 'c'), Position(2, 'c'));
 
 /*                                                                              

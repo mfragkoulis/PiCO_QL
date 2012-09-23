@@ -33,7 +33,7 @@ int register_table(const char *nDb,
 		   int argc, 
 		   const char **queries, 
 		   const char **table_names, 
-		   void *data);
+		   int port_number);
 int prep_exec(FILE *f, sqlite3 *db, const char *q);
 
 #ifdef __cplusplus

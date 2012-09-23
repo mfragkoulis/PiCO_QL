@@ -72,6 +72,9 @@ pico_ql_search_helper.o: pico_ql_search_helper.cpp pico_ql_interface.h pico_ql_s
 
 pico_ql_test.o: pico_ql_test.c pico_ql_test.h
 
+cmp:
+	diff pico_ql_test_current.txt pico_ql_test_success.txt
+
 seed:
 	cp pico_ql_test_current.txt pico_ql_test_success.txt
 

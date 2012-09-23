@@ -80,6 +80,9 @@ pico_ql_search_helper.o: pico_ql_search_helper.cpp pico_ql_search_helper.h pico_
 
 pico_ql_test.o: pico_ql_test.c pico_ql_test.h
 
+cmp:
+	diff pico_ql_test_current.txt pico_ql_test_success.txt
+
 seed:
 	cp pico_ql_test_current.txt pico_ql_test_success.txt
 
@@ -92,3 +95,4 @@ prep:
 clean:
 	rm *.o
 	rm mydb
+

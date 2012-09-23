@@ -76,7 +76,7 @@ extern "C" {
 			* virtual table. 
 			*/
 
-  int pico_ql_serve();
+  int pico_ql_serve(int port_number);
   void pico_ql_register(const void *collection, const char * col_name);
   int register_vt(picoQLTable *picoQL);
   int equals(const char *zCol, const char *key);

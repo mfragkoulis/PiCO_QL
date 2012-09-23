@@ -130,7 +130,8 @@ void * thread_sqlite(void *data) {
     queries[<%= vt %>] = "<%= query %>";
     table_names[<%= vt %>] = "<%= @tables[vt].name %>";
 <%    } %>
-    failure = register_table( "<%= @tables[0].db %>" , <%= @tables.length.to_s %>, queries, table_names, data);
+    int port_number = *(int *)data;
+    failure = register_table( "<%= @tables[0].db %>" , <%= @tables.length.to_s %>, queries, table_names, port_number);
     printf("Thread sqlite returns %i\n", failure);
     sqlite3_free(queries);
     sqlite3_free(table_names);
@@ -139,15 +140,15 @@ void * thread_sqlite(void *data) {
 
 
 // The API with user application code. Creates the PiCO_QL thread.
-int pico_ql_serve() {
+int pico_ql_serve(int port_number) {
 #ifndef PICO_QL_SINGLE_THREADED
-    pthread_t sqlite_thread;
-    pthread_create(&sqlite_thread, NULL, thread_sqlite, NULL);
+    pthread_t sqlite_thread;    
+    pthread_create(&sqlite_thread, NULL, thread_sqlite, (void *)&port_number);
 #ifdef PICO_QL_JOIN_THREADS
     pthread_join(sqlite_thread, NULL);
 #endif
 #else
-    thread_sqlite(NULL);
+    thread_sqlite((void *)&port_number);
 #endif
     return 0;
 }

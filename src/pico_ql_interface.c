@@ -268,8 +268,8 @@ void terminate(FILE *f, sqlite3 *db) {
 }
 
 // Interface to the swill server functionality.
-void call_swill(sqlite3 *db) {
-  swill_init(8080);
+void call_swill(sqlite3 *db, int port_number) {
+  swill_init(port_number);
   swill_handle("pico_ql_logo.png", print_pico_ql_logo, 0);
   swill_handle("pico_ql_error_page.html", print_pico_ql_error_page, 0);
   swill_handle("index.html", app_index, db);
@@ -288,7 +288,7 @@ int register_table(const char *nDb,
 		   int argc, 
 		   const char **q, 
 		   const char **table_names, 
-		   void *data) {
+		   int port_number) {
   /* This definition implicitly constraints a table name 
    * to 140 characters. It should be more than enough.
    */
@@ -310,7 +310,7 @@ int register_table(const char *nDb,
   sqlite3_module *mod;
   mod = (sqlite3_module *)sqlite3_malloc(sizeof(sqlite3_module));
   fill_module(mod);
-  int output = sqlite3_create_module(db, "PicoQL", mod, data);
+  int output = sqlite3_create_module(db, "PicoQL", mod, NULL);
   if (output == 1) 
     printf("Error while registering module\n");
 #ifdef PICO_QL_DEBUG
@@ -332,8 +332,8 @@ int register_table(const char *nDb,
     }
   }
 #ifndef PICO_QL_TEST
-  printf("Please visit http://localhost:8080 to be served\n");
-  call_swill(db);
+  printf("Please visit http://localhost:%i to be served\n", port_number);
+  call_swill(db, port_number);
 #else
   re = call_test(db);
 #endif
