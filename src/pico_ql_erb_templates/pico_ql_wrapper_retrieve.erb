@@ -1,16 +1,14 @@
 // Redirect to the appropriate retrieve function for a virtual table.
 int retrieve(sqlite3_vtab_cursor *cur, int nCol, sqlite3_context *con) {
     picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
-    Retrieve *retrieveVT = selector_retrieve[picoQL->zName];
+    FunctoryVT *retrieveVT = selector_vt[picoQL->zName];
     return (*retrieveVT)(cur, nCol, con);
 }
 
 void set_selectors() {
 <%     @tables.each { |vt| %>
-<%= vt.name %>_search *<%= vt.name %>S = new <%= vt.name %>_search;
-selector_search["<%= vt.name %>"] = <%= vt.name %>S;
-<%= vt.name %>_retrieve *<%= vt.name %>R = new <%= vt.name %>_retrieve;
-selector_retrieve["<%= vt.name %>"] = <%= vt.name %>R;
+<%= vt.name %>_vt *<%= vt.name %>VT = new <%= vt.name %>_vt;
+selector_vt["<%= vt.name %>"] = <%= vt.name %>VT;
 <%     } %>
 }
 

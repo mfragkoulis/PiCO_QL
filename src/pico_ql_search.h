@@ -92,16 +92,11 @@ extern "C" {
 
 
 #ifdef __cplusplus
-  class Search {
+  class FunctoryVT {   // Factory + Functor
   public:
-    Search() {};
+    FunctoryVT() {};
     virtual int operator() (sqlite3_vtab_cursor *, int, 
 		    int, sqlite3_value *) {return SQLITE_ERROR;};
-  };
-
-  class Retrieve {
-  public:
-    Retrieve() {};
     virtual int operator() (sqlite3_vtab_cursor *, 
 		    int, sqlite3_context *) {return SQLITE_ERROR;};
   };
