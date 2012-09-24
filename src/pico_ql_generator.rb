@@ -864,7 +864,7 @@ end
         line = 0              # Put line directives in include directives.
         if @directives.match(/\n/)
           @directives.gsub!(/\n/){ |nl|
-            "    // Line #{(line += 1).to_s} #{$argF}" + nl
+            "\n#line #{(line += 1).to_s} \"#{$argF}\"" + nl
           }
         end
         puts "Directives: #{@directives}"
