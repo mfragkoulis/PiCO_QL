@@ -26,13 +26,15 @@
 #include <cstring>
 #include <string>
 #include "pico_ql_search_helper.h"
+#include "pico_ql_internal.h"
 
 using namespace std;
+using namespace picoQL;
 
 /* Tests if current data structure or value passed by 
  * sqlite are either null or empty and returns 1 if so.
  */
-int struct_empty_null(sqlite3_vtab_cursor *cur, sqlite3_value *val, int structEmbedded, int nCol) {
+int picoQL::struct_empty_null(sqlite3_vtab_cursor *cur, sqlite3_value *val, int structEmbedded, int nCol) {
   picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
   /* iCol > 0 allows to embedded structures
    * to propagate their error condition. At first
@@ -57,7 +59,7 @@ int struct_empty_null(sqlite3_vtab_cursor *cur, sqlite3_value *val, int structEm
 /* Tests if current data structure is null or empty and 
  * passes "(null)"/"(empty)" to sqlite and returns 1 if so.
  */
-int struct_is_empty_null(sqlite3_vtab_cursor *cur, sqlite3_context *con) {
+int picoQL::struct_is_empty_null(sqlite3_vtab_cursor *cur, sqlite3_context *con) {
   picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
   if (stcsr->isInstanceNULL) {
     sqlite3_result_text(con, "(null)", -1, SQLITE_STATIC);
@@ -73,7 +75,7 @@ int struct_is_empty_null(sqlite3_vtab_cursor *cur, sqlite3_context *con) {
 /* Reallocates the space allocated to the resultset struct.
  * Useful for embedded picoQL data structures.
  */
-int realloc_resultset(sqlite3_vtab_cursor *cur) {
+int picoQL::realloc_resultset(sqlite3_vtab_cursor *cur) {
     picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
     int arraySize;
     int *res;
@@ -111,7 +113,7 @@ int realloc_resultset(sqlite3_vtab_cursor *cur) {
 /* Compares two integers and returns the result of the 
  * comparison.
  */
-int compare(int dstr_value, int op, int value) {
+int picoQL::compare(int dstr_value, int op, int value) {
     switch (op) {
     case 0:
         return dstr_value < value;
@@ -130,7 +132,7 @@ int compare(int dstr_value, int op, int value) {
 /* Compares two long integers and returns the result of 
  * the comparison.
  */
-int compare(long int dstr_value, int op, long int value) {
+int picoQL::compare(long int dstr_value, int op, long int value) {
     switch (op) {
     case 0:
         return dstr_value < value;
@@ -150,7 +152,7 @@ int compare(long int dstr_value, int op, long int value) {
 /* Compares two doubles and returns the result of the 
  * comparison.
  */
-int compare(double dstr_value, int op, double value) {
+int picoQL::compare(double dstr_value, int op, double value) {
     switch (op) {
     case 0:
         return dstr_value < value;
@@ -170,7 +172,7 @@ int compare(double dstr_value, int op, double value) {
 /* Compares two void pointers and returns the result of the
  * comparison. Mem comparison.
  */
-int compare(const void *dstr_value, int op, 
+int picoQL::compare(const void *dstr_value, int op, 
 	    const void *value) {
     switch (op) {
     case 0:
@@ -190,7 +192,7 @@ int compare(const void *dstr_value, int op,
 /* Compares two arrays of characters and returns the result
  * of the comparison.
  */
-int compare(const unsigned char *dstr_value, int op,
+int picoQL::compare(const unsigned char *dstr_value, int op,
 	    const unsigned char *value) {
     switch (op) {
     case 0:
@@ -216,7 +218,7 @@ int compare(const unsigned char *dstr_value, int op,
 /* Compares the current resultset with the one stored in 
  * the cursor. Their intersection survives.
  */
-int compare_res(int count, picoQLTableCursor *stcsr, 
+int picoQL::compare_res(int count, picoQLTableCursor *stcsr, 
 		int *temp_res) {
     int ia, ib;
     int *i_res;

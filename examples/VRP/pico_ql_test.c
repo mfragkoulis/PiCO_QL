@@ -22,10 +22,11 @@
  *  permissions and limitations under the License.
  */
 
-#include "pico_ql_test.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include "pico_ql_test.h"
+#include "pico_ql_internal.h"
 
 // Takes care of query preparation and execution.
 int test_prep_exec(FILE *f, sqlite3 *db, const char *q) {
@@ -75,6 +76,7 @@ int test_prep_exec(FILE *f, sqlite3 *db, const char *q) {
     fprintf(f, "Error in preparation of query: error no %i\n", prepare);
     return prepare;
   }
+  deinit_temp_lists();
   sqlite3_finalize(stmt);
   return result;
 }

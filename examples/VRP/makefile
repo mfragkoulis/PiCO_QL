@@ -66,9 +66,9 @@ Position.o: Position.cpp Position.h
 
 mtrand.o: mtrand.cpp mtrand.h
 
-pico_ql_search.o: pico_ql_search.cpp pico_ql_search.h pico_ql_interface.h pico_ql_search_helper.h
+pico_ql_search.o: pico_ql_search.cpp pico_ql_search.h pico_ql_internal.h pico_ql_interface.h pico_ql_search_helper.h
 
-pico_ql_vt.o: pico_ql_vt.c pico_ql_vt.h pico_ql_search.h
+pico_ql_vt.o: pico_ql_vt.c pico_ql_vt.h pico_ql_internal.h
 
 pico_ql_logo.o: pico_ql_logo.c pico_ql_swill_access_func.h
 
@@ -76,9 +76,9 @@ pico_ql_error_page.o: pico_ql_error_page.c pico_ql_swill_access_func.h
 
 pico_ql_interface.o: pico_ql_interface.c pico_ql_interface.h pico_ql_vt.h pico_ql_test.h
 
-pico_ql_search_helper.o: pico_ql_search_helper.cpp pico_ql_search_helper.h pico_ql_search.h
+pico_ql_search_helper.o: pico_ql_search_helper.cpp pico_ql_search_helper.h pico_ql_internal.h
 
-pico_ql_test.o: pico_ql_test.c pico_ql_test.h
+pico_ql_test.o: pico_ql_test.c pico_ql_test.h pico_ql_internal.h
 
 cmp:
 	diff pico_ql_test_current.txt pico_ql_test_success.txt

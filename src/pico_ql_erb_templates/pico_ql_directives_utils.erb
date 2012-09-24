@@ -41,12 +41,14 @@
 #endif
 <%= directives %>
 #include "pico_ql_search.h"
+#include "pico_ql_internal.h"
 #include "pico_ql_interface.h"
 #include "pico_ql_search_helper.h"
 
 
 using namespace std;
 using namespace boost;
+using namespace picoQL;
 
 template <class T>
 void forward_container_concept_check(T x) {
@@ -99,16 +101,16 @@ list <<%= col.fk_col_type.chomp('*') %> > saved_results_<%= i %>;
 <%        /\*/.match(vt.pointer) == nil ? retype = "*" : retype = "" %>
 <%        if $argD == "DEBUG" %>
 // C NAME (pico_ql_table_)<%= vt.base_var %> in line <%= vt.base_var_line + 1 %> <%= $argF %> 
-// C TYPE <%= vt.signature %> in line <%= vt.signature_line + 1 %> <%= $argF %> 
 <%        end %>
 static <%= vt.signature %> <%= retype %>pico_ql_table_<%= vt.base_var %> = NULL;
+#line <%= vt.signature_line + 1 %> "<%= $argF %>" 
 <%      end %>
 <%     } %>
 
 /* Registers the base variables of user application code
  * with PiCO QL.
  */
-void pico_ql_register(const void *data_structure, const char *ds_name) {
+void picoQL::pico_ql_register(const void *data_structure, const char *ds_name) {
 <%    count = 0 %>
 <%    @tables.each_index { |vt| %>
 <%      if @tables[vt].base_var.length > 0 %>
@@ -118,12 +120,10 @@ void pico_ql_register(const void *data_structure, const char *ds_name) {
 <%        else %>
     } else if (!strcmp(ds_name, "<%= @tables[vt].base_var %>")) {
 <%        end %>
-<%        if $argD == "DEBUG" %>
-// C NAME (pico_ql_table_)<%= @tables[vt].base_var %> in line <%= @tables[vt].base_var_line + 1 %> <%= $argF %> 
-// C TYPE <%= @tables[vt].signature %> in line <%= @tables[vt].signature_line + 1 %> <%= $argF %> 
-<%        end %>
+#line <%= @tables[vt].base_var_line + 1 %> "<%= $argF %>" 
 <%        /\*/.match(@tables[vt].pointer) == nil ? retype = "*" : retype = "" %>
         pico_ql_table_<%= @tables[vt].base_var %> = (<%= @tables[vt].signature %> <%= retype %>)data_structure;
+#line <%= @tables[vt].signature_line + 1 %> "<%= $argF %>" 
 <%      end %>
 <%    } %>
     }
@@ -159,7 +159,7 @@ void * thread_sqlite(void *data) {
 
 
 // The API with user application code. Creates the PiCO_QL thread.
-int pico_ql_serve(int port_number) {
+int picoQL::pico_ql_serve(int port_number) {
 #ifndef PICO_QL_SINGLE_THREADED
     pthread_t sqlite_thread;    
     pthread_create(&sqlite_thread, NULL, thread_sqlite, (void *)&port_number);
@@ -176,7 +176,7 @@ int pico_ql_serve(int port_number) {
 /* Registers the base variables of user application code
  * with their virtual table representation.
  */
-int register_vt(picoQLTable *picoQL) {
+int picoQL::register_vt(picoQLTable *picoQL) {
 <%    count = 0 %>
 <%    @tables.each_index { |vt| %>
 <%      if @tables[vt].base_var.length > 0 %>
@@ -188,9 +188,7 @@ int register_vt(picoQLTable *picoQL) {
 <%        end %>
 <%# Retyping has been taken care of in register_pico_ql %>
 <%#        /\*/.match(@tables[vt].pointer) == nil ? retype = "&" : retype = "" %>
-<%        if $argD == "DEBUG" %>
-// C NAME (pico_ql_table_)<%= @tables[vt].base_var %> in line <%= @tables[vt].base_var_line + 1 %> <%= $argF %> 
-<%        end %>
+#line <%= @tables[vt].base_var_line + 1 %> "<%= $argF %>" 
 	if (pico_ql_table_<%= @tables[vt].base_var %> == NULL)
 	    return SQLITE_ERROR;
         picoQL->data = (void *)pico_ql_table_<%= @tables[vt].base_var %>;
@@ -205,7 +203,7 @@ int register_vt(picoQLTable *picoQL) {
 }
 
 // Returns the size (records) for each virtual table.
-int get_datastructure_size(sqlite3_vtab_cursor *cur) {
+int picoQL::get_datastructure_size(sqlite3_vtab_cursor *cur) {
     picoQLTableCursor *stc = (picoQLTableCursor *)cur;
     picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
 <%    count = 0 %>
@@ -220,10 +218,8 @@ int get_datastructure_size(sqlite3_vtab_cursor *cur) {
 <%        /\*/.match(@tables[vt].pointer) == nil ? retype = "*" : retype = "" %>
 <%# stc->source will definitely hold a pointer so retyping the signature as
 <%# follows is correct. %>
-<%        if $argD == "DEBUG" %>
-// C TYPE <%= @tables[vt].signature %> in line <%= @tables[vt].signature_line + 1 %> <%= $argF %> 
-<%        end %>
         <%= @tables[vt].signature %><%= retype %> any_dstr = (<%= @tables[vt].signature %><%= retype %>)stc->source;
+#line <%= @tables[vt].signature_line + 1 %> "<%= $argF %>" 
         return (int)any_dstr->size();
 <%      end %>
 <%    } %>
@@ -234,7 +230,7 @@ int get_datastructure_size(sqlite3_vtab_cursor *cur) {
 
 // Each embedded virtual table has a column named 'base'.
 // This function checks if a provided column name is indeed 'base'.
-int equals(const char *zCol, const char *key) {
+int picoQL::equals(const char *zCol, const char *key) {
     int length = (int)strlen(zCol) + 1;
     char copy[length], *token;
     memcpy(copy, zCol, length);
@@ -253,7 +249,7 @@ int equals(const char *zCol, const char *key) {
  * values of type char array so that they are retrievable
  * by SQLite without conflict.
  */
-int init_text_vector(picoQLTableCursor *stc) {
+int picoQL::init_text_vector(picoQLTableCursor *stc) {
 #ifdef PICO_QL_HANDLE_POLYMORPHISM
   vector<string*> *tr = new vector<string*>();
   stc->textResults = (void *)tr;
@@ -270,7 +266,7 @@ int init_text_vector(picoQLTableCursor *stc) {
  * column values of type char array so that they are
  * retrievable by SQLite without conflict.
  */
-void deinit_text_vector(picoQLTableCursor *stc) {
+void picoQL::deinit_text_vector(picoQLTableCursor *stc) {
 #ifdef PICO_QL_HANDLE_POLYMORPHISM
   vector<string*> *tr = (vector<string*> *)stc->textResults;
   for (size_t i = 0; i < tr->size(); i++)
@@ -284,7 +280,7 @@ void deinit_text_vector(picoQLTableCursor *stc) {
  * column values so that they are
  * manageable by SQLite safely.
  */
-void deinit_temp_structs() {
+void picoQL::deinit_temp_structs() {
 <%     @tables.each { |vt| %>
 <%      vt.columns.each { |col| %>
 <%       if col.fk_col_type.length > 0 %>

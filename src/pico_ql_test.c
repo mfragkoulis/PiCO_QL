@@ -26,7 +26,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "pico_ql_test.h"
-#include "pico_ql_search.h"
+#include "pico_ql_internal.h"
 
 /* Takes care of query preparation and execution. 
  * Writes results to file.

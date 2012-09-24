@@ -32,6 +32,7 @@
 /*------------*/
 
 using namespace std;
+using namespace picoQL;
 
 int main() {
 

@@ -1,5 +1,6 @@
 // Redirect to the appropriate retrieve function for a virtual table.
-int retrieve(sqlite3_vtab_cursor *cur, int nCol, sqlite3_context *con) {
+<<<<<<< HEAD
+int picoQL::retrieve(sqlite3_vtab_cursor *cur, int nCol, sqlite3_context *con) {
     picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
     FunctoryVT *retrieveVT = selector_vt[picoQL->zName];
     return (*retrieveVT)(cur, nCol, con);

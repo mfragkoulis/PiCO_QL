@@ -1,5 +1,6 @@
 // Redirect to the appropriate search function for a virtual table.
-int search(sqlite3_vtab_cursor* cur, int op, int nCol, sqlite3_value *val) {
+<<<<<<< HEAD
+int picoQL::search(sqlite3_vtab_cursor* cur, int op, int nCol, sqlite3_value *val) {
     picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
     FunctoryVT *searchVT = selector_vt[picoQL->zName];
     return (*searchVT)(cur, op, nCol, val);
