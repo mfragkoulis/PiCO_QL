@@ -29,6 +29,7 @@
 #include <cstdio>
 #include <cstring>
 #include <string>
+#include <map>
 #ifdef PICO_QL_HANDLE_POLYMORPHISM
 #include <vector>
 #endif
@@ -62,6 +63,9 @@ struct name_cmp {
         return strcmp(a, b) < 0;
     }
 };
+
+static map<string, Search*> selector_search;
+static map<string, Retrieve*> selector_retrieve;
 
 <%     i = 0 %>
 <%     @tables.each { |vt| %>
@@ -130,6 +134,7 @@ void * thread_sqlite(void *data) {
     queries[<%= vt %>] = "<%= query %>";
     table_names[<%= vt %>] = "<%= @tables[vt].name %>";
 <%    } %>
+    set_selectors();
     int port_number = *(int *)data;
     failure = register_table( "<%= @tables[0].db %>" , <%= @tables.length.to_s %>, queries, table_names, port_number);
     printf("Thread sqlite returns %i\n", failure);
@@ -280,3 +285,19 @@ void deinit_temp_lists() {
 <%      } %>
 <%     } %>
 }
+
+<%     @tables.each { |vt| %>
+  class <%= vt.name %>_search : public Search {
+  public:
+    <%= vt.name %>_search() : Search() {};
+    virtual int operator() (sqlite3_vtab_cursor *, int,
+                    int, sqlite3_value *);
+  };
+
+  class <%= vt.name %>_retrieve : public Retrieve {
+  public:
+    <%= vt.name %>_retrieve() : Retrieve() {};
+    virtual int operator() (sqlite3_vtab_cursor *,
+                    int, sqlite3_context *);
+  };
+<%     } %>

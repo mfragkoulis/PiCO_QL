@@ -1,5 +1,5 @@
 // Filters column values of virtual table <%= @name %>.
-int <%= @name %>_search(sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_value *val) {
+int <%= @name %>_search::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_value *val) {
     picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
     (void)picoQL;	// Silence compiler unused variable warning
     picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;

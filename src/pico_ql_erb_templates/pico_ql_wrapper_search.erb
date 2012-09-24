@@ -1,10 +1,7 @@
 // Redirect to the appropriate search function for a virtual table.
 int search(sqlite3_vtab_cursor* cur, int op, int nCol, sqlite3_value *val) {
     picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
-<%    @tables.each { |vt| %>
-    if (!strcmp(picoQL->zName, "<%= vt.name %>"))
-        return <%= vt.name %>_search(cur, op, nCol, val);
-<%    } %>
-    return SQLITE_INTERNAL;
+    Search *searchVT = selector_search[picoQL->zName];
+    return (*searchVT)(cur, op, nCol, val);
 }
 

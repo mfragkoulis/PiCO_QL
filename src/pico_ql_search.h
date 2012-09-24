@@ -80,6 +80,7 @@ extern "C" {
   void pico_ql_register(const void *collection, const char * col_name);
   int register_vt(picoQLTable *picoQL);
   int equals(const char *zCol, const char *key);
+  void set_selectors(); // internal but inconvinient to position
   int init_text_vector(picoQLTableCursor *stc);
   void deinit_text_vector(picoQLTableCursor *stc);
   void deinit_temp_lists();
@@ -91,6 +92,19 @@ extern "C" {
 
 
 #ifdef __cplusplus
+  class Search {
+  public:
+    Search() {};
+    virtual int operator() (sqlite3_vtab_cursor *, int, 
+		    int, sqlite3_value *) {return SQLITE_ERROR;};
+  };
+
+  class Retrieve {
+  public:
+    Retrieve() {};
+    virtual int operator() (sqlite3_vtab_cursor *, 
+		    int, sqlite3_context *) {return SQLITE_ERROR;};
+  };
 }
 #endif
 
