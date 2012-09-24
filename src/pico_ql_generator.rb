@@ -870,7 +870,6 @@ end
         puts "Directives: #{@directives}"
       end
     end
-    puts "Directives: #{@directives}"
     x = 0
     while x < token_d.length            # Cleaning white space.
       if /\n|\t|\r|\f/.match(token_d[x])

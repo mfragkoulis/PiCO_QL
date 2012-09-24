@@ -294,7 +294,7 @@ void picoQL::deinit_temp_structs() {
  * virtual table names to functors virtualizing
  * individual VT search/retrieve implementations.
  */
-void deinit_vt_selectors() {
+void picoQL::deinit_vt_selectors() {
   map<string, FunctoryVT *>::iterator it;
   for (it = selector_vt.begin(); it != selector_vt.end(); it++)
     delete it->second;

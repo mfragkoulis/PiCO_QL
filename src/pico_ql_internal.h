@@ -92,6 +92,7 @@ extern "C" {
 
 
 #ifdef __cplusplus
+ }
   class FunctoryVT {   // Factory + Functor
   public:
     FunctoryVT() {};
@@ -100,6 +101,7 @@ extern "C" {
     virtual int operator() (sqlite3_vtab_cursor *, 
 		    int, sqlite3_context *) {return SQLITE_ERROR;};
   };
- }
+
+#endif
 
 #endif
