@@ -74,8 +74,15 @@ int arrange_size(int argc, const char * const * argv) {
 /* Calls function to deallocate memory reserved
  * for storing copies of temporary variables.
  */
-void clear_temp_lists() {
-  deinit_temp_lists();
+void clear_temp_structs() {
+  deinit_temp_structs();
+}
+
+/* Calls function to deallocate memory reserved
+ * for storing copies of temporary variables.
+ */
+void deinit_selectors() {
+  deinit_vt_selectors();
 }
 
 

@@ -247,7 +247,7 @@ void serve_query(FILE *f, sqlite3 *db) {
 		  "</body>"
 		  "</html>");
   }
-  clear_temp_lists();
+  clear_temp_structs();
 }
 
 // Terminates connection to the embedded web-server.
@@ -260,6 +260,7 @@ void terminate(FILE *f, sqlite3 *db) {
 		"</style>"
 		"</head>"
 		"<body>");
+  deinit_selectors();
   sqlite3_close(db);
   swill_fprintf(f, "<b>TERMINATED CONNECTION...</b>"
 		"</body>"

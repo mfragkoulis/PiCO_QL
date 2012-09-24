@@ -284,7 +284,7 @@ void deinit_text_vector(picoQLTableCursor *stc) {
  * column values so that they are
  * manageable by SQLite safely.
  */
-void deinit_temp_lists() {
+void deinit_temp_structs() {
 <%     @tables.each { |vt| %>
 <%      vt.columns.each { |col| %>
 <%       if col.fk_col_type.length > 0 %>
@@ -293,6 +293,17 @@ void deinit_temp_lists() {
 <%      } %>
 <%     } %>
 }
+
+/* Deinitiates map which stores pairs of
+ * virtual table names to functors virtualizing
+ * individual VT search/retrieve implementations.
+ */
+void deinit_vt_selectors() {
+  map<string, FunctoryVT *>::iterator it;
+  for (it = selector_vt.begin(); it != selector_vt.end(); it++)
+    delete it->second;
+}
+
 
 <%     @tables.each { |vt| %>
 class <%= vt.name %>_vt : public FunctoryVT {

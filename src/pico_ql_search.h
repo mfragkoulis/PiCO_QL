@@ -83,7 +83,8 @@ extern "C" {
   void set_selectors(); // internal but inconvinient to position
   int init_text_vector(picoQLTableCursor *stc);
   void deinit_text_vector(picoQLTableCursor *stc);
-  void deinit_temp_lists();
+  void deinit_temp_structs();
+  void deinit_vt_selectors();
   int get_datastructure_size(sqlite3_vtab_cursor *cur);
   int search(sqlite3_vtab_cursor *cur, int op, 
 	     int nCol, sqlite3_value *val);
