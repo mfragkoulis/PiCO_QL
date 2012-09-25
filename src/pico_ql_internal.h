@@ -47,6 +47,14 @@
 #ifdef __cplusplus
 extern "C" {
  namespace picoQL {
+  class FunctoryVT {   // Factory + Functor
+  public:
+    FunctoryVT() {};
+    virtual int operator() (sqlite3_vtab_cursor *, int, 
+			    int, sqlite3_value *) {return SQLITE_ERROR;};
+    virtual int operator() (sqlite3_vtab_cursor *, 
+		    int, sqlite3_context *) {return SQLITE_ERROR;};
+  };
 #endif
 
   typedef struct {
@@ -93,15 +101,6 @@ extern "C" {
 
 #ifdef __cplusplus
  }
-  class FunctoryVT {   // Factory + Functor
-  public:
-    FunctoryVT() {};
-    virtual int operator() (sqlite3_vtab_cursor *, int, 
-		    int, sqlite3_value *) {return SQLITE_ERROR;};
-    virtual int operator() (sqlite3_vtab_cursor *, 
-		    int, sqlite3_context *) {return SQLITE_ERROR;};
-  };
-
 #endif
 
 #endif

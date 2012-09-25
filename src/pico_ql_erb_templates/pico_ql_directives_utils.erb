@@ -300,7 +300,7 @@ void picoQL::deinit_vt_selectors() {
     delete it->second;
 }
 
-
+namespace picoQL {
 <%     @tables.each { |vt| %>
 class <%= vt.name %>_vt : public FunctoryVT {
 public:
