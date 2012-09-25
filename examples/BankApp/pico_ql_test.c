@@ -76,7 +76,7 @@ int test_prep_exec(FILE *f, sqlite3 *db, const char *q) {
     fprintf(f, "Error in preparation of query: error no %i\n", prepare);
     return prepare;
   }
-  deinit_temp_lists();
+  deinit_temp_structs();
   sqlite3_finalize(stmt);
   return result;
 }

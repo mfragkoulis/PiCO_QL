@@ -1,7 +1,8 @@
 /*
  *   Define the virtual table structure and the virtual 
  *   table cursor structure.
- *   Declare the interface to pico_ql_search.cpp.
+ *   Declare the implementation interface 
+ *   to pico_ql_search.cpp.
  *
  *   Copyright 2012 Marios Fragkoulis
  *
@@ -45,16 +46,20 @@
 #include <sqlite3.h>
 
 #ifdef __cplusplus
-extern "C" {
- namespace picoQL {
+namespace picoQL {
   class FunctoryVT {   // Factory + Functor
   public:
     FunctoryVT() {};
     virtual int operator() (sqlite3_vtab_cursor *, int, 
-			    int, sqlite3_value *) {return SQLITE_ERROR;};
+			    int, sqlite3_value *) 
+    {return SQLITE_ERROR;};
+
     virtual int operator() (sqlite3_vtab_cursor *, 
-		    int, sqlite3_context *) {return SQLITE_ERROR;};
+		    int, sqlite3_context *) 
+    {return SQLITE_ERROR;};
   };
+
+  extern "C" {
 #endif
 
   typedef struct {
@@ -100,7 +105,8 @@ extern "C" {
 
 
 #ifdef __cplusplus
- }
+  }
+}
 #endif
 
 #endif

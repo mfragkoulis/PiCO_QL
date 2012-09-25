@@ -1,7 +1,5 @@
 /*
- *   Define the virtual table structure and the virtual 
- *   table cursor structure.
- *   Declare the interface to pico_ql_search.cpp.
+ *   Declare the user interface to pico_ql_search.cpp.
  *
  *   Copyright 2012 Marios Fragkoulis
  *
