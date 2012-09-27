@@ -3,7 +3,15 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
     picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
     (void)picoQL;	// Silence compiler unused variable warning
     picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
-    if (struct_empty_null(cur, val, picoQL->embedded, nCol)) return SQLITE_OK;
+    vector<<% @signature.chomp('*') %>::iterator> *res = (vector<<% @signature.chomp('*') %>::iterator> *)stcsr->resultSet;
+    if (struct_empty_null(cur, val, picoQL->embedded, nCol)) {
+<%      if @container_class.length == 0 %>
+        stcsr->size = 1;
+<%	else %.
+	res->push_back(new vector<<% @signature.chomp('*') %>::iterator>());
+<%      end %>
+        return SQLITE_OK;
+    }
 <%      if /\*/.match(@pointer) == nil %>
 <%        sign_retype = "#{@signature}*" %>
 <%        sign_untype = @signature %>
@@ -13,40 +21,33 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
 <%      end %>
     <%= sign_retype %> any_dstr = (<%= sign_retype %>)stcsr->source;
 #line <%= @signature_line + 1 %> "<%= $argF %>" 
+    first_constr = stcsr->first_constr;
+    if (first_constr) {
+        first_constr = 0;
 <%      if @container_class.length > 0 %>
-    <%= sign_untype %>:: iterator iter;
-<%      else %>
-    int i = 0;
+	iter = any_dstr->begin();
+	iterL = any_dstr->end();
+    } else {
+	resIter = res->begin();
+	resIterL = res->end();
 <%      end %>
-    int count = 0, re = 0;
-<%      if @base_var.length > 0 %>
-    int size = stcsr->max_size;
-<%      else %>
-    int size;
-    if (picoQL->zErr) {
-        sqlite3_free(picoQL->zErr);
-        return SQLITE_MISUSE;
     }
-<%      end %>
     if (val == NULL) {
 <%      if @base_var.length > 0 %>
 <%        if @container_class.length > 0 %>
-        for (int j = 0; j < size; j++) {
-            stcsr->resultSet[j] = j;
-            stcsr->size++;
-	}
-        assert(stcsr->size <= stcsr->max_size);
-        assert(&stcsr->resultSet[stcsr->size] <= &stcsr->resultSet[size]);
+        for (iter = any_dstr->begin(); iter < any_dstr->end(); iter++)
+            res.push_back(new vector<<% @signature.chomp('*') %>::iterator>(iter));
 <%        else %>
-        stcsr->size++;
+        stcsr->size = 1;
 <%        end %>
 <%      else %>
-        printf("Searching VT <%= @name %> with no BASE constraint...makes no sense.\n");
+        printf("Searching embedded VT <%= @name %> with no BASE constraint makes no sense.\n");
         return SQLITE_MISUSE;
 <%      end %>
     } else {
 <%      if @base_var.length == 0 %>
-        if (equals(picoQL->azColumn[nCol], "base")) {
+        if ((equals(picoQL->azColumn[nCol], "base")) && (charged)) {
+            charged = 0;
 #ifdef ENVIRONMENT64
             stcsr->source = (void *)sqlite3_value_int64(val);
 #else
@@ -54,27 +55,26 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
 #endif
 	    if (stcsr->source == NULL) {
 	        stcsr->isInstanceNULL = 1;
-		stcsr->max_size = 1;
+<%        if @container_class.length == 0 %>
                 stcsr->size = 1;
-		return SQLITE_OK;
+<%	  else %.
+	        res->push_back(vector<<% @signature.chomp('*') %>::iterator>());
+<%        end %>
+                return SQLITE_OK;
             }
 	    stcsr->isInstanceNULL = 0;
             any_dstr = (<%= sign_retype %>)stcsr->source;
 <%        if @container_class.length > 0 %>
-            if ((re = realloc_resultset(cur)) != SQLITE_OK) {
-              return re;
+            if (get_datastructure_size(cur) == 0) {
+	      stcsr->isInstanceEmpty = 1;
+	      res->push_back(new vector<<% @signature.chomp('*') %>::iterator>());
+              return SQLITE_OK;
             }
-	    if (stcsr->isInstanceEmpty) return SQLITE_OK;
-<%        else %>
-	    stcsr->isInstanceEmpty = 0;
-	    stcsr->max_size = 1;
 <%        end %>
+	    stcsr->isInstanceEmpty = 0;
+        } else {
+            printf("Searching embedded VT <%= @name %> with no or invalid BASE constraint.\n");
+            return SQLITE_MISUSE;
         }
-        size = stcsr->max_size;
 <%      end %>
-        int *temp_res;
-	temp_res = (int *)sqlite3_malloc(sizeof(int)  * size);
-        if (!temp_res) {
-            printf("Error in allocating memory\n");
-            return SQLITE_NOMEM;
-        }
+

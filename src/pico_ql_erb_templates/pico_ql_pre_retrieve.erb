@@ -1,6 +1,8 @@
 // Retrieves column values of virtual table <%= @name %>.
 int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int nCol, sqlite3_context *con) {
     picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
+    vector<<% @signature.chomp('*') %>::iterator> *res = (vector<<% @signature.chomp('*') %>::iterator> *)stcsr->resultSet;
+    vector<<% @signature.chomp('*') %>::iterator>::iterator *resIter = (vector<<% @signature.chomp('*') %>::iterator>::iterator *)stc->resultSetIter;     
     if (struct_is_empty_null(cur, con)) return SQLITE_OK; 
 <%    if /\*/.match(@pointer) == nil %>
 <%      sign_retype = "#{@signature}*" %>
@@ -17,14 +19,8 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int nCol, sqlite3_con
 #endif
 <%    end %>
 <%    if @container_class.length > 0 %>
-    <%= sign_untype %>:: iterator iter;
-    int index = stcsr->current;
-    iter = any_dstr->begin();
-    if (stcsr->resultSet[index] >= stcsr->max_size) {
+    if (*resIter >= any_dstr->end()) {
         sqlite3_result_text(con, "(invalid_rownum)", -1, SQLITE_STATIC);
 	return SQLITE_OK;
-    }
-    for (int i = 0; i < stcsr->resultSet[index]; i++) {
-        iter++;
     }
 <%    end %>

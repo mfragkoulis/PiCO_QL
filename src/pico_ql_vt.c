@@ -319,13 +319,6 @@ int best_index_vtable(sqlite3_vtab *pVtab,
     memset(nidxStr, 0, sizeof(nidxStr));
     assert(pInfo->idxStr == 0);
     int i, j = 0, counter = 0, score = 0;
-    if (st->zErr != NULL) {
-      sqlite3_free(st->zErr);
-      st->zErr = NULL;
-#ifdef PICO_QL_DEBUG
-      printf("zErr freed for %s\n", st->zName);
-#endif
-    }
     for (i = 0; i < pInfo->nConstraint; i++){
       struct sqlite3_index_constraint *pCons = 
 	&pInfo->aConstraint[i];
@@ -336,13 +329,6 @@ int best_index_vtable(sqlite3_vtab *pVtab,
 	score += 2;
       else if (equals(st->azColumn[nCol], "rownum"))
 	score += 1;
-    }
-    if ((st->embedded) && (score < 2)) {
-      st->zErr = sqlite3_mprintf("Query VT with no usable BASE constraint.Abort.\n");
-#ifdef PICO_QL_DEBUG
-      printf("NO BASE for embedded data structure %s\n", st->zName);
-#endif
-      return SQLITE_OK;
     }
     order_constraints(score, &j, &counter, nidxStr);
     for (i = 0; i < pInfo->nConstraint; i++) {
@@ -384,7 +370,8 @@ int filter_vtable(sqlite3_vtab_cursor *cur,
 		  sqlite3_value **argv) {
   picoQLTableCursor *stc=(picoQLTableCursor *)cur;
   int re = 0;
-  /* Initialize size of resultset data structure. */
+  /* Initialize size of resultset data structure for objects. */
+  /* Unused in containers. */
   stc->size = 0;
   stc->current = -1;      /* Initial cursor position. */
 
@@ -426,14 +413,22 @@ int filter_vtable(sqlite3_vtab_cursor *cur,
 //xNext. Advances the cursor to next record of resultset.
 int next_vtable(sqlite3_vtab_cursor *cur) {
   picoQLTableCursor *stc = (picoQLTableCursor *)cur;
-  stc->current++;
-#ifdef PICO_QL_DEBUG
   picoQLTable *st = (picoQLTable *)cur->pVtab;
-  printf("Table %s, now stc->current: %i \n\n", 
-	 st->zName, stc->current);
+  if (st->object) {
+    stc->current++;
+#ifdef PICO_QL_DEBUG
+    printf("Table %s, now stc->current: %i \nstc->isEof: %i\n\n", 
+	   st->zName, stc->current, stc->isEof);
 #endif
-  if (stc->current >= stc->size)
-    stc->isEof = 1;
+    if (stc->current >= stc->size)
+      stc->isEof = 1;
+  } else {
+    advance_result_set_iter(stc);
+#ifdef PICO_QL_DEBUG
+    printf("Table %s, now stc->isEof: %i\n\n", 
+	   st->zName, stc->isEof);
+#endif
+  }
   return SQLITE_OK;
 }
 
@@ -445,7 +440,6 @@ int next_vtable(sqlite3_vtab_cursor *cur) {
 int open_vtable(sqlite3_vtab *pVtab, 
 		sqlite3_vtab_cursor **ppCsr) {
   picoQLTable *st=(picoQLTable *)pVtab;
-  int arraySize;
 #ifdef PICO_QL_DEBUG
   printf("Opening vtable %s\n\n", st->zName);
 #endif
@@ -470,16 +464,14 @@ int open_vtable(sqlite3_vtab *pVtab,
   if (!st->embedded) {
     if (stc->source == NULL) {
       stc->isInstanceNULL = 1;
-      stc->max_size = 1;
-      arraySize = 1;
+      stc->size = 1;
     } else {
       stc->isInstanceNULL = 0;
       pCsr->pVtab = &st->vtab;
-      arraySize = get_datastructure_size(pCsr);
+      int arraySize = get_datastructure_size(pCsr);
       if (arraySize == 0) {
 	stc->isInstanceEmpty = 1;
-	arraySize = 1;
-	stc->max_size = 1;
+	stc->size = 1;
       }	else {
 	stc->isInstanceEmpty = 0;
 	stc->max_size = arraySize;
@@ -488,25 +480,19 @@ int open_vtable(sqlite3_vtab *pVtab,
     }
   } else {
     /* Embedded struct. Size will be synced in search when 
-     * powered from source.
+     * powered from source. Calling get_data_structure_size()
+     * to get type of data structure represented (object or 
+     * container).
      */
-    arraySize = 1;
-    stc->max_size = arraySize;
+    get_data_structure_size(pCsr);
   }
+  if (!st->object)
+    init_result_set(st, stc);
 #ifdef PICO_QL_DEBUG
   printf("ppCsr = %lx, pCsr = %lx \n", 
 	 (long unsigned int)ppCsr, 
 	 (long unsigned int)pCsr);
 #endif 
-  /* A data structure to hold index positions of resultset
-   * so that in the end of the constraint evaluation the 
-   * remaining resultset is the wanted one. 
-   */
-  stc->resultSet = (int *)sqlite3_malloc(sizeof(int) * 
-					 arraySize); 
-  if (!stc->resultSet)
-    return SQLITE_NOMEM;
-  memset(stc->resultSet, -1, sizeof(int) * arraySize);
 #ifdef PICO_QL_HANDLE_POLYMORPHISM
   init_text_vector(stc);
 #endif
@@ -528,11 +514,12 @@ int column_vtable(sqlite3_vtab_cursor *cur,
  */
 int close_vtable(sqlite3_vtab_cursor *cur) {
   picoQLTableCursor *stc = (picoQLTableCursor *)cur;
-#ifdef PICO_QL_DEBUG
   picoQLTable *st = (picoQLTable *)cur->pVtab;
+#ifdef PICO_QL_DEBUG
   printf("Closing vtable %s \n\n", st->zName);
 #endif
-  sqlite3_free(stc->resultSet);
+  if (!st->object)
+    deinit_result_set(stc);
 #ifdef PICO_QL_HANDLE_POLYMORPHISM
   deinit_text_vector(stc);
 #endif

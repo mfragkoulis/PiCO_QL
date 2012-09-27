@@ -36,21 +36,17 @@ using namespace picoQL;
  */
 int picoQL::struct_empty_null(sqlite3_vtab_cursor *cur, sqlite3_value *val, int structEmbedded, int nCol) {
   picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
-  /* iCol > 0 allows to embedded structures
+  /* nCol > 0 allows to embedded structures
    * to propagate their error condition. At first
-   * (always iCol = 0) their state has not been 
+   * (always nCol = 0) their state has not been 
    * initialised yet.
    */
   if (((stcsr->isInstanceNULL) && ((!structEmbedded) || (nCol > 0))) || ((val != NULL) && (!strcmp((const char *)sqlite3_value_text(val), "(null)")))) {
     stcsr->isInstanceNULL = 1;
-    stcsr->max_size = 1;
-    stcsr->size = 1;     // Size 1 to print "(null)".
     return 1;
   }
   if (((stcsr->isInstanceEmpty) && ((!structEmbedded) || (nCol > 0))) || ((val != NULL) && (!strcmp((const char *)sqlite3_value_text(val), "(empty)")))) {
     stcsr->isInstanceEmpty = 1;
-    stcsr->max_size = 1;
-    stcsr->size = 1;     // Size 1 to print "(empty)".
     return 1;
   }
   return 0;

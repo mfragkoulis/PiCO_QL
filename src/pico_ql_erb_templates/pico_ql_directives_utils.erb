@@ -224,6 +224,7 @@ int picoQL::get_datastructure_size(sqlite3_vtab_cursor *cur) {
 <%      end %>
 <%    } %>
     }
+    picoQL->object = 1;
     return 1;
 }
 
@@ -243,6 +244,8 @@ int picoQL::equals(const char *zCol, const char *key) {
     } else
         return SQLITE_NOMEM;
 }
+
+
 
 
 /* Initiates dynamic vector which stores resultset column
@@ -287,6 +290,9 @@ void picoQL::deinit_temp_structs() {
   saved_results_<%= col.saved_results_index %>.clear();
 <%       end %>
 <%      } %>
+<%      if vt.base_var.length == 0 %>
+  VtblImpl *dischargeVT<%= col %> = selector_vt["<%= vt.name %>"];
+  (*dischargeVT<%= col %>)(0);
 <%     } %>
 }
 
@@ -302,13 +308,44 @@ void picoQL::deinit_vt_selectors() {
 
 namespace picoQL {
 <%     @tables.each { |vt| %>
-class <%= vt.name %>_vt : public FunctoryVT {
+class <%= vt.name %>_vt : public VtblImpl {
+<%      if @tables[vt].container_class.length > 0 %>
+private:
+  vector<<%= @tables[vt].signature.chomp('*') %>::iterator>::iterator resIter;
+  vector<<%= @tables[vt].signature.chomp('*') %>::iterator>::iterator resIterL;
+  vector<<%= @tables[vt].signature.chomp('*') %>::iterator>::iterator resIterT;
+  <%= @signature.chomp('*') %>::iterator iter;
+  <%= @signature.chomp('*') %>::iterator iterL;
+<%      end %>
+<%      if @tables[vt].base_var.length == 0 %>
+  int charged;
+<%      end %>
 public:
-  <%= vt.name %>_vt() : FunctoryVT() {};
+  <%= vt.name %>_vt() : VtblImpl() {};
   virtual int operator() (sqlite3_vtab_cursor *, int,
                     int, sqlite3_value *);
   virtual int operator() (sqlite3_vtab_cursor *,
                     int, sqlite3_context *);
+<%      if @tables[vt].container_class.length > 0 %>
+  virtual void operator() (picoQLTable *, picoQLTableCursor *);
+
+  virtual int operator() (picoQLTableCursor *);
+
+  virtual void operator() (picoQLTableCursor *);
+<%      else %>
+  virtual void operator() (picoQLTable *, picoQLTableCursor *) {};
+  
+  virtual int operator() (picoQLTableCursor *)
+  {return SQLITE_ERROR;};
+
+  virtual void operator() (picoQLTableCursor *) {};
+<%      end %>
+<%      if @tables[vt].base_var.length == 0 %>
+  virtual void operator() (int) {charged = current;};
+<%      else %>
+  virtual void operator() (int) {};
+<%      end %>
+
 };
  
 <%     } %>
