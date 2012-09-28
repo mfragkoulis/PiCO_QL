@@ -70,7 +70,7 @@ int picoQL::struct_is_empty_null(sqlite3_vtab_cursor *cur, sqlite3_context *con)
 
 /* Reallocates the space allocated to the resultset struct.
  * Useful for embedded picoQL data structures.
- */
+ 
 int picoQL::realloc_resultset(sqlite3_vtab_cursor *cur) {
     picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
     int arraySize;
@@ -104,7 +104,7 @@ int picoQL::realloc_resultset(sqlite3_vtab_cursor *cur) {
     } else
 	stcsr->max_size = arraySize;
     return SQLITE_OK;
-}
+    }*/
 
 /* Compares two integers and returns the result of the 
  * comparison.
@@ -213,7 +213,7 @@ int picoQL::compare(const unsigned char *dstr_value, int op,
 
 /* Compares the current resultset with the one stored in 
  * the cursor. Their intersection survives.
- */
+ 
 int picoQL::compare_res(int count, picoQLTableCursor *stcsr, 
 		int *temp_res) {
     int ia, ib;
@@ -250,3 +250,4 @@ int picoQL::compare_res(int count, picoQLTableCursor *stcsr,
     }
     return SQLITE_OK;
 }
+*/

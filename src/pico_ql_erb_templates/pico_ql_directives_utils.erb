@@ -52,12 +52,12 @@ using namespace picoQL;
 
 template <class T>
 void forward_container_concept_check(T x) {
-    BOOST_CONCEPT_ASSERT((ForwardContainer<T>));
+  BOOST_CONCEPT_ASSERT((ForwardContainer<T>));
 };
 
 template <class It>
 class forward_iterator_concept_class {
-    BOOST_CONCEPT_ASSERT((ForwardIterator<It>));
+  BOOST_CONCEPT_ASSERT((ForwardIterator<It>));
 };
 
 // For the compiler to verify.
@@ -77,12 +77,12 @@ void check_concepts() {
 
 
 struct name_cmp {
-    bool operator()(const char *a, const char *b) {
-        return strcmp(a, b) < 0;
-    }
+  bool operator()(const char *a, const char *b) {
+    return strcmp(a, b) < 0;
+  }
 };
 
-static map<string, FunctoryVT*> selector_vt;
+static map<string, VtblImpl*> selector_vt;
 
 <%     i = 0 %>
 <%     @tables.each { |vt| %>
@@ -103,7 +103,9 @@ list <<%= col.fk_col_type.chomp('*') %> > saved_results_<%= i %>;
 // C NAME (pico_ql_table_)<%= vt.base_var %> in line <%= vt.base_var_line + 1 %> <%= $argF %> 
 <%        end %>
 static <%= vt.signature %> <%= retype %>pico_ql_table_<%= vt.base_var %> = NULL;
+<%        if $argD == "DEBUG" %>
 #line <%= vt.signature_line + 1 %> "<%= $argF %>" 
+<%        end %>
 <%      end %>
 <%     } %>
 
@@ -115,28 +117,30 @@ void picoQL::pico_ql_register(const void *data_structure, const char *ds_name) {
 <%    @tables.each_index { |vt| %>
 <%      if @tables[vt].base_var.length > 0 %>
 <%        if count == 0 %>
-    if (!strcmp(ds_name, "<%= @tables[vt].base_var %>")) {
+  if (!strcmp(ds_name, "<%= @tables[vt].base_var %>")) {
 <%	  count += 1 %>
 <%        else %>
-    } else if (!strcmp(ds_name, "<%= @tables[vt].base_var %>")) {
+  } else if (!strcmp(ds_name, "<%= @tables[vt].base_var %>")) {
 <%        end %>
+<%        if $argD == "DEBUG" %>
 #line <%= @tables[vt].base_var_line + 1 %> "<%= $argF %>" 
+<%        end %>
 <%        /\*/.match(@tables[vt].pointer) == nil ? retype = "*" : retype = "" %>
-        pico_ql_table_<%= @tables[vt].base_var %> = (<%= @tables[vt].signature %> <%= retype %>)data_structure;
+    pico_ql_table_<%= @tables[vt].base_var %> = (<%= @tables[vt].signature %> <%= retype %>)data_structure;
+<%        if $argD == "DEBUG" %>
 #line <%= @tables[vt].signature_line + 1 %> "<%= $argF %>" 
+<%        end %>
 <%      end %>
 <%    } %>
-    }
+  }
 }
 
 // Thread. Creates the queries and passes them on to PiCO_QL.
 void * thread_sqlite(void *data) {
-    const char **queries, **table_names;
-    queries = (const char **)sqlite3_malloc(sizeof(char *) *
-                   <%= @tables.length.to_s %>);
-    table_names = (const char **)sqlite3_malloc(sizeof(char *) *
-                   <%= @tables.length.to_s %>);
-    int failure = 0;
+  const char **queries, **table_names;
+  queries = (const char **)sqlite3_malloc(sizeof(char *) * <%= @tables.length.to_s %>);
+  table_names = (const char **)sqlite3_malloc(sizeof(char *) * <%= @tables.length.to_s %>);
+  int failure = 0;
 <%# <db>.<table> does not work for some reason. test. %>
 <%    @tables.each_index { |vt| %>
 <%#     query =  "CREATE VIRTUAL TABLE #{@tables[vt].db}.#{@tables[vt].name} USING PicoQL(" %>
@@ -145,31 +149,31 @@ void * thread_sqlite(void *data) {
 <%        query += "#{c.name} #{c.data_type}, " %>
 <%      } %>
 <%      query = query.chomp(", ") + ")" %>
-    queries[<%= vt %>] = "<%= query %>";
-    table_names[<%= vt %>] = "<%= @tables[vt].name %>";
+  queries[<%= vt %>] = "<%= query %>";
+  table_names[<%= vt %>] = "<%= @tables[vt].name %>";
 <%    } %>
-    set_selectors();
-    int port_number = *(int *)data;
-    failure = register_table( "<%= @tables[0].db %>" , <%= @tables.length.to_s %>, queries, table_names, port_number);
-    printf("Thread sqlite returns %i\n", failure);
-    sqlite3_free(queries);
-    sqlite3_free(table_names);
-    return NULL;
+  set_selectors();
+  int port_number = *(int *)data;
+  failure = register_table( "<%= @tables[0].db %>" , <%= @tables.length.to_s %>,  queries, table_names, port_number);
+  printf("Thread sqlite returns %i\n", failure);
+  sqlite3_free(queries);
+  sqlite3_free(table_names);
+  return NULL;
 }
 
 
 // The API with user application code. Creates the PiCO_QL thread.
 int picoQL::pico_ql_serve(int port_number) {
 #ifndef PICO_QL_SINGLE_THREADED
-    pthread_t sqlite_thread;    
-    pthread_create(&sqlite_thread, NULL, thread_sqlite, (void *)&port_number);
+  pthread_t sqlite_thread;    
+  pthread_create(&sqlite_thread, NULL, thread_sqlite, (void *)&port_number);
 #ifdef PICO_QL_JOIN_THREADS
-    pthread_join(sqlite_thread, NULL);
+  pthread_join(sqlite_thread, NULL);
 #endif
 #else
-    thread_sqlite((void *)&port_number);
+  thread_sqlite((void *)&port_number);
 #endif
-    return 0;
+  return 0;
 }
 
 
@@ -181,71 +185,73 @@ int picoQL::register_vt(picoQLTable *picoQL) {
 <%    @tables.each_index { |vt| %>
 <%      if @tables[vt].base_var.length > 0 %>
 <%        if count == 0 %>
-    if (!strcmp(picoQL->zName, "<%= @tables[vt].name %>")) {
+  if (!strcmp(picoQL->zName, "<%= @tables[vt].name %>")) {
 <%	  count += 1 %>
 <%        else %>
-    } else if (!strcmp(picoQL->zName, "<%= @tables[vt].name %>")) {
+  } else if (!strcmp(picoQL->zName, "<%= @tables[vt].name %>")) {
 <%        end %>
 <%# Retyping has been taken care of in register_pico_ql %>
 <%#        /\*/.match(@tables[vt].pointer) == nil ? retype = "&" : retype = "" %>
+<%        if $argD == "DEBUG" %>
 #line <%= @tables[vt].base_var_line + 1 %> "<%= $argF %>" 
-	if (pico_ql_table_<%= @tables[vt].base_var %> == NULL)
-	    return SQLITE_ERROR;
-        picoQL->data = (void *)pico_ql_table_<%= @tables[vt].base_var %>;
-        picoQL->embedded = 0;
+<%        end %>
+    if (pico_ql_table_<%= @tables[vt].base_var %> == NULL)
+      return SQLITE_ERROR;
+    picoQL->data = (void *)pico_ql_table_<%= @tables[vt].base_var %>;
+    picoQL->embedded = 0;
 <%      end %>
 <%    } %>
-    } else {
-        picoQL->data = NULL;
-        picoQL->embedded = 1;
-    }
-    return SQLITE_INTERNAL;
+  } else {
+    picoQL->data = NULL;
+    picoQL->embedded = 1;
+  }
+  return SQLITE_INTERNAL;
 }
 
 // Returns the size (records) for each virtual table.
 int picoQL::get_datastructure_size(sqlite3_vtab_cursor *cur) {
-    picoQLTableCursor *stc = (picoQLTableCursor *)cur;
-    picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
+  picoQLTableCursor *stc = (picoQLTableCursor *)cur;
+  picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
 <%    count = 0 %>
 <%    @tables.each_index { |vt| %>
 <%      if @tables[vt].container_class.length > 0 %>
 <%        if count == 0 %>
-    if (!strcmp(picoQL->zName, "<%= @tables[vt].name %>")) {
+  if (!strcmp(picoQL->zName, "<%= @tables[vt].name %>")) {
 <%	  count += 1 %>
 <%        else %>
-    } else if (!strcmp(picoQL->zName, "<%= @tables[vt].name %>")) {
+  } else if (!strcmp(picoQL->zName, "<%= @tables[vt].name %>")) {
 <%        end %>
 <%        /\*/.match(@tables[vt].pointer) == nil ? retype = "*" : retype = "" %>
 <%# stc->source will definitely hold a pointer so retyping the signature as
 <%# follows is correct. %>
-        <%= @tables[vt].signature %><%= retype %> any_dstr = (<%= @tables[vt].signature %><%= retype %>)stc->source;
+    <%= @tables[vt].signature %><%= retype %> any_dstr = (<%= @tables[vt].signature %><%= retype %>)stc->source;
+<%        if $argD == "DEBUG" %>
 #line <%= @tables[vt].signature_line + 1 %> "<%= $argF %>" 
-        return (int)any_dstr->size();
+<%        end %>
+    return (int)any_dstr->size();
 <%      end %>
 <%    } %>
-    }
-    picoQL->object = 1;
-    return 1;
+  }
+  picoQL->object = 1;
+  return 1;
 }
 
 
 // Each embedded virtual table has a column named 'base'.
 // This function checks if a provided column name is indeed 'base'.
 int picoQL::equals(const char *zCol, const char *key) {
-    int length = (int)strlen(zCol) + 1;
-    char copy[length], *token;
-    memcpy(copy, zCol, length);
-    token = strtok(copy, " ");
-    if (token != NULL) {
-        if (!strcmp(token, key))
-            return true;
-        else
-            return false;
-    } else
-        return SQLITE_NOMEM;
+  int length = (int)strlen(zCol) + 1;
+  char copy[length], *token;
+  memcpy(copy, zCol, length);
+  token = strtok(copy, " ");
+  if (token != NULL) {
+    if (!strcmp(token, key))
+      return true;
+    else
+      return false;
+  } else
+    return SQLITE_NOMEM;
 }
-
-
 
 
 /* Initiates dynamic vector which stores resultset column
@@ -273,7 +279,7 @@ void picoQL::deinit_text_vector(picoQLTableCursor *stc) {
 #ifdef PICO_QL_HANDLE_POLYMORPHISM
   vector<string*> *tr = (vector<string*> *)stc->textResults;
   for (size_t i = 0; i < tr->size(); i++)
-      delete tr->at(i);
+    delete tr->at(i);
   delete tr;
 #endif
 }
@@ -291,8 +297,9 @@ void picoQL::deinit_temp_structs() {
 <%       end %>
 <%      } %>
 <%      if vt.base_var.length == 0 %>
-  VtblImpl *dischargeVT<%= col %> = selector_vt["<%= vt.name %>"];
-  (*dischargeVT<%= col %>)(0);
+  VtblImpl *discharge<%= vt.name %>VT = selector_vt["<%= vt.name %>"];
+  (*discharge<%= vt.name %>VT)(0);
+<%      end %>
 <%     } %>
 }
 
@@ -301,7 +308,7 @@ void picoQL::deinit_temp_structs() {
  * individual VT search/retrieve implementations.
  */
 void picoQL::deinit_vt_selectors() {
-  map<string, FunctoryVT *>::iterator it;
+  map<string, VtblImpl *>::iterator it;
   for (it = selector_vt.begin(); it != selector_vt.end(); it++)
     delete it->second;
 }
@@ -309,15 +316,14 @@ void picoQL::deinit_vt_selectors() {
 namespace picoQL {
 <%     @tables.each { |vt| %>
 class <%= vt.name %>_vt : public VtblImpl {
-<%      if @tables[vt].container_class.length > 0 %>
+<%      if vt.container_class.length > 0 %>
 private:
-  vector<<%= @tables[vt].signature.chomp('*') %>::iterator>::iterator resIter;
-  vector<<%= @tables[vt].signature.chomp('*') %>::iterator>::iterator resIterL;
-  vector<<%= @tables[vt].signature.chomp('*') %>::iterator>::iterator resIterT;
-  <%= @signature.chomp('*') %>::iterator iter;
-  <%= @signature.chomp('*') %>::iterator iterL;
+  vector<<%= vt.signature.chomp('*') %>::iterator *>::iterator resIterC;
+  vector<<%= vt.signature.chomp('*') %>::iterator *>::iterator resIterT;
+  <%= vt.signature.chomp('*') %>::iterator iter;
+  int rowNum;
 <%      end %>
-<%      if @tables[vt].base_var.length == 0 %>
+<%      if vt.base_var.length == 0 %>
   int charged;
 <%      end %>
 public:
@@ -326,22 +332,22 @@ public:
                     int, sqlite3_value *);
   virtual int operator() (sqlite3_vtab_cursor *,
                     int, sqlite3_context *);
-<%      if @tables[vt].container_class.length > 0 %>
-  virtual void operator() (picoQLTable *, picoQLTableCursor *);
+<%      if vt.container_class.length > 0 %>
+  virtual void operator() (sqlite3_vtab *, sqlite3_vtab_cursor *);
 
-  virtual int operator() (picoQLTableCursor *);
+  virtual int operator() (sqlite3_vtab_cursor *);
 
-  virtual void operator() (picoQLTableCursor *);
+  virtual void operator() (sqlite3_vtab_cursor *, void *);
 <%      else %>
-  virtual void operator() (picoQLTable *, picoQLTableCursor *) {};
+  virtual void operator() (sqlite3_vtab *, sqlite3_vtab_cursor *) {};
   
-  virtual int operator() (picoQLTableCursor *)
+  virtual int operator() (sqlite3_vtab_cursor *)
   {return SQLITE_ERROR;};
 
-  virtual void operator() (picoQLTableCursor *) {};
+  virtual void operator() (sqlite3_vtab_cursor *, void *) {};
 <%      end %>
-<%      if @tables[vt].base_var.length == 0 %>
-  virtual void operator() (int) {charged = current;};
+<%      if vt.base_var.length == 0 %>
+  virtual void operator() (int current) {charged = current;};
 <%      else %>
   virtual void operator() (int) {};
 <%      end %>

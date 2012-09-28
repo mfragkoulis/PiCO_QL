@@ -58,12 +58,12 @@ namespace picoQL {
 		    int, sqlite3_context *) 
     {return SQLITE_ERROR;};
 
-    virtual void operator() (picoQLTable *, picoQLTableCursor *) {};
+    virtual void operator() (sqlite3_vtab *, sqlite3_vtab_cursor *) {};
 
-    virtual int operator() (picoQLTableCursor *)
-    {return SQLITE_ERROR};
+    virtual int operator() (sqlite3_vtab_cursor *)
+    {return SQLITE_ERROR;};
 
-    virtual void operator() (picoQLTableCursor *) {};
+    virtual void operator() (sqlite3_vtab_cursor *, void *) {};
 
     virtual void operator() (int) {};
   };
@@ -88,11 +88,11 @@ namespace picoQL {
       sqlite3_vtab_cursor pCsr; 
       int isInstanceNULL;
       int isInstanceEmpty;
-      int max_size;        // For debugging purposes.
+      int max_size;        // 
       int size;            // For objects only.
       int current;         // For objects only.
       void *resultSet;     // For containers only.
-      void *resultSetCursor;  // For containers only.
+      void *resultSetIter;  // For containers only.
       void *textResults;
       int isEof; 
       int first_constr; 
@@ -108,9 +108,9 @@ namespace picoQL {
     void deinit_text_vector(picoQLTableCursor *stc);
     void deinit_temp_structs();
     void deinit_vt_selectors();
-    void init_result_set(picoQLTable *picoQL, picoQLTableCursor *stc);
+    void init_result_set(sqlite3_vtab *vtab, sqlite3_vtab_cursor *stc);
     int advance_result_set_iter(sqlite3_vtab_cursor *cur);
-    void deinit_result_set(sqlite3_vtab_cursor *cur);
+    void deinit_result_set(sqlite3_vtab_cursor *cur, void *);
     int get_datastructure_size(sqlite3_vtab_cursor *cur);
     int search(sqlite3_vtab_cursor *cur, int op, 
 	       int nCol, sqlite3_value *val);

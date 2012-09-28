@@ -325,7 +325,7 @@ class VirtualTable
   def configure(access_path)
     iden = ""
     if @container_class.length > 0
-      access_path.length == 0 ? iden =  "**resIter" : iden = "(**resIter)."
+      access_path.length == 0 ? iden =  "****resIter" : iden = "(****resIter)."
     else
       access_path.length == 0 ? iden = "any_dstr" : iden = "any_dstr->"
     end
@@ -335,17 +335,19 @@ class VirtualTable
 # Print line directive
   def print_line_directive(fw, line)
     if line != nil
-      fw.puts "#line #{line + 1} \"#{$argF}\""
+      if $argD == "DEBUG"
+        fw.puts "#line #{line + 1} \"#{$argF}\""
+      end
     end
   end
 
 # Generates code to retrieve each VT struct.
 # Each retrieve case matches a specific column of the VT.
   def retrieve_columns(fw)
-    fw.puts "    switch (nCol) {"
+    fw.puts "  switch (nCol) {"
     col_array = @columns
     col_array.each_index { |col|
-      fw.puts "    case #{col}:"
+      fw.puts "  case #{col}:"
       sqlite3_type = "retrieve"
       column_cast = ""
       sqlite3_parameters = ""
@@ -362,16 +364,17 @@ class VirtualTable
       when "base"
         fw.puts "#ifdef ENVIRONMENT64"
         # sqlite3_type = "int64" always in this case.
-        fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{iden});"
+        fw.puts "    sqlite3_result_#{sqlite3_type}(con, #{column_cast}any_dstr);"
         fw.puts "#else"
         # sqlite3_parameters = "int" always in this case.
-        fw.puts "#{$s}sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}#{iden});"
+        fw.puts "    sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}any_dstr);"
         fw.puts "#endif"
-        fw.puts "#{$s}break;"
+        fw.puts "    break;"
       when "rownum"
-        index = (int)(*resIter - any_dstr->begin());
-        fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, index);"
-        fw.puts "#{$s}break;"
+        fw.puts "    {"
+        fw.puts "      sqlite3_result_#{sqlite3_type}(con, rowNum);"
+        fw.puts "      break;"
+        fw.puts "    }"
       when "fk"
         if fk_col_name != nil       # ??
           if access_path.length == 0    # Access with (*iter) .
@@ -393,25 +396,25 @@ class VirtualTable
           end
         end
         if fk_col_type.length > 0 
-          fw.puts "       {"
-          fw.puts "#{$s}saved_results_#{saved_results_index}.push_back(#{record_type}#{iden}#{access_path});"
+          fw.puts "   {"
+          fw.puts "      saved_results_#{saved_results_index}.push_back(#{record_type}#{iden}#{access_path});"
           print_line_directive(fw, line)
           fw.puts "#ifdef ENVIRONMENT64"
-          fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, #{column_cast}&(saved_results_#{saved_results_index}.back()));"
+          fw.puts "      sqlite3_result_#{sqlite3_type}(con, #{column_cast}&(saved_results_#{saved_results_index}.back()));"
           fw.puts "#else"
-          fw.puts "#{$s}sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}&(saved_results_#{saved_results_index}.back()));"
+          fw.puts "      sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}&(saved_results_#{saved_results_index}.back()));"
           fw.puts "#endif"
-          fw.puts "#{$s}break;"
-          fw.puts "       }"
+          fw.puts "     break;"
+          fw.puts "   }"
         else
           fw.puts "#ifdef ENVIRONMENT64"
-          fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{p_type}#{iden}#{access_path});"
+          fw.puts "    sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{p_type}#{iden}#{access_path});"
           print_line_directive(fw, line)
           fw.puts "#else"
-          fw.puts "#{$s}sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}#{p_type}#{iden}#{access_path});"
+          fw.puts "    sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}#{p_type}#{iden}#{access_path});"
           print_line_directive(fw, line)
           fw.puts "#endif"
-          fw.puts "#{$s}break;"
+          fw.puts "    break;"
         end
       when "gen_all"
         if access_path.match(/this\.|this->/)
@@ -425,17 +428,17 @@ class VirtualTable
 	    string_construct_cast = "(const char *)"
 	  end
 	  fw.puts "#ifdef PICO_QL_HANDLE_POLYMORPHISM"
-	  fw.puts "#{$s}tr->push_back(new string(#{string_construct_cast}#{access_path}));"
+	  fw.puts "    tr->push_back(new string(#{string_construct_cast}#{access_path}));"
           print_line_directive(fw, line)
-          fw.puts "#{$s}sqlite3_result_text(con, (const char *)(*tr->back()).c_str()#{sqlite3_parameters});"
+          fw.puts "    sqlite3_result_text(con, (const char *)(*tr->back()).c_str()#{sqlite3_parameters});"
           fw.puts "#else"
 	end
-        fw.puts "#{$s}sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{access_path}#{column_cast_back}#{sqlite3_parameters});"
+        fw.puts "    sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{access_path}#{column_cast_back}#{sqlite3_parameters});"
         print_line_directive(fw, line)
         if sqlite3_type == "text"
 	  fw.puts "#endif"
 	end
-        fw.puts "#{$s}break;"
+        fw.puts "    break;"
       end
     }
   end
@@ -460,61 +463,48 @@ class VirtualTable
 
 # Generates spaces to convene properly aligned code generation.
   def vt_type_spacing(fw)
-    fw.print $s
+    fw.print "    "
     if @container_class.length > 0
-      fw.print $s
-    else
       fw.print "    "
+    else
+      fw.print "  "
     end
   end
 
   def gen_fk_col(fw, fk_col_type, access_path, fk_type, column_cast, 
-                   column_cast_back(), sqlite3_type, line, add_to_resultset)
-    if fk_col_type == 1    # returning from a method
-      vt_type_spacing(fw)
-      fw.print "typeof(#{access_path}) t = #{access_path};"
-      fw.puts
-    end
-    if fk_type == "object" : column_cast.concat("&") end
+                 column_cast_back, sqlite3_type, sqlite3_parameters, 
+                 line, add_to_result_set, space)
     fw.puts "#ifdef ENVIRONMENT64"
-    vt_type_spacing(fw)
     if fk_col_type == 1    # returning from a method
-      fw.print "if (compare(#{column_cast}t#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_type}(val)) )"
+      fw.puts "#{space}if (compare(#{column_cast}t#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_type}(val))) {"
     else
-      fw.print "if (compare(#{column_cast}#{access_path}#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_type}(val)) )"
+      fw.puts "#{space}if (compare(#{column_cast}#{access_path}#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_type}(val))) {"
     end
-    fw.puts
     print_line_directive(fw, line)
     fw.puts "#else"
-    vt_type_spacing(fw)
     if fk_col_type == 1    # returning from a method
-      fw.print "if (compare(#{column_cast}t#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_parameters}(val)) )"
+      fw.puts "#{space}if (compare(#{column_cast}t#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_parameters}(val))) {"
     else
-      fw.print "if (compare(#{column_cast}#{access_path}#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_parameters}(val)) )"
+      fw.puts "#{space}if (compare(#{column_cast}#{access_path}#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_parameters}(val))) {"
     end
-    fw.puts
     print_line_directive(fw, line)
     fw.puts "#endif"
-    vt_type_spacing(fw)
-    fw.print "#{add_to_result_set}"
-    if fk_col_type == 1    # returning from a method
-      vt_type_spacing(fw)
-      fw.print "}"
-    end
+    fw.puts "#{add_to_result_set}"
   end
 
 # Generates code to search each VT struct.
 # Each search case matches a specific column of the VT.
   def search_columns(fw)
-    fw.puts "#{$s}switch (nCol) {"
+    fw.puts "    switch (nCol) {"
     @columns.each_index { |col|
-      fw.puts "#{$s}case #{col}:"
+      fw.puts "    case #{col}:"
       sqlite3_type = "search"
       column_cast = ""
       sqlite3_parameters = ""
       column_cast_back = ""
       access_path = ""
       fk_col_type = 0
+      space = "      "
       op, useless, fk_type, line, useless2, useless3 = 
       @columns[col].bind_datatypes(sqlite3_type, 
                                    column_cast, sqlite3_parameters, 
@@ -538,17 +528,10 @@ class VirtualTable
       add_to_result_setF = ""
       add_to_result_setN = ""
       if @container_class.length > 0
-        fw.puts "#{$s}    if (first_constr) {"
-        if op != "rownum"
-          fw.puts "#{$s}#{$s}for (iter; iter < iterL; iter++) {"
-        end
         access_path.length == 0 ? idenF = "(*iter)" : idenF = "(*iter)."
-        access_path.length == 0 ? idenN = "(**resIter)" : idenN = "(**resIter)."
-        add_to_result_setF = "res->push_back(new vector<#{@signature.chomp('*')}::iterator>(iter));\\n#{$s}#{$s}}\\n#{$s}    "
-        add_to_result_setN = "resIterT = resIter;\\ndelete *resIterT;\\nres->erase(resIterT);\\n#{$s}#{$s}}\\n#{$s}    "
+        access_path.length == 0 ? idenN = "(***resIterC)" : idenN = "(***resIterC)."
       else
         access_path.length == 0 ? idenF = "any_dstr" : idenF = "any_dstr->"
-        add_to_result_setF = "stcsr->size = 1;"
       end
       if access_path.match(/this\.|this->/)
         access_pathF = access_path.gsub(/this\.|this->/, "#{idenF}")
@@ -559,59 +542,111 @@ class VirtualTable
       end
       case op
       when "fk"
+        if fk_type == "object" : column_cast.concat("&") end
         if access_path.match(/(.+)\)/)    # returning from a method
           fk_col_type = 1
-          vt_type_spacing(fw)
-          fw.print "{"
-          fw.puts
+        end
+        if @container_class.length > 0
+          fw.puts "#{space}if (first_constr) {"
+          space.concat("  ")
+        end
+        if fk_col_type == 1
+          fw.puts "#{space}{"
+          fw.puts "#{space}typeof(#{access_pathF}) t = #{access_pathF};"
+          space.concat("  ")
+        end
+        if @container_class.length > 0
+          fw.puts "#{space}for (iter = any_dstr->begin(); iter != any_dstr->end(); iter++) {"
+          add_to_result_setF = "#{space}    res->push_back(new #{@signature.chomp('*')}::iterator(iter));\n#{space}  }\n#{space}}"
+          add_to_result_setN = "#{space}    resIterT = resIterC;\n#{space}    delete *resIterT;\n#{space}    res->erase(resIterT);\n#{space}  }\n#{space}}"
+          space.concat("  ")
+        else
+          add_to_result_setF = "#{space}  stcsr->size = 1;\n#{space}}"
         end
         gen_fk_col(fw, fk_col_type, access_pathF, fk_type, column_cast, 
-                   column_cast_back(), sqlite3_type, line, add_to_result_setF)
+                   column_cast_back, sqlite3_type, sqlite3_parameters, 
+                   line, add_to_result_setF, space)
         if @container_class.length > 0
-          fw.puts "#{$s}    } else {"
-          fw.puts "#{$s}#{$s}for (resIter; resIter < resIterL; resIter++) {"
+          space.chomp!("    ")
+        end
+        if fk_col_type == 1
+          space.chomp!("  ")          
+          fw.puts "#{space}}"
+        end
+        if @container_class.length > 0
+          fw.puts "#{space}} else {"
+          space.concat("  ")
+          if fk_col_type == 1
+            fw.puts "#{space}{"
+            fw.puts "#{space}typeof(#{access_pathN}) t = #{access_pathN};"
+            space.concat("  ")
+          end
+          fw.puts "#{space}for (resIterC = res->begin(); resIterC != res->end(); resIterC++) {"
+          space.concat("  ")
           gen_fk_col(fw, fk_col_type, access_pathN, fk_type, column_cast, 
-                   column_cast_back(), sqlite3_type, line, add_to_result_setN)
+                     column_cast_back, sqlite3_type, sqlite3_parameters, 
+                     line, add_to_result_setN, space)
+          space.chomp!("    ")
+          if fk_col_type == 1
+            space.chomp!("  ")          
+            fw.puts "#{space}}"
+          end
+          fw.puts "#{space}}"
         end
+        fw.puts "#{space}break;"
       when "gen_all"
-        vt_type_spacing(fw)
-        fw.print "if (compare(#{column_cast}#{access_pathF}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val)) )"
-        fw.puts
-        print_line_directive(fw, line)
-        vt_type_spacing(fw)
-        fw.print "#{add_to_result_setF}"
-        fw.puts
         if @container_class.length > 0
-          fw.puts "#{$s}    } else {"
-          fw.puts "#{$s}#{$s}for (resIter; resIter < resIterL; resIter++) {"
-          vt_type_spacing(fw)
-          fw.print "if (compare(#{column_cast}#{access_pathN}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val)) )"
-          fw.puts
+          fw.puts "      if (first_constr == 1) {"
+          fw.puts "#{$s}for (iter = any_dstr->begin(); iter != any_dstr->end(); iter++) {"
+          fw.puts "#{$s}  if (compare(#{column_cast}#{access_pathF}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val))) {"
           print_line_directive(fw, line)
-          vt_type_spacing(fw)
-          fw.print "#{add_to_result_setN}"
+          fw.puts "#{$s}    res->push_back(new #{@signature.chomp('*')}::iterator(iter));\n#{$s}  }\n#{$s}}"
+          fw.puts "      } else {"
+          fw.puts "#{$s}for (resIterC = res->begin(); resIterC != res->end(); resIterC++) {"
+          fw.puts "#{$s}  if (compare(#{column_cast}#{access_pathN}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val))) {"
+          print_line_directive(fw, line)
+          fw.puts "#{$s}    resIterT = resIterC;\n#{$s}    delete *resIterT;\n#{$s}    res->erase(resIterT);\n#{$s}  }\n#{$s}}"
+          fw.puts "      }"
+        else
+          fw.puts "      if (compare(#{column_cast}#{access_pathF}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val)))"
+          fw.puts "#{$s}stcsr->size = 1;"          
         end
+        fw.puts "      break;"
       when "base"
-        vt_type_spacing(fw)
-        fw.print "#{add_to_result_setF}"
         if @container_class.length > 0
-          fw.puts "#{$s}    } else {"
-          fw.puts "#{$s}#{$s}for (resIter; resIter < resIterL; resIter++) {"
-          vt_type_spacing(fw)
-          fw.print "#{add_to_result_setN}"
+          fw.puts "      if (first_constr == 1) {"
+          fw.puts "#{$s}for (iter = any_dstr->begin(); iter != any_dstr->end(); iter++) {"
+          fw.puts "#{$s}  res->push_back(new #{@signature.chomp('*')}::iterator(iter));\n#{$s}}"
+          fw.puts "      } else {"
+          fw.puts "        printf(\"Constraint for BASE column on embedded data structure has not been placed first. Exiting now.\\n\");"
+          fw.puts "        return SQLITE_MISUSE;"
+          fw.puts "      }"
+        else
+          fw.puts "      stcsr->size = 1;"
         end
+        fw.puts "      break;"
       when "rownum"
-        fw.print "#{$s}  res->push_back(iter + sqlite3_value_int(val));"
-        fw.puts
-        fw.puts "#{$s}else {"
-        fw.puts "#{$s}    resIter = res->find(res->begin(), res->end(), any_dstr->begin() + sqlite3_value_int(val))"
-        fw.puts "#{$s}    if (resIter !=res->end())"
-        fw.puts "#{$s}#{$s}res->push_back(resIter);"
-        fw.puts "#{$s}    res->clear();"
+        fw.puts "      rowNum = sqlite3_value_int(val);"
+        fw.puts "      iter = any_dstr->begin();"
+        fw.puts "      for (int i = 0; i <= rowNum; i++)"
+        fw.puts "        iter++;"
+        fw.puts "      if (first_constr == 1) {"
+        fw.puts "        res->push_back(new #{@signature.chomp('*')}::iterator(iter));"
+        fw.puts "      } else {"
+        fw.puts "        typeof(iter) t = iter;"
+        fw.puts "        resIterC = find(res->begin(), res->end(), &t);"
+        fw.puts "        if (resIterC != res->end()) {"
+        fw.puts "          for (*resIter = res->begin(); *resIter < res->end(); (*resIter)++)"
+        fw.puts "            delete **resIter;"
+        fw.puts "          res->clear();"
+        fw.puts "          res->push_back(new #{@signature.chomp('*')}::iterator(iter));"
+        fw.puts "        } else "
+        fw.puts "          res->clear();"
+        fw.puts "      }"
+        fw.puts "      break;"
       end
-      fw.puts
     }
-    fw.puts "#{$s}}"
+    fw.puts "    }"
   end
 
 # Calls template to generate code in search method. 
@@ -874,20 +909,22 @@ class InputDescription
 
 # Calls the family of methods that generate the application-specific 
 # result set iterator methods for each VT struct.
-def print_result_set_iter(fw)
+  def print_result_set_iter(fw)
     @tables.each { |vt|
-      vt.result_set_iter(fw)
+      if vt.container_class.length > 0
+        vt.result_set_iter(fw)
+      end
     }
     wrap_result_set_iter(fw)
-end
-
+  end
+  
 # Generates the LICENSE copyright notice and directives as prescribed 
 # from user in the description
-def print_directives_utils(fw)
-  file = File.open("pico_ql_erb_templates/pico_ql_directives_utils.erb").read
-  directives = ERB.new(file, 0, '>')
-  fw.puts directives.result(get_binding)
-end
+  def print_directives_utils(fw)
+    file = File.open("pico_ql_erb_templates/pico_ql_directives_utils.erb").read
+    directives = ERB.new(file, 0, '>')
+    fw.puts directives.result(get_binding)
+  end
 
 # Generates application-specific code to complement the SQTL library.
 # There is a call to each of the above generative functions.

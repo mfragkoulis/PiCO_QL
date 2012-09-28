@@ -1,17 +1,20 @@
 // Filters column values of virtual table <%= @name %>.
 int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_value *val) {
-    picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
-    (void)picoQL;	// Silence compiler unused variable warning
-    picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
-    vector<<% @signature.chomp('*') %>::iterator> *res = (vector<<% @signature.chomp('*') %>::iterator> *)stcsr->resultSet;
-    if (struct_empty_null(cur, val, picoQL->embedded, nCol)) {
-<%      if @container_class.length == 0 %>
-        stcsr->size = 1;
-<%	else %.
-	res->push_back(new vector<<% @signature.chomp('*') %>::iterator>());
+  picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
+  (void)picoQL;	// Silence compiler unused variable warning
+  picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
+<%      if @container_class.length > 0 %>
+  vector<<%= @signature.chomp('*') %>::iterator *> *res = (vector<<%= @signature.chomp('*') %>::iterator *> *)stcsr->resultSet;
+  vector<<%= @signature.chomp('*') %>::iterator *>::iterator *resIter = (vector<<%= @signature.chomp('*') %>::iterator *>::iterator *)stcsr->resultSetIter;
 <%      end %>
-        return SQLITE_OK;
-    }
+  if (struct_empty_null(cur, val, picoQL->embedded, nCol)) {
+<%      if @container_class.length == 0 %>
+    stcsr->size = 1;
+<%	else %>
+    res->push_back(new <%= @signature.chomp('*') %>::iterator());
+<%      end %>
+    return SQLITE_OK;
+  }
 <%      if /\*/.match(@pointer) == nil %>
 <%        sign_retype = "#{@signature}*" %>
 <%        sign_untype = @signature %>
@@ -19,62 +22,55 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
 <%        sign_retype = @signature %>
 <%        sign_untype = @signature.chomp("*") %>
 <%      end %>
-    <%= sign_retype %> any_dstr = (<%= sign_retype %>)stcsr->source;
+  <%= sign_retype %> any_dstr = (<%= sign_retype %>)stcsr->source;
+<%        if $argD == "DEBUG" %>
 #line <%= @signature_line + 1 %> "<%= $argF %>" 
-    first_constr = stcsr->first_constr;
-    if (first_constr) {
-        first_constr = 0;
-<%      if @container_class.length > 0 %>
-	iter = any_dstr->begin();
-	iterL = any_dstr->end();
-    } else {
-	resIter = res->begin();
-	resIterL = res->end();
-<%      end %>
-    }
-    if (val == NULL) {
+<%        end %>
+  int first_constr = stcsr->first_constr;
+  if (first_constr)
+    stcsr->first_constr = 0;
+  if (val == NULL) {
 <%      if @base_var.length > 0 %>
 <%        if @container_class.length > 0 %>
-        for (iter = any_dstr->begin(); iter < any_dstr->end(); iter++)
-            res.push_back(new vector<<% @signature.chomp('*') %>::iterator>(iter));
+    for (iter = any_dstr->begin(); iter != any_dstr->end(); iter++)
+      res->push_back(new <%= @signature.chomp('*') %>::iterator(iter));
 <%        else %>
-        stcsr->size = 1;
+    stcsr->size = 1;
 <%        end %>
 <%      else %>
-        printf("Searching embedded VT <%= @name %> with no BASE constraint makes no sense.\n");
-        return SQLITE_MISUSE;
+    printf("Searching embedded VT <%= @name %> with no BASE constraint makes no sense.\n");
+    return SQLITE_MISUSE;
 <%      end %>
-    } else {
+  } else {
 <%      if @base_var.length == 0 %>
-        if ((equals(picoQL->azColumn[nCol], "base")) && (charged)) {
-            charged = 0;
+    if ((equals(picoQL->azColumn[nCol], "base")) && (charged)) {
+      charged = 0;
 #ifdef ENVIRONMENT64
-            stcsr->source = (void *)sqlite3_value_int64(val);
+      stcsr->source = (void *)sqlite3_value_int64(val);
 #else
-            stcsr->source = (void *)sqlite3_value_int(val);
+      stcsr->source = (void *)sqlite3_value_int(val);
 #endif
-	    if (stcsr->source == NULL) {
-	        stcsr->isInstanceNULL = 1;
+      if (stcsr->source == NULL) {
+        stcsr->isInstanceNULL = 1;
 <%        if @container_class.length == 0 %>
-                stcsr->size = 1;
-<%	  else %.
-	        res->push_back(vector<<% @signature.chomp('*') %>::iterator>());
+        stcsr->size = 1;
+<%	  else %>
+        res->push_back(new <%= @signature.chomp('*') %>::iterator());
 <%        end %>
-                return SQLITE_OK;
-            }
-	    stcsr->isInstanceNULL = 0;
-            any_dstr = (<%= sign_retype %>)stcsr->source;
+        return SQLITE_OK;
+      }
+      stcsr->isInstanceNULL = 0;
+      any_dstr = (<%= sign_retype %>)stcsr->source;
 <%        if @container_class.length > 0 %>
-            if (get_datastructure_size(cur) == 0) {
-	      stcsr->isInstanceEmpty = 1;
-	      res->push_back(new vector<<% @signature.chomp('*') %>::iterator>());
-              return SQLITE_OK;
-            }
+      if ((stcsr->max_size = get_datastructure_size(cur)) == 0) {
+        stcsr->isInstanceEmpty = 1;
+        res->push_back(new <%= @signature.chomp('*') %>::iterator());
+        return SQLITE_OK;
+      }
 <%        end %>
-	    stcsr->isInstanceEmpty = 0;
-        } else {
-            printf("Searching embedded VT <%= @name %> with no or invalid BASE constraint.\n");
-            return SQLITE_MISUSE;
-        }
+      stcsr->isInstanceEmpty = 0;
+    } else {
+      printf("Searching embedded VT <%= @name %> with no or invalid BASE constraint.\n");
+      return SQLITE_MISUSE;
+    }
 <%      end %>
-

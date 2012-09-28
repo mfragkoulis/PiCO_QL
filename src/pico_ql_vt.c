@@ -423,7 +423,7 @@ int next_vtable(sqlite3_vtab_cursor *cur) {
     if (stc->current >= stc->size)
       stc->isEof = 1;
   } else {
-    advance_result_set_iter(stc);
+    advance_result_set_iter(cur);
 #ifdef PICO_QL_DEBUG
     printf("Table %s, now stc->isEof: %i\n\n", 
 	   st->zName, stc->isEof);
@@ -480,14 +480,14 @@ int open_vtable(sqlite3_vtab *pVtab,
     }
   } else {
     /* Embedded struct. Size will be synced in search when 
-     * powered from source. Calling get_data_structure_size()
+     * powered from source. Calling get_datastructure_size()
      * to get type of data structure represented (object or 
      * container).
      */
-    get_data_structure_size(pCsr);
+    get_datastructure_size(pCsr);
   }
   if (!st->object)
-    init_result_set(st, stc);
+    init_result_set(pVtab, pCsr);
 #ifdef PICO_QL_DEBUG
   printf("ppCsr = %lx, pCsr = %lx \n", 
 	 (long unsigned int)ppCsr, 
@@ -519,7 +519,7 @@ int close_vtable(sqlite3_vtab_cursor *cur) {
   printf("Closing vtable %s \n\n", st->zName);
 #endif
   if (!st->object)
-    deinit_result_set(stc);
+    deinit_result_set(cur, stc->resultSet);
 #ifdef PICO_QL_HANDLE_POLYMORPHISM
   deinit_text_vector(stc);
 #endif
