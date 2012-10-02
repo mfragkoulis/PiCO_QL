@@ -1,0 +1,28 @@
+}      // close picoQL namespace
+
+/* Use VtblImpl to initialize result set and result set iterator.
+ */
+void picoQL::init_result_set(sqlite3_vtab *vtab, sqlite3_vtab_cursor *cur) {
+  picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
+  VtblImpl *iterVT = selector_vt[picoQL->zName];
+  return (*iterVT)(vtab, cur);
+}
+
+/* Use VtblImpl to advance result set iterator.
+ */
+int picoQL::advance_result_set_iter(sqlite3_vtab_cursor *cur) {
+  picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
+  VtblImpl *iterVT = selector_vt[picoQL->zName];
+  return (*iterVT)(cur);
+}
+
+/* Use VtblImpl to clear result set iterator.
+ */
+void picoQL::deinit_result_set(sqlite3_vtab_cursor *cur, void *res) {
+  picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
+  VtblImpl *iterVT = selector_vt[picoQL->zName];
+  (*iterVT)(cur, res);
+}
+ 
+namespace picoQL {
+ 
