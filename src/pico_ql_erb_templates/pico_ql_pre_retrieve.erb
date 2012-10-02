@@ -3,6 +3,7 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int nCol, sqlite3_con
   picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
 <%    if @container_class.length > 0 %>
   vector<<%= @signature.chomp('*') %>::iterator *>::iterator *resIter = (vector<<%= @signature.chomp('*') %>::iterator *>::iterator *)stcsr->resultSetIter;     
+<%#  dynamic_bitset<unsigned long> *resBts = (dynamic_bitset<unsigned long> *)stcsr->resultSetIndex; %>
 <%    end %>
   if (struct_is_empty_null(cur, con)) return SQLITE_OK; 
 <%    if /\*/.match(@pointer) == nil %>
@@ -22,10 +23,4 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int nCol, sqlite3_con
 #ifdef PICO_QL_HANDLE_POLYMORPHISM
   vector<string*> *tr = (vector<string*> *)stcsr->textResults;
 #endif
-<%    end %>
-<%    if @container_class.length > 0 %>
-  if (rowNum >= stcsr->max_size) {
-    sqlite3_result_text(con, "(invalid_rownum)", -1, SQLITE_STATIC);
-    return SQLITE_OK;
-  }
 <%    end %>

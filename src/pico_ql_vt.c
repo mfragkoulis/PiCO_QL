@@ -369,7 +369,11 @@ int filter_vtable(sqlite3_vtab_cursor *cur,
 		  int argc, 
 		  sqlite3_value **argv) {
   picoQLTableCursor *stc=(picoQLTableCursor *)cur;
+  picoQLTable *st = (picoQLTable *)cur->pVtab;
+  sqlite3_vtab *pVtab = (sqlite3_vtab *)cur->pVtab;
   int re = 0;
+  if (!st->object)
+    init_result_set(pVtab, cur);    
   /* Initialize size of resultset data structure for objects. */
   /* Unused in containers. */
   stc->size = 0;
@@ -412,24 +416,7 @@ int filter_vtable(sqlite3_vtab_cursor *cur,
 
 //xNext. Advances the cursor to next record of resultset.
 int next_vtable(sqlite3_vtab_cursor *cur) {
-  picoQLTableCursor *stc = (picoQLTableCursor *)cur;
-  picoQLTable *st = (picoQLTable *)cur->pVtab;
-  if (st->object) {
-    stc->current++;
-#ifdef PICO_QL_DEBUG
-    printf("Table %s, now stc->current: %i \nstc->isEof: %i\n\n", 
-	   st->zName, stc->current, stc->isEof);
-#endif
-    if (stc->current >= stc->size)
-      stc->isEof = 1;
-  } else {
-    advance_result_set_iter(cur);
-#ifdef PICO_QL_DEBUG
-    printf("Table %s, now stc->isEof: %i\n\n", 
-	   st->zName, stc->isEof);
-#endif
-  }
-  return SQLITE_OK;
+  return advance_result_set_iter(cur);
 }
 
 
@@ -450,8 +437,9 @@ int open_vtable(sqlite3_vtab *pVtab,
   if (!pCsr) {
     return SQLITE_NOMEM;
   }
-  picoQLTableCursor *stc = (picoQLTableCursor *)pCsr;
   memset(pCsr, 0, sizeof(picoQLTableCursor));
+  pCsr->pVtab = &st->vtab;
+  picoQLTableCursor *stc = (picoQLTableCursor *)pCsr;
   /* Keep copy of initial data. Might change in search. 
    * Useful when multiple instances of the VT are open.
    */
@@ -467,8 +455,7 @@ int open_vtable(sqlite3_vtab *pVtab,
       stc->size = 1;
     } else {
       stc->isInstanceNULL = 0;
-      pCsr->pVtab = &st->vtab;
-      int arraySize = get_datastructure_size(pCsr);
+      int arraySize = (int)get_datastructure_size(pCsr);
       if (arraySize == 0) {
 	stc->isInstanceEmpty = 1;
 	stc->size = 1;
@@ -476,7 +463,7 @@ int open_vtable(sqlite3_vtab *pVtab,
 	stc->isInstanceEmpty = 0;
 	stc->max_size = arraySize;
       }
-      pCsr->pVtab = NULL;
+      //      pCsr->pVtab = NULL;   why set to NULL?
     }
   } else {
     /* Embedded struct. Size will be synced in search when 
@@ -484,10 +471,9 @@ int open_vtable(sqlite3_vtab *pVtab,
      * to get type of data structure represented (object or 
      * container).
      */
-    get_datastructure_size(pCsr);
+    get_type(pCsr);
+    stc->max_size = 1;
   }
-  if (!st->object)
-    init_result_set(pVtab, pCsr);
 #ifdef PICO_QL_DEBUG
   printf("ppCsr = %lx, pCsr = %lx \n", 
 	 (long unsigned int)ppCsr, 
@@ -518,8 +504,7 @@ int close_vtable(sqlite3_vtab_cursor *cur) {
 #ifdef PICO_QL_DEBUG
   printf("Closing vtable %s \n\n", st->zName);
 #endif
-  if (!st->object)
-    deinit_result_set(cur, stc->resultSet);
+  deinit_result_set(cur, stc->resultSet);
 #ifdef PICO_QL_HANDLE_POLYMORPHISM
   deinit_text_vector(stc);
 #endif

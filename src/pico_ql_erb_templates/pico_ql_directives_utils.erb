@@ -30,12 +30,14 @@
 #include <cstring>
 #include <string>
 #include <map>
+#include <set>
 #ifdef PICO_QL_HANDLE_POLYMORPHISM
 #include <vector>
 #endif
 #include <list>
 <%# list include..not always. At leaston fk_col_type.length > 0 %>
 #include <boost/concept_check.hpp>
+#include <boost/dynamic_bitset.hpp>
 #ifndef PICO_QL_SINGLE_THREADED
 #include <pthread.h>
 #endif
@@ -209,7 +211,7 @@ int picoQL::register_vt(picoQLTable *picoQL) {
 }
 
 // Returns the size (records) for each virtual table.
-int picoQL::get_datastructure_size(sqlite3_vtab_cursor *cur) {
+size_t picoQL::get_datastructure_size(sqlite3_vtab_cursor *cur) {
   picoQLTableCursor *stc = (picoQLTableCursor *)cur;
   picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
 <%    count = 0 %>
@@ -228,12 +230,36 @@ int picoQL::get_datastructure_size(sqlite3_vtab_cursor *cur) {
 <%        if $argD == "DEBUG" %>
 #line <%= @tables[vt].signature_line + 1 %> "<%= $argF %>" 
 <%        end %>
-    return (int)any_dstr->size();
+    return any_dstr->size();
 <%      end %>
 <%    } %>
   }
   picoQL->object = 1;
   return 1;
+}
+
+// Returns the type (container or object) for each embedded virtual table.
+void picoQL::get_type(sqlite3_vtab_cursor *cur) {
+<%    count = 0 %>
+<%    @tables.each_index { |vt| %>
+<%      if @tables[vt].base_var.length == 0 %>
+<%        if count == 0 %>
+  picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
+  if (!strcmp(picoQL->zName, "<%= @tables[vt].name %>")) {
+<%	  count += 1 %>
+<%        else %>
+  } else if (!strcmp(picoQL->zName, "<%= @tables[vt].name %>")) {
+<%        end %>
+<%        if @tables[vt].container_class.length > 0 %>
+    picoQL->object = 0;
+<%        else %>
+    picoQL->object = 1;
+<%        end %>
+<%      end %>
+<%    } %>
+<%      if count > 0 %>
+  }
+<%      end %>
 }
 
 
@@ -298,7 +324,7 @@ void picoQL::deinit_temp_structs() {
 <%      } %>
 <%      if vt.base_var.length == 0 %>
   VtblImpl *discharge<%= vt.name %>VT = selector_vt["<%= vt.name %>"];
-  (*discharge<%= vt.name %>VT)(0);
+  (*discharge<%= vt.name %>VT)(NULL, 0);
 <%      end %>
 <%     } %>
 }
@@ -319,12 +345,11 @@ class <%= vt.name %>_vt : public VtblImpl {
 <%      if vt.container_class.length > 0 %>
 private:
   vector<<%= vt.signature.chomp('*') %>::iterator *>::iterator resIterC;
-  vector<<%= vt.signature.chomp('*') %>::iterator *>::iterator resIterT;
   <%= vt.signature.chomp('*') %>::iterator iter;
-  int rowNum;
 <%      end %>
 <%      if vt.base_var.length == 0 %>
-  int charged;
+  set<sqlite3_vtab_cursor *> charged;
+  set<sqlite3_vtab_cursor *> cursors;
 <%      end %>
 public:
   <%= vt.name %>_vt() : VtblImpl() {};
@@ -332,24 +357,23 @@ public:
                     int, sqlite3_value *);
   virtual int operator() (sqlite3_vtab_cursor *,
                     int, sqlite3_context *);
+  virtual int operator() (sqlite3_vtab_cursor *);
+  virtual void operator() (sqlite3_vtab_cursor *, void *);
 <%      if vt.container_class.length > 0 %>
   virtual void operator() (sqlite3_vtab *, sqlite3_vtab_cursor *);
-
-  virtual int operator() (sqlite3_vtab_cursor *);
-
-  virtual void operator() (sqlite3_vtab_cursor *, void *);
 <%      else %>
   virtual void operator() (sqlite3_vtab *, sqlite3_vtab_cursor *) {};
-  
-  virtual int operator() (sqlite3_vtab_cursor *)
-  {return SQLITE_ERROR;};
-
-  virtual void operator() (sqlite3_vtab_cursor *, void *) {};
 <%      end %>
 <%      if vt.base_var.length == 0 %>
-  virtual void operator() (int current) {charged = current;};
+  virtual void operator() (sqlite3_vtab_cursor *cur, int current) {
+    pair<set<sqlite3_vtab_cursor *>::iterator, bool> operation;
+    if (current)
+      operation = charged.insert(cur);
+    else
+      charged.clear();
+  };
 <%      else %>
-  virtual void operator() (int) {};
+  virtual void operator() (sqlite3_vtab_cursor *, int) {};
 <%      end %>
 
 };

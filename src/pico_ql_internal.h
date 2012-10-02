@@ -65,7 +65,7 @@ namespace picoQL {
 
     virtual void operator() (sqlite3_vtab_cursor *, void *) {};
 
-    virtual void operator() (int) {};
+    virtual void operator() (sqlite3_vtab_cursor *, int) {};
   };
 
   extern "C" {
@@ -90,9 +90,11 @@ namespace picoQL {
       int isInstanceEmpty;
       int max_size;        // 
       int size;            // For objects only.
-      int current;         // For objects only.
+      int current;
       void *resultSet;     // For containers only.
       void *resultSetIter;  // For containers only.
+      int resultSetIterState; // For containers only.
+      void *resultSetIndex; // For containers only.
       void *textResults;
       int isEof; 
       int first_constr; 
@@ -111,7 +113,8 @@ namespace picoQL {
     void init_result_set(sqlite3_vtab *vtab, sqlite3_vtab_cursor *stc);
     int advance_result_set_iter(sqlite3_vtab_cursor *cur);
     void deinit_result_set(sqlite3_vtab_cursor *cur, void *);
-    int get_datastructure_size(sqlite3_vtab_cursor *cur);
+    size_t get_datastructure_size(sqlite3_vtab_cursor *cur);
+    void get_type(sqlite3_vtab_cursor *cur);
     int search(sqlite3_vtab_cursor *cur, int op, 
 	       int nCol, sqlite3_value *val);
     int retrieve(sqlite3_vtab_cursor *cur, int nCol, 

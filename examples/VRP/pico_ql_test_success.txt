@@ -1,98 +1,35 @@
+PLAIN QUERIES
+
+
 Query 1:
- select customers_id, delcapacity_root from (select distinct truck_id from Trucks) t left join Truck on truck.base=t.truck_id where cost and not delcapacity and delcapacity_root=0;
+ select rownum from trucks;
 
 Statement prepared.
-customers_id delcapacity_root 
+rownum 
 
-3779520 0.000000 
-3782480 0.000000 
-3782640 0.000000 
-3782816 0.000000 
-3782992 0.000000 
-3783184 0.000000 
-3783360 0.000000 
-3783552 0.000000 
-3783728 0.000000 
-3783904 0.000000 
-3784080 0.000000 
+0 
+1 
+2 
+3 
+4 
+5 
+6 
+7 
+8 
+9 
+10 
+11 
+12 
+13 
+14 
+15 
+16 
+17 
+18 
 
 Done
 
 Query 2:
- select * from trucks where rownum=20;
-
-Statement prepared.
-rownum truck_id 
-
-(invalid_rownum) (invalid_rownum) 
-
-Done
-
-Query 3:
- select * from trucks,truck,customers where truck.base=trucks.truck_id and customers.base=truck.customers_id and customers.rownum=4;
-
-Statement prepared.
-rownum truck_id base customers_id cost delcapacity delcapacity_root base rownum customer_id 
-
-0 3770496 3770496 3775616 147.495530 0 0.000000 3775456 4 2124448 
-1 3767904 3767904 3780240 225.946633 0 0.000000 3780064 4 2099856 
-2 3759264 3759264 3758320 278.821496 0 0.000000 3780416 4 2100720 
-3 3765072 3765072 3758672 280.375322 20 4.472136 3758496 4 2098384 
-4 3765216 3765216 3777920 339.716572 10 3.162278 3777744 4 2101488 
-5 3765360 3765360 3781024 354.388256 0 0.000000 3778096 4 2112832 
-6 3765504 3765504 3781360 220.167122 0 0.000000 3781184 4 2113712 
-7 3765648 3765648 3781712 219.628909 0 0.000000 3781536 4 2101312 
-8 3765792 3765792 3771872 282.593461 20 4.472136 3781888 4 2105744 
-9 3765936 3765936 3772224 358.126821 0 0.000000 3772032 4 2126912 
-10 3766080 3766080 3772592 330.983943 0 0.000000 3772416 4 2103568 
-11 3766224 3766224 3772944 270.269111 10 3.162278 3772768 4 2111600 
-12 3766368 3766368 3773488 184.833567 10 3.162278 3773328 4 2113536 
-13 3766512 3766512 3773840 451.609882 0 0.000000 3773648 4 2130960 
-14 3766656 3766656 3774208 282.626045 0 0.000000 3774032 4 2127440 
-15 3766800 3766800 3784416 321.479943 10 3.162278 3784240 4 2112128 
-16 3766944 3766944 3784768 328.678482 0 0.000000 3784592 4 2101072 
-17 3767088 3767088 3785104 220.882914 10 3.162278 3784944 4 2110896 
-
-Done
-
-Query 4:
- select * from trucks,truck,mapindex,customers where truck.base=trucks.truck_id and customers.base=truck.customers_id and customers.rownum=mapindex.map_index;
-
-Statement prepared.
-rownum truck_id base customers_id cost delcapacity delcapacity_root rownum map_index customer_id base rownum customer_id 
-
-
-Done
-
-Query 5:
- select * from trucks;
-
-Statement prepared.
-rownum truck_id 
-
-0 3770496 
-1 3767904 
-2 3759264 
-3 3765072 
-4 3765216 
-5 3765360 
-6 3765504 
-7 3765648 
-8 3765792 
-9 3765936 
-10 3766080 
-11 3766224 
-12 3766368 
-13 3766512 
-14 3766656 
-15 3766800 
-16 3766944 
-17 3767088 
-18 3767232 
-
-Done
-
-Query 6:
  select * from truck;
 
 Statement prepared.
@@ -101,107 +38,965 @@ base customers_id cost delcapacity delcapacity_root
 
 Library used incorrectly
 
-Query 7:
- select * from trucks,truck where truck.base=trucks.truck_id
+PLAIN QUERIES + ROWNUM
+
+
+Query 3:
+ select rownum from trucks where rownum=7;
 
 Statement prepared.
-rownum truck_id base customers_id cost delcapacity delcapacity_root 
+rownum 
 
-0 3770496 3770496 3785504 147.495530 0 0.000000 
-1 3767904 3767904 3782048 225.946633 0 0.000000 
-2 3759264 3759264 3782224 278.821496 0 0.000000 
-3 3765072 3765072 4510304 280.375322 20 4.472136 
-4 3765216 3765216 4510480 339.716572 10 3.162278 
-5 3765360 3765360 3791520 354.388256 0 0.000000 
-6 3765504 3765504 3791680 220.167122 0 0.000000 
-7 3765648 3765648 3791760 219.628909 0 0.000000 
-8 3765792 3765792 4511840 282.593461 20 4.472136 
-9 3765936 3765936 4512000 358.126821 0 0.000000 
-10 3766080 3766080 4512192 330.983943 0 0.000000 
-11 3766224 3766224 4512368 270.269111 10 3.162278 
-12 3766368 3766368 4512544 184.833567 10 3.162278 
-13 3766512 3766512 4512704 451.609882 0 0.000000 
-14 3766656 3766656 4512896 282.626045 0 0.000000 
-15 3766800 3766800 4513072 321.479943 10 3.162278 
-16 3766944 3766944 4513248 328.678482 0 0.000000 
-17 3767088 3767088 3786704 220.882914 10 3.162278 
-18 3767232 3767232 3786864 21.633308 180 13.416408 
+7 
+
+Done
+
+Query 4:
+ select * from trucks where rownum=20;
+
+Statement prepared.
+rownum truck_id 
+
+
+Done
+
+Query 5:
+ select * from customers where rownum=20;
+
+Statement prepared.
+base rownum customer_id 
+
+
+Library used incorrectly
+
+JOIN QUERIES EXPLICIT
+
+
+Query 6:
+ select trucks.rownum, cost, delcapacity, delcapacity_root from trucks JOIN truck ON truck.base=trucks.truck_id;
+
+Statement prepared.
+rownum cost delcapacity delcapacity_root 
+
+0 147.495530 0 0.000000 
+1 225.946633 0 0.000000 
+2 278.821496 0 0.000000 
+3 280.375322 20 4.472136 
+4 339.716572 10 3.162278 
+5 354.388256 0 0.000000 
+6 220.167122 0 0.000000 
+7 219.628909 0 0.000000 
+8 282.593461 20 4.472136 
+9 358.126821 0 0.000000 
+10 330.983943 0 0.000000 
+11 270.269111 10 3.162278 
+12 184.833567 10 3.162278 
+13 451.609882 0 0.000000 
+14 282.626045 0 0.000000 
+15 321.479943 10 3.162278 
+16 328.678482 0 0.000000 
+17 220.882914 10 3.162278 
+18 21.633308 180 13.416408 
+
+Done
+
+Query 7:
+ select trucks.rownum, cost, delcapacity, delcapacity_root from trucks INNER JOIN truck on truck.base=trucks.truck_id;
+
+Statement prepared.
+rownum cost delcapacity delcapacity_root 
+
+0 147.495530 0 0.000000 
+1 225.946633 0 0.000000 
+2 278.821496 0 0.000000 
+3 280.375322 20 4.472136 
+4 339.716572 10 3.162278 
+5 354.388256 0 0.000000 
+6 220.167122 0 0.000000 
+7 219.628909 0 0.000000 
+8 282.593461 20 4.472136 
+9 358.126821 0 0.000000 
+10 330.983943 0 0.000000 
+11 270.269111 10 3.162278 
+12 184.833567 10 3.162278 
+13 451.609882 0 0.000000 
+14 282.626045 0 0.000000 
+15 321.479943 10 3.162278 
+16 328.678482 0 0.000000 
+17 220.882914 10 3.162278 
+18 21.633308 180 13.416408 
 
 Done
 
 Query 8:
- select * from trucks,truck where truck.base=trucks.truck_id and cost<800 and delcapacity>0;
+ select trucks.rownum, cost, delcapacity, delcapacity_root from trucks LEFT JOIN truck on truck.base=trucks.truck_id;
 
 Statement prepared.
-rownum truck_id base customers_id cost delcapacity delcapacity_root 
+rownum cost delcapacity delcapacity_root 
 
-3 3765072 3765072 3786944 280.375322 20 4.472136 
-4 3765216 3765216 3787120 339.716572 10 3.162278 
-8 3765792 3765792 3787296 282.593461 20 4.472136 
-11 3766224 3766224 3787456 270.269111 10 3.162278 
-12 3766368 3766368 4517120 184.833567 10 3.162278 
-15 3766800 3766800 4517280 321.479943 10 3.162278 
-17 3767088 3767088 4517456 220.882914 10 3.162278 
-18 3767232 3767232 4517616 21.633308 180 13.416408 
+0 147.495530 0 0.000000 
+1 225.946633 0 0.000000 
+2 278.821496 0 0.000000 
+3 280.375322 20 4.472136 
+4 339.716572 10 3.162278 
+5 354.388256 0 0.000000 
+6 220.167122 0 0.000000 
+7 219.628909 0 0.000000 
+8 282.593461 20 4.472136 
+9 358.126821 0 0.000000 
+10 330.983943 0 0.000000 
+11 270.269111 10 3.162278 
+12 184.833567 10 3.162278 
+13 451.609882 0 0.000000 
+14 282.626045 0 0.000000 
+15 321.479943 10 3.162278 
+16 328.678482 0 0.000000 
+17 220.882914 10 3.162278 
+18 21.633308 180 13.416408 
 
 Done
 
 Query 9:
- select * from trucks,truck,customers,customer where truck.base=trucks.truck_id and cost <800 and delcapacity>0 and customers.base=truck.customers_id and customer.base=customers.customer_id and code>100 and demand>10;
+ select trucks.rownum, cost, delcapacity, delcapacity_root from trucks CROSS JOIN truck on truck.base=trucks.truck_id;
 
 Statement prepared.
-rownum truck_id base customers_id cost delcapacity delcapacity_root base rownum customer_id base position_id demand code serviced 
+rownum cost delcapacity delcapacity_root 
 
-3 3765072 3765072 4511376 280.375322 20 4.472136 4511200 8 2125680 2125680 3785424 20 159 0 
-4 3765216 3765216 4513600 339.716572 10 3.162278 4513424 0 2125504 2125504 3775408 20 158 0 
-4 3765216 3765216 4513776 339.716572 10 3.162278 4513424 2 2131664 2131664 4162208 20 193 0 
-4 3765216 3765216 4513952 339.716572 10 3.162278 4513424 8 2123744 2123744 4161728 20 148 0 
-8 3765792 3765792 4514288 282.593461 20 4.472136 4514128 0 2115648 2115648 4161488 20 102 0 
-8 3765792 3765792 4514448 282.593461 20 4.472136 4514128 1 2123392 2123392 4161968 20 146 0 
-8 3765792 3765792 4514608 282.593461 20 4.472136 4514128 5 2122688 2122688 4161248 20 142 0 
-8 3765792 3765792 4514768 282.593461 20 4.472136 4514128 7 2121456 2121456 4161008 20 135 0 
-11 3766224 3766224 4515104 270.269111 10 3.162278 4514928 1 2127968 2127968 4160768 20 172 0 
-11 3766224 3766224 4515408 270.269111 10 3.162278 4514928 10 2129904 2129904 4160528 20 183 0 
-12 3766368 3766368 4515744 184.833567 10 3.162278 4515584 3 2126560 2126560 4160288 30 164 0 
-12 3766368 3766368 4515904 184.833567 10 3.162278 4515584 5 2125856 2125856 4160048 40 160 0 
-15 3766800 3766800 4516240 321.479943 10 3.162278 4516064 1 2129552 2129552 4159808 20 181 0 
-15 3766800 3766800 4516416 321.479943 10 3.162278 4516064 3 2116000 2116000 4159568 20 104 0 
-15 3766800 3766800 4516592 321.479943 10 3.162278 4516064 6 2129376 2129376 4159328 30 180 0 
-17 3767088 3767088 4516928 220.882914 10 3.162278 4516768 1 2120752 2120752 4517088 30 131 0 
-17 3767088 3767088 4517696 220.882914 10 3.162278 4516768 2 2123040 2123040 4159088 20 144 0 
-18 3767232 3767232 4518112 21.633308 180 13.416408 4515280 0 2116528 2116528 4515360 20 107 0 
+0 147.495530 0 0.000000 
+1 225.946633 0 0.000000 
+2 278.821496 0 0.000000 
+3 280.375322 20 4.472136 
+4 339.716572 10 3.162278 
+5 354.388256 0 0.000000 
+6 220.167122 0 0.000000 
+7 219.628909 0 0.000000 
+8 282.593461 20 4.472136 
+9 358.126821 0 0.000000 
+10 330.983943 0 0.000000 
+11 270.269111 10 3.162278 
+12 184.833567 10 3.162278 
+13 451.609882 0 0.000000 
+14 282.626045 0 0.000000 
+15 321.479943 10 3.162278 
+16 328.678482 0 0.000000 
+17 220.882914 10 3.162278 
+18 21.633308 180 13.416408 
 
 Done
 
 Query 10:
- select * from trucks,truck,customers,customer where truck.base=trucks.truck_id and cost <800 and delcapacity>0 and customers.base=truck.customers_id and customer.base=customers.customer_id and code>100 and demand>10 order by code;
+ select trucks.rownum, cost, delcapacity, delcapacity_root from trucks CROSS JOIN truck;
 
 Statement prepared.
-rownum truck_id base customers_id cost delcapacity delcapacity_root base rownum customer_id base position_id demand code serviced 
+rownum cost delcapacity delcapacity_root 
 
-8 3765792 3765792 4520384 282.593461 20 4.472136 4520224 0 2115648 2115648 4158128 20 102 0 
-15 3766800 3766800 4522576 321.479943 10 3.162278 4522224 3 2116000 2116000 4156208 20 104 0 
-18 3767232 3767232 4523664 21.633308 180 13.416408 4521440 0 2116528 2116528 4521520 20 107 0 
-17 3767088 3767088 4523088 220.882914 10 3.162278 4522928 1 2120752 2120752 4155728 30 131 0 
-8 3765792 3765792 4520928 282.593461 20 4.472136 4520224 7 2121456 2121456 4157648 20 135 0 
-8 3765792 3765792 4520768 282.593461 20 4.472136 4520224 5 2122688 2122688 4157888 20 142 0 
-17 3767088 3767088 4523248 220.882914 10 3.162278 4522928 2 2123040 2123040 4155488 20 144 0 
-8 3765792 3765792 4520608 282.593461 20 4.472136 4520224 1 2123392 2123392 4158608 20 146 0 
-4 3765216 3765216 4520048 339.716572 10 3.162278 4519520 8 2123744 2123744 4158368 20 148 0 
-4 3765216 3765216 4519696 339.716572 10 3.162278 4519520 0 2125504 2125504 3785456 20 158 0 
-3 3765072 3765072 4519344 280.375322 20 4.472136 4519168 8 2125680 2125680 4511600 20 159 0 
-12 3766368 3766368 4522064 184.833567 10 3.162278 4521744 5 2125856 2125856 4156688 40 160 0 
-12 3766368 3766368 4521904 184.833567 10 3.162278 4521744 3 2126560 2126560 4156928 30 164 0 
-11 3766224 3766224 4521264 270.269111 10 3.162278 4521088 1 2127968 2127968 4157408 20 172 0 
-15 3766800 3766800 4522752 321.479943 10 3.162278 4522224 6 2129376 2129376 4155968 30 180 0 
-15 3766800 3766800 4522400 321.479943 10 3.162278 4522224 1 2129552 2129552 4156448 20 181 0 
-11 3766224 3766224 4521568 270.269111 10 3.162278 4521088 10 2129904 2129904 4157168 20 183 0 
-4 3765216 3765216 4519872 339.716572 10 3.162278 4519520 2 2131664 2131664 4158848 20 193 0 
+
+Library used incorrectly
+
+Query 11:
+ select * from trucks JOIN customers;
+
+Statement prepared.
+rownum truck_id base rownum customer_id 
+
+
+Library used incorrectly
+
+JOIN QUERIES IMPLICIT
+
+
+Query 12:
+ select trucks.rownum, cost, delcapacity, delcapacity_root from trucks,truck where truck.base=trucks.truck_id;
+
+Statement prepared.
+rownum cost delcapacity delcapacity_root 
+
+0 147.495530 0 0.000000 
+1 225.946633 0 0.000000 
+2 278.821496 0 0.000000 
+3 280.375322 20 4.472136 
+4 339.716572 10 3.162278 
+5 354.388256 0 0.000000 
+6 220.167122 0 0.000000 
+7 219.628909 0 0.000000 
+8 282.593461 20 4.472136 
+9 358.126821 0 0.000000 
+10 330.983943 0 0.000000 
+11 270.269111 10 3.162278 
+12 184.833567 10 3.162278 
+13 451.609882 0 0.000000 
+14 282.626045 0 0.000000 
+15 321.479943 10 3.162278 
+16 328.678482 0 0.000000 
+17 220.882914 10 3.162278 
+18 21.633308 180 13.416408 
 
 Done
 
-Query 11:
- select code, demand, x_coord, y_coord from trucks,truck,customers, customer, position where truck.base=trucks.truck_id and customers.base=truck.customers_id and customer.base=customers.customer_id and position.base=customer.position_id and code like '%99' union select code, demand, x_coord,y_coord from mapindex,customer,position where customer.base=mapindex.customer_id and position.base=customer.position_id and x_coord>133;
+Query 13:
+ select * from trucks, customers;
+
+Statement prepared.
+rownum truck_id base rownum customer_id 
+
+
+Library used incorrectly
+
+JOIN QUERIES EXPLICIT+ ROWNUM
+
+
+Query 14:
+ select trucks.rownum, cost, delcapacity, delcapacity_root, customers.rownum from trucks JOIN truck ON truck.base=trucks.truck_id JOIN customers ON customers.base=truck.customers_id where customers.rownum=4;
+
+Statement prepared.
+rownum cost delcapacity delcapacity_root rownum 
+
+0 147.495530 0 0.000000 4 
+1 225.946633 0 0.000000 4 
+2 278.821496 0 0.000000 4 
+3 280.375322 20 4.472136 4 
+4 339.716572 10 3.162278 4 
+5 354.388256 0 0.000000 4 
+6 220.167122 0 0.000000 4 
+7 219.628909 0 0.000000 4 
+8 282.593461 20 4.472136 4 
+9 358.126821 0 0.000000 4 
+10 330.983943 0 0.000000 4 
+11 270.269111 10 3.162278 4 
+12 184.833567 10 3.162278 4 
+13 451.609882 0 0.000000 4 
+14 282.626045 0 0.000000 4 
+15 321.479943 10 3.162278 4 
+16 328.678482 0 0.000000 4 
+17 220.882914 10 3.162278 4 
+
+Done
+
+Query 15:
+ select trucks.rownum, cost, delcapacity, delcapacity_root, customers.rownum from trucks JOIN truck ON truck.base=trucks.truck_id JOIN customers ON customers.base=truck.customers_id where trucks.rownum=11 and customers.rownum=4;
+
+Statement prepared.
+rownum cost delcapacity delcapacity_root rownum 
+
+11 270.269111 10 3.162278 4 
+
+Done
+
+Query 16:
+ select trucks.rownum, cost, delcapacity, delcapacity_root, customers.rownum, map_index from trucks JOIN truck ON truck.base=trucks.truck_id JOIN customers ON customers.base=truck.customers_id,mapindex where customers.rownum=mapindex.map_index;
+
+Statement prepared.
+rownum cost delcapacity delcapacity_root rownum map_index 
+
+
+Done
+
+Query 17:
+ select trucks.rownum, cost, delcapacity, delcapacity_root, customers.rownum from trucks JOIN truck ON truck.base=trucks.truck_id JOIN customers where customers.rownum=4;
+
+Statement prepared.
+rownum cost delcapacity delcapacity_root rownum 
+
+
+Library used incorrectly
+
+JOIN QUERIES IMPLICIT+ ROWNUM
+
+
+Query 18:
+ select trucks.rownum, cost, delcapacity, delcapacity_root, customers.rownum from trucks,truck,customers where truck.base=trucks.truck_id and customers.base=truck.customers_id and customers.rownum=4;
+
+Statement prepared.
+rownum cost delcapacity delcapacity_root rownum 
+
+0 147.495530 0 0.000000 4 
+1 225.946633 0 0.000000 4 
+2 278.821496 0 0.000000 4 
+3 280.375322 20 4.472136 4 
+4 339.716572 10 3.162278 4 
+5 354.388256 0 0.000000 4 
+6 220.167122 0 0.000000 4 
+7 219.628909 0 0.000000 4 
+8 282.593461 20 4.472136 4 
+9 358.126821 0 0.000000 4 
+10 330.983943 0 0.000000 4 
+11 270.269111 10 3.162278 4 
+12 184.833567 10 3.162278 4 
+13 451.609882 0 0.000000 4 
+14 282.626045 0 0.000000 4 
+15 321.479943 10 3.162278 4 
+16 328.678482 0 0.000000 4 
+17 220.882914 10 3.162278 4 
+
+Done
+
+Query 19:
+ select trucks.rownum, cost, delcapacity, delcapacity_root, customers.rownum from trucks,truck,customers where truck.base=trucks.truck_id and customers.base=truck.customers_id and trucks.rownum=11 and customers.rownum=4;
+
+Statement prepared.
+rownum cost delcapacity delcapacity_root rownum 
+
+11 270.269111 10 3.162278 4 
+
+Done
+
+Query 20:
+ select trucks.rownum, cost, delcapacity, delcapacity_root, customers.rownum, map_index from trucks,truck,mapindex,customers where truck.base=trucks.truck_id and customers.base=truck.customers_id and customers.rownum=mapindex.map_index;
+
+Statement prepared.
+rownum cost delcapacity delcapacity_root rownum map_index 
+
+
+Done
+
+Query 21:
+ select trucks.rownum, cost, delcapacity, delcapacity_root, customers.rownum from trucks,truck,customers where truck.base=trucks.truck_id and customers.rownum=4;
+
+Statement prepared.
+rownum cost delcapacity delcapacity_root rownum 
+
+
+Library used incorrectly
+
+JOIN QUERIES EXPLICIT + CONSTRAINTS
+
+
+Query 22:
+ select trucks.rownum, cost, delcapacity, delcapacity_root from trucks JOIN truck ON truck.base=trucks.truck_id and cost<800 and delcapacity>0;
+
+Statement prepared.
+rownum cost delcapacity delcapacity_root 
+
+3 280.375322 20 4.472136 
+4 339.716572 10 3.162278 
+8 282.593461 20 4.472136 
+11 270.269111 10 3.162278 
+12 184.833567 10 3.162278 
+15 321.479943 10 3.162278 
+17 220.882914 10 3.162278 
+18 21.633308 180 13.416408 
+
+Done
+
+Query 23:
+ select trucks.rownum, cost, delcapacity, delcapacity_root, code, demand from trucks JOIN truck ON truck.base=trucks.truck_id JOIN customers ON customers.base=truck.customers_id JOIN customer ON customer.base=customers.customer_id where (cost <100 or code>170) and delcapacity>0 and demand>10;
+
+Statement prepared.
+rownum cost delcapacity delcapacity_root code demand 
+
+4 339.716572 10 3.162278 193 20 
+11 270.269111 10 3.162278 172 20 
+11 270.269111 10 3.162278 183 20 
+15 321.479943 10 3.162278 181 20 
+15 321.479943 10 3.162278 180 30 
+18 21.633308 180 13.416408 107 20 
+
+Done
+
+Query 24:
+ select trucks.rownum, cost, delcapacity, delcapacity_root, customers.rownum, code, demand from trucks left join truck on truck.base=trucks.truck_id left join customers on customers.base=truck.customers_id left join customer on customer.base=customers.customer_id where (cost <100 or delcapacity>0) and (code>170 or demand<10);
+
+Statement prepared.
+rownum cost delcapacity delcapacity_root rownum code demand 
+
+3 280.375322 20 4.472136 1 199 10 
+4 339.716572 10 3.162278 2 193 20 
+4 339.716572 10 3.162278 5 178 10 
+11 270.269111 10 3.162278 1 172 20 
+11 270.269111 10 3.162278 10 183 20 
+15 321.479943 10 3.162278 1 181 20 
+15 321.479943 10 3.162278 6 180 30 
+17 220.882914 10 3.162278 6 196 10 
+
+Done
+
+Query 25:
+ select trucks.rownum, cost, delcapacity, delcapacity_root, customers.rownum, x_coord, y_coord from trucks left join truck on truck.base=trucks.truck_id left join customers on customers.base=truck.customers_id left join position on position.base=customers.customer_id where (cost <100 or delcapacity>0) and (x_coord>170 or y_coord<10);
+
+Statement prepared.
+rownum cost delcapacity delcapacity_root rownum x_coord y_coord 
+
+
+Library used incorrectly
+
+Query 26:
+ select trucks.rownum, cost, delcapacity, delcapacity_root, s.rownum, x_coord, y_coord from trucks left join truck on truck.base=trucks.truck_id left join customers s on s.base=truck.customers_id left join customer on customer.base=s.customer_id, customers c left join position on position.base=c.customer_id where (cost <100 or delcapacity>0) and (x_coord>170 or y_coord<10);
+
+Statement prepared.
+rownum cost delcapacity delcapacity_root rownum x_coord y_coord 
+
+
+Library used incorrectly
+
+Query 27:
+ select trucks.rownum, cost, delcapacity, delcapacity_root, s.rownum, x_coord, y_coord from trucks left join truck on truck.base=trucks.truck_id left join customers s on s.base=truck.customers_id left join customer on customer.base=s.customer_id, customers c left join position on position.base=c.customer_id where (cost <100 or delcapacity>0) and code<50 and (x_coord>170 or y_coord<10);
+
+Statement prepared.
+rownum cost delcapacity delcapacity_root rownum x_coord y_coord 
+
+
+Library used incorrectly
+
+Query 28:
+ select t.rownum, u.cost, u.delcapacity, u.delcapacity_root, c.rownum, code, demand from trucks t JOIN truck u ON u.base=t.truck_id JOIN customers c ON c.base=u.customers_id JOIN customer ON customer.base=c.customer_id, trucks tr JOIN truck k on k.base=tr.truck_id JOIN customers s ON s.base=k.customers_id JOIN position ON position.base=s.customer_id where (u.cost <100 or u.delcapacity>0) and (code>170 or demand<10) and (x_coord>40 or y_coord<20);
+
+Statement prepared.
+rownum cost delcapacity delcapacity_root rownum code demand 
+
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+
+Library used incorrectly
+
+Query 29:
+ select t.rownum, u.cost, u.delcapacity, u.delcapacity_root, c.rownum, code, demand from trucks t, truck u, customers c,trucks tr ,truck k,customer, customers s, position where u.base=t.truck_id and k.base=tr.truck_id and (u.cost <100 or u.delcapacity>0) and c.base=u.customers_id and customer.base=c.customer_id and s.base=k.customers_id and position.base=s.customer_id and (code>170 or demand<10) and (x_coord>40 or y_coord<20);
+
+Statement prepared.
+rownum cost delcapacity delcapacity_root rownum code demand 
+
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+
+Library used incorrectly
+
+JOIN QUERIES EXPLICIT + CONSTRAINTS + ROWNUM
+
+
+Query 30:
+ select trucks.rownum, cost, delcapacity, delcapacity_root, customers.rownum, code, demand from trucks left join truck on truck.base=trucks.truck_id left join customers on customers.base=truck.customers_id left join customer on customer.base=customers.customer_id where (cost <100 or delcapacity>0) and (code>170 or demand<10) and customers.rownum=10;
+
+Statement prepared.
+rownum cost delcapacity delcapacity_root rownum code demand 
+
+11 270.269111 10 3.162278 10 183 20 
+
+Done
+
+JOIN QUERIES IMPLICIT + CONSTRAINTS
+
+
+Query 31:
+ select trucks.rownum, cost, delcapacity, delcapacity_root from trucks,truck where truck.base=trucks.truck_id and cost<800 and delcapacity>0;
+
+Statement prepared.
+rownum cost delcapacity delcapacity_root 
+
+3 280.375322 20 4.472136 
+4 339.716572 10 3.162278 
+8 282.593461 20 4.472136 
+11 270.269111 10 3.162278 
+12 184.833567 10 3.162278 
+15 321.479943 10 3.162278 
+17 220.882914 10 3.162278 
+18 21.633308 180 13.416408 
+
+Done
+
+Query 32:
+ select trucks.rownum, cost, delcapacity, delcapacity_root, code, demand from trucks,truck,customers,customer where truck.base=trucks.truck_id and (cost <100 or code>170) and delcapacity>0 and customers.base=truck.customers_id and customer.base=customers.customer_id and demand>10;
+
+Statement prepared.
+rownum cost delcapacity delcapacity_root code demand 
+
+4 339.716572 10 3.162278 193 20 
+11 270.269111 10 3.162278 172 20 
+11 270.269111 10 3.162278 183 20 
+15 321.479943 10 3.162278 181 20 
+15 321.479943 10 3.162278 180 30 
+18 21.633308 180 13.416408 107 20 
+
+Done
+
+Query 33:
+ select trucks.rownum, cost, delcapacity, delcapacity_root, customers.rownum, code, demand from trucks,truck,customers,customer where truck.base=trucks.truck_id and (cost <100 or delcapacity>0) and customers.base=truck.customers_id and customer.base=customers.customer_id and (code>170 or demand<10);
+
+Statement prepared.
+rownum cost delcapacity delcapacity_root rownum code demand 
+
+3 280.375322 20 4.472136 1 199 10 
+4 339.716572 10 3.162278 2 193 20 
+4 339.716572 10 3.162278 5 178 10 
+11 270.269111 10 3.162278 1 172 20 
+11 270.269111 10 3.162278 10 183 20 
+15 321.479943 10 3.162278 1 181 20 
+15 321.479943 10 3.162278 6 180 30 
+17 220.882914 10 3.162278 6 196 10 
+
+Done
+
+Query 34:
+ select trucks.rownum, cost, delcapacity, delcapacity_root, customers.rownum, code, demand,x_coord,y_coord from trucks,truck,customers,customer, position where truck.base=trucks.truck_id and (cost <100 or delcapacity>0) and customers.base=truck.customers_id and customer.base=customers.customer_id and position.base=customer.position_id and (x_coord>170 or y_coord<10);
+
+Statement prepared.
+rownum cost delcapacity delcapacity_root rownum code demand x_coord y_coord 
+
+4 339.716572 10 3.162278 9 032 10 129 9 
+
+Done
+
+Query 35:
+ select trucks.rownum, cost, delcapacity, delcapacity_root, c.rownum, code, demand, x_coord, y_coord from trucks,truck,customers c,customer, customers s, position where truck.base=trucks.truck_id and (cost <100 or delcapacity>0) and c.base=truck.customers_id and customer.base=c.customer_id and s.base=truck.customers_id and position.base=s.customer_id and (x_coord>170 or y_coord<10);
+
+Statement prepared.
+rownum cost delcapacity delcapacity_root rownum code demand x_coord y_coord 
+
+
+Library used incorrectly
+
+Query 36:
+ select trucks.rownum, cost, delcapacity, delcapacity_root, c.rownum, code, demand, x_coord, y_coord from trucks,truck,customers c,customer, customers s, position where truck.base=trucks.truck_id and (cost <100 or delcapacity>0) and c.base=truck.customers_id and customer.base=c.customer_id and code<50 and s.base=truck.customers_id and position.base=s.customer_id and (x_coord>170 or y_coord<10);
+
+Statement prepared.
+rownum cost delcapacity delcapacity_root rownum code demand x_coord y_coord 
+
+
+Library used incorrectly
+
+Query 37:
+ select trucks.rownum, cost, delcapacity, delcapacity_root, c.rownum, code, demand,x_coord,y_coord from trucks,truck,customers c,customer, customers s, position where truck.base=trucks.truck_id and (cost <100 or delcapacity>0) and c.base=truck.customers_id and customer.base=c.customer_id and s.base=truck.customers_id and position.base=s.customer_id and (code>170 or demand<10) and (x_coord>40 or y_coord<20);
+
+Statement prepared.
+rownum cost delcapacity delcapacity_root rownum code demand x_coord y_coord 
+
+
+Library used incorrectly
+
+Query 38:
+ select t.rownum, u.cost, u.delcapacity, u.delcapacity_root, c.rownum, code, demand, x_coord, y_coord from trucks t, trucks tr, truck u,truck k,customers c,customer, customers s, position where u.base=t.truck_id and k.base=tr.truck_id and (u.cost <100 or u.delcapacity>0) and c.base=u.customers_id and customer.base=c.customer_id and s.base=k.customers_id and position.base=s.customer_id and (code>170 or demand<10) and (x_coord>40 or y_coord<20);
+
+Statement prepared.
+rownum cost delcapacity delcapacity_root rownum code demand x_coord y_coord 
+
+
+Library used incorrectly
+
+Query 39:
+ select t.rownum, u.cost, u.delcapacity, u.delcapacity_root, c.rownum, code, demand from trucks t, truck u, customers c,trucks tr ,truck k,customer, customers s, position where u.base=t.truck_id and k.base=tr.truck_id and (u.cost <100 or u.delcapacity>0) and c.base=u.customers_id and customer.base=c.customer_id and s.base=k.customers_id and position.base=s.customer_id and (code>170 or demand<10) and (x_coord>40 or y_coord<20);
+
+Statement prepared.
+rownum cost delcapacity delcapacity_root rownum code demand 
+
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+3 280.375322 20 4.472136 1 199 10 
+
+Library used incorrectly
+
+Query 40:
+ select t.rownum, u.cost, u.delcapacity, u.delcapacity_root, c.rownum, cu.code, cu.demand, st.code,st.demand from trucks t, truck u, customers c,customer cu,trucks tr ,truck k, customers s, customer st where u.base=t.truck_id and k.base=tr.truck_id and (u.cost <100 or u.delcapacity>150) and c.base=u.customers_id and cu.base=c.customer_id and s.base=k.customers_id and st.base=s.customer_id and (cu.code>st.code or cu.demand<st.demand) LIMIT 10;
+
+Statement prepared.
+rownum cost delcapacity delcapacity_root rownum code demand code demand 
+
+18 21.633308 180 13.416408 0 107 20 028 20 
+18 21.633308 180 13.416408 0 107 20 014 10 
+18 21.633308 180 13.416408 0 107 20 152 30 
+18 21.633308 180 13.416408 0 107 20 040 20 
+18 21.633308 180 13.416408 0 107 20 110 30 
+18 21.633308 180 13.416408 0 107 20 162 30 
+18 21.633308 180 13.416408 0 107 20 012 10 
+18 21.633308 180 13.416408 0 107 20 006 10 
+18 21.633308 180 13.416408 0 107 20 011 20 
+18 21.633308 180 13.416408 0 107 20 066 20 
+
+Done
+
+Query 41:
+ select c.code, c.demand, c.position_id, p.x_coord, p.y_coord, u.code, u.demand, u.position_id, o.x_coord, o.y_coord from trucks,truck,customers, customer c, position p, mapindex,customer u, position o where truck.base=trucks.truck_id and customers.base=truck.customers_id and c.base=customers.customer_id and p.base=c.position_id and c.code like '%99' and u.base=mapindex.customer_id and o.base=u.position_id and o.x_coord>133 and p.y_coord=o.y_coord;
+
+Statement prepared.
+code demand position_id x_coord y_coord code demand position_id x_coord y_coord 
+
+
+Done
+
+JOIN QUERIES IMPLICIT + CONSTRAINTS + ROWNUM
+
+
+Query 42:
+ select trucks.rownum, cost, delcapacity, delcapacity_root, customers.rownum, code, demand from trucks,truck,customers,customer where truck.base=trucks.truck_id and customers.base=truck.customers_id and customer.base=customers.customer_id and (cost <100 or delcapacity>0) and (code>170 or demand<10) and customers.rownum=10;
+
+Statement prepared.
+rownum cost delcapacity delcapacity_root rownum code demand 
+
+11 270.269111 10 3.162278 10 183 20 
+
+Done
+
+SUBQUERIES
+
+
+Query 43:
+ select cost, delcapacity_root from (select DISTINCT truck_id from Trucks) t left join Truck on truck.base=t.truck_id where cost and not delcapacity and delcapacity_root=0;
+
+Statement prepared.
+cost delcapacity_root 
+
+278.821496 0.000000 
+354.388256 0.000000 
+220.167122 0.000000 
+219.628909 0.000000 
+358.126821 0.000000 
+330.983943 0.000000 
+451.609882 0.000000 
+282.626045 0.000000 
+328.678482 0.000000 
+225.946633 0.000000 
+147.495530 0.000000 
+
+Done
+
+Query 44:
+ select cost, delcapacity_root from (select distinct truck_id from Trucks) t, Truck where truck.base=t.truck_id and cost and not delcapacity and delcapacity_root=0;
+
+Statement prepared.
+cost delcapacity_root 
+
+278.821496 0.000000 
+354.388256 0.000000 
+220.167122 0.000000 
+219.628909 0.000000 
+358.126821 0.000000 
+330.983943 0.000000 
+451.609882 0.000000 
+282.626045 0.000000 
+328.678482 0.000000 
+225.946633 0.000000 
+147.495530 0.000000 
+
+Done
+
+Query 45:
+ select customers.rownum from (select distinct truck_id from Trucks) t left join Truck on truck.base=t.truck_id left join Customers on customers.base=truck.customers_id where customers.rownum=7;
+
+Statement prepared.
+rownum 
+
+7 
+7 
+7 
+7 
+7 
+7 
+7 
+7 
+7 
+7 
+7 
+7 
+7 
+7 
+7 
+7 
+7 
+7 
+
+Done
+
+Query 46:
+ select customers.rownum from (select distinct truck_id from Trucks) t left join Customers on customers.base=t.truck_id where customers.rownum=7;
+
+Statement prepared.
+rownum 
+
+
+Library used incorrectly
+
+Query 47:
+ select customers.rownum from (select distinct truck_id from Trucks) t,truck, Customers where truck.base=t.truck_id and customers.base=truck.customers_id and customers.rownum=7;
+
+Statement prepared.
+rownum 
+
+7 
+7 
+7 
+7 
+7 
+7 
+7 
+7 
+7 
+7 
+7 
+7 
+7 
+7 
+7 
+7 
+7 
+7 
+
+Done
+
+Query 48:
+ select customers.rownum from (select distinct truck_id from Trucks) t, Customers where customers.base=t.truck_id and customers.rownum=7;
+
+Statement prepared.
+rownum 
+
+
+Library used incorrectly
+
+Query 49:
+ select cost, delcapacity,delcapacity_root from (select distinct truck_id from Trucks) t left join Truck on truck.base=t.truck_id where cost<500 and (delcapacity>50 or delcapacity_root>4);
+
+Statement prepared.
+cost delcapacity delcapacity_root 
+
+280.375322 20 4.472136 
+282.593461 20 4.472136 
+21.633308 180 13.416408 
+
+Done
+
+Query 50:
+ select t.rownum,cost,delcapacity,delcapacity_root, customers.rownum from (select distinct truck_id,rownum from Trucks) t left join Truck on truck.base=t.truck_id left join Customers on customers.base=truck.customers_id where customers.rownum=7 and t.rownum=12;
+
+Statement prepared.
+rownum cost delcapacity delcapacity_root rownum 
+
+12 184.833567 10 3.162278 7 
+
+Done
+
+Query 51:
+ select t.rownum,cost,delcapacity,delcapacity_root, customers.rownum from (select distinct truck_id,rownum from Trucks) t left join Truck on truck.base=t.truck_id left join Customers on customers.base=truck.customers_id where customers.rownum=7 and t.rownum=12 and cost<500 and (delcapacity=0 or delcapacity_root=0);
+
+Statement prepared.
+rownum cost delcapacity delcapacity_root rownum 
+
+
+Done
+
+Query 52:
+ select t.rownum,cost,delcapacity,delcapacity_root, customers.rownum from (select distinct truck_id,rownum from Trucks) t left join Truck on truck.base=t.truck_id left join Customers on customers.base=truck.customers_id where customers.rownum=7 and t.rownum=12 and cost<500 and delcapacity>0 and delcapacity_root>0;
+
+Statement prepared.
+rownum cost delcapacity delcapacity_root rownum 
+
+12 184.833567 10 3.162278 7 
+
+Done
+
+COMPOUND QUERIES
+
+
+Query 53:
+ select code, demand, x_coord, y_coord from trucks,truck,customers, customer, position where truck.base=trucks.truck_id and customers.base=truck.customers_id and customer.base=customers.customer_id and position.base=customer.position_id and code like '%99' UNION select code, demand, x_coord,y_coord from mapindex,customer,position where customer.base=mapindex.customer_id and position.base=customer.position_id and x_coord>133;
 
 Statement prepared.
 code demand x_coord y_coord 
@@ -220,17 +1015,51 @@ code demand x_coord y_coord
 
 Done
 
-Query 12:
- select c.code, c.demand, c.position_id, p.x_coord, p.y_coord, u.code, u.demand, u.position_id, o.x_coord, o.y_coord from trucks,truck,customers, customer c,mapindex,customer u, position p, position o where truck.base=trucks.truck_id and customers.base=truck.customers_id and c.base=customers.customer_id and p.base=c.position_id and c.code like '%99' and u.base=mapindex.customer_id and o.base=u.position_id and o.x_coord>133 and p.y_coord=o.y_coord;
+Query 54:
+ select code, demand, x_coord, y_coord from trucks,truck,customers, customer, position where truck.base=trucks.truck_id and customers.base=truck.customers_id and customer.base=customers.customer_id and position.base=customer.position_id and code like '%99' UNION ALL select code, demand, x_coord,y_coord from mapindex,customer,position where customer.base=mapindex.customer_id and position.base=customer.position_id and x_coord>133;
 
 Statement prepared.
-code demand position_id x_coord y_coord code demand position_id x_coord y_coord 
+code demand x_coord y_coord 
+
+199 10 34 108 
+099 10 34 79 
+051 10 137 6 
+065 20 135 3 
+069 20 134 31 
+086 10 135 0 
+094 20 137 3 
+115 30 136 0 
+141 10 136 29 
+171 30 135 6 
+174 30 139 10 
+
+Done
+
+Query 55:
+ select code, demand, x_coord, y_coord from trucks,truck,customers, customer, position where truck.base=trucks.truck_id and customers.base=truck.customers_id and customer.base=customers.customer_id and position.base=customer.position_id and code like '%99' INTERSECT select code, demand, x_coord,y_coord from mapindex,customer,position where customer.base=mapindex.customer_id and position.base=customer.position_id and x_coord>133;
+
+Statement prepared.
+code demand x_coord y_coord 
 
 
 Done
 
-Query 13:
- select sum(map_index), demand from (select * from mapindex where map_index<187) as m, Customer where customer.base=m.customer_id group by demand
+Query 56:
+ select code, demand, x_coord, y_coord from trucks,truck,customers, customer, position where truck.base=trucks.truck_id and customers.base=truck.customers_id and customer.base=customers.customer_id and position.base=customer.position_id and code like '%99' EXCEPT select code, demand, x_coord,y_coord from mapindex,customer,position where customer.base=mapindex.customer_id and position.base=customer.position_id and x_coord>133;
+
+Statement prepared.
+code demand x_coord y_coord 
+
+099 10 34 79 
+199 10 34 108 
+
+Done
+
+AGGREGATIONS
+
+
+Query 57:
+ select sum(map_index), demand from (select * from mapindex where map_index<187) as m, Customer where customer.base=m.customer_id GROUP BY demand
 
 Statement prepared.
 sum(map_index) demand 
@@ -243,21 +1072,273 @@ sum(map_index) demand
 
 Done
 
-Query 14:
- select * from customer;
+Query 58:
+ select sum(map_index), demand from (select * from mapindex where map_index<187) as m, Customer where customer.base=m.customer_id GROUP BY demand HAVING sum(map_index)>200;
 
 Statement prepared.
-base position_id demand code serviced 
+sum(map_index) demand 
+
+1133 10 
+858 20 
+391 30 
+
+Done
+
+ORDERING
 
 
-Library used incorrectly
-
-Query 15:
- select * from trucks, customers;
+Query 59:
+ select trucks.rownum, cost, delcapacity, delcapacity_root, customers.rownum, code, demand from trucks,truck,customers,customer where truck.base=trucks.truck_id and cost <800 and delcapacity>0 and customers.base=truck.customers_id and customer.base=customers.customer_id and code>100 and demand>10 ORDER BY code;
 
 Statement prepared.
-rownum truck_id base rownum customer_id 
+rownum cost delcapacity delcapacity_root rownum code demand 
+
+8 282.593461 20 4.472136 0 102 20 
+15 321.479943 10 3.162278 3 104 20 
+18 21.633308 180 13.416408 0 107 20 
+17 220.882914 10 3.162278 1 131 30 
+8 282.593461 20 4.472136 7 135 20 
+8 282.593461 20 4.472136 5 142 20 
+17 220.882914 10 3.162278 2 144 20 
+8 282.593461 20 4.472136 1 146 20 
+4 339.716572 10 3.162278 8 148 20 
+4 339.716572 10 3.162278 0 158 20 
+3 280.375322 20 4.472136 8 159 20 
+12 184.833567 10 3.162278 5 160 40 
+12 184.833567 10 3.162278 3 164 30 
+11 270.269111 10 3.162278 1 172 20 
+15 321.479943 10 3.162278 6 180 30 
+15 321.479943 10 3.162278 1 181 20 
+11 270.269111 10 3.162278 10 183 20 
+4 339.716572 10 3.162278 2 193 20 
+
+Done
+
+Query 60:
+ select trucks.rownum, cost, delcapacity, delcapacity_root, customers.rownum, code, demand from trucks,truck,customers,customer where truck.base=trucks.truck_id and cost <800 and delcapacity>0 and customers.base=truck.customers_id and customer.base=customers.customer_id and code>100 and demand>10 ORDER BY code DESC;
+
+Statement prepared.
+rownum cost delcapacity delcapacity_root rownum code demand 
+
+4 339.716572 10 3.162278 2 193 20 
+11 270.269111 10 3.162278 10 183 20 
+15 321.479943 10 3.162278 1 181 20 
+15 321.479943 10 3.162278 6 180 30 
+11 270.269111 10 3.162278 1 172 20 
+12 184.833567 10 3.162278 3 164 30 
+12 184.833567 10 3.162278 5 160 40 
+3 280.375322 20 4.472136 8 159 20 
+4 339.716572 10 3.162278 0 158 20 
+4 339.716572 10 3.162278 8 148 20 
+8 282.593461 20 4.472136 1 146 20 
+17 220.882914 10 3.162278 2 144 20 
+8 282.593461 20 4.472136 5 142 20 
+8 282.593461 20 4.472136 7 135 20 
+17 220.882914 10 3.162278 1 131 30 
+18 21.633308 180 13.416408 0 107 20 
+15 321.479943 10 3.162278 3 104 20 
+8 282.593461 20 4.472136 0 102 20 
+
+Done
+
+ARITHMETIC OPERATORS
 
 
-Library used incorrectly
+Query 61:
+ select t.rownum, u.cost, u.delcapacity, u.delcapacity_root, c.rownum, cu.code, cu.demand, st.code,st.demand from trucks t, truck u, customers c,customer cu,trucks tr ,truck k, customers s, customer st where u.base=t.truck_id and k.base=tr.truck_id and (u.cost <100 or u.delcapacity>0) and c.base=u.customers_id and cu.base=c.customer_id and s.base=k.customers_id and st.base=s.customer_id and (cu.code>st.code or cu.demand - st.demand >20) LIMIT 10;
+
+Statement prepared.
+rownum cost delcapacity delcapacity_root rownum code demand code demand 
+
+3 280.375322 20 4.472136 0 058 10 028 20 
+3 280.375322 20 4.472136 0 058 10 014 10 
+3 280.375322 20 4.472136 0 058 10 040 20 
+3 280.375322 20 4.472136 0 058 10 012 10 
+3 280.375322 20 4.472136 0 058 10 006 10 
+3 280.375322 20 4.472136 0 058 10 011 20 
+3 280.375322 20 4.472136 0 058 10 016 10 
+3 280.375322 20 4.472136 0 058 10 050 20 
+3 280.375322 20 4.472136 0 058 10 003 30 
+3 280.375322 20 4.472136 0 058 10 022 10 
+
+Done
+
+Query 62:
+ select t.rownum, u.cost,u.delcapacity, cu.code>>1, cu.demand, st.code,st.demand from trucks t, truck u, customers c,customer cu,trucks tr ,truck k, customers s, customer st where u.base=t.truck_id and k.base=tr.truck_id and (u.cost <100 or u.delcapacity>0) and c.base=u.customers_id and cu.base=c.customer_id and s.base=k.customers_id and st.base=s.customer_id and cu.code>>1>st.code and cu.demand - st.demand >20 LIMIT 10 OFFSET 10;
+
+Statement prepared.
+rownum cost delcapacity cu.code>>1 demand code demand 
+
+3 280.375322 20 27 40 168 10 
+3 280.375322 20 27 40 105 10 
+3 280.375322 20 27 40 058 10 
+3 280.375322 20 27 40 199 10 
+3 280.375322 20 27 40 098 10 
+3 280.375322 20 27 40 157 10 
+3 280.375322 20 27 40 151 10 
+3 280.375322 20 27 40 022 10 
+3 280.375322 20 27 40 150 10 
+3 280.375322 20 27 40 037 10 
+
+Done
+
+Query 63:
+ select t.rownum, u.cost,u.delcapacity, cu.code>>1, cu.demand, length(st.code),st.demand from trucks t, truck u, customers c,customer cu,trucks tr ,truck k, customers s, customer st where u.base=t.truck_id and k.base=tr.truck_id and (u.cost <100 or u.delcapacity>0) and c.base=u.customers_id and cu.base=c.customer_id and s.base=k.customers_id and st.base=s.customer_id and cu.code>>1>st.code and cu.demand - st.demand >20 LIMIT 10 OFFSET 5;
+
+Statement prepared.
+rownum cost delcapacity cu.code>>1 demand length(st.code) demand 
+
+3 280.375322 20 27 40 3 10 
+3 280.375322 20 27 40 3 10 
+3 280.375322 20 27 40 3 10 
+3 280.375322 20 27 40 3 10 
+3 280.375322 20 27 40 3 10 
+3 280.375322 20 27 40 3 10 
+3 280.375322 20 27 40 3 10 
+3 280.375322 20 27 40 3 10 
+3 280.375322 20 27 40 3 10 
+3 280.375322 20 27 40 3 10 
+
+Done
+
+Query 64:
+ select t.rownum, u.cost, cu.code>>1, cu.demand, length(st.code),~st.demand from trucks t, truck u, customers c,customer cu,trucks tr ,truck k, customers s, customer st where u.base=t.truck_id and k.base=tr.truck_id and (u.cost <100 or u.delcapacity>0) and c.base=u.customers_id and cu.base=c.customer_id and s.base=k.customers_id and st.base=s.customer_id and cu.code>>1>st.code and cu.demand - ~st.demand >20 LIMIT 15;
+
+Statement prepared.
+rownum cost cu.code>>1 demand length(st.code) ~st.demand 
+
+3 280.375322 29 10 3 -21 
+3 280.375322 29 10 3 -11 
+3 280.375322 29 10 3 -21 
+3 280.375322 29 10 3 -11 
+3 280.375322 29 10 3 -31 
+3 280.375322 29 10 3 -21 
+3 280.375322 29 10 3 -11 
+3 280.375322 29 10 3 -31 
+3 280.375322 29 10 3 -31 
+3 280.375322 29 10 3 -21 
+3 280.375322 29 10 3 -21 
+3 280.375322 29 10 3 -11 
+3 280.375322 29 10 3 -11 
+3 280.375322 29 10 3 -11 
+3 280.375322 29 10 3 -21 
+
+Done
+
+EXISTS
+
+
+Query 65:
+ select rownum from trucks where exists (select * from truck where truck.base = trucks.truck_id);
+
+Statement prepared.
+rownum 
+
+0 
+1 
+2 
+3 
+4 
+5 
+6 
+7 
+8 
+9 
+10 
+11 
+12 
+13 
+14 
+15 
+16 
+17 
+18 
+
+Done
+
+Query 66:
+ select trucks.rownum, cost, delcapacity,customers.rownum, c.code, c.demand from trucks JOIN truck on truck.base = trucks.truck_id join customers on customers.base=truck.customers_id join Customer c on c.base=customers.customer_id where exists (select * from Mapindex join Customer u on u.base=mapindex.customer_id where u.code='159' and u.demand>c.demand) LIMIT 10;
+
+Statement prepared.
+rownum cost delcapacity rownum code demand 
+
+0 147.495530 0 1 120 10 
+0 147.495530 0 3 014 10 
+0 147.495530 0 6 153 10 
+1 225.946633 0 1 012 10 
+1 225.946633 0 2 006 10 
+1 225.946633 0 3 122 10 
+1 225.946633 0 6 086 10 
+2 278.821496 0 0 137 10 
+2 278.821496 0 3 187 10 
+2 278.821496 0 4 016 10 
+
+Done
+
+FUNCTIONS
+
+
+Query 67:
+ select trucks.rownum, cost, delcapacity,customers.rownum, c.code, c.demand from trucks JOIN truck on truck.base = trucks.truck_id join customers on customers.base=truck.customers_id join Customer c on c.base=customers.customer_id where c.code glob '*59';
+
+Statement prepared.
+rownum cost delcapacity rownum code demand 
+
+2 278.821496 0 6 059 20 
+3 280.375322 20 8 159 20 
+
+Done
+
+Query 68:
+ select code, demand, x_coord, y_coord from trucks,truck,customers, customer, position where truck.base=trucks.truck_id and customers.base=truck.customers_id and customer.base=customers.customer_id and position.base=customer.position_id and code LIKE '%69' ESCAPE '%' INTERSECT select code, demand, x_coord,y_coord from mapindex,customer,position where customer.base=mapindex.customer_id and position.base=customer.position_id and x_coord>133;
+
+Statement prepared.
+code demand x_coord y_coord 
+
+069 20 134 31 
+
+Done
+
+CASE
+
+
+Query 69:
+ select summed, (select case when demand>30 then 'high' when demand between 25 and 30 then 'moderate' when demand between 20 and 24 then 'towards moderate' when demand between 10 and 19 then 'low' when demand<10 then 'tiny' end) tag from (select sum(map_index) summed, demand from (select * from mapindex where map_index<187) as m, Customer where customer.base=m.customer_id group by demand) grouped;
+
+Statement prepared.
+summed tag 
+
+23 tiny 
+1133 low 
+858 towards moderate 
+391 moderate 
+79 high 
+
+Done
+
+Query 70:
+ select c.code, p.x_coord, p.y_coord, u.code, o.x_coord, o.y_coord, (select case when (p.x_coord*p.x_coord-o.x_coord*o.x_coord) + (p.y_coord*p.y_coord-o.y_coord*o.y_coord)<=100 then c.code||'-'||u.code||' are close' when(p.x_coord*p.x_coord-o.x_coord*o.x_coord) + (p.y_coord*p.y_coord-o.y_coord*o.y_coord)>100 then c.code||'-'||u.code||' are far' end) distanceP2 from trucks,truck,customers, customer c, position p, mapindex,customer u, position o where truck.base=trucks.truck_id and customers.base=truck.customers_id and c.base=customers.customer_id and p.base=c.position_id and c.code like '%99' and u.base=mapindex.customer_id and u.code like '_50' and o.base=u.position_id;
+
+Statement prepared.
+code x_coord y_coord code x_coord y_coord distanceP2 
+
+199 34 108 050 121 112 199-050 are close 
+199 34 108 150 42 136 199-150 are close 
+099 34 79 050 121 112 099-050 are close 
+099 34 79 150 42 136 099-150 are close 
+
+Done
+
+Query 71:
+ select c.code, p.x_coord, p.y_coord, u.code, u.demand, o.x_coord, o.y_coord, (select case when (p.x_coord*p.x_coord-o.x_coord*o.x_coord) + (p.y_coord*p.y_coord-o.y_coord*o.y_coord)<=100 then c.code||'-'||u.code||' are close' when(p.x_coord*p.x_coord-o.x_coord*o.x_coord) + (p.y_coord*p.y_coord-o.y_coord*o.y_coord)>100 then c.code||'-'||u.code||' are far' end) distanceP2 from trucks,truck,customers, customer c, position p, mapindex,customer u, position o where truck.base=trucks.truck_id and customers.base=truck.customers_id and c.base=customers.customer_id and p.base=c.position_id and c.code like '%99' and u.base=mapindex.customer_id and o.base=u.position_id and u.code in ('050', '011');
+
+Statement prepared.
+code x_coord y_coord code demand x_coord y_coord distanceP2 
+
+199 34 108 011 20 86 36 199-011 are far 
+199 34 108 050 20 121 112 199-050 are close 
+099 34 79 011 20 86 36 099-011 are close 
+099 34 79 050 20 121 112 099-050 are close 
+
+Done
 

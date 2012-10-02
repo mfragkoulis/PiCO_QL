@@ -4,14 +4,21 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
   (void)picoQL;	// Silence compiler unused variable warning
   picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
 <%      if @container_class.length > 0 %>
+  int index = 0;
   vector<<%= @signature.chomp('*') %>::iterator *> *res = (vector<<%= @signature.chomp('*') %>::iterator *> *)stcsr->resultSet;
   vector<<%= @signature.chomp('*') %>::iterator *>::iterator *resIter = (vector<<%= @signature.chomp('*') %>::iterator *>::iterator *)stcsr->resultSetIter;
+  dynamic_bitset<unsigned long> *resBts = (dynamic_bitset<unsigned long> *)stcsr->resultSetIndex;
+  int rowNum = -1;
 <%      end %>
   if (struct_empty_null(cur, val, picoQL->embedded, nCol)) {
 <%      if @container_class.length == 0 %>
     stcsr->size = 1;
 <%	else %>
+    for (resIterC = res->begin(); resIterC != res->end(); resIterC++)
+      delete *resIterC;
+    res->clear();
     res->push_back(new <%= @signature.chomp('*') %>::iterator());
+    *resIter = res->begin();
 <%      end %>
     return SQLITE_OK;
   }
@@ -32,8 +39,10 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
   if (val == NULL) {
 <%      if @base_var.length > 0 %>
 <%        if @container_class.length > 0 %>
-    for (iter = any_dstr->begin(); iter != any_dstr->end(); iter++)
+    for (iter = any_dstr->begin(); iter != any_dstr->end(); iter++) {
       res->push_back(new <%= @signature.chomp('*') %>::iterator(iter));
+      resBts->set();
+    }
 <%        else %>
     stcsr->size = 1;
 <%        end %>
@@ -43,34 +52,46 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
 <%      end %>
   } else {
 <%      if @base_var.length == 0 %>
-    if ((equals(picoQL->azColumn[nCol], "base")) && (charged)) {
-      charged = 0;
+    if (first_constr) {
+      if (equals(picoQL->azColumn[nCol], "base")) {
+        int chSize = charged.size();
+        pair<set<sqlite3_vtab_cursor *>::iterator, bool> inserted = cursors.insert(cur);
+        int cuSize = cursors.size();
+        if (cuSize == chSize) {
 #ifdef ENVIRONMENT64
-      stcsr->source = (void *)sqlite3_value_int64(val);
+          stcsr->source = (void *)sqlite3_value_int64(val);
 #else
-      stcsr->source = (void *)sqlite3_value_int(val);
+          stcsr->source = (void *)sqlite3_value_int(val);
 #endif
-      if (stcsr->source == NULL) {
-        stcsr->isInstanceNULL = 1;
+          if (stcsr->source == NULL) {
+            stcsr->isInstanceNULL = 1;
 <%        if @container_class.length == 0 %>
-        stcsr->size = 1;
+            stcsr->size = 1;
 <%	  else %>
-        res->push_back(new <%= @signature.chomp('*') %>::iterator());
+// BASE is first constraint by default, so no need to delete resultset here.
+            res->push_back(new <%= @signature.chomp('*') %>::iterator());
 <%        end %>
-        return SQLITE_OK;
-      }
-      stcsr->isInstanceNULL = 0;
-      any_dstr = (<%= sign_retype %>)stcsr->source;
+            return SQLITE_OK;
+          }
+          stcsr->isInstanceNULL = 0;
+          any_dstr = (<%= sign_retype %>)stcsr->source;
 <%        if @container_class.length > 0 %>
-      if ((stcsr->max_size = get_datastructure_size(cur)) == 0) {
-        stcsr->isInstanceEmpty = 1;
-        res->push_back(new <%= @signature.chomp('*') %>::iterator());
-        return SQLITE_OK;
-      }
+          if ((stcsr->max_size = (int)get_datastructure_size(cur)) == 0) {
+            stcsr->isInstanceEmpty = 1;
+            res->push_back(new <%= @signature.chomp('*') %>::iterator());
+            return SQLITE_OK;
+          } else {
+            resBts->resize(stcsr->max_size, 0);
+          }
 <%        end %>
-      stcsr->isInstanceEmpty = 0;
-    } else {
-      printf("Searching embedded VT <%= @name %> with no or invalid BASE constraint.\n");
-      return SQLITE_MISUSE;
+          stcsr->isInstanceEmpty = 0;
+        } else {
+          printf("Searching embedded VT <%= @name %> with invalid BASE constraint.\n");
+          return SQLITE_MISUSE;
+        }
+      } else { 
+        printf("Searching embedded VT <%= @name %> with first constraint other than BASE constraint.\n");
+        return SQLITE_MISUSE;
+      }
     }
 <%      end %>
