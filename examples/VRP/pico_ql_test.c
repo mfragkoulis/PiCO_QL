@@ -428,6 +428,7 @@ int call_test(sqlite3 *db) {
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);
 
+  deinit_vt_selectors();
   sqlite3_close(db);
   fclose(f);
   if (system("./pico_ql_diff_test.sh")) {

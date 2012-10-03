@@ -50,6 +50,7 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur) {
   res->clear();
   delete res;
   delete resIter;
+  resBts->clear();
   delete resBts;
 <%    else %>
   stc->current++;

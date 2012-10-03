@@ -48,6 +48,15 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
 <%        end %>
 <%      else %>
     printf("Searching embedded VT <%= @name %> with no BASE constraint makes no sense.\n");
+<%        if @container_class.length > 0 %>
+    for (resIterC = res->begin(); resIterC != res->end(); resIterC++)
+      delete *resIterC;
+    res->clear();
+    delete res;
+    delete resIter;
+    resBts->clear();
+    delete resBts;
+<%        end %>
     return SQLITE_MISUSE;
 <%      end %>
   } else {
@@ -87,10 +96,28 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
           stcsr->isInstanceEmpty = 0;
         } else {
           printf("Searching embedded VT <%= @name %> with invalid BASE constraint.\n");
+<%        if @container_class.length > 0 %>
+          for (resIterC = res->begin(); resIterC != res->end(); resIterC++)
+            delete *resIterC;
+          res->clear();
+          delete res;
+          delete resIter;
+          resBts->clear();
+          delete resBts;
+<%        end %>
           return SQLITE_MISUSE;
         }
       } else { 
         printf("Searching embedded VT <%= @name %> with first constraint other than BASE constraint.\n");
+<%        if @container_class.length > 0 %>
+        for (resIterC = res->begin(); resIterC != res->end(); resIterC++)
+          delete *resIterC;
+        res->clear();
+        delete res;
+        delete resIter;
+        resBts->clear();
+        delete resBts;
+<%        end %>
         return SQLITE_MISUSE;
       }
     }

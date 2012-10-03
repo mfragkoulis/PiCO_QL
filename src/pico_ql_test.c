@@ -106,6 +106,7 @@ int call_test(sqlite3 *db) {
 
   */
 
+  deinit_vt_selectors();
   sqlite3_close(db);
   fclose(f);
   if (system("./pico_ql_diff_test.sh")) {

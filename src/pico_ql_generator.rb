@@ -651,8 +651,17 @@ class VirtualTable
           fw.puts "#{$s}  res->push_back(new #{@signature.chomp('*')}::iterator(iter));\n#{$s}}"
           fw.puts "#{$s}resBts->set();"
           fw.puts "      } else {"
-          fw.puts "        printf(\"Constraint for BASE column on embedded data structure has not been placed first. Exiting now.\\n\");"
-          fw.puts "        return SQLITE_MISUSE;"
+          fw.puts "#{$s}printf(\"Constraint for BASE column on embedded data structure has not been placed first. Exiting now.\\n\");"
+          if @container_class.length > 0
+            fw.puts "#{$s}for (resIterC = res->begin(); resIterC != res->end(); resIterC++)"
+            fw.puts "#{$s}  delete *resIterC;"
+            fw.puts "#{$s}res->clear();"
+            fw.puts "#{$s}delete res;"
+            fw.puts "#{$s}delete resIter;"
+            fw.puts "#{$s}resBts->clear();"
+            fw.puts "#{$s}delete resBts;"
+          end
+          fw.puts "#{$s}return SQLITE_MISUSE;"
           fw.puts "      }"
         else
           fw.puts "      stcsr->size = 1;"
