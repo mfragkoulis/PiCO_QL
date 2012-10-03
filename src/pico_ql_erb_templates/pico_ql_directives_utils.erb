@@ -159,6 +159,7 @@ void * thread_sqlite(void *data) {
 <%    } %>
   set_selectors();
   int port_number = *(int *)data;
+  delete (int *)data;
   failure = register_table( "<%= @tables[0].db %>" , <%= @tables.length.to_s %>,  queries, table_names, port_number);
   printf("Thread sqlite returns %i\n", failure);
   sqlite3_free(queries);
@@ -169,14 +170,11 @@ void * thread_sqlite(void *data) {
 
 // The API with user application code. Creates the PiCO_QL thread.
 int picoQL::pico_ql_serve(int port_number) {
-#ifdef PICO_QL_JOIN_THREADS
   pthread_t sqlite_thread;    
   int *port = new int(port_number);
-  pthread_create(&sqlite_thread, NULL, thread_sqlite, (void *)&port);
+  pthread_create(&sqlite_thread, NULL, thread_sqlite, (void *)port);
+#ifdef PICO_QL_JOIN_THREADS
   pthread_join(sqlite_thread, NULL);
-  delete port;
-#else
-  thread_sqlite((void *)&port_number);
 #endif
   return 0;
 }
