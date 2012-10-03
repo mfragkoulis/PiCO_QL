@@ -35,7 +35,7 @@
 #include <vector>
 #endif
 #include <list>
-<%# list include..not always. At leaston fk_col_type.length > 0 %>
+<%# list include..not always. At least on fk_col_type.length > 0 %>
 #include <boost/concept_check.hpp>
 #include <boost/dynamic_bitset.hpp>
 #ifndef PICO_QL_SINGLE_THREADED
@@ -55,6 +55,7 @@ using namespace picoQL;
 template <class T>
 void forward_container_concept_check(T x) {
   BOOST_CONCEPT_ASSERT((ForwardContainer<T>));
+  (void)x;
 };
 
 template <class It>
@@ -89,9 +90,11 @@ static map<string, VtblImpl*> selector_vt;
 <%     i = 0 %>
 <%     @tables.each { |vt| %>
 <%      vt.columns.each { |col| %>
-<%       if col.related_to.length > 0 && col.access_path.match(/(.+)\)/) %>
+<%       if col.related_to.length > 0 && col.fk_method_ret == 1 %>
 <%        col.fk_col_type = $table_index[col.related_to] %>
+<%        if $argM == "MEM_MGT" %>
 list <<%= col.fk_col_type.chomp('*') %> > saved_results_<%= i %>;
+<%        end %>
 <%        col.saved_results_index = i %>
 <%        i += 1 %>
 <%       end %>
@@ -166,12 +169,12 @@ void * thread_sqlite(void *data) {
 
 // The API with user application code. Creates the PiCO_QL thread.
 int picoQL::pico_ql_serve(int port_number) {
-#ifndef PICO_QL_SINGLE_THREADED
-  pthread_t sqlite_thread;    
-  pthread_create(&sqlite_thread, NULL, thread_sqlite, (void *)&port_number);
 #ifdef PICO_QL_JOIN_THREADS
+  pthread_t sqlite_thread;    
+  int *port = new int(port_number);
+  pthread_create(&sqlite_thread, NULL, thread_sqlite, (void *)&port);
   pthread_join(sqlite_thread, NULL);
-#endif
+  delete port;
 #else
   thread_sqlite((void *)&port_number);
 #endif
@@ -318,13 +321,15 @@ void picoQL::deinit_text_vector(picoQLTableCursor *stc) {
 void picoQL::deinit_temp_structs() {
 <%     @tables.each { |vt| %>
 <%      vt.columns.each { |col| %>
-<%       if col.fk_col_type.length > 0 %>
+<%       if $argM == "MEM_MGT" && col.fk_col_type.length > 0 %>
   saved_results_<%= col.saved_results_index %>.clear();
 <%       end %>
 <%      } %>
 <%      if vt.base_var.length == 0 %>
+  map<sqlite3_vtab_cursor *, bool> *map<%= vt.name %>;
+  map<%= vt.name %> = NULL;
   VtblImpl *discharge<%= vt.name %>VT = selector_vt["<%= vt.name %>"];
-  (*discharge<%= vt.name %>VT)(NULL, 0);
+  (*discharge<%= vt.name %>VT)(NULL, 0, map<%= vt.name %>);
 <%      end %>
 <%     } %>
 }
@@ -348,11 +353,13 @@ private:
   <%= vt.signature.chomp('*') %>::iterator iter;
 <%      end %>
 <%      if vt.base_var.length == 0 %>
-  set<sqlite3_vtab_cursor *> charged;
+  map<sqlite3_vtab_cursor *, bool> charged;
   set<sqlite3_vtab_cursor *> cursors;
+  int recursive;
 <%      end %>
 public:
-  <%= vt.name %>_vt() : VtblImpl() {};
+  <%= vt.name %>_vt() : VtblImpl() {
+<% if vt.base_var.length == 0 %>recursive = 0;<% end %>};
   virtual int operator() (sqlite3_vtab_cursor *, int,
                     int, sqlite3_value *);
   virtual int operator() (sqlite3_vtab_cursor *,
@@ -365,15 +372,28 @@ public:
   virtual void operator() (sqlite3_vtab *, sqlite3_vtab_cursor *) {};
 <%      end %>
 <%      if vt.base_var.length == 0 %>
-  virtual void operator() (sqlite3_vtab_cursor *cur, int current) {
-    pair<set<sqlite3_vtab_cursor *>::iterator, bool> operation;
-    if (current)
-      operation = charged.insert(cur);
-    else
+  virtual void operator() (sqlite3_vtab_cursor *cur, int current, map<sqlite3_vtab_cursor *, bool> *oCharged) {
+    pair<map<sqlite3_vtab_cursor *, bool>::iterator, bool> operation;
+    if (current) {
+      operation = charged.insert(pair<sqlite3_vtab_cursor *, bool>(cur, false));
+      if ((operation.second) && (oCharged != NULL)) {
+        map<sqlite3_vtab_cursor *, bool>::iterator iter;
+        for (iter = oCharged->begin(); iter != oCharged->end(); iter++) {
+          if (cursors.find(iter->first) != cursors.end()) {
+            if (!iter->second) {
+              recursive += 1;
+              iter->second = true;
+            }
+          }
+        }
+      }
+    } else {
       charged.clear();
+      recursive = 0;
+    }
   };
 <%      else %>
-  virtual void operator() (sqlite3_vtab_cursor *, int) {};
+  virtual void operator() (sqlite3_vtab_cursor *, int, map<sqlite3_vtab_cursor *, bool> *) {};
 <%      end %>
 
 };

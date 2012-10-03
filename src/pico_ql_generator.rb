@@ -35,6 +35,8 @@ class Column
                               # for string so far.
     @related_to = ""          # Reference to other VT's name (FK).
     @fk_col_type = ""         # Reference to other VT's type (FK).
+    @fk_method_ret = 0        # True if FK access path is a method
+    		   	      # return.
                               # Required for managing temporary variables. 
     @saved_results_index = -1 # Required for naming the particular 
                               # saved results instance.
@@ -52,15 +54,18 @@ class Column
                                /nchar/i]
   end
   attr_accessor(:name,:line,:data_type,:related_to,:fk_col_type,
-                :saved_results_index,:access_path,:col_type)
+		:fk_method_ret,:saved_results_index,
+		:access_path,:col_type)
 
 
 # Used to clone a Column object. Ruby does not support deep copies.
-  def construct(name, data_type, related_to, fk_col_type,
-                saved_results_index,access_path, type, line)
+  def construct(name, data_type, related_to, fk_method_ret, 
+      		fk_col_type, saved_results_index,access_path, 
+		type, line)
     @name = name
     @data_type = data_type
     @related_to = related_to
+    @fk_method_ret = fk_method_ret
     @fk_col_type = fk_col_type
     @saved_results_index = saved_results_index
     @access_path = access_path
@@ -82,7 +87,7 @@ class Column
       sqlite3_parameters.replace("int")    # for 32-bit architectures.used in retrieve and search.
       column_cast.replace("(long int)")
       access_path.replace(@access_path)
-      return "fk", @related_to, @col_type, @line, @fk_col_type, @saved_results_index
+      return "fk", @related_to, @col_type, @line, @fk_method_ret, @saved_results_index
     end
     if @name == "base"              # 'base' column. refactor: elsif perhaps?
       sqlite3_type.replace("int64")
@@ -205,6 +210,7 @@ class Column
                                         coln.data_type.clone, 
                                         coln.related_to.clone, 
                                         coln.fk_col_type.clone,
+                                        coln.fk_method_ret,
                                         coln.saved_results_index,
                                         coln.access_path.clone, 
                                         coln.col_type.clone,
@@ -240,6 +246,9 @@ class Column
       @access_path = matchdata[5]
       begin
         @related_to.length > 0
+        if @access_path.match(/(.+)\)/)    # returning from a method
+          @fk_method_ret = 1
+        end
         if matchdata[8].length == 0
           @col_type = "object"
 	elsif matchdata[8].downcase == "pointer"
@@ -267,6 +276,7 @@ class Column
       puts "Column data type is: " + @data_type
       puts "Column related to: " + @related_to
       puts "Column fk_col_type: " + @fk_col_type
+      puts "Column fk_method_ret: " + @fk_method_ret.to_s
       puts "Column saved_results_index: " + @saved_results_index.to_s
       puts "Column access path is: " + @access_path
       puts "Column type is: " + @col_type
@@ -353,7 +363,7 @@ class VirtualTable
       sqlite3_parameters = ""
       column_cast_back = ""
       access_path = ""
-      op, fk_col_name, column_type, line, fk_col_type, saved_results_index = 
+      op, fk_col_name, column_type, line, fk_method_ret, saved_results_index = 
       @columns[col].bind_datatypes(
                                    sqlite3_type, column_cast, 
                                    sqlite3_parameters, column_cast_back, 
@@ -393,7 +403,7 @@ class VirtualTable
             end
           end
         end
-        if fk_col_type.length > 0 
+        if $argM == "MEM_MGT" && fk_method_ret == 1 
           fw.puts "   {"
           fw.puts "      saved_results_#{saved_results_index}.push_back(#{record_type}#{iden}#{access_path});"
           print_line_directive(fw, line)
@@ -404,7 +414,7 @@ class VirtualTable
           fw.puts "#endif"
           fw.puts "     break;"
           fw.puts "   }"
-        else
+	else
           fw.puts "#ifdef ENVIRONMENT64"
           fw.puts "    sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{p_type}#{iden}#{access_path});"
           print_line_directive(fw, line)
@@ -469,18 +479,18 @@ class VirtualTable
     end
   end
 
-  def gen_fk_col(fw, fk_col_type, access_path, fk_type, column_cast, 
+  def gen_fk_col(fw, fk_method_ret, access_path, fk_type, column_cast, 
                  column_cast_back, sqlite3_type, sqlite3_parameters, 
                  line, add_to_result_set, space)
     fw.puts "#ifdef ENVIRONMENT64"
-    if fk_col_type == 1    # returning from a method
+    if $argM == "MEM_MGT" && fk_method_ret == 1    # returning from a method
       fw.puts "#{space}if (compare(#{column_cast}t#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_type}(val))) {"
     else
       fw.puts "#{space}if (compare(#{column_cast}#{access_path}#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_type}(val))) {"
     end
     print_line_directive(fw, line)
     fw.puts "#else"
-    if fk_col_type == 1    # returning from a method
+    if $argM == "MEM_MGT" && fk_method_ret == 1    # returning from a method
       fw.puts "#{space}if (compare(#{column_cast}t#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_parameters}(val))) {"
     else
       fw.puts "#{space}if (compare(#{column_cast}#{access_path}#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_parameters}(val))) {"
@@ -501,9 +511,8 @@ class VirtualTable
       sqlite3_parameters = ""
       column_cast_back = ""
       access_path = ""
-      fk_col_type = 0
       space = "      "
-      op, useless, fk_type, line, useless2, useless3 = 
+      op, useless, fk_type, line, fk_method_ret, useless3 = 
       @columns[col].bind_datatypes(sqlite3_type, 
                                    column_cast, sqlite3_parameters, 
                                    column_cast_back, access_path)
@@ -542,12 +551,9 @@ class VirtualTable
       case op
       when "fk"
         if fk_type == "object" : column_cast.concat("&") end
-        if access_path.match(/(.+)\)/)    # returning from a method
-          fk_col_type = 1
-        end
         fw.puts "#{space}if (first_constr) {"
         space.concat("  ")
-        if fk_col_type == 1
+        if $argM == "MEM_MGT" && fk_method_ret == 1
           fw.puts "#{space}{"
           space.concat("  ")
           fw.puts "#{space}typeof(#{access_pathF}) t = #{access_pathF};"
@@ -561,13 +567,13 @@ class VirtualTable
           add_to_result_setF = "#{space}  stcsr->size = 1;\n#{space}}"
           add_to_result_setN = "#{space}  stcsr->size = 1;\n#{space}}"
         end
-        gen_fk_col(fw, fk_col_type, access_pathF, fk_type, column_cast, 
+        gen_fk_col(fw, fk_method_ret, access_pathF, fk_type, column_cast, 
                    column_cast_back, sqlite3_type, sqlite3_parameters, 
                    line, add_to_result_setF, space)
         if @container_class.length > 0
           space.chomp!("    ")
         end
-        if fk_col_type == 1
+        if $argM == "MEM_MGT" && fk_method_ret == 1
           space.chomp!("  ")
           fw.puts "#{space}}"
         end
@@ -581,7 +587,7 @@ class VirtualTable
         if @container_class.length > 0        
           fw.puts "#{space}vector<#{@signature.chomp('*')}::iterator *> *resHolder = new vector<#{@signature.chomp('*')}::iterator *>();"
         end
-        if fk_col_type == 1
+        if $argM == "MEM_MGT" && fk_method_ret == 1
           fw.puts "#{space}{"
           space.concat("  ")
           fw.puts "#{space}typeof(#{access_pathN}) t = #{access_pathN};"
@@ -590,7 +596,7 @@ class VirtualTable
           fw.puts "#{space}index = resBts->find_first();\n#{space}for (resIterC = res->begin(); resIterC != res->end(); resIterC++) {"
           space.concat("  ")
         end
-        gen_fk_col(fw, fk_col_type, access_pathN, fk_type, column_cast, 
+        gen_fk_col(fw, fk_method_ret, access_pathN, fk_type, column_cast, 
                      column_cast_back, sqlite3_type, sqlite3_parameters, 
                      line, add_to_result_setN, space)
         if @container_class.length > 0        
@@ -601,7 +607,7 @@ class VirtualTable
           fw.puts "#{space}  delete res;"
           fw.puts "#{space}  stcsr->resultSet = (void *)resHolder;"
         end
-        if fk_col_type == 1
+        if $argM == "MEM_MGT" && fk_method_ret == 1
           space.chomp!("  ")          
           fw.puts "#{space}}"
         end
@@ -1057,6 +1063,8 @@ def take_cases(argv)
   case argv
   when /debug/i
     $argD = "DEBUG"
+  when /no_mem_mgt/i
+    $argM = "NO_MEM_MGT"
   end
 end
 
@@ -1064,6 +1072,7 @@ end
 # The main method.
 if __FILE__ == $0
   $argF = ARGV[0]
+  $argM = "MEM_MGT"
   take_cases(ARGV[1])
   take_cases(ARGV[2])
   begin

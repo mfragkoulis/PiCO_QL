@@ -57,7 +57,7 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
         int chSize = charged.size();
         pair<set<sqlite3_vtab_cursor *>::iterator, bool> inserted = cursors.insert(cur);
         int cuSize = cursors.size();
-        if (cuSize == chSize) {
+        if ((cuSize == chSize) || (cuSize == chSize - recursive)) {
 #ifdef ENVIRONMENT64
           stcsr->source = (void *)sqlite3_value_int64(val);
 #else

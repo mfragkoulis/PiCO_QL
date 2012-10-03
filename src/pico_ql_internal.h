@@ -46,8 +46,9 @@
 #include <sqlite3.h>
 
 #ifdef __cplusplus
+#include <map>
 namespace picoQL {
-  class VtblImpl {   
+  class VtblImpl {
   public:
     VtblImpl() {};
     virtual int operator() (sqlite3_vtab_cursor *, int, 
@@ -65,7 +66,7 @@ namespace picoQL {
 
     virtual void operator() (sqlite3_vtab_cursor *, void *) {};
 
-    virtual void operator() (sqlite3_vtab_cursor *, int) {};
+    virtual void operator() (sqlite3_vtab_cursor *, int, std::map<sqlite3_vtab_cursor *, bool> *) {};
   };
 
   extern "C" {

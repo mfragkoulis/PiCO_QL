@@ -34,6 +34,7 @@ void create(sqlite3 *db,
 	    int argc, 
 	    const char * const * as, 
 	    char *q) { 
+  (void)db;
   int i;
   q[0] = '\0';
   strcat(q, "CREATE TABLE ");
@@ -98,6 +99,8 @@ int init_vtable(int iscreate,
 		const char * const * argv, 
 		sqlite3_vtab **ppVtab,
 		char **pzErr) {
+  (void)iscreate;
+  (void)paux;
   picoQLTable *picoQL;
   int nDb, nName, nByte, nCol, nString, i;
   char *temp;
@@ -155,7 +158,7 @@ int init_vtable(int iscreate,
       if (register_vt(picoQL) == SQLITE_ERROR) {
 	*pzErr = sqlite3_mprintf("Error: Virtual table %s not registered.\n", picoQL->zName);
 	printf("%s \n", *pzErr);
-	return SQLITE_ERROR;
+	//	return SQLITE_ERROR;
       }
 #ifdef PICO_QL_DEBUG
       printf("Virtual table declared successfully.\n");
@@ -368,6 +371,7 @@ int filter_vtable(sqlite3_vtab_cursor *cur,
 		  const char *idxStr,
 		  int argc, 
 		  sqlite3_value **argv) {
+  (void)idxNum;
   picoQLTableCursor *stc=(picoQLTableCursor *)cur;
   picoQLTable *st = (picoQLTable *)cur->pVtab;
   sqlite3_vtab *pVtab = (sqlite3_vtab *)cur->pVtab;
@@ -500,8 +504,8 @@ int column_vtable(sqlite3_vtab_cursor *cur,
  */
 int close_vtable(sqlite3_vtab_cursor *cur) {
   picoQLTableCursor *stc = (picoQLTableCursor *)cur;
-  picoQLTable *st = (picoQLTable *)cur->pVtab;
 #ifdef PICO_QL_DEBUG
+  picoQLTable *st = (picoQLTable *)cur->pVtab;
   printf("Closing vtable %s \n\n", st->zName);
 #endif
   deinit_result_set(cur, stc->resultSet);

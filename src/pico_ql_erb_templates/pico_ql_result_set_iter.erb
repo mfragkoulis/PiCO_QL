@@ -31,7 +31,13 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur) {
 <%      @columns.each_index { |col| %>
 <%       if @columns[col].related_to.length > 0 %>
       VtblImpl *chargeVT<%= col %> = selector_vt["<%= @columns[col].related_to %>"];
-      (*chargeVT<%= col %>)(cur, 1);
+<%         if @base_var.length == 0 %>
+      (*chargeVT<%= col %>)(cur, 1, &charged);
+<%         else %>
+      map<sqlite3_vtab_cursor *, bool> *map<%= @name %>;
+      map<%= @name %> = NULL;
+      (*chargeVT<%= col %>)(cur, 1, map<%= @name %>);
+<%         end %>
 <%       end %>
 <%      } %>
       return SQLITE_OK;
@@ -53,7 +59,13 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur) {
 <%      @columns.each_index { |col| %>
 <%       if @columns[col].related_to.length > 0 %>
     VtblImpl *chargeVT<%= col %> = selector_vt["<%= @columns[col].related_to %>"];
-    (*chargeVT<%= col %>)(cur, 1);
+<%         if @base_var.length == 0 %>
+      (*chargeVT<%= col %>)(cur, 1, &charged);
+<%         else %>
+      map<sqlite3_vtab_cursor *, map> *map<%= @name %>;
+      map<%= @name %> = NULL;
+      (*chargeVT<%= col %>)(cur, 1, map<%= @name %>);
+<%         end %>
 <%       end %>
 <%      } %>
   }
@@ -71,6 +83,7 @@ void <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, void *shadowRes) {
   if (!cursors.erase(cur))
     printf("No such cursor %li inserted\n", (long int)cur);
   charged.clear();
+  recursive = 0;
 <%      else %>
   (void)cur;
 <%      end %>
