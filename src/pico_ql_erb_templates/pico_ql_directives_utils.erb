@@ -321,7 +321,7 @@ void picoQL::deinit_text_vector(picoQLTableCursor *stc) {
 void picoQL::deinit_temp_structs() {
 <%     @tables.each { |vt| %>
 <%      vt.columns.each { |col| %>
-<%       if $argM == "MEM_MGT" && col.fk_col_type.length > 0 %>
+<%       if $argM == "MEM_MGT" && col.related_to.length > 0 && col.fk_method_ret == 1 %>
   saved_results_<%= col.saved_results_index %>.clear();
 <%       end %>
 <%      } %>
