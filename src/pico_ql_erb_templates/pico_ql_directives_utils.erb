@@ -169,12 +169,16 @@ void * thread_sqlite(void *data) {
 
 
 // The API with user application code. Creates the PiCO_QL thread.
-int picoQL::pico_ql_serve(int port_number) {
-  pthread_t sqlite_thread;    
-  int *port = new int(port_number);
-  pthread_create(&sqlite_thread, NULL, thread_sqlite, (void *)port);
+int picoQL::pico_ql_serve(int port) {
+  int *portN = new int(port);
+#ifndef PICO_QL_SINGLE_THREADED
+  pthread_t sqlite_thread;
+  pthread_create(&sqlite_thread, NULL, thread_sqlite, (void *)portN);
 #ifdef PICO_QL_JOIN_THREADS
   pthread_join(sqlite_thread, NULL);
+#endif
+#else
+  thread_sqlite((void *)portN);
 #endif
   return 0;
 }
