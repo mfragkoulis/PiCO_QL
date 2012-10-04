@@ -373,8 +373,6 @@ int filter_vtable(sqlite3_vtab_cursor *cur,
 		  sqlite3_value **argv) {
   (void)idxNum;
   picoQLTableCursor *stc=(picoQLTableCursor *)cur;
-  picoQLTable *st = (picoQLTable *)cur->pVtab;
-  sqlite3_vtab *pVtab = (sqlite3_vtab *)cur->pVtab;
   int re = 0;
   /* Initialize size of resultset data structure for objects. */
   /* Unused in containers. */
