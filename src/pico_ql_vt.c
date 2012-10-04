@@ -376,8 +376,6 @@ int filter_vtable(sqlite3_vtab_cursor *cur,
   picoQLTable *st = (picoQLTable *)cur->pVtab;
   sqlite3_vtab *pVtab = (sqlite3_vtab *)cur->pVtab;
   int re = 0;
-  if (!st->object)
-    init_result_set(pVtab, cur);    
   /* Initialize size of resultset data structure for objects. */
   /* Unused in containers. */
   stc->size = 0;
@@ -478,6 +476,8 @@ int open_vtable(sqlite3_vtab *pVtab,
     get_type(pCsr);
     stc->max_size = 1;
   }
+  if (!st->object)
+    init_result_set(pVtab, pCsr);
 #ifdef PICO_QL_DEBUG
   printf("ppCsr = %lx, pCsr = %lx \n", 
 	 (long unsigned int)ppCsr, 

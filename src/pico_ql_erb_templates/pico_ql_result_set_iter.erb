@@ -48,10 +48,7 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur) {
   for (resIterC = res->begin(); resIterC != res->end(); resIterC++)
     delete *resIterC;
   res->clear();
-  delete res;
-  delete resIter;
   resBts->clear();
-  delete resBts;
 <%    else %>
   stc->current++;
   if (stc->current >= stc->size)
@@ -80,6 +77,19 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur) {
 
 void <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, void *shadowRes) {
   (void)shadowRes;
+<%      if @container_class.length > 0 %>
+  picoQLTableCursor *stc = (picoQLTableCursor *)cur;
+  vector<<%= @signature.chomp('*') %>::iterator *> *res = (vector<<%= @signature.chomp('*') %>::iterator *> *)stc->resultSet;
+  vector<<%= @signature.chomp('*') %>::iterator *>::iterator *resIter = (vector<<%= @signature.chomp('*') %>::iterator *>::iterator *)stc->resultSetIter;     
+  dynamic_bitset<unsigned long> *resBts = (dynamic_bitset<unsigned long> *)stc->resultSetIndex;
+  for (resIterC = res->begin(); resIterC != res->end(); resIterC++)
+    delete *resIterC;
+  res->clear();
+  delete res;
+  delete resIter;
+  resBts->clear();
+  delete resBts;
+<%      end %>
 <%      if @base_var.length == 0 %>
   if (!cursors.erase(cur))
     printf("No such cursor %li inserted\n", (long int)cur);

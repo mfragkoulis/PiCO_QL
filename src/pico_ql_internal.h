@@ -51,6 +51,7 @@ namespace picoQL {
   class VtblImpl {
   public:
     VtblImpl() {};
+    virtual ~VtblImpl() {};
     virtual int operator() (sqlite3_vtab_cursor *, int, 
 			    int, sqlite3_value *) 
     {return SQLITE_ERROR;};

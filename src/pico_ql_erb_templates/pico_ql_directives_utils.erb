@@ -114,6 +114,7 @@ static <%= vt.signature %> <%= retype %>pico_ql_table_<%= vt.base_var %> = NULL;
 <%      end %>
 <%     } %>
 
+
 /* Registers the base variables of user application code
  * with PiCO QL.
  */
@@ -349,8 +350,8 @@ void picoQL::deinit_vt_selectors() {
 namespace picoQL {
 <%     @tables.each { |vt| %>
 class <%= vt.name %>_vt : public VtblImpl {
-<%      if vt.container_class.length > 0 %>
 private:
+<%      if vt.container_class.length > 0 %>
   vector<<%= vt.signature.chomp('*') %>::iterator *>::iterator resIterC;
   <%= vt.signature.chomp('*') %>::iterator iter;
 <%      end %>
@@ -361,7 +362,7 @@ private:
 <%      end %>
 public:
   <%= vt.name %>_vt() : VtblImpl() {
-<% if vt.base_var.length == 0 %>recursive = 0;<% end %>};
+<% if vt.base_var.length == 0 %>    recursive = 0;<% end %>};
   virtual int operator() (sqlite3_vtab_cursor *, int,
                     int, sqlite3_value *);
   virtual int operator() (sqlite3_vtab_cursor *,

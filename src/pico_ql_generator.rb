@@ -481,19 +481,19 @@ class VirtualTable
 
   def gen_fk_col(fw, fk_method_ret, access_path, fk_type, column_cast, 
                  column_cast_back, sqlite3_type, sqlite3_parameters, 
-                 line, add_to_result_set, space)
+                 line, add_to_result_set, space, notC)
     fw.puts "#ifdef ENVIRONMENT64"
     if $argM == "MEM_MGT" && fk_method_ret == 1    # returning from a method
-      fw.puts "#{space}if (compare(#{column_cast}t#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_type}(val))) {"
+      fw.puts "#{space}if (#{notC}compare(#{column_cast}t#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_type}(val))) {"
     else
-      fw.puts "#{space}if (compare(#{column_cast}#{access_path}#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_type}(val))) {"
+      fw.puts "#{space}if (#{notC}compare(#{column_cast}#{access_path}#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_type}(val))) {"
     end
     print_line_directive(fw, line)
     fw.puts "#else"
     if $argM == "MEM_MGT" && fk_method_ret == 1    # returning from a method
-      fw.puts "#{space}if (compare(#{column_cast}t#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_parameters}(val))) {"
+      fw.puts "#{space}if (#{notC}compare(#{column_cast}t#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_parameters}(val))) {"
     else
-      fw.puts "#{space}if (compare(#{column_cast}#{access_path}#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_parameters}(val))) {"
+      fw.puts "#{space}if (#{notC}compare(#{column_cast}#{access_path}#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_parameters}(val))) {"
     end
     print_line_directive(fw, line)
     fw.puts "#endif"
@@ -565,11 +565,12 @@ class VirtualTable
           space.concat("  ")
         else
           add_to_result_setF = "#{space}  stcsr->size = 1;\n#{space}}"
-          add_to_result_setN = "#{space}  stcsr->size = 1;\n#{space}}"
+          add_to_result_setN = "#{space}  stcsr->size = 0;\n#{space}}"
         end
+        notC = ""
         gen_fk_col(fw, fk_method_ret, access_pathF, fk_type, column_cast, 
                    column_cast_back, sqlite3_type, sqlite3_parameters, 
-                   line, add_to_result_setF, space)
+                   line, add_to_result_setF, space, notC)
         if @container_class.length > 0
           space.chomp!("    ")
         end
@@ -582,6 +583,7 @@ class VirtualTable
         else
           space.chomp!("  ")
           fw.puts "#{space}} else if (stcsr->size == 1) {"
+          notC = "!"
         end
         space.concat("  ")
         if @container_class.length > 0        
@@ -598,7 +600,7 @@ class VirtualTable
         end
         gen_fk_col(fw, fk_method_ret, access_pathN, fk_type, column_cast, 
                      column_cast_back, sqlite3_type, sqlite3_parameters, 
-                     line, add_to_result_setN, space)
+                     line, add_to_result_setN, space, notC)
         if @container_class.length > 0        
           space.chomp!("    ")
           fw.puts "#{space}  for (resIterC = res->begin(); resIterC != res->end(); resIterC++)"
@@ -645,27 +647,18 @@ class VirtualTable
         end
         fw.puts "      break;"
       when "base"
+        fw.puts "      if (first_constr == 1) {"
         if @container_class.length > 0
-          fw.puts "      if (first_constr == 1) {"
           fw.puts "#{$s}for (iter = any_dstr->begin(); iter != any_dstr->end(); iter++) {"
           fw.puts "#{$s}  res->push_back(new #{@signature.chomp('*')}::iterator(iter));\n#{$s}}"
           fw.puts "#{$s}resBts->set();"
-          fw.puts "      } else {"
-          fw.puts "#{$s}printf(\"Constraint for BASE column on embedded data structure has not been placed first. Exiting now.\\n\");"
-          if @container_class.length > 0
-            fw.puts "#{$s}for (resIterC = res->begin(); resIterC != res->end(); resIterC++)"
-            fw.puts "#{$s}  delete *resIterC;"
-            fw.puts "#{$s}res->clear();"
-            fw.puts "#{$s}delete res;"
-            fw.puts "#{$s}delete resIter;"
-            fw.puts "#{$s}resBts->clear();"
-            fw.puts "#{$s}delete resBts;"
-          end
-          fw.puts "#{$s}return SQLITE_MISUSE;"
-          fw.puts "      }"
         else
-          fw.puts "      stcsr->size = 1;"
+          fw.puts "#{$s}stcsr->size = 1;"
         end
+        fw.puts "      } else {"
+        fw.puts "#{$s}printf(\"Constraint for BASE column on embedded data structure has not been placed first. Exiting now.\\n\");"
+        fw.puts "#{$s}return SQLITE_MISUSE;"
+        fw.puts "      }"
         fw.puts "      break;"
       when "rownum"
         fw.puts "      rowNum = sqlite3_value_int(val);"
@@ -673,6 +666,7 @@ class VirtualTable
         fw.puts "        for (resIterC = res->begin(); resIterC != res->end(); resIterC++)"
         fw.puts "          delete *resIterC;"
         fw.puts "        res->clear();"
+        fw.puts "        resBts->clear();"
         fw.puts "        return SQLITE_OK;" 
         fw.puts "      }"
         fw.puts "      iter = any_dstr->begin();"
@@ -691,7 +685,7 @@ class VirtualTable
         fw.puts "          res->push_back(new #{@signature.chomp('*')}::iterator(iter));"
         fw.puts "          *resIter = res->begin();"
         fw.puts "        } else {"
-        fw.puts "          resBts->reset();"
+        fw.puts "          resBts->clear();"
         fw.puts "          for (resIterC = res->begin(); resIterC != res->end(); resIterC++)"
         fw.puts "            delete *resIterC;"
         fw.puts "          res->clear();"
