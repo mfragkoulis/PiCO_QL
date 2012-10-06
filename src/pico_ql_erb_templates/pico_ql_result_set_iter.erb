@@ -34,9 +34,9 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur) {
 <%         if @base_var.length == 0 %>
       (*chargeVT<%= col %>)(cur, 1, &charged);
 <%         else %>
-      map<sqlite3_vtab_cursor *, bool> *map<%= @name %>;
-      map<%= @name %> = NULL;
-      (*chargeVT<%= col %>)(cur, 1, map<%= @name %>);
+      map<sqlite3_vtab_cursor *, bool> *map<%= @name %><%= col %>;
+      map<%= @name %><%= col %> = NULL;
+      (*chargeVT<%= col %>)(cur, 1, map<%= @name %><%= col %>);
 <%         end %>
 <%       end %>
 <%      } %>
@@ -60,9 +60,9 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur) {
 <%         if @base_var.length == 0 %>
       (*chargeVT<%= col %>)(cur, 1, &charged);
 <%         else %>
-      map<sqlite3_vtab_cursor *, map> *map<%= @name %>;
-      map<%= @name %> = NULL;
-      (*chargeVT<%= col %>)(cur, 1, map<%= @name %>);
+      map<sqlite3_vtab_cursor *, map> *map<%= @name %><%= col %>;
+      map<%= @name %><%= col %> = NULL;
+      (*chargeVT<%= col %>)(cur, 1, map<%= @name %><%= col %>);
 <%         end %>
 <%       end %>
 <%      } %>
