@@ -561,7 +561,7 @@ class VirtualTable
         if @container_class.length > 0
           fw.puts "#{space}for (iter = any_dstr->begin(); iter != any_dstr->end(); iter++) {"
           add_to_result_setF = "#{space}    res->push_back(new #{@signature.chomp('*')}::iterator(iter));\n#{space}    resBts->set(index, 1);\n#{space}  }\n#{space}  index++;\n#{space}}"
-          add_to_result_setN = "#{space}    resHolder->push_back(new #{@signature.chomp('*')}::iterator(**resIterC));\n#{space}  } else {\n#{space}    resBts->reset(index);\n#{space}  }\n#{space}  index = resBts->find_next(index);\n#{space}}"
+          add_to_result_setN = "#{space}    delete *resIterC;\n#{space}    resIterC = res->erase(resIterC);\n#{space}    resBts->reset(index);\n#{space}  } else\n#{space}    resIterC++;\n#{space}  index = resBts->find_next(index);\n#{space}}"
           space.concat("  ")
         else
           add_to_result_setF = "#{space}  stcsr->size = 1;\n#{space}}"
@@ -583,11 +583,10 @@ class VirtualTable
         else
           space.chomp!("  ")
           fw.puts "#{space}} else if (stcsr->size == 1) {"
-          notC = "!"
         end
+        notC = "!"
         space.concat("  ")
         if @container_class.length > 0        
-          fw.puts "#{space}vector<#{@signature.chomp('*')}::iterator *> *resHolder = new vector<#{@signature.chomp('*')}::iterator *>();"
         end
         if $argM == "MEM_MGT" && fk_method_ret == 1
           fw.puts "#{space}{"
@@ -595,7 +594,7 @@ class VirtualTable
           fw.puts "#{space}typeof(#{access_pathN}) t = #{access_pathN};"
         end
         if @container_class.length > 0        
-          fw.puts "#{space}index = resBts->find_first();\n#{space}for (resIterC = res->begin(); resIterC != res->end(); resIterC++) {"
+          fw.puts "#{space}index = resBts->find_first();\n#{space}resIterC = res->begin();\n#{space} while (resIterC != res->end()) {"
           space.concat("  ")
         end
         gen_fk_col(fw, fk_method_ret, access_pathN, fk_type, column_cast, 
@@ -603,11 +602,6 @@ class VirtualTable
                      line, add_to_result_setN, space, notC)
         if @container_class.length > 0        
           space.chomp!("    ")
-          fw.puts "#{space}  for (resIterC = res->begin(); resIterC != res->end(); resIterC++)"
-          fw.puts "#{space}    delete *resIterC;"
-          fw.puts "#{space}  res->clear();"
-          fw.puts "#{space}  delete res;"
-          fw.puts "#{space}  stcsr->resultSet = (void *)resHolder;"
         end
         if $argM == "MEM_MGT" && fk_method_ret == 1
           space.chomp!("  ")          
@@ -626,17 +620,12 @@ class VirtualTable
           print_line_directive(fw, line)
           fw.puts "#{$s}    res->push_back(new #{@signature.chomp('*')}::iterator(iter));\n#{$s}    resBts->set(index, 1);\n#{$s}  }\n#{$s}  index++;\n#{$s}}"
           fw.puts "      } else {"
-          fw.puts "#{$s}vector<#{@signature.chomp('*')}::iterator *> *resHolder = new vector<#{@signature.chomp('*')}::iterator *>();"
           fw.puts "#{$s}index = resBts->find_first();"
-          fw.puts "#{$s}for (resIterC = res->begin(); resIterC != res->end(); resIterC++) {"
-          fw.puts "#{$s}  if (compare(#{column_cast}#{access_pathN}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val))) {"
+          fw.puts "#{$s}resIterC = res->begin();"
+          fw.puts "#{$s}while (resIterC != res->end()) {"
+          fw.puts "#{$s}  if (!compare(#{column_cast}#{access_pathN}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val))) {"
           print_line_directive(fw, line)
-          fw.puts "#{$s}    resHolder->push_back(new #{@signature.chomp('*')}::iterator(**resIterC));\n#{$s}  } else {\n#{$s}    resBts->reset(index);\n#{$s}  }\n#{$s}  index = resBts->find_next(index);\n#{$s}}"
-          fw.puts "#{$s}for (resIterC = res->begin(); resIterC != res->end(); resIterC++)"
-          fw.puts "#{$s}  delete *resIterC;"
-          fw.puts "#{$s}res->clear();"
-          fw.puts "#{$s}delete res;"
-          fw.puts "#{$s}stcsr->resultSet = (void *)resHolder;"
+          fw.puts "#{$s}    delete *resIterC;\n#{$s}    resIterC = res->erase(resIterC);\n#{$s}    resBts->reset(index);\n#{$s}  } else\n#{$s}    resIterC++;\n#{$s}  index = resBts->find_next(index);\n#{$s}}"
           fw.puts "      }"
         else
           fw.puts "#{$s}if (compare(#{column_cast}#{access_pathF}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val)))"
