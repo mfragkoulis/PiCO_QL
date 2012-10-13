@@ -216,58 +216,6 @@ int picoQL::register_vt(picoQLTable *picoQL) {
   return SQLITE_INTERNAL;
 }
 
-// Returns the size (records) for each virtual table.
-size_t picoQL::get_datastructure_size(sqlite3_vtab_cursor *cur) {
-  picoQLTableCursor *stc = (picoQLTableCursor *)cur;
-  picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
-<%    count = 0 %>
-<%    @tables.each_index { |vt| %>
-<%      if @tables[vt].container_class.length > 0 %>
-<%        if count == 0 %>
-  if (!strcmp(picoQL->zName, "<%= @tables[vt].name %>")) {
-<%	  count += 1 %>
-<%        else %>
-  } else if (!strcmp(picoQL->zName, "<%= @tables[vt].name %>")) {
-<%        end %>
-<%        /\*/.match(@tables[vt].pointer) == nil ? retype = "*" : retype = "" %>
-<%# stc->source will definitely hold a pointer so retyping the signature as
-<%# follows is correct. %>
-    <%= @tables[vt].signature %><%= retype %> any_dstr = (<%= @tables[vt].signature %><%= retype %>)stc->source;
-<%        if $argD == "DEBUG" %>
-#line <%= @tables[vt].signature_line + 1 %> "<%= $argF %>" 
-<%        end %>
-    return any_dstr->size();
-<%      end %>
-<%    } %>
-  }
-  picoQL->object = 1;
-  return 1;
-}
-
-// Returns the type (container or object) for each embedded virtual table.
-void picoQL::get_type(sqlite3_vtab_cursor *cur) {
-<%    count = 0 %>
-<%    @tables.each_index { |vt| %>
-<%      if @tables[vt].base_var.length == 0 %>
-<%        if count == 0 %>
-  picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
-  if (!strcmp(picoQL->zName, "<%= @tables[vt].name %>")) {
-<%	  count += 1 %>
-<%        else %>
-  } else if (!strcmp(picoQL->zName, "<%= @tables[vt].name %>")) {
-<%        end %>
-<%        if @tables[vt].container_class.length > 0 %>
-    picoQL->object = 0;
-<%        else %>
-    picoQL->object = 1;
-<%        end %>
-<%      end %>
-<%    } %>
-<%      if count > 0 %>
-  }
-<%      end %>
-}
-
 
 // Each embedded virtual table has a column named 'base'.
 // This function checks if a provided column name is indeed 'base'.
@@ -367,6 +315,7 @@ public:
                     int, sqlite3_value *);
   virtual int operator() (sqlite3_vtab_cursor *,
                     int, sqlite3_context *);
+  virtual size_t operator() (sqlite3_vtab_cursor *, sqlite3_vtab *);
   virtual int operator() (sqlite3_vtab_cursor *);
   virtual void operator() (sqlite3_vtab_cursor *, void *);
 <%      if vt.container_class.length > 0 %>

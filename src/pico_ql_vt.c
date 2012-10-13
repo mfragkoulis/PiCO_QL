@@ -455,7 +455,7 @@ int open_vtable(sqlite3_vtab *pVtab,
       stc->size = 1;
     } else {
       stc->isInstanceNULL = 0;
-      int arraySize = (int)get_datastructure_size(pCsr);
+      int arraySize = (int)get_datastructure_size(pCsr, pVtab);
       if (arraySize == 0) {
 	stc->isInstanceEmpty = 1;
 	stc->size = 1;
@@ -471,7 +471,9 @@ int open_vtable(sqlite3_vtab *pVtab,
      * to get type of data structure represented (object or 
      * container).
      */
-    get_type(pCsr);
+    sqlite3_vtab_cursor *c;
+    c = NULL;
+    get_datastructure_size(c, pVtab);
     stc->max_size = 1;
   }
   if (!st->object)

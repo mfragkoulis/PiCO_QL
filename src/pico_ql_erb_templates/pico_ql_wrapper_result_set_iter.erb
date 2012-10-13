@@ -1,5 +1,13 @@
 }      // close picoQL namespace
 
+/* Use VtblImpl to get data structure size.
+ */
+size_t picoQL::get_datastructure_size(sqlite3_vtab_cursor *cur, sqlite3_vtab *vtab) {
+  picoQLTable *picoQL = (picoQLTable *)vtab;
+  VtblImpl *sizeVT = selector_vt[picoQL->zName];
+  return (*sizeVT)(cur, vtab);
+}
+
 /* Use VtblImpl to initialize result set and result set iterator.
  */
 void picoQL::init_result_set(sqlite3_vtab *vtab, sqlite3_vtab_cursor *cur) {

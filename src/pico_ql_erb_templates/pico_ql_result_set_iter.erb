@@ -1,3 +1,26 @@
+// Returns the size (records) for each virtual table.
+size_t <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, sqlite3_vtab *vtab) {
+  picoQLTable *picoQL = (picoQLTable *)vtab;
+<%      if @container_class.length > 0 %>
+  picoQL->object = 0;
+  if (cur != NULL) {
+    picoQLTableCursor *stc = (picoQLTableCursor *)cur;
+<%        /\*/.match(@pointer) == nil ? retype = "*" : retype = "" %>
+<%# stc->source will definitely hold a pointer so retyping the signature as
+<%# follows is correct. %>
+    <%= @signature %><%= retype %> any_dstr = (<%= @signature %><%= retype %>)stc->source;
+<%        if $argD == "DEBUG" %>
+#line <%= @signature_line + 1 %> "<%= $argF %>" 
+<%        end %>
+    return any_dstr->size();
+  }
+<%      else %>
+  picoQL->object = 1;
+<%      end %>
+  return 1;
+}
+
+
 <%      if @container_class.length > 0 %>
 void <%= @name %>_vt::operator() (sqlite3_vtab *vtab, sqlite3_vtab_cursor *cur) {
   picoQLTableCursor *stc = (picoQLTableCursor *)cur;
