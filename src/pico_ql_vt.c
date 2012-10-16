@@ -426,7 +426,7 @@ int next_vtable(sqlite3_vtab_cursor *cur) {
  */
 int open_vtable(sqlite3_vtab *pVtab, 
 		sqlite3_vtab_cursor **ppCsr) {
-  picoQLTable *st=(picoQLTable *)pVtab;
+  picoQLTable *st = (picoQLTable *)pVtab;
 #ifdef PICO_QL_DEBUG
   printf("Opening vtable %s\n\n", st->zName);
 #endif

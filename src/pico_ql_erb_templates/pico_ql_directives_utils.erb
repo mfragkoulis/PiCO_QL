@@ -30,7 +30,6 @@
 #include <cstring>
 #include <string>
 #include <map>
-#include <set>
 #ifdef PICO_QL_HANDLE_POLYMORPHISM
 #include <vector>
 #endif
@@ -300,12 +299,26 @@ namespace picoQL {
 class <%= vt.name %>_vt : public VtblImpl {
 private:
 <%      if vt.container_class.length > 0 %>
+  class ResultSet {
+  public:
+    vector<<%= vt.signature.chomp('*') %>::iterator *> res;
+    vector<<%= vt.signature.chomp('*') %>::iterator *>::iterator *resIter;
+    dynamic_bitset<unsigned long> resBts;
+    int resultSetIterState;
+    int current;
+    ResultSet(int res_max_size, int resIterState) {
+      resBts.resize(res_max_size);
+      resultSetIterState = resIterState;
+    };
+    ResultSet() {};
+    ~ResultSet() {};
+  };
+  map<sqlite3_vtab_cursor *, ResultSet> cursors;
   vector<<%= vt.signature.chomp('*') %>::iterator *>::iterator resIterC;
   <%= vt.signature.chomp('*') %>::iterator iter;
 <%      end %>
 <%      if vt.base_var.length == 0 %>
   map<sqlite3_vtab_cursor *, bool> charged;
-  set<sqlite3_vtab_cursor *> cursors;
   int recursive;
 <%      end %>
 public:

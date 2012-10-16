@@ -15,6 +15,7 @@ size_t <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, sqlite3_vtab *vtab
     return any_dstr->size();
   }
 <%      else %>
+  (void)cur;
   picoQL->object = 1;
 <%      end %>
   return 1;
@@ -25,32 +26,24 @@ size_t <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, sqlite3_vtab *vtab
 void <%= @name %>_vt::operator() (sqlite3_vtab *vtab, sqlite3_vtab_cursor *cur) {
   picoQLTableCursor *stc = (picoQLTableCursor *)cur;
   (void)vtab;
-  vector<<%= @signature.chomp('*') %>::iterator *> *res = new vector<<%= @signature.chomp('*') %>::iterator *>();
-  stc->resultSet = (void *)res;
-  vector<<%= @signature.chomp('*') %>::iterator *>::iterator *resIter = new vector<<%= @signature.chomp('*') %>::iterator *>::iterator();
-  dynamic_bitset<unsigned long> *resBts = new dynamic_bitset<unsigned long>(stc->max_size);
-  stc->resultSetIndex = (void *)resBts;
-  stc->resultSetIterState = -1;
-  stc->resultSetIter = (void *)resIter;
+  pair<map<sqlite3_vtab_cursor *, ResultSet>::iterator, bool> inserted = cursors.insert(pair<sqlite3_vtab_cursor *, ResultSet>(cur, ResultSet(stc->max_size, -1)));
 }
 <%      end %>
 
 int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur) {
   picoQLTableCursor *stc = (picoQLTableCursor *)cur;
 <%    if @container_class.length > 0 %>
-  vector<<%= @signature.chomp('*') %>::iterator *> *res = (vector<<%= @signature.chomp('*') %>::iterator *> *)stc->resultSet;
-  vector<<%= @signature.chomp('*') %>::iterator *>::iterator *resIter = (vector<<%= @signature.chomp('*') %>::iterator *>::iterator *)stc->resultSetIter;     
-  dynamic_bitset<unsigned long> *resBts = (dynamic_bitset<unsigned long> *)stc->resultSetIndex;
-  if ((int)res->size() > 0) {
-    if (stc->resultSetIterState == -1) {
-      stc->current = (int)resBts->find_first();
-      *resIter = res->begin();
-      stc->resultSetIterState = 1;
-    } else if (stc->resultSetIterState == 1) {
-      (*resIter)++;
-      stc->current = (int)resBts->find_next(stc->current);
+  ResultSet rs = cursors[cur];
+  if ((int)rs.res.size() > 0) {
+    if (rs.resultSetIterState == -1) {
+      rs.current = (int)rs.resBts.find_first();
+      *(rs.resIter) = rs.res.begin();
+      rs.resultSetIterState = 1;
+    } else if (rs.resultSetIterState == 1) {
+      *(rs.resIter)++;
+      rs.current = (int)rs.resBts.find_next(rs.current);
     }
-    if (*resIter < res->end()) {
+    if (*(rs.resIter) < rs.res.end()) {
 <%      @columns.each_index { |col| %>
 <%       if @columns[col].related_to.length > 0 %>
       VtblImpl *chargeVT<%= col %> = selector_vt["<%= @columns[col].related_to %>"];
@@ -67,11 +60,11 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur) {
     }
   }
   stc->isEof = 1;
-  stc->resultSetIterState = -1;
-  for (resIterC = res->begin(); resIterC != res->end(); resIterC++)
+  rs.resultSetIterState = -1;
+  for (resIterC = rs.res.begin(); resIterC != rs.res.end(); resIterC++)
     delete *resIterC;
-  res->clear();
-  resBts->clear();
+  rs.res.clear();
+  rs.resBts.clear();
 <%    else %>
   stc->current++;
   if (stc->current >= stc->size)
@@ -101,20 +94,14 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur) {
 void <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, void *shadowRes) {
   (void)shadowRes;
 <%      if @container_class.length > 0 %>
-  picoQLTableCursor *stc = (picoQLTableCursor *)cur;
-  vector<<%= @signature.chomp('*') %>::iterator *> *res = (vector<<%= @signature.chomp('*') %>::iterator *> *)stc->resultSet;
-  vector<<%= @signature.chomp('*') %>::iterator *>::iterator *resIter = (vector<<%= @signature.chomp('*') %>::iterator *>::iterator *)stc->resultSetIter;     
-  dynamic_bitset<unsigned long> *resBts = (dynamic_bitset<unsigned long> *)stc->resultSetIndex;
-  for (resIterC = res->begin(); resIterC != res->end(); resIterC++)
+  ResultSet rs = cursors[cur];
+  for (resIterC = rs.res.begin(); resIterC != rs.res.end(); resIterC++)
     delete *resIterC;
-  res->clear();
-  delete res;
-  delete resIter;
-  resBts->clear();
-  delete resBts;
+  rs.res.clear();
+  rs.resBts.clear();
 <%      end %>
 <%      if @base_var.length == 0 %>
-  if (!cursors.erase(cur))
+  if (!cursors.erase(pair<sqlite3_vtab_cursor *, Resultset>(cur, rs)))
     printf("No such cursor %li inserted\n", (long int)cur);
   charged.clear();
   recursive = 0;
@@ -122,3 +109,4 @@ void <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, void *shadowRes) {
   (void)cur;
 <%      end %>
 }
+ 

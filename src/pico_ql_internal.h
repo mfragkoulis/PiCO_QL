@@ -77,24 +77,24 @@ namespace picoQL {
 
     typedef struct {
       sqlite3_vtab vtab;
-      sqlite3 *db; 
+      sqlite3 *db;
       const char *zDb;
-      const char *zName; 
-      int embedded; 
+      const char *zName;
+      int embedded;
       int object;
-      int nColumn; 
+      int nColumn;
       char **azColumn;
-      void *data; 
+      void *data;
       char *zErr;
     } picoQLTable;  // The virtual table struct.
     
     typedef struct {
-      sqlite3_vtab_cursor pCsr; 
+      sqlite3_vtab_cursor pCsr;
       int isInstanceNULL;
       int isInstanceEmpty;
       int max_size;        // 
       int size;            // For objects only.
-      int current;
+      int current;         // For objects only.
       void *resultSet;     // For containers only.
       void *resultSetIter;  // For containers only.
       int resultSetIterState; // For containers only.
@@ -109,7 +109,7 @@ namespace picoQL {
     
     int register_vt(picoQLTable *picoQL);
     int equals(const char *zCol, const char *key);
-    void set_selectors(); // internal but inconvinient to position
+    void set_selectors(); // internal but inconvenient to position
     int init_text_vector(picoQLTableCursor *stc);
     void deinit_text_vector(picoQLTableCursor *stc);
     void deinit_temp_structs();
