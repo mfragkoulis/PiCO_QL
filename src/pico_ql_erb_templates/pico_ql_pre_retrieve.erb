@@ -1,7 +1,7 @@
 // Retrieves column values of virtual table <%= @name %>.
 int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int nCol, sqlite3_context *con) {
 <%    if @container_class.length > 0 %>
-  ResultSet rs = cursors[cur];
+  ResultSet *rs = &cursors[cur];
 <%    end %>
   if (struct_is_empty_null(cur, con)) return SQLITE_OK; 
 <%    if /\*/.match(@pointer) == nil %>

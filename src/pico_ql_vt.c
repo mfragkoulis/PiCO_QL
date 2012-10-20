@@ -476,8 +476,7 @@ int open_vtable(sqlite3_vtab *pVtab,
     get_datastructure_size(c, pVtab);
     stc->max_size = 1;
   }
-  if (!st->object)
-    init_result_set(pVtab, pCsr);
+  init_result_set(pVtab, pCsr);
 #ifdef PICO_QL_DEBUG
   printf("ppCsr = %lx, pCsr = %lx \n", 
 	 (long unsigned int)ppCsr, 

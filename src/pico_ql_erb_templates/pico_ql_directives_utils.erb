@@ -30,6 +30,7 @@
 #include <cstring>
 #include <string>
 #include <map>
+#include <set>
 #ifdef PICO_QL_HANDLE_POLYMORPHISM
 #include <vector>
 #endif
@@ -302,13 +303,15 @@ private:
   class ResultSet {
   public:
     vector<<%= vt.signature.chomp('*') %>::iterator *> res;
-    vector<<%= vt.signature.chomp('*') %>::iterator *>::iterator *resIter;
+    vector<<%= vt.signature.chomp('*') %>::iterator *>::iterator resIter;
     dynamic_bitset<unsigned long> resBts;
     int resultSetIterState;
     int current;
-    ResultSet(int res_max_size, int resIterState) {
+    ResultSet(int res_max_size, int resIterState, int cur, vector<<%= vt.signature.chomp('*') %>::iterator *>::iterator it) {
       resBts.resize(res_max_size);
       resultSetIterState = resIterState;
+      current = cur;
+      resIter = it;
     };
     ResultSet() {};
     ~ResultSet() {};
@@ -316,6 +319,8 @@ private:
   map<sqlite3_vtab_cursor *, ResultSet> cursors;
   vector<<%= vt.signature.chomp('*') %>::iterator *>::iterator resIterC;
   <%= vt.signature.chomp('*') %>::iterator iter;
+<%      else %>
+  set<sqlite3_vtab_cursor *> cursors;
 <%      end %>
 <%      if vt.base_var.length == 0 %>
   map<sqlite3_vtab_cursor *, bool> charged;
@@ -331,11 +336,7 @@ public:
   virtual size_t operator() (sqlite3_vtab_cursor *, sqlite3_vtab *);
   virtual int operator() (sqlite3_vtab_cursor *);
   virtual void operator() (sqlite3_vtab_cursor *, void *);
-<%      if vt.container_class.length > 0 %>
   virtual void operator() (sqlite3_vtab *, sqlite3_vtab_cursor *);
-<%      else %>
-  virtual void operator() (sqlite3_vtab *, sqlite3_vtab_cursor *) {};
-<%      end %>
 <%      if vt.base_var.length == 0 %>
   virtual void operator() (sqlite3_vtab_cursor *cur, int current, map<sqlite3_vtab_cursor *, bool> *oCharged) {
     pair<map<sqlite3_vtab_cursor *, bool>::iterator, bool> operation;
