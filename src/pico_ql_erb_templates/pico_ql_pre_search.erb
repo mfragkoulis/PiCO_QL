@@ -3,6 +3,21 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
   picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
   (void)picoQL;	// Silence compiler unused variable warning
   picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
+  if (cursors.find(cur) == cursors.end()) {
+<%      if @container_class.length > 0 %>
+    vector<<%= @signature.chomp('*') %>::iterator *> res;
+    ResultSet r(stcsr->max_size, -1, -1, res.begin());
+    pair<map<sqlite3_vtab_cursor *, ResultSet>::iterator, bool> inserted = cursors.insert(pair<sqlite3_vtab_cursor *, ResultSet>(cur, r));
+#ifdef PICO_QL_DEBUG
+    printf("Table %s, Cursor: inserted %i, max size %i, resBts size %i\n", picoQL->zName, (int)inserted.second, stcsr->max_size, (int)cursors[cur].resBts.size());
+#endif
+<%      else %>
+    pair<set<sqlite3_vtab_cursor *>::iterator, bool> inserted = cursors.insert(cur);
+#ifdef PICO_QL_DEBUG
+    printf("Table %s, Cursor: inserted %i\n", picoQL->zName, (int)inserted.second);
+#endif
+<%      end %>
+  }
 <%      if @container_class.length > 0 %>
   int index = 0;
   ResultSet *rs = &cursors[cur];
@@ -47,7 +62,7 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
 <%      else %>
     printf("Searching embedded VT <%= @name %> with no BASE constraint makes no sense.\n");
     return SQLITE_MISUSE;
-<%      end %>
+<%      end %>  
   } else {
 <%      if @base_var.length == 0 %>
     if (first_constr) {

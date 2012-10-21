@@ -24,20 +24,7 @@ size_t <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, sqlite3_vtab *vtab
 
 void <%= @name %>_vt::operator() (sqlite3_vtab *vtab, sqlite3_vtab_cursor *cur) {
   (void)vtab;
-<%      if @container_class.length > 0 %>
-  picoQLTableCursor *stc = (picoQLTableCursor *)cur;
-  vector<<%= @signature.chomp('*') %>::iterator *> res;
-  ResultSet r(stc->max_size, -1, -1, res.begin());
-  pair<map<sqlite3_vtab_cursor *, ResultSet>::iterator, bool> inserted = cursors.insert(pair<sqlite3_vtab_cursor *, ResultSet>(cur, r));
-#ifdef PICO_QL_DEBUG
-  printf("Left init: inserted %i, max size %i, resBts size %i\n", (int)inserted.second, stc->max_size, (int)cursors[cur].resBts.size());
-#endif
-<%      else %>
-  pair<set<sqlite3_vtab_cursor *>::iterator, bool> inserted = cursors.insert(cur);
-#ifdef PICO_QL_DEBUG
-  printf("Left init: inserted %i\n", (int)inserted.second);
-#endif
-<%      end %>
+  (void)cur;
 }
 
 int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur) {
@@ -54,18 +41,6 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur) {
       rs->current = (int)rs->resBts.find_next(rs->current);
     }
     if (rs->resIter < rs->res.end()) {
-<%      @columns.each_index { |col| %>
-<%       if @columns[col].related_to.length > 0 %>
-      VtblImpl *chargeVT<%= col %> = selector_vt["<%= @columns[col].related_to %>"];
-<%         if @base_var.length == 0 %>
-      (*chargeVT<%= col %>)(cur, 1, &charged);
-<%         else %>
-      map<sqlite3_vtab_cursor *, bool> *map<%= @name %><%= col %>;
-      map<%= @name %><%= col %> = NULL;
-      (*chargeVT<%= col %>)(cur, 1, map<%= @name %><%= col %>);
-<%         end %>
-<%       end %>
-<%      } %>
 #ifdef PICO_QL_DEBUG
   picoQLTable *st = (picoQLTable *)cur->pVtab;
   printf("Table %s, now rs->current: %i \nstc->isEof: %i\n\n",
@@ -84,20 +59,6 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur) {
   stc->current++;
   if (stc->current >= stc->size)
     stc->isEof = 1;
-  else {
-<%      @columns.each_index { |col| %>
-<%       if @columns[col].related_to.length > 0 %>
-    VtblImpl *chargeVT<%= col %> = selector_vt["<%= @columns[col].related_to %>"];
-<%         if @base_var.length == 0 %>
-      (*chargeVT<%= col %>)(cur, 1, &charged);
-<%         else %>
-      map<sqlite3_vtab_cursor *, map> *map<%= @name %><%= col %>;
-      map<%= @name %><%= col %> = NULL;
-      (*chargeVT<%= col %>)(cur, 1, map<%= @name %><%= col %>);
-<%         end %>
-<%       end %>
-<%      } %>
-  }
 <%    end %>
 #ifdef PICO_QL_DEBUG
   picoQLTable *st = (picoQLTable *)cur->pVtab;
@@ -109,14 +70,16 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur) {
 
 void <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, void *shadowRes) {
   (void)shadowRes;
+  if (cursors.find(cur) != cursors.end()) {
 <%      if @container_class.length > 0 %>
-  ResultSet *rs = &cursors[cur];
-  for (resIterC = rs->res.begin(); resIterC != rs->res.end(); resIterC++)
-    delete *resIterC;
-  rs->res.clear();
-  rs->resBts.clear();
+    ResultSet *rs = &cursors[cur];
+    for (resIterC = rs->res.begin(); resIterC != rs->res.end(); resIterC++)
+      delete *resIterC;
+    rs->res.clear();
+    rs->resBts.clear();
 <%      end %>
-  if (!cursors.erase(cur))
+    cursors.erase(cur);
+  } else
     printf("No such cursor %li inserted\n", (long int)cur);
 <%      if @base_var.length == 0 %>
   charged.clear();
