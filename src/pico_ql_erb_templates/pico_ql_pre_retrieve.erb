@@ -20,7 +20,6 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int nCol, sqlite3_con
 <%    end %>
 <%    if @include_text_col > 0 %>
 #ifdef PICO_QL_HANDLE_POLYMORPHISM
-  picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
-  vector<string*> *tr = (vector<string*> *)stcsr->textResults;
+  vector<string*> *tr = (vector<string*> *)((picoQLTableCursor *)cur)->textResults;
 #endif
 <%    end %>

@@ -334,8 +334,9 @@ class VirtualTable
 # the correct form of the variable
   def configure(access_path)
     iden = ""
+    type_check = ""
     if @container_class.length > 0
-      access_path.length == 0 ? iden =  "***(rs->resIter)" : iden = "(***(rs->resIter))."
+      access_path.length == 0 ? iden =  "**(rs->resIter)" : iden = "(**(rs->resIter))."
     else
       access_path.length == 0 ? iden = "any_dstr" : iden = "any_dstr->"
     end
@@ -369,6 +370,7 @@ class VirtualTable
                                    sqlite3_parameters, column_cast_back, 
                                    access_path)
       iden = ""
+      type_check = ""
       iden = configure(access_path)
       case op
       when "base"
@@ -552,7 +554,7 @@ class VirtualTable
       add_to_result_setN = ""
       if @container_class.length > 0
         access_path.length == 0 ? idenF = "(*iter)" : idenF = "(*iter)."
-        access_path.length == 0 ? idenN = "(***resIterC)" : idenN = "(***resIterC)."
+        access_path.length == 0 ? idenN = "(**resIterC)" : idenN = "(**resIterC)."
       else
         access_path.length == 0 ? idenF = "any_dstr" : idenF = "any_dstr->"
         access_path.length == 0 ? idenN = "any_dstr" : idenN = "any_dstr->"
@@ -576,8 +578,8 @@ class VirtualTable
         end
         if @container_class.length > 0
           fw.puts "#{space}for (iter = any_dstr->begin(); iter != any_dstr->end(); iter++) {"
-          add_to_result_setF = "#{space}    rs->res.push_back(new #{@signature.chomp('*')}::iterator(iter));\n#{space}    rs->resBts.set(index, 1);\n#{space}  }\n#{space}  index++;\n#{space}}"
-          add_to_result_setN = "#{space}    delete *resIterC;\n#{space}    resIterC = rs->res.erase(resIterC);\n#{space}    rs->resBts.reset(index);\n#{space}  } else\n#{space}    resIterC++;\n#{space}  index = rs->resBts.find_next(index);\n#{space}}"
+          add_to_result_setF = "#{space}    rs->res.push_back(#{@signature.chomp('*')}::iterator(iter));\n#{space}    rs->resBts.set(index, 1);\n#{space}  }\n#{space}  index++;\n#{space}}"
+          add_to_result_setN = "\n#{space}    resIterC = rs->res.erase(resIterC);\n#{space}    rs->resBts.reset(index);\n#{space}  } else\n#{space}    resIterC++;\n#{space}  index = rs->resBts.find_next(index);\n#{space}}"
           space.concat("  ")
         else
           add_to_result_setF = "#{space}  stcsr->size = 1;\n#{space}}"
@@ -634,14 +636,14 @@ class VirtualTable
           fw.puts "#{$s}for (iter = any_dstr->begin(); iter != any_dstr->end(); iter++) {"
           fw.puts "#{$s}  if (compare(#{column_cast}#{access_pathF}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val))) {"
           print_line_directive(fw, line)
-          fw.puts "#{$s}    rs->res.push_back(new #{@signature.chomp('*')}::iterator(iter));\n#{$s}    rs->resBts.set(index, 1);\n#{$s}  }\n#{$s}  index++;\n#{$s}}"
+          fw.puts "#{$s}    rs->res.push_back(#{@signature.chomp('*')}::iterator(iter));\n#{$s}    rs->resBts.set(index, 1);\n#{$s}  }\n#{$s}  index++;\n#{$s}}"
           fw.puts "      } else {"
           fw.puts "#{$s}index = rs->resBts.find_first();"
           fw.puts "#{$s}resIterC = rs->res.begin();"
           fw.puts "#{$s}while (resIterC != rs->res.end()) {"
           fw.puts "#{$s}  if (!compare(#{column_cast}#{access_pathN}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val))) {"
           print_line_directive(fw, line)
-          fw.puts "#{$s}    delete *resIterC;\n#{$s}    resIterC = rs->res.erase(resIterC);\n#{$s}    rs->resBts.reset(index);\n#{$s}  } else\n#{$s}    resIterC++;\n#{$s}  index = rs->resBts.find_next(index);\n#{$s}}"
+          fw.puts "\n#{$s}    resIterC = rs->res.erase(resIterC);\n#{$s}    rs->resBts.reset(index);\n#{$s}  } else\n#{$s}    resIterC++;\n#{$s}  index = rs->resBts.find_next(index);\n#{$s}}"
           fw.puts "      }"
         else
           fw.puts "#{$s}if (compare(#{column_cast}#{access_pathF}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val)))"
@@ -655,7 +657,7 @@ class VirtualTable
         fw.puts "      if (first_constr == 1) {"
         if @container_class.length > 0
           fw.puts "#{$s}for (iter = any_dstr->begin(); iter != any_dstr->end(); iter++) {"
-          fw.puts "#{$s}  rs->res.push_back(new #{@signature.chomp('*')}::iterator(iter));\n#{$s}}"
+          fw.puts "#{$s}  rs->res.push_back(#{@signature.chomp('*')}::iterator(iter));\n#{$s}}"
           fw.puts "#{$s}rs->resBts.set();"
         else
           fw.puts "#{$s}stcsr->size = 1;"
@@ -668,8 +670,6 @@ class VirtualTable
       when "rownum"
         fw.puts "      rowNum = sqlite3_value_int(val);"
         fw.puts "      if (rowNum > (int)rs->resBts.size()) {"
-        fw.puts "        for (resIterC = rs->res.begin(); resIterC != rs->res.end(); resIterC++)"
-        fw.puts "          delete *resIterC;"
         fw.puts "        rs->res.clear();"
         fw.puts "        rs->resBts.clear();"
         fw.puts "        return SQLITE_OK;" 
@@ -678,21 +678,17 @@ class VirtualTable
         fw.puts "      for (int i = 0; i < rowNum; i++)"
         fw.puts "        iter++;"
         fw.puts "      if (first_constr == 1) {"
-        fw.puts "        rs->res.push_back(new #{@signature.chomp('*')}::iterator(iter));"
+        fw.puts "        rs->res.push_back(#{@signature.chomp('*')}::iterator(iter));"
         fw.puts "        rs->resBts.set(rowNum, 1);"
         fw.puts "      } else {"
         fw.puts "        if (rs->resBts.test(rowNum)) {"
         fw.puts "          rs->resBts.reset();"
         fw.puts "          rs->resBts.set(rowNum, 1);"
-        fw.puts "          for (resIterC = rs->res.begin(); resIterC != rs->res.end(); resIterC++)"
-        fw.puts "            delete *resIterC;"
         fw.puts "          rs->res.clear();"
-        fw.puts "          rs->res.push_back(new #{@signature.chomp('*')}::iterator(iter));"
+        fw.puts "          rs->res.push_back(#{@signature.chomp('*')}::iterator(iter));"
         fw.puts "          rs->resIter = rs->res.begin();"
         fw.puts "        } else {"
         fw.puts "          rs->resBts.clear();"
-        fw.puts "          for (resIterC = rs->res.begin(); resIterC != rs->res.end(); resIterC++)"
-        fw.puts "            delete *resIterC;"
         fw.puts "          rs->res.clear();"
         fw.puts "        }"
         fw.puts "      }"

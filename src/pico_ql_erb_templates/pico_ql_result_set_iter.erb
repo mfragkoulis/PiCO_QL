@@ -51,8 +51,6 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur) {
   }
   stc->isEof = 1;
   rs->resultSetIterState = -1;
-  for (resIterC = rs->res.begin(); resIterC != rs->res.end(); resIterC++)
-    delete *resIterC;
   rs->res.clear();
   rs->resBts.clear();
 <%    else %>
@@ -64,6 +62,7 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur) {
   picoQLTable *st = (picoQLTable *)cur->pVtab;
   printf("Table %s, stc->isEof: %i\n\n",
          st->zName, stc->isEof);
+  printf("stc->current: %i, stc->size: %i\n", stc->current, stc->size);
 #endif
   return SQLITE_OK;
 }
@@ -73,8 +72,6 @@ void <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, void *shadowRes) {
   if (cursors.find(cur) != cursors.end()) {
 <%      if @container_class.length > 0 %>
     ResultSet *rs = &cursors[cur];
-    for (resIterC = rs->res.begin(); resIterC != rs->res.end(); resIterC++)
-      delete *resIterC;
     rs->res.clear();
     rs->resBts.clear();
 <%      end %>
@@ -86,4 +83,4 @@ void <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, void *shadowRes) {
   recursive = 0;
 <%      end %>
 }
- 
+
