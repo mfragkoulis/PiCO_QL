@@ -314,7 +314,7 @@ private:
       resIter = it;
     };
     ResultSet() {};
-    ~ResultSet() {};
+    ~ResultSet() {resBts.clear();};
   };
   map<sqlite3_vtab_cursor *, ResultSet> cursors;
   vector<<%= vt.signature.chomp('*') %>::iterator>::iterator resIterC;
