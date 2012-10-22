@@ -156,7 +156,7 @@ int init_vtable(int iscreate,
     } else if (output == 0) {
       *ppVtab = &picoQL->vtab;
       if (register_vt(picoQL) == SQLITE_ERROR) {
-	*pzErr = sqlite3_mprintf("Error: Virtual table %s not registered.\n", picoQL->zName);
+	*pzErr = sqlite3_mprintf("WARNING: Virtual table %s is NULL at the time of registration.\n", picoQL->zName);
 	printf("%s \n", *pzErr);
 	//	return SQLITE_ERROR;
       }
@@ -426,7 +426,7 @@ int next_vtable(sqlite3_vtab_cursor *cur) {
  */
 int open_vtable(sqlite3_vtab *pVtab, 
 		sqlite3_vtab_cursor **ppCsr) {
-  picoQLTable *st=(picoQLTable *)pVtab;
+  picoQLTable *st = (picoQLTable *)pVtab;
 #ifdef PICO_QL_DEBUG
   printf("Opening vtable %s\n\n", st->zName);
 #endif
@@ -476,8 +476,7 @@ int open_vtable(sqlite3_vtab *pVtab,
     get_datastructure_size(c, pVtab);
     stc->max_size = 1;
   }
-  if (!st->object)
-    init_result_set(pVtab, pCsr);
+  init_result_set(pVtab, pCsr);
 #ifdef PICO_QL_DEBUG
   printf("ppCsr = %lx, pCsr = %lx \n", 
 	 (long unsigned int)ppCsr, 

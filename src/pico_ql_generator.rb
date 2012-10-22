@@ -334,8 +334,9 @@ class VirtualTable
 # the correct form of the variable
   def configure(access_path)
     iden = ""
+    type_check = ""
     if @container_class.length > 0
-      access_path.length == 0 ? iden =  "****resIter" : iden = "(****resIter)."
+      access_path.length == 0 ? iden =  "**(rs->resIter)" : iden = "(**(rs->resIter))."
     else
       access_path.length == 0 ? iden = "any_dstr" : iden = "any_dstr->"
     end
@@ -369,6 +370,7 @@ class VirtualTable
                                    sqlite3_parameters, column_cast_back, 
                                    access_path)
       iden = ""
+      type_check = ""
       iden = configure(access_path)
       case op
       when "base"
@@ -381,7 +383,7 @@ class VirtualTable
         fw.puts "#endif"
         fw.puts "    break;"
       when "rownum"
-        fw.puts "      sqlite3_result_#{sqlite3_type}(con, stcsr->current);"
+        fw.puts "      sqlite3_result_#{sqlite3_type}(con, rs->current);"
         fw.puts "      break;"
       when "fk"
         if fk_col_name != nil       # ??
@@ -404,7 +406,7 @@ class VirtualTable
           end
         end
         if $argM == "MEM_MGT" && fk_method_ret == 1 
-          fw.puts "   {"
+          fw.puts "    {"
           fw.puts "      saved_results_#{saved_results_index}.push_back(#{record_type}#{iden}#{access_path});"
           print_line_directive(fw, line)
           fw.puts "#ifdef ENVIRONMENT64"
@@ -412,8 +414,16 @@ class VirtualTable
           fw.puts "#else"
           fw.puts "      sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}&(saved_results_#{saved_results_index}.back()));"
           fw.puts "#endif"
-          fw.puts "     break;"
-          fw.puts "   }"
+          fw.puts "      VtblImpl *chargeVT#{col} = selector_vt[\"#{fk_col_name}\"];"
+          if @base_var.length == 0
+            fw.puts "      (*chargeVT#{col})(cur, 1, &charged);"
+          else
+            fw.puts "      map<sqlite3_vtab_cursor *, bool> *map#{@name}#{col};"
+            fw.puts "      map#{@name}#{col} = NULL;"
+            fw.puts "      (*chargeVT#{col})(cur, 1, map#{@name}#{col});"
+          end
+          fw.puts "      break;"
+          fw.puts "    }"
 	else
           fw.puts "#ifdef ENVIRONMENT64"
           fw.puts "    sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{p_type}#{iden}#{access_path});"
@@ -422,6 +432,14 @@ class VirtualTable
           fw.puts "    sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}#{p_type}#{iden}#{access_path});"
           print_line_directive(fw, line)
           fw.puts "#endif"
+          fw.puts "    VtblImpl *chargeVT#{col} = selector_vt[\"#{fk_col_name}\"];"
+          if @base_var.length == 0
+            fw.puts "    (*chargeVT#{col})(cur, 1, &charged);"
+          else
+            fw.puts "    map<sqlite3_vtab_cursor *, bool> *map#{@name}#{col};"
+            fw.puts "    map#{@name}#{col} = NULL;"
+            fw.puts "    (*chargeVT#{col})(cur, 1, map#{@name}#{col});"
+          end
           fw.puts "    break;"
         end
       when "gen_all"
@@ -536,7 +554,7 @@ class VirtualTable
       add_to_result_setN = ""
       if @container_class.length > 0
         access_path.length == 0 ? idenF = "(*iter)" : idenF = "(*iter)."
-        access_path.length == 0 ? idenN = "(***resIterC)" : idenN = "(***resIterC)."
+        access_path.length == 0 ? idenN = "(**resIterC)" : idenN = "(**resIterC)."
       else
         access_path.length == 0 ? idenF = "any_dstr" : idenF = "any_dstr->"
         access_path.length == 0 ? idenN = "any_dstr" : idenN = "any_dstr->"
@@ -560,8 +578,8 @@ class VirtualTable
         end
         if @container_class.length > 0
           fw.puts "#{space}for (iter = any_dstr->begin(); iter != any_dstr->end(); iter++) {"
-          add_to_result_setF = "#{space}    res->push_back(new #{@signature.chomp('*')}::iterator(iter));\n#{space}    resBts->set(index, 1);\n#{space}  }\n#{space}  index++;\n#{space}}"
-          add_to_result_setN = "#{space}    delete *resIterC;\n#{space}    resIterC = res->erase(resIterC);\n#{space}    resBts->reset(index);\n#{space}  } else\n#{space}    resIterC++;\n#{space}  index = resBts->find_next(index);\n#{space}}"
+          add_to_result_setF = "#{space}    rs->res.push_back(#{@signature.chomp('*')}::iterator(iter));\n#{space}    rs->resBts.set(index, 1);\n#{space}  }\n#{space}  index++;\n#{space}}"
+          add_to_result_setN = "\n#{space}    resIterC = rs->res.erase(resIterC);\n#{space}    rs->resBts.reset(index);\n#{space}  } else\n#{space}    resIterC++;\n#{space}  index = rs->resBts.find_next(index);\n#{space}}"
           space.concat("  ")
         else
           add_to_result_setF = "#{space}  stcsr->size = 1;\n#{space}}"
@@ -594,7 +612,7 @@ class VirtualTable
           fw.puts "#{space}typeof(#{access_pathN}) t = #{access_pathN};"
         end
         if @container_class.length > 0        
-          fw.puts "#{space}index = resBts->find_first();\n#{space}resIterC = res->begin();\n#{space} while (resIterC != res->end()) {"
+          fw.puts "#{space}index = rs->resBts.find_first();\n#{space}resIterC = rs->res.begin();\n#{space} while (resIterC != rs->res.end()) {"
           space.concat("  ")
         end
         gen_fk_col(fw, fk_method_ret, access_pathN, fk_type, column_cast, 
@@ -618,14 +636,14 @@ class VirtualTable
           fw.puts "#{$s}for (iter = any_dstr->begin(); iter != any_dstr->end(); iter++) {"
           fw.puts "#{$s}  if (compare(#{column_cast}#{access_pathF}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val))) {"
           print_line_directive(fw, line)
-          fw.puts "#{$s}    res->push_back(new #{@signature.chomp('*')}::iterator(iter));\n#{$s}    resBts->set(index, 1);\n#{$s}  }\n#{$s}  index++;\n#{$s}}"
+          fw.puts "#{$s}    rs->res.push_back(#{@signature.chomp('*')}::iterator(iter));\n#{$s}    rs->resBts.set(index, 1);\n#{$s}  }\n#{$s}  index++;\n#{$s}}"
           fw.puts "      } else {"
-          fw.puts "#{$s}index = resBts->find_first();"
-          fw.puts "#{$s}resIterC = res->begin();"
-          fw.puts "#{$s}while (resIterC != res->end()) {"
+          fw.puts "#{$s}index = rs->resBts.find_first();"
+          fw.puts "#{$s}resIterC = rs->res.begin();"
+          fw.puts "#{$s}while (resIterC != rs->res.end()) {"
           fw.puts "#{$s}  if (!compare(#{column_cast}#{access_pathN}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val))) {"
           print_line_directive(fw, line)
-          fw.puts "#{$s}    delete *resIterC;\n#{$s}    resIterC = res->erase(resIterC);\n#{$s}    resBts->reset(index);\n#{$s}  } else\n#{$s}    resIterC++;\n#{$s}  index = resBts->find_next(index);\n#{$s}}"
+          fw.puts "\n#{$s}    resIterC = rs->res.erase(resIterC);\n#{$s}    rs->resBts.reset(index);\n#{$s}  } else\n#{$s}    resIterC++;\n#{$s}  index = rs->resBts.find_next(index);\n#{$s}}"
           fw.puts "      }"
         else
           fw.puts "#{$s}if (compare(#{column_cast}#{access_pathF}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val)))"
@@ -639,8 +657,8 @@ class VirtualTable
         fw.puts "      if (first_constr == 1) {"
         if @container_class.length > 0
           fw.puts "#{$s}for (iter = any_dstr->begin(); iter != any_dstr->end(); iter++) {"
-          fw.puts "#{$s}  res->push_back(new #{@signature.chomp('*')}::iterator(iter));\n#{$s}}"
-          fw.puts "#{$s}resBts->set();"
+          fw.puts "#{$s}  rs->res.push_back(#{@signature.chomp('*')}::iterator(iter));\n#{$s}}"
+          fw.puts "#{$s}rs->resBts.set();"
         else
           fw.puts "#{$s}stcsr->size = 1;"
         end
@@ -651,33 +669,27 @@ class VirtualTable
         fw.puts "      break;"
       when "rownum"
         fw.puts "      rowNum = sqlite3_value_int(val);"
-        fw.puts "      if (rowNum > (int)resBts->size()) {"
-        fw.puts "        for (resIterC = res->begin(); resIterC != res->end(); resIterC++)"
-        fw.puts "          delete *resIterC;"
-        fw.puts "        res->clear();"
-        fw.puts "        resBts->clear();"
+        fw.puts "      if (rowNum > (int)rs->resBts.size()) {"
+        fw.puts "        rs->res.clear();"
+        fw.puts "        rs->resBts.clear();"
         fw.puts "        return SQLITE_OK;" 
         fw.puts "      }"
         fw.puts "      iter = any_dstr->begin();"
         fw.puts "      for (int i = 0; i < rowNum; i++)"
         fw.puts "        iter++;"
         fw.puts "      if (first_constr == 1) {"
-        fw.puts "        res->push_back(new #{@signature.chomp('*')}::iterator(iter));"
-        fw.puts "        resBts->set(rowNum, 1);"
+        fw.puts "        rs->res.push_back(#{@signature.chomp('*')}::iterator(iter));"
+        fw.puts "        rs->resBts.set(rowNum, 1);"
         fw.puts "      } else {"
-        fw.puts "        if (resBts->test(rowNum)) {"
-        fw.puts "          resBts->reset();"
-        fw.puts "          resBts->set(rowNum, 1);"
-        fw.puts "          for (resIterC = res->begin(); resIterC != res->end(); resIterC++)"
-        fw.puts "            delete *resIterC;"
-        fw.puts "          res->clear();"
-        fw.puts "          res->push_back(new #{@signature.chomp('*')}::iterator(iter));"
-        fw.puts "          *resIter = res->begin();"
+        fw.puts "        if (rs->resBts.test(rowNum)) {"
+        fw.puts "          rs->resBts.reset();"
+        fw.puts "          rs->resBts.set(rowNum, 1);"
+        fw.puts "          rs->res.clear();"
+        fw.puts "          rs->res.push_back(#{@signature.chomp('*')}::iterator(iter));"
+        fw.puts "          rs->resIter = rs->res.begin();"
         fw.puts "        } else {"
-        fw.puts "          resBts->clear();"
-        fw.puts "          for (resIterC = res->begin(); resIterC != res->end(); resIterC++)"
-        fw.puts "            delete *resIterC;"
-        fw.puts "          res->clear();"
+        fw.puts "          rs->resBts.clear();"
+        fw.puts "          rs->res.clear();"
         fw.puts "        }"
         fw.puts "      }"
         fw.puts "      break;"
