@@ -156,7 +156,7 @@ int init_vtable(int iscreate,
     } else if (output == 0) {
       *ppVtab = &picoQL->vtab;
       if (register_vt(picoQL) == SQLITE_ERROR) {
-	*pzErr = sqlite3_mprintf("Error: Virtual table %s not registered.\n", picoQL->zName);
+	*pzErr = sqlite3_mprintf("WARNING: Virtual table %s is NULL at the time of registration.\n", picoQL->zName);
 	printf("%s \n", *pzErr);
 	//	return SQLITE_ERROR;
       }
