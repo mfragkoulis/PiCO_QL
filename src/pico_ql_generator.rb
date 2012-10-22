@@ -425,22 +425,24 @@ class VirtualTable
           fw.puts "      break;"
           fw.puts "    }"
 	else
+          fw.puts "    {"
           fw.puts "#ifdef ENVIRONMENT64"
-          fw.puts "    sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{p_type}#{iden}#{access_path});"
+          fw.puts "      sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{p_type}#{iden}#{access_path});"
           print_line_directive(fw, line)
           fw.puts "#else"
-          fw.puts "    sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}#{p_type}#{iden}#{access_path});"
+          fw.puts "      sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}#{p_type}#{iden}#{access_path});"
           print_line_directive(fw, line)
           fw.puts "#endif"
-          fw.puts "    VtblImpl *chargeVT#{col} = selector_vt[\"#{fk_col_name}\"];"
+          fw.puts "      VtblImpl *chargeVT#{col} = selector_vt[\"#{fk_col_name}\"];"
           if @base_var.length == 0
-            fw.puts "    (*chargeVT#{col})(cur, 1, &charged);"
+            fw.puts "      (*chargeVT#{col})(cur, 1, &charged);"
           else
-            fw.puts "    map<sqlite3_vtab_cursor *, bool> *map#{@name}#{col};"
-            fw.puts "    map#{@name}#{col} = NULL;"
-            fw.puts "    (*chargeVT#{col})(cur, 1, map#{@name}#{col});"
+            fw.puts "      map<sqlite3_vtab_cursor *, bool> *map#{@name}#{col};"
+            fw.puts "      map#{@name}#{col} = NULL;"
+            fw.puts "      (*chargeVT#{col})(cur, 1, map#{@name}#{col});"
           end
-          fw.puts "    break;"
+          fw.puts "      break;"
+          fw.puts "    }"
         end
       when "gen_all"
         if access_path.match(/this\.|this->/)
