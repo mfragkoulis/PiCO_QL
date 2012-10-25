@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 #
 #   Parse a user description, which conforms to the DSL, and generate the 
-#   application specific filter and projection functions for the virtual tables
-#   described.
+#   application specific filter and projection functions for the 
+#   virtual tables described.
 #
 #   Copyright 2012 Marios Fragkoulis
 #
@@ -37,11 +37,11 @@ class Column
     @fk_col_type = ""         # Reference to other VT's type (FK).
     @fk_method_ret = 0        # True if FK access path is a method
     		   	      # return.
-                              # Required for managing temporary variables. 
+                              # Required for managing temporary variables.
     @saved_results_index = -1 # Required for naming the particular 
                               # saved results instance.
     @access_path = ""         # The access statement for the column value.
-    @col_type = ""                # Record type (pointer or reference) for 
+    @col_type = ""            # Record type (pointer or reference) for 
                               # special columns, the ones that refer to 
                               # other VT.
     @@int_data_types = ["int", "integer", "tinyint", "smallint", 
@@ -73,8 +73,6 @@ class Column
     @line = line
   end
 
-# Fills variables
-
 
 # Performs case analysis with respect to the column data type (and other)
 # and fills the passed variables with values accordingly.
@@ -88,8 +86,7 @@ class Column
       column_cast.replace("(long int)")
       access_path.replace(@access_path)
       return "fk", @related_to, @col_type, @line, @fk_method_ret, @saved_results_index
-    end
-    if @name == "base"              # 'base' column. refactor: elsif perhaps?
+    elsif @name == "base"              # 'base' column. refactor: elsif perhaps?
       sqlite3_type.replace("int64")
       column_cast.replace("(long int)")
       sqlite3_parameters.replace("int");    # for 32-bit architectures.used in retrieve.
@@ -97,41 +94,42 @@ class Column
     elsif @name == "rownum"           # 'rownum'column
       sqlite3_type.replace("int")
       return "rownum", nil, nil, nil
-    end
-    dt = @data_type.downcase         # Normal data column.
-    if @@int_data_types.include?(dt)
-      sqlite3_type.replace("int")
-    elsif (dt == "blob")
-      sqlite3_type.replace("blob")
-      column_cast.replace("(const void *)")
-      sqlite3_parameters.replace(", -1, SQLITE_STATIC")
-    elsif @@double_data_types.include?(dt) ||
-        /decimal/i.match(dt)
-      sqlite3_type.replace("double")
-    elsif @@text_data_types.include?(dt) || 
-        tmp_text_array.reject! { |rgx| rgx.match(dt) != nil } != nil
-                                    # If match against RegExp, reject.
+    else
+      dt = @data_type.downcase         # Normal data column.
+      if @@int_data_types.include?(dt)
+        sqlite3_type.replace("int")
+      elsif (dt == "blob")
+        sqlite3_type.replace("blob")
+        column_cast.replace("(const void *)")
+        sqlite3_parameters.replace(", -1, SQLITE_STATIC")
+      elsif @@double_data_types.include?(dt) ||
+          /decimal/i.match(dt)
+        sqlite3_type.replace("double")
+      elsif @@text_data_types.include?(dt) || 
+          tmp_text_array.reject! { |rgx| rgx.match(dt) != nil } != nil
+        # If match against RegExp, reject.
                                     # Then, if array changed, enter.
-      case sqlite3_type
-      when "search"
-        column_cast.replace("(const unsigned char *)")
-      when "retrieve" 
-        column_cast.replace("(const char *)")
+        case sqlite3_type
+        when "search"
+          column_cast.replace("(const unsigned char *)")
+        when "retrieve" 
+          column_cast.replace("(const char *)")
+        end
+        sqlite3_type.replace("text")
+        if @cpp_data_type == "string"
+          column_cast_back.replace(".c_str()") 
+        end
+        sqlite3_parameters.replace(", -1, SQLITE_STATIC")
       end
-      sqlite3_type.replace("text")
-      if @cpp_data_type == "string"
-        column_cast_back.replace(".c_str()") 
-      end
-      sqlite3_parameters.replace(", -1, SQLITE_STATIC")
+      access_path.replace(@access_path)
+      return "gen_all", nil, nil, @line
     end
-    access_path.replace(@access_path)
-    return "gen_all", nil, nil, @line
   end
-
 
 # Register line that corresponds to the table in DSL description
   def register_line()
     $lined_description.each_index { |line|
+      # Match for FK and normal data type columns.
       if $lined_description[line].match(/foreign key(\s*)\((\s*)#{Regexp.escape(@name)}(\s*)\) from #{Regexp.escape(@access_path)}|#{Regexp.escape(@name)} #{Regexp.escape(@data_type)} from #{Regexp.escape(@access_path)}/i)
         @line = line
         if $argD == "DEBUG"
@@ -200,12 +198,14 @@ class Column
         if vs.name == matchdata[1]     # Search all struct_view 
                                        # definitions to find the one 
                                        # specified and include it.
+          # -1 standard + (-1) because we delete inheritance def column.
           index = this_struct_view.columns.length - 2
           if index < 0 : index = 0 end
           this_struct_view.columns_delete_last()
           vs.columns.each_index { |col| 
-            coln = vs.columns[col]         # Manually construct a deep copy
-            this_columns.push(Column.new)  # of coln and push it to 'this'.
+            coln = vs.columns[col]         # Manually construct a deep 
+                                           # copy of coln
+            this_columns.push(Column.new)  # and push it to 'this'.
             this_columns.last.construct(coln.name.clone, 
                                         coln.data_type.clone, 
                                         coln.related_to.clone, 
@@ -219,15 +219,15 @@ class Column
 	  col_type_text = vs.include_text_col
         end
       }
-      this_columns.each_index { |col|     # Adapt access path.
+      this_columns.each_index { |col|    # Adapt access path for included.
         if col > index 
           this_columns[col].access_path.replace(matchdata[2] + 
                                                 this_columns[col].access_path)
         end
       }
       return col_type_text
-    when column_ptn2                      # Merely include a struct_view 
-                                          # definition.
+    when column_ptn2                      # Include a struct_view 
+                                          # definition without adapting.
       matchdata = column_ptn2.match(column)
       $struct_views.each { |vs| 
         if vs.name == matchdata[1]
@@ -246,7 +246,7 @@ class Column
       @access_path = matchdata[5]
       begin
         @related_to.length > 0
-        if @access_path.match(/(.+)\)/)    # returning from a method
+        if @access_path.match(/(.+)\)/)    # Returning from a method.
           @fk_method_ret = 1
         end
         if matchdata[8].length == 0
@@ -296,8 +296,9 @@ class VirtualTable
     @signature_line = 0   # Line in DSL description that the C TYPE 
                           # identifier is defined.
     @base_var = ""        # Name of the base variable alive at C++ app.
-    @struct_view              # Reference to the respective struct_view definition.
-    @db = ""              # Database name to be created/connected.
+    @struct_view          # Reference to the respective 
+                          # struct_view definition.
+    @db = ""              # Database name to be created/connected against.
     @signature = ""       # The C++ signature of the struct.
     @container_class = "" # If a container instance as per 
                           # the SGI container concept.
@@ -312,8 +313,8 @@ class VirtualTable
 			  # generating code for
 			  # PICO_QL_HANDLE_POLYMORPHISM C++ flag.
   end
-  attr_accessor(:name,:base_var_line,:signature_line,:base_var,:struct_view,
-                :db,:signature,:container_class,:type,
+  attr_accessor(:name,:base_var_line,:signature_line,:base_var,
+                :struct_view,:db,:signature,:container_class,:type,
                 :pointer,:object_class,:columns,:include_text_col)
 
 # Support templating of member data
@@ -356,8 +357,7 @@ class VirtualTable
 # Each retrieve case matches a specific column of the VT.
   def retrieve_columns(fw)
     fw.puts "  switch (nCol) {"
-    col_array = @columns
-    col_array.each_index { |col|
+    @columns.each_index { |col|
       fw.puts "  case #{col}:"
       sqlite3_type = "retrieve"
       column_cast = ""
@@ -370,7 +370,6 @@ class VirtualTable
                                    sqlite3_parameters, column_cast_back, 
                                    access_path)
       iden = ""
-      type_check = ""
       iden = configure(access_path)
       case op
       when "base"
@@ -386,23 +385,21 @@ class VirtualTable
         fw.puts "      sqlite3_result_#{sqlite3_type}(con, rs->current);"
         fw.puts "      break;"
       when "fk"
-        if fk_col_name != nil       # ??
-          if access_path.length == 0    # Access with (*iter) .
-            if @type.match(/\*/)
-              record_type = "*"
-              p_type = ""
-            else
-              record_type = ""
-              p_type = "&"
-            end
-          else                          # Access with (*iter)[.|->]access .
-            if column_type == "pointer" 
-              record_type = "*" 
-              p_type = ""
-            else 
-              record_type = ""
-              p_type = "&"
-            end
+        if access_path.length == 0    # Access with (*iter) .
+          if @type.match(/\*/)
+            record_type = "*"
+            p_type = ""
+          else
+            record_type = ""
+            p_type = "&"
+          end
+        else                        # Access with (*iter)[.|->]access .
+          if column_type == "pointer" 
+            record_type = "*" 
+            p_type = ""
+          else 
+            record_type = ""
+            p_type = "&"
           end
         end
         if $argM == "MEM_MGT" && fk_method_ret == 1 
@@ -447,7 +444,8 @@ class VirtualTable
       when "gen_all"
         if access_path.match(/this\.|this->/)
           access_path.gsub!(/this\.|this->/, "#{iden}")
-        else access_path = "#{iden}#{access_path}"
+        else 
+          access_path = "#{iden}#{access_path}"
         end
 	if sqlite3_type == "text"
 	  if column_cast_back == ".c_str()"
@@ -472,8 +470,8 @@ class VirtualTable
   end
 
 # Calls template to generate code in retrieve method. 
-# Code makes the necessary arrangements for retrieve to happen successfully 
-# (condition checks, reallocation)
+# Code makes the necessary arrangements for retrieve to happen 
+# successfully (condition checks, reallocation).
   def setup_retrieve(fw)
     file = File.open("pico_ql_erb_templates/pico_ql_pre_retrieve.erb").read
     pre_retrieve = ERB.new(file, 0 , '>')
@@ -489,28 +487,19 @@ class VirtualTable
     fw.puts post_search.result(get_binding)
   end
 
-# Generates spaces to convene properly aligned code generation.
-  def vt_type_spacing(fw)
-    fw.print "    "
-    if @container_class.length > 0
-      fw.print "    "
-    else
-      fw.print "  "
-    end
-  end
 
   def gen_fk_col(fw, fk_method_ret, access_path, fk_type, column_cast, 
                  column_cast_back, sqlite3_type, sqlite3_parameters, 
                  line, add_to_result_set, space, notC)
     fw.puts "#ifdef ENVIRONMENT64"
-    if $argM == "MEM_MGT" && fk_method_ret == 1    # returning from a method
+    if $argM == "MEM_MGT" && fk_method_ret == 1    # Returning from a method.
       fw.puts "#{space}if (#{notC}compare(#{column_cast}t#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_type}(val))) {"
     else
       fw.puts "#{space}if (#{notC}compare(#{column_cast}#{access_path}#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_type}(val))) {"
     end
     print_line_directive(fw, line)
     fw.puts "#else"
-    if $argM == "MEM_MGT" && fk_method_ret == 1    # returning from a method
+    if $argM == "MEM_MGT" && fk_method_ret == 1
       fw.puts "#{space}if (#{notC}compare(#{column_cast}t#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_parameters}(val))) {"
     else
       fw.puts "#{space}if (#{notC}compare(#{column_cast}#{access_path}#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_parameters}(val))) {"
@@ -818,10 +807,10 @@ class VirtualTable
       exit(1)
     end
     $table_index[@name] = @signature
-    if @base_var.length == 0            # base column for embedded structs.
+    if @base_var.length == 0        # base column for embedded structs.
       @columns.push(Column.new).last.set("base INT FROM self") 
     end
-    if @container_class.length > 0     # rownum column for container structs.
+    if @container_class.length > 0  # rownum column for container structs.
       @columns.push(Column.new).last.set("rownum INT FROM self") 
     end
     @include_text_col = @struct_view.include_text_col
@@ -1007,7 +996,7 @@ class InputDescription
     token_d = token_d.select { |x| x.length > 0 }
     if token_d[0].start_with?("#include")
       @directives = token_d[0]
-    # Putback the ';' after the namespace.
+      # Putback the ';' after the namespace.
       if @directives.match(/using namespace (.+)/)
         @directives.gsub!(/using namespace (.+)/, 'using namespace \1;')
       end
@@ -1052,6 +1041,8 @@ class InputDescription
         $struct_views.push(StructView.new).last.match_struct_view(stmt)
       when /^create virtual table/im
         @tables.push(VirtualTable.new).last.match_table(stmt)
+        # when /^create view as/im
+        # @views.push(View.new(stmt))
       end
       w += 1
     }
@@ -1084,6 +1075,7 @@ if __FILE__ == $0
   begin
     $lined_description = File.open($argF, "r") { |fw| 
       fw.readlines.each{ |line| 
+        # Drop single-line comments, multi-line comments not supported.
         if line.match(/\/\/(.+)/)
           line.gsub!(/\/\/(.+)/, "")
         end
@@ -1093,6 +1085,7 @@ if __FILE__ == $0
     puts e.message
     exit(1)
   end
+  # Strip white-space.
   $lined_description.each { |line|
     line.squeeze!(" ")
     if / ,|, /.match(line) : line.gsub!(/ ,|, /, ",") end

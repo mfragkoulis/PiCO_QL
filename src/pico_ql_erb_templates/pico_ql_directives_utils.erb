@@ -148,6 +148,7 @@ void * thread_sqlite(void *data) {
   table_names = (const char **)sqlite3_malloc(sizeof(char *) * <%= @tables.length.to_s %>);
   int failure = 0;
 <%# <db>.<table> does not work for some reason. test. %>
+<%# counter %>
 <%    @tables.each_index { |vt| %>
 <%#     query =  "CREATE VIRTUAL TABLE #{@tables[vt].db}.#{@tables[vt].name} USING PicoQL(" %>
 <%      query =  "CREATE VIRTUAL TABLE #{@tables[vt].name} USING PicoQL(" %>
@@ -158,6 +159,9 @@ void * thread_sqlite(void *data) {
   queries[<%= vt %>] = "<%= query %>";
   table_names[<%= vt %>] = "<%= @tables[vt].name %>";
 <%    } %>
+<%#    @views.each_index { |vs| %>
+<%#  queries[<%= vs ] = "<%= @views[vs] "; %>
+<%#    } %>
   set_selectors();
   int port_number = *(int *)data;
   delete (int *)data;

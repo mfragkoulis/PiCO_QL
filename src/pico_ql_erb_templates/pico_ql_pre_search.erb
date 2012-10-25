@@ -36,10 +36,8 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
   }
 <%      if /\*/.match(@pointer) == nil %>
 <%        sign_retype = "#{@signature}*" %>
-<%        sign_untype = @signature %>
 <%      else %>
 <%        sign_retype = @signature %>
-<%        sign_untype = @signature.chomp("*") %>
 <%      end %>
   <%= sign_retype %> any_dstr = (<%= sign_retype %>)stcsr->source;
 <%        if $argD == "DEBUG" %>

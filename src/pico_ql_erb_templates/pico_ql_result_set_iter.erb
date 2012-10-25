@@ -6,8 +6,8 @@ size_t <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, sqlite3_vtab *vtab
   if (cur != NULL) {
     picoQLTableCursor *stc = (picoQLTableCursor *)cur;
 <%        /\*/.match(@pointer) == nil ? retype = "*" : retype = "" %>
-<%# stc->source will definitely hold a pointer so retyping the signature as
-<%# follows is correct. %>
+<%# stc->source will definitely hold a pointer so retyping the signature
+<%# as follows is correct. %>
     <%= @signature %><%= retype %> any_dstr = (<%= @signature %><%= retype %>)stc->source;
 <%        if $argD == "DEBUG" %>
 #line <%= @signature_line + 1 %> "<%= $argF %>" 

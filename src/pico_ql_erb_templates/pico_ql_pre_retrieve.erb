@@ -6,10 +6,8 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int nCol, sqlite3_con
   if (struct_is_empty_null(cur, con)) return SQLITE_OK; 
 <%    if /\*/.match(@pointer) == nil %>
 <%      sign_retype = "#{@signature}*" %>
-<%      sign_untype = @signature %>
 <%    else %>
 <%      sign_retype = @signature %>
-<%      sign_untype = @signature.chomp("*") %>
 <%    end %>
 <%    if @container_class.length == 0 || @base_var.length == 0 %>
   picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
