@@ -112,3 +112,28 @@ rownum row_id base rownum name color
 
 Done
 
+Query 5:
+ select * from ReducedBoard;
+
+Statement prepared.
+name color 
+
+rook white 
+knight white 
+bishop white 
+king white 
+queen white 
+bishop white 
+knight white 
+rook white 
+pawn white 
+pawn white 
+pawn white 
+pawn white 
+pawn white 
+pawn white 
+pawn white 
+pawn white 
+
+Done
+

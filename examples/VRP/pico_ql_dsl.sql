@@ -64,3 +64,10 @@ CREATE VIRTUAL TABLE mydb.MapIndex
 USING STRUCT VIEW MapIndex
 WITH REGISTERED C NAME test 
 WITH REGISTERED C TYPE map<int, Customer*>;
+
+CREATE VIEW MyTrucks AS
+SELECT rownum, cost, delcapacity
+FROM Trucks
+JOIN Truck
+ON Truck.base=Trucks.truck_id
+WHERE cost>400;

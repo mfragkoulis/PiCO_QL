@@ -17,3 +17,10 @@ CREATE VIRTUAL TABLE ChessDB.ChessBoard
 USING STRUCT VIEW ChessBoard
 WITH REGISTERED C NAME board 
 WITH REGISTERED C TYPE vector<vector<ChessPiece> >;
+
+CREATE VIEW ReducedBoard AS
+SELECT name,color
+FROM ChessBoard
+JOIN ChessRow
+ON ChessRow.base=ChessBoard.row_id
+WHERE color='white';

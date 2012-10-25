@@ -39,3 +39,7 @@ USING STRUCT VIEW SpecialAccount
 WITH REGISTERED C NAME specialaccounts 
 WITH REGISTERED C TYPE list<SpecialAccount>;
 
+CREATE VIEW Myaccounts AS 
+SELECT balance,type
+FROM Accounts 
+WHERE balance > 100;

@@ -143,9 +143,11 @@ void picoQL::pico_ql_register(const void *data_structure, const char *ds_name) {
 
 // Thread. Creates the queries and passes them on to PiCO_QL.
 void * thread_sqlite(void *data) {
-  const char **queries, **table_names;
-  queries = (const char **)sqlite3_malloc(sizeof(char *) * <%= @tables.length.to_s %>);
-  table_names = (const char **)sqlite3_malloc(sizeof(char *) * <%= @tables.length.to_s %>);
+  const char **queries, **sqlite_names;
+<% view_length = 0 %>
+<% @views == nil ? views_length = 0 : views_length = @views.length %>
+  queries = (const char **)sqlite3_malloc(sizeof(char *) * <%= (@tables.length + views_length).to_s %>);
+  sqlite_names = (const char **)sqlite3_malloc(sizeof(char *) * <%= (@tables.length + views_length).to_s %>);
   int failure = 0;
 <%# <db>.<table> does not work for some reason. test. %>
 <%# counter %>
@@ -157,18 +159,21 @@ void * thread_sqlite(void *data) {
 <%      } %>
 <%      query = query.chomp(", ") + ")" %>
   queries[<%= vt %>] = "<%= query %>";
-  table_names[<%= vt %>] = "<%= @tables[vt].name %>";
+  sqlite_names[<%= vt %>] = "<%= @tables[vt].name %>";
 <%    } %>
-<%#    @views.each_index { |vs| %>
-<%#  queries[<%= vs ] = "<%= @views[vs] "; %>
-<%#    } %>
+<%    if views_length > 0 %>
+<%      @views.each_index { |vs| %>
+  queries[<%= vs + @tables.length %>] = "<%= @views[vs].stmt %>";
+  sqlite_names[<%= vs + @tables.length %>] = "<%= @views[vs].name %>";
+<%      } %>
+<%    end %>
   set_selectors();
   int port_number = *(int *)data;
   delete (int *)data;
-  failure = register_table( "<%= @tables[0].db %>" , <%= @tables.length.to_s %>,  queries, table_names, port_number);
+  failure = register_table( "<%= @tables[0].db %>" , <%= (@tables.length + views_length).to_s %>, <%= views_length.to_s %>, queries, sqlite_names, port_number);
   printf("Thread sqlite returns %i\n", failure);
   sqlite3_free(queries);
-  sqlite3_free(table_names);
+  sqlite3_free(sqlite_names);
   return NULL;
 }
 

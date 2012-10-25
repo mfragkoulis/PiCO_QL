@@ -880,6 +880,28 @@ class StructView
 
 end
 
+# Models a (standard relational) view definition.
+class View
+
+  def initialize(definition)
+    @stmt = definition
+    @name = ""
+  end
+  attr_accessor(:stmt,:name)
+
+  def extract_name()
+    pattern = /^create view (\w+) as/im
+    matchdata = pattern.match(@stmt)
+    if matchdata
+      # First record of table_data contains the whole description of the 
+      # struct_view.
+      # Second record contains the view's name
+      @name = matchdata[1]
+    end
+  end
+
+end
+
 # Models the input description.
 class InputDescription
   def initialize(description)
@@ -887,9 +909,10 @@ class InputDescription
     @description = description
     # array with entries the identity of each virtual table
     @tables = Array.new
+    @views = Array.new
     @directives = ""
   end
-  attr_accessor(:description,:tables,:directives)
+  attr_accessor(:description,:tables,:views,:directives)
 
 # Support templating of member data
   def get_binding
@@ -1041,8 +1064,8 @@ class InputDescription
         $struct_views.push(StructView.new).last.match_struct_view(stmt)
       when /^create virtual table/im
         @tables.push(VirtualTable.new).last.match_table(stmt)
-        # when /^create view as/im
-        # @views.push(View.new(stmt))
+      when /^create view (\w+) as/im
+        @views.push(View.new(stmt)).last.extract_name()
       end
       w += 1
     }

@@ -61,3 +61,7 @@
 previously by referencing the struct view's name
 <struct_view_inheritance> ::= 'INHERITS STRUCT VIEW' <struct_view_name> 
 			      ['FROM' <access_statement>]
+
+<--STANDARD RELATIONAL VIEW DEFINITION-->
+
+<view_def> ::= 'as_per_ansi_92_sql_standard'

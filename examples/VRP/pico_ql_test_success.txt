@@ -1122,3 +1122,13 @@ code x_coord y_coord code demand x_coord y_coord distanceP2
 
 Done
 
+Query 72:
+ select * from MyTrucks;
+
+Statement prepared.
+rownum cost delcapacity 
+
+13 451.609882 0 
+
+Done
+

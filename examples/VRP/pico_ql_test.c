@@ -641,6 +641,13 @@ int call_test(sqlite3 *db) {
 #endif
   result = test_prep_exec(f, db, q);
 
+  q = "select * from MyTrucks;";
+  fprintf(f, "Query %i:\n %s\n\n", i++, q);
+#ifdef PICO_QL_DEBUG
+  printf("Query %i:\n %s\n\n", i, q);
+#endif
+  result = test_prep_exec(f, db, q);
+
   deinit_vt_selectors();
   sqlite3_close(db);
   fclose(f);

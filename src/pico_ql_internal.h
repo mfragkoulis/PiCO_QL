@@ -95,10 +95,6 @@ namespace picoQL {
       int max_size;        // 
       int size;            // For objects only.
       int current;         // For objects only.
-      void *resultSet;     // For containers only.
-      void *resultSetIter;  // For containers only.
-      int resultSetIterState; // For containers only.
-      void *resultSetIndex; // For containers only.
       void *textResults;
       int isEof; 
       int first_constr; 

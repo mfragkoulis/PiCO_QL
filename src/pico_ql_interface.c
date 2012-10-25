@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <swill.h>
+#include <string.h>
 #include "pico_ql_interface.h"
 #include "pico_ql_vt.h"
 #include "pico_ql_test.h"
@@ -286,14 +287,15 @@ void call_swill(sqlite3 *db, int port_number) {
  * depending on the compile flag TEST.
  */
 int register_table(const char *nDb, 
-		   int argc, 
+		   int argc,
+		   int view_index, 
 		   const char **q, 
-		   const char **table_names, 
+		   const char **sqlite_names, 
 		   int port_number) {
   /* This definition implicitly constraints a table name 
    * to 140 characters. It should be more than enough.
    */
-  char table_query[200];
+  char sqlite_query[200];
   int re, i=0;
   sqlite3 *db;
   re = sqlite3_open(nDb, &db);
@@ -303,7 +305,7 @@ int register_table(const char *nDb,
     return re;
   }
 
-#ifdef PIPICO_QL_DEBUG
+#ifdef PICO_QL_DEBUG
   for (i = 0; i < argc; i++) {
     printf("\nquery to be executed: %s\n in database: %s\n\n", q[i], nDb);
   }
@@ -318,9 +320,15 @@ int register_table(const char *nDb,
   else if (output == 0) 
     printf("Module registered successfully\n");
 #endif
+  // sqlite3_create_function() calls
   for (i = 0; i < argc; i++) {
-    sprintf(table_query, "SELECT * FROM sqlite_master WHERE type='table' AND name='%s';", table_names[i]);
-    if (prep_exec(NULL, db, (const char *)table_query) != SQLITE_ROW) {
+    char sqlite_type[10];
+    if (i < view_index)
+      strcpy(sqlite_type, "table");
+    else
+      strcpy(sqlite_type, "view");
+    sprintf(sqlite_query, "SELECT * FROM sqlite_master WHERE type='%s' AND name='%s';", sqlite_type, sqlite_names[i]);
+    if (prep_exec(NULL, db, (const char *)sqlite_query) != SQLITE_ROW) {
       re = prep_exec(NULL, db, (const char *)q[i]);
 #ifdef PICO_QL_DEBUG
       printf("Query %s returned %i\n", q[i], re);

@@ -507,7 +507,9 @@ int close_vtable(sqlite3_vtab_cursor *cur) {
   picoQLTable *st = (picoQLTable *)cur->pVtab;
   printf("Closing vtable %s \n\n", st->zName);
 #endif
-  deinit_result_set(cur, stc->resultSet);
+  // Second argument dummy
+  // (part of polymorphized arsenal of methods).
+  deinit_result_set(cur, stc);
 #ifdef PICO_QL_HANDLE_POLYMORPHISM
   deinit_text_vector(stc);
 #endif

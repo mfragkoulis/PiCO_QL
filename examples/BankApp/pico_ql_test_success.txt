@@ -91,3 +91,17 @@ rownum balance account_no rate isbn bonus
 
 Done
 
+Query 7:
+ select * from Myaccounts;
+
+Statement prepared.
+balance type 
+
+500.000000 credit 
+394.279999 debit-consuming 
+48923.000000 credit 
+445567.000000 debit-business 
+23489.000000 credit-fundtrust 
+
+Done
+
