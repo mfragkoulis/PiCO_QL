@@ -157,7 +157,7 @@ void * thread_sqlite(void *data) {
   set_selectors();
   int port_number = *(int *)data;
   delete (int *)data;
-  failure = register_table( "<%= @tables[0].db %>" , <%= (@tables.length + views_length).to_s %>, <%= views_length.to_s %>, queries, sqlite_names, port_number);
+  failure = register_table( "<%= @tables[0].db %>" , <%= (@tables.length + views_length).to_s %>, <%= @tables.length.to_s %>, queries, sqlite_names, port_number);
   printf("Thread sqlite returns %i\n", failure);
   sqlite3_free(queries);
   sqlite3_free(sqlite_names);
