@@ -16,8 +16,3 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int nCol, sqlite3_con
 #line <%= @signature_line + 1 %> "<%= $argF %>" 
 <%        end %>
 <%    end %>
-<%    if @include_text_col > 0 %>
-#ifdef PICO_QL_HANDLE_POLYMORPHISM
-  vector<string*> *tr = (vector<string*> *)((picoQLTableCursor *)cur)->textResults;
-#endif
-<%    end %>

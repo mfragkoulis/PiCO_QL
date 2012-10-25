@@ -51,7 +51,9 @@ namespace picoQL {
   class VtblImpl {
   public:
     VtblImpl() {};
+
     virtual ~VtblImpl() {};
+
     virtual int operator() (sqlite3_vtab_cursor *, int, 
 			    int, sqlite3_value *) 
     {return SQLITE_ERROR;};
@@ -70,6 +72,8 @@ namespace picoQL {
     virtual void operator() (sqlite3_vtab_cursor *, void *) {};
 
     virtual void operator() (sqlite3_vtab_cursor *, int, std::map<sqlite3_vtab_cursor *, bool> *) {};
+
+    virtual void operator() (const char *) {};
   };
 
   extern "C" {
@@ -95,7 +99,6 @@ namespace picoQL {
       int max_size;        // 
       int size;            // For objects only.
       int current;         // For objects only.
-      void *textResults;
       int isEof; 
       int first_constr; 
       void *source;
@@ -106,8 +109,6 @@ namespace picoQL {
     int register_vt(picoQLTable *picoQL);
     int equals(const char *zCol, const char *key);
     void set_selectors(); // internal but inconvenient to position
-    int init_text_vector(picoQLTableCursor *stc);
-    void deinit_text_vector(picoQLTableCursor *stc);
     void deinit_temp_structs();
     void deinit_vt_selectors();
     void init_result_set(sqlite3_vtab *vtab, sqlite3_vtab_cursor *stc);

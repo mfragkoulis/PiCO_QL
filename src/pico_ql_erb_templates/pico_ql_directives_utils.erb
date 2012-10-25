@@ -87,19 +87,6 @@ struct name_cmp {
 
 static map<string, VtblImpl*> selector_vt;
 
-<%     i = 0 %>
-<%     @tables.each { |vt| %>
-<%      vt.columns.each { |col| %>
-<%       if col.related_to.length > 0 && col.fk_method_ret == 1 %>
-<%        col.fk_col_type = $table_index[col.related_to] %>
-<%        if $argM == "MEM_MGT" %>
-list <<%= col.fk_col_type.chomp('*') %> > saved_results_<%= i %>;
-<%        end %>
-<%        col.saved_results_index = i %>
-<%        i += 1 %>
-<%       end %>
-<%      } %>
-<%     } %>
 
 <%     @tables.each { |vt| %>
 <%      if vt.base_var.length > 0 %>
@@ -247,31 +234,12 @@ int picoQL::equals(const char *zCol, const char *key) {
  * values of type char array so that they are retrievable
  * by SQLite without conflict.
  */
-int picoQL::init_text_vector(picoQLTableCursor *stc) {
-#ifdef PICO_QL_HANDLE_POLYMORPHISM
-  vector<string*> *tr = new vector<string*>();
-  stc->textResults = (void *)tr;
-  if (tr != NULL)
-    return SQLITE_OK;
-  else
-    return SQLITE_NOMEM;
-#endif
-  return SQLITE_OK;
-}
 
 
 /* Deinitiates dynamic vector which stores resultset
  * column values of type char array so that they are
  * retrievable by SQLite without conflict.
  */
-void picoQL::deinit_text_vector(picoQLTableCursor *stc) {
-#ifdef PICO_QL_HANDLE_POLYMORPHISM
-  vector<string*> *tr = (vector<string*> *)stc->textResults;
-  for (size_t i = 0; i < tr->size(); i++)
-    delete tr->at(i);
-  delete tr;
-#endif
-}
 
 
 /* Deinitiates vectors which store temporary FK
@@ -280,15 +248,11 @@ void picoQL::deinit_text_vector(picoQLTableCursor *stc) {
  */
 void picoQL::deinit_temp_structs() {
 <%     @tables.each { |vt| %>
-<%      vt.columns.each { |col| %>
-<%       if $argM == "MEM_MGT" && col.related_to.length > 0 && col.fk_method_ret == 1 %>
-  saved_results_<%= col.saved_results_index %>.clear();
-<%       end %>
-<%      } %>
+  VtblImpl *discharge<%= vt.name %>VT = selector_vt["<%= vt.name %>"];
+  (*discharge<%= vt.name %>VT)("clear_saved_results");
 <%      if vt.base_var.length == 0 %>
   map<sqlite3_vtab_cursor *, bool> *map<%= vt.name %>;
   map<%= vt.name %> = NULL;
-  VtblImpl *discharge<%= vt.name %>VT = selector_vt["<%= vt.name %>"];
   (*discharge<%= vt.name %>VT)(NULL, 0, map<%= vt.name %>);
 <%      end %>
 <%     } %>
@@ -308,6 +272,20 @@ namespace picoQL {
 <%     @tables.each { |vt| %>
 class <%= vt.name %>_vt : public VtblImpl {
 private:
+<%      i = 0 %>
+<%      vt.columns.each { |col| %>
+<%       if col.related_to.length > 0 && col.fk_method_ret == 1 %>
+<%        col.fk_col_type = $table_index[col.related_to] %>
+<%        if $argM == "MEM_MGT" %>
+list <<%= col.fk_col_type.chomp('*') %> > saved_results_<%= i %>;
+<%        end %>
+<%        col.saved_results_index = i %>
+<%        i += 1 %>
+<%       end %>
+<%      } %>
+#ifdef PICO_QL_HANDLE_POLYMORPHISM
+  vector<string> textVector;
+#endif
 <%      if vt.container_class.length > 0 %>
   class ResultSet {
   public:
@@ -371,6 +349,14 @@ public:
   virtual void operator() (sqlite3_vtab_cursor *, int, map<sqlite3_vtab_cursor *, bool> *) {};
 <%      end %>
 
+  virtual void operator() (const char *dummy) {
+    (void)dummy;
+<%      vt.columns.each { |col| %>
+<%       if $argM == "MEM_MGT" && col.related_to.length > 0 && col.fk_method_ret == 1 %>
+    saved_results_<%= col.saved_results_index %>.clear();    
+<%       end %>
+<%      } %>
+  };
 };
  
 <%     } %>

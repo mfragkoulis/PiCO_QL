@@ -454,9 +454,9 @@ class VirtualTable
 	    string_construct_cast = "(const char *)"
 	  end
 	  fw.puts "#ifdef PICO_QL_HANDLE_POLYMORPHISM"
-	  fw.puts "    tr->push_back(new string(#{string_construct_cast}#{access_path}));"
+	  fw.puts "    textVector.push_back(#{string_construct_cast}#{access_path});"
           print_line_directive(fw, line)
-          fw.puts "    sqlite3_result_text(con, (const char *)(*tr->back()).c_str()#{sqlite3_parameters});"
+          fw.puts "    sqlite3_result_text(con, (const char *)textVector.back().c_str()#{sqlite3_parameters});"
           fw.puts "#else"
 	end
         fw.puts "    sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{access_path}#{column_cast_back}#{sqlite3_parameters});"
