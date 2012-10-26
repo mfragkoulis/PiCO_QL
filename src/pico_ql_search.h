@@ -22,11 +22,17 @@
 #ifndef PICO_QL_SEARCH_H
 #define PICO_QL_SEARCH_H
 
+#ifdef __cplusplus
 namespace picoQL {
+  extern "C" {
+#endif
 
   int pico_ql_serve(int port_number);
   void pico_ql_register(const void *collection, const char * col_name);
 
+#ifdef __cplusplus
+  }
 }
+#endif
 
 #endif

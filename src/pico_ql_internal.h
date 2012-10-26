@@ -2,7 +2,7 @@
  *   Define the virtual table structure and the virtual 
  *   table cursor structure.
  *   Declare the implementation interface 
- *   to pico_ql_search.cpp.
+ *   to pico_ql_internal.cpp.
  *
  *   Copyright 2012 Marios Fragkoulis
  *
@@ -105,7 +105,7 @@ namespace picoQL {
     } picoQLTableCursor; /* The cursor struct for the 
 			  * virtual table. 
 			  */
-    
+    void * thread_sqlite(void *data);
     int register_vt(picoQLTable *picoQL);
     int equals(const char *zCol, const char *key);
     void set_selectors(); // internal but inconvenient to position

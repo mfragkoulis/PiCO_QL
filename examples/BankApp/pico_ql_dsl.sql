@@ -4,6 +4,8 @@
 #include <map>
 #include <list>
 #include <vector>
+
+using namespace std;
 ;
 // SuperAccount description
 CREATE STRUCT VIEW SuperAccount (

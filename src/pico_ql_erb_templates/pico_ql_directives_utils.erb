@@ -42,15 +42,15 @@
 #include <pthread.h>
 #endif
 <%= directives %>
-#include "pico_ql_search.h"
 #include "pico_ql_internal.h"
-#include "pico_ql_interface.h"
 #include "pico_ql_search_helper.h"
+#include "pico_ql_interface.h"
 
 
 using namespace std;
 using namespace boost;
-using namespace picoQL;
+
+namespace picoQL {
 
 template <class T>
 void forward_container_concept_check(T x) {
@@ -87,46 +87,19 @@ struct name_cmp {
 
 static map<string, VtblImpl*> selector_vt;
 
-
 <%     @tables.each { |vt| %>
 <%      if vt.base_var.length > 0 %>
 <%        /\*/.match(vt.pointer) == nil ? retype = "*" : retype = "" %>
 <%        if $argD == "DEBUG" %>
 // C NAME (pico_ql_table_)<%= vt.base_var %> in line <%= vt.base_var_line + 1 %> <%= $argF %> 
 <%        end %>
-static <%= vt.signature %> <%= retype %>pico_ql_table_<%= vt.base_var %> = NULL;
+extern <%= vt.signature %> <%= retype %>pico_ql_table_<%= vt.base_var %>;
 <%        if $argD == "DEBUG" %>
 #line <%= vt.signature_line + 1 %> "<%= $argF %>" 
 <%        end %>
 <%      end %>
 <%     } %>
 
-
-/* Registers the base variables of user application code
- * with PiCO QL.
- */
-void picoQL::pico_ql_register(const void *data_structure, const char *ds_name) {
-<%    count = 0 %>
-<%    @tables.each_index { |vt| %>
-<%      if @tables[vt].base_var.length > 0 %>
-<%        if count == 0 %>
-  if (!strcmp(ds_name, "<%= @tables[vt].base_var %>")) {
-<%	  count += 1 %>
-<%        else %>
-  } else if (!strcmp(ds_name, "<%= @tables[vt].base_var %>")) {
-<%        end %>
-<%        if $argD == "DEBUG" %>
-#line <%= @tables[vt].base_var_line + 1 %> "<%= $argF %>" 
-<%        end %>
-<%        /\*/.match(@tables[vt].pointer) == nil ? retype = "*" : retype = "" %>
-    pico_ql_table_<%= @tables[vt].base_var %> = (<%= @tables[vt].signature %> <%= retype %>)data_structure;
-<%        if $argD == "DEBUG" %>
-#line <%= @tables[vt].signature_line + 1 %> "<%= $argF %>" 
-<%        end %>
-<%      end %>
-<%    } %>
-  }
-}
 
 // Thread. Creates the queries and passes them on to PiCO_QL.
 void * thread_sqlite(void *data) {
@@ -165,26 +138,10 @@ void * thread_sqlite(void *data) {
 }
 
 
-// The API with user application code. Creates the PiCO_QL thread.
-int picoQL::pico_ql_serve(int port) {
-  int *portN = new int(port);
-#ifndef PICO_QL_SINGLE_THREADED
-  pthread_t sqlite_thread;
-  pthread_create(&sqlite_thread, NULL, thread_sqlite, (void *)portN);
-#ifdef PICO_QL_JOIN_THREADS
-  pthread_join(sqlite_thread, NULL);
-#endif
-#else
-  thread_sqlite((void *)portN);
-#endif
-  return 0;
-}
-
-
 /* Registers the base variables of user application code
  * with their virtual table representation.
  */
-int picoQL::register_vt(picoQLTable *picoQL) {
+int register_vt(picoQLTable *picoQL) {
 <%    count = 0 %>
 <%    @tables.each_index { |vt| %>
 <%      if @tables[vt].base_var.length > 0 %>
@@ -215,7 +172,7 @@ int picoQL::register_vt(picoQLTable *picoQL) {
 
 // Each embedded virtual table has a column named 'base'.
 // This function checks if a provided column name is indeed 'base'.
-int picoQL::equals(const char *zCol, const char *key) {
+int equals(const char *zCol, const char *key) {
   int length = (int)strlen(zCol) + 1;
   char copy[length], *token;
   memcpy(copy, zCol, length);
@@ -229,24 +186,11 @@ int picoQL::equals(const char *zCol, const char *key) {
     return SQLITE_NOMEM;
 }
 
-
-/* Initiates dynamic vector which stores resultset column
- * values of type char array so that they are retrievable
- * by SQLite without conflict.
- */
-
-
-/* Deinitiates dynamic vector which stores resultset
- * column values of type char array so that they are
- * retrievable by SQLite without conflict.
- */
-
-
 /* Deinitiates vectors which store temporary FK
  * column values so that they are
  * manageable by SQLite safely.
  */
-void picoQL::deinit_temp_structs() {
+void deinit_temp_structs() {
 <%     @tables.each { |vt| %>
   VtblImpl *discharge<%= vt.name %>VT = selector_vt["<%= vt.name %>"];
   (*discharge<%= vt.name %>VT)("clear_saved_results");
@@ -262,13 +206,12 @@ void picoQL::deinit_temp_structs() {
  * virtual table names to functors virtualizing
  * individual VT search/retrieve implementations.
  */
-void picoQL::deinit_vt_selectors() {
+void deinit_vt_selectors() {
   map<string, VtblImpl *>::iterator it;
   for (it = selector_vt.begin(); it != selector_vt.end(); it++)
     delete it->second;
 }
 
-namespace picoQL {
 <%     @tables.each { |vt| %>
 class <%= vt.name %>_vt : public VtblImpl {
 private:
@@ -284,6 +227,10 @@ list <<%= col.fk_col_type.chomp('*') %> > saved_results_<%= i %>;
 <%       end %>
 <%      } %>
 #ifdef PICO_QL_HANDLE_POLYMORPHISM
+/* Dynamic vector which stores resultset column
+ * values of type char array so that they are retrievable
+ * by SQLite without conflict.
+ */
   vector<string> textVector;
 #endif
 <%      if vt.container_class.length > 0 %>

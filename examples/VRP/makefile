@@ -45,7 +45,7 @@ endif
 
 all: prep schedule
 
-OBJ=main.o Fleet.o Truck.o Customer.o LinehaulCustomer.o BackhaulCustomer.o Position.o mtrand.o pico_ql_search.o pico_ql_vt.o pico_ql_logo.o pico_ql_error_page.o pico_ql_interface.o pico_ql_search_helper.o pico_ql_test.o
+OBJ=main.o Fleet.o Truck.o Customer.o LinehaulCustomer.o BackhaulCustomer.o Position.o mtrand.o pico_ql_search.o pico_ql_internal.o pico_ql_vt.o pico_ql_logo.o pico_ql_error_page.o pico_ql_interface.o pico_ql_search_helper.o pico_ql_test.o
 
 schedule: $(OBJ)
 	$(CXX) -lswill -lsqlite3 $(CXXFLAGS) $(OBJ) -o $@
@@ -66,7 +66,9 @@ Position.o: Position.cpp Position.h
 
 mtrand.o: mtrand.cpp mtrand.h
 
-pico_ql_search.o: pico_ql_search.cpp pico_ql_search.h pico_ql_internal.h pico_ql_interface.h pico_ql_search_helper.h
+pico_ql_search.o: pico_ql_search.cpp pico_ql_search.h pico_ql_internal.h
+
+pico_ql_internal.o: pico_ql_internal.cpp pico_ql_internal.h pico_ql_interface.h pico_ql_search_helper.h
 
 pico_ql_vt.o: pico_ql_vt.c pico_ql_vt.h pico_ql_internal.h
 

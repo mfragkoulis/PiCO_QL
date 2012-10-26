@@ -45,7 +45,7 @@ endif
 
 all: prep bank_app
 
-OBJ=main.o Account.o SuperAccount.o SpecialAccount.o pico_ql_search.o pico_ql_vt.o pico_ql_logo.o pico_ql_error_page.o pico_ql_interface.o pico_ql_search_helper.o pico_ql_test.o
+OBJ=main.o Account.o SuperAccount.o SpecialAccount.o pico_ql_search.o pico_ql_internal.o pico_ql_vt.o pico_ql_logo.o pico_ql_error_page.o pico_ql_interface.o pico_ql_search_helper.o pico_ql_test.o
 
 bank_app: $(OBJ)
 	$(CXX) -lswill -lsqlite3 $(CXXFLAGS) $(OBJ) -o $@
@@ -58,7 +58,9 @@ SuperAccount.o: SuperAccount.cpp SuperAccount.h
 
 SpecialAccount.o: SpecialAccount.cpp SpecialAccount.h
 
-pico_ql_search.o: pico_ql_search.cpp pico_ql_search.h pico_ql_internal.h pico_ql_interface.h pico_ql_search_helper.h
+pico_ql_search.o: pico_ql_search.cpp pico_ql_search.h pico_ql_internal.h
+
+pico_ql_internal.o: pico_ql_internal.cpp pico_ql_internal.h pico_ql_interface.h pico_ql_search_helper.h
 
 pico_ql_vt.o: pico_ql_vt.c pico_ql_vt.h pico_ql_internal.h
 

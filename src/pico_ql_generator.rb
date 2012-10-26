@@ -980,23 +980,35 @@ class InputDescription
   end
   
 # Generates the LICENSE copyright notice and directives as prescribed 
-# from user in the description
+# from user in the description for pico_ql_internal.cpp
   def print_directives_utils(fw)
     file = File.open("pico_ql_erb_templates/pico_ql_directives_utils.erb").read
     directives = ERB.new(file, 0, '>')
     fw.puts directives.result(get_binding)
   end
 
+# Generates the LICENSE copyright notice and application interface 
+# functions in pico_ql_search.cpp
+  def print_register_serve(fw)
+    file = File.open("pico_ql_erb_templates/pico_ql_register_serve.erb").read
+    app_interface = ERB.new(file, 0, '>')
+    fw.puts app_interface.result(get_binding)
+  end
+
 # Generates application-specific code to complement the SQTL library.
 # There is a call to each of the above generative functions.
   def generate()
     myfile = File.open("pico_ql_search.cpp", "w") do |fw|
+      print_register_serve(fw)
+    end
+    puts "Created/updated pico_ql_search.cpp ."
+    myfile = File.open("pico_ql_internal.cpp", "w") do |fw|
       print_directives_utils(fw)
       print_result_set_iter(fw)
       print_search_functions(fw)
       print_retrieve_functions(fw)
     end
-    puts "Created/updated pico_ql_search.cpp ."
+    puts "Created/updated pico_ql_internal.cpp ."
     myFile = File.open("pico_ql_makefile.append", "w") do |fw|
       file = File.open("pico_ql_erb_templates/pico_ql_makefile.erb").read
       makefile = ERB.new(file, 0, '>')

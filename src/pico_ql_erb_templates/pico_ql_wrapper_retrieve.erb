@@ -1,16 +1,17 @@
-}     //close picoQL namespace
- 
 // Redirect to the appropriate retrieve function for a virtual table.
-int picoQL::retrieve(sqlite3_vtab_cursor *cur, int nCol, sqlite3_context *con) {
+int retrieve(sqlite3_vtab_cursor *cur, int nCol, sqlite3_context *con) {
   picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
   VtblImpl *retrieveVT = selector_vt[picoQL->zName];
   return (*retrieveVT)(cur, nCol, con);
 }
 
-void picoQL::set_selectors() {
+void set_selectors() {
 <%     @tables.each { |vt| %>
   <%= vt.name %>_vt *<%= vt.name %>VT = new <%= vt.name %>_vt;
   selector_vt["<%= vt.name %>"] = <%= vt.name %>VT;
 <%     } %>
 }
 
+}     //close picoQL namespace
+ 
+ 
