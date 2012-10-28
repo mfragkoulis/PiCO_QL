@@ -44,6 +44,7 @@ class Column
     @col_type = ""            # Record type (pointer or reference) for 
                               # special columns, the ones that refer to 
                               # other VT.
+    @case = -1                # switch case for union view fields
     @@int_data_types = ["int", "integer", "tinyint", "smallint", 
                         "mediumint", "bigint", "unsigned bigint", "int2",
                         "bool", "boolean", "int8", "numeric"]
@@ -55,7 +56,7 @@ class Column
   end
   attr_accessor(:name,:line,:data_type,:related_to,:fk_col_type,
 		:fk_method_ret,:saved_results_index,
-		:access_path,:col_type)
+		:access_path,:col_type,:case)
 
 
 # Used to clone a Column object. Ruby does not support deep copies.
@@ -94,6 +95,9 @@ class Column
     elsif @name == "rownum"           # 'rownum'column
       sqlite3_type.replace("int")
       return "rownum", nil, nil, nil
+    elsif @cpp_data_type == "union"
+      access_path.replace(@access_path)
+      return "union", @name, nil, @line
     else
       dt = @data_type.downcase         # Normal data column.
       if @@int_data_types.include?(dt)
@@ -130,7 +134,7 @@ class Column
   def register_line()
     $lined_description.each_index { |line|
       # Match for FK and normal data type columns.
-      if $lined_description[line].match(/foreign key(\s*)\((\s*)#{Regexp.escape(@name)}(\s*)\) from #{Regexp.escape(@access_path)}|#{Regexp.escape(@name)} #{Regexp.escape(@data_type)} from #{Regexp.escape(@access_path)}/i)
+      if $lined_description[line].match(/foreign key(\s*)\((\s*)#{Regexp.escape(@name)}(\s*)\) from #{Regexp.escape(@access_path)}|#{Regexp.escape(@name)} #{Regexp.escape(@data_type)} from #{Regexp.escape(@access_path)}(\s*)(\w*)(\s*)(\w*)/i)
         @line = line
         if $argD == "DEBUG"
           puts "Column found at line #{@line + 1} of #{$argF}"
@@ -162,6 +166,13 @@ class Column
           @@double_data_types.include?(dt) || 
           /decimal/i.match(dt) != nil
         return 0
+      elsif dt == "union"
+        @cpp_data_type.replace(dt)
+        @data_type.replace("NUMERIC")
+        return 0
+      elsif dt == "enum"
+# union view: switch data type possibility (?)
+        return 0
       else
         raise TypeError.new("No such data type #{dt.upcase}\\n")
       end
@@ -187,7 +198,7 @@ class Column
     column_ptn1 = /inherits struct view (\w+) from (.+)/im
     column_ptn2 = /inherits struct view (\w+)/im
     column_ptn3 = /foreign key(\s*)\((\s*)(\w+)(\s*)\) from (.+) references (\w+)(\s*)(\w*)/im
-    column_ptn4 = /(\w+) (\w+) from (.+)/im
+    column_ptn4 = /(\w+) (\w+) from (.+)(\s*)(\w*)(\s*)(\w*)/im
     case column
     when column_ptn1
       matchdata = column_ptn1.match(column)
@@ -265,6 +276,9 @@ class Column
       @name = matchdata[1]
       @data_type = matchdata[2]
       @access_path = matchdata[3]
+      if matchdata[7].length != 0
+        @case = matchdata[7]
+      end
     end
     register_line()
     col_type_text = verify_data_type()
@@ -333,7 +347,7 @@ class VirtualTable
 
 # Method performs case analysis to generate 
 # the correct form of the variable
-  def configure(access_path)
+  def configure_retrieve(access_path)
     iden = ""
     type_check = ""
     if @container_class.length > 0
@@ -370,7 +384,7 @@ class VirtualTable
                                    sqlite3_parameters, column_cast_back, 
                                    access_path)
       iden = ""
-      iden = configure(access_path)
+      iden = configure_retrieve(access_path)
       case op
       when "base"
         fw.puts "#ifdef ENVIRONMENT64"
@@ -487,10 +501,84 @@ class VirtualTable
     fw.puts post_search.result(get_binding)
   end
 
+  def gen_union_col_constr(union_view_name, access_path)
+    columns = Array.new
+    $union_views.each { |uv| if uv.name == union_view_name : columns = uv.columns end }
+    if !access_path.end_with?(".") && !access_path.end_with?("->")
+      access_path.append(".")
+    end
+    columns.each { |col| 
+      if col.name =~ /switch/i
+        fw.puts "#{$s}switch (#{access_path}#{col.access_path}) {"
+      end
+    }
+    case_value = 0
+    columns.each { |col|
+      if col.case > -1 : case_value = col.case end 
+      fw.puts "    case #{case_value.to_s}:"
+      sqlite3_type = "search"
+      column_cast = ""
+      sqlite3_parameters = ""
+      column_cast_back = ""
+      access_path = ""
+      space = "      "
+      op, union_view_name, fk_type, line, fk_method_ret, useless3 = 
+      @columns[col].bind_datatypes(sqlite3_type, 
+                                   column_cast, sqlite3_parameters, 
+                                   column_cast_back, access_path)
+      if $argD == "DEBUG"
+        puts "sqlite3_type: " + sqlite3_type
+        puts "column_cast: " + column_cast
+        puts "sqlite3_parameters: " + sqlite3_parameters
+        puts "column_cast_back: " + column_cast_back
+        puts "access_path: " + access_path
+        if op == "union"
+          puts "Union: " + union_view_name
+        end
+        if line != nil
+          puts "line: " + (line + 1).to_s
+        else 
+          puts "line: nil"
+        end
+      end
+      case op
 
-  def gen_fk_col(fw, fk_method_ret, access_path, fk_type, column_cast, 
-                 column_cast_back, sqlite3_type, sqlite3_parameters, 
-                 line, add_to_result_set, space, notC)
+      end
+      case_value += 1
+    }
+  end
+
+
+  def gen_all(fw, column_cast, access_pathF, access_pathN, 
+              column_cast_back, sqlite3_type, line)
+    fw.puts "      if (first_constr == 1) {"
+    if @container_class.length > 0
+      fw.puts "#{$s}for (iter = any_dstr->begin(); iter != any_dstr->end(); iter++) {"
+      fw.puts "#{$s}  if (compare(#{column_cast}#{access_pathF}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val))) {"
+      print_line_directive(fw, line)
+      fw.puts "#{$s}    rs->res.push_back(#{@signature.chomp('*')}::iterator(iter));\n#{$s}    rs->resBts.set(index, 1);\n#{$s}  }\n#{$s}  index++;\n#{$s}}"
+      fw.puts "      } else {"
+      fw.puts "#{$s}index = rs->resBts.find_first();"
+      fw.puts "#{$s}resIterC = rs->res.begin();"
+      fw.puts "#{$s}while (resIterC != rs->res.end()) {"
+      fw.puts "#{$s}  if (!compare(#{column_cast}#{access_pathN}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val))) {"
+      print_line_directive(fw, line)
+      fw.puts "\n#{$s}    resIterC = rs->res.erase(resIterC);\n#{$s}    rs->resBts.reset(index);\n#{$s}  } else\n#{$s}    resIterC++;\n#{$s}  index = rs->resBts.find_next(index);\n#{$s}}"
+      fw.puts "      }"
+    else
+      fw.puts "#{$s}if (compare(#{column_cast}#{access_pathF}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val)))"
+      fw.puts "#{$s}  stcsr->size = 1;"
+      fw.puts "      } else if (stcsr->size == 1)"
+      fw.puts "#{$s}if (!compare(#{column_cast}#{access_pathF}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val)))"
+      fw.puts "#{$s}  stcsr->size = 0;"
+    end
+    fw.puts "      break;"    
+  end
+  
+  def gen_fk_col_constr(fw, fk_method_ret, access_path, fk_type, 
+                        column_cast, column_cast_back, sqlite3_type, 
+                        sqlite3_parameters, line, add_to_result_set, 
+                        space, notC)
     fw.puts "#ifdef ENVIRONMENT64"
     if $argM == "MEM_MGT" && fk_method_ret == 1    # Returning from a method.
       fw.puts "#{space}if (#{notC}compare(#{column_cast}t#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_type}(val))) {"
@@ -509,6 +597,99 @@ class VirtualTable
     fw.puts "#{add_to_result_set}"
   end
 
+  def gen_fk(fw, fk_type, column_cast, column_cast_back, space, 
+             fk_method_ret, access_pathF, access_pathN, sqlite3_type, 
+             sqlite3_parameters, line)
+    add_to_result_setF = ""
+    add_to_result_setN = ""
+    if fk_type == "object" : column_cast.concat("&") end
+    fw.puts "#{space}if (first_constr) {"
+    space.concat("  ")
+    if $argM == "MEM_MGT" && fk_method_ret == 1
+      fw.puts "#{space}{"
+      space.concat("  ")
+      fw.puts "#{space}typeof(#{access_pathF}) t = #{access_pathF};"
+    end
+    if @container_class.length > 0
+      fw.puts "#{space}for (iter = any_dstr->begin(); iter != any_dstr->end(); iter++) {"
+      add_to_result_setF = "#{space}    rs->res.push_back(#{@signature.chomp('*')}::iterator(iter));\n#{space}    rs->resBts.set(index, 1);\n#{space}  }\n#{space}  index++;\n#{space}}"
+      add_to_result_setN = "\n#{space}    resIterC = rs->res.erase(resIterC);\n#{space}    rs->resBts.reset(index);\n#{space}  } else\n#{space}    resIterC++;\n#{space}  index = rs->resBts.find_next(index);\n#{space}}"
+      space.concat("  ")
+    else
+      add_to_result_setF = "#{space}  stcsr->size = 1;\n#{space}}"
+      add_to_result_setN = "#{space}  stcsr->size = 0;\n#{space}}"
+    end
+    notC = ""
+    gen_fk_col_constr(fw, fk_method_ret, access_pathF, fk_type, 
+                      column_cast, column_cast_back, sqlite3_type, 
+                      sqlite3_parameters, line, add_to_result_setF, 
+                      space, notC)
+    if @container_class.length > 0
+      space.chomp!("    ")
+    end
+    if $argM == "MEM_MGT" && fk_method_ret == 1
+      space.chomp!("  ")
+      fw.puts "#{space}}"
+    end
+    if @container_class.length > 0
+      fw.puts "#{space}} else {"
+    else
+      space.chomp!("  ")
+      fw.puts "#{space}} else if (stcsr->size == 1) {"
+    end
+    notC = "!"
+    space.concat("  ")
+    if $argM == "MEM_MGT" && fk_method_ret == 1
+      fw.puts "#{space}{"
+      space.concat("  ")
+      fw.puts "#{space}typeof(#{access_pathN}) t = #{access_pathN};"
+    end
+    if @container_class.length > 0        
+      fw.puts "#{space}index = rs->resBts.find_first();\n#{space}resIterC = rs->res.begin();\n#{space} while (resIterC != rs->res.end()) {"
+      space.concat("  ")
+    end
+    gen_fk_col_constr(fw, fk_method_ret, access_pathN, fk_type, 
+                      column_cast, column_cast_back, sqlite3_type, 
+                      sqlite3_parameters, line, add_to_result_setN, 
+                      space, notC)
+    if @container_class.length > 0        
+      space.chomp!("    ")
+    end
+    if $argM == "MEM_MGT" && fk_method_ret == 1
+      space.chomp!("  ")          
+      fw.puts "#{space}}"
+    end
+    if @container_class.length == 0
+      space.chomp!("  ")
+    end
+    fw.puts "#{space}}"
+    fw.puts "#{space}break;"
+  end
+
+  def configure_search(access_path)
+    access_pathF = ""
+    access_pathN = ""
+    idenF = ""
+    idenN = ""
+    if @container_class.length > 0
+      access_path.length == 0 ? idenF = "(*iter)" : idenF = "(*iter)."
+      access_path.length == 0 ? idenN = "(**resIterC)" : idenN = "(**resIterC)."
+    else
+      access_path.length == 0 ? idenF = "any_dstr" : idenF = "any_dstr->"
+      access_path.length == 0 ? idenN = "any_dstr" : idenN = "any_dstr->"
+    end
+    if access_path.match(/this\.|this->/)
+      access_pathF = access_path.gsub(/this\.|this->/, "#{idenF}")
+      access_pathN = access_path.gsub(/this\.|this->/, "#{idenN}")
+    else
+      access_pathF = "#{idenF}#{access_path}"
+      access_pathN = "#{idenN}#{access_path}"
+    end
+    return access_pathF, access_pathN
+  end
+
+
+
 # Generates code to search each VT struct.
 # Each search case matches a specific column of the VT.
   def search_columns(fw)
@@ -521,7 +702,7 @@ class VirtualTable
       column_cast_back = ""
       access_path = ""
       space = "      "
-      op, useless, fk_type, line, fk_method_ret, useless3 = 
+      op, union_view_name, fk_type, line, fk_method_ret, useless3 = 
       @columns[col].bind_datatypes(sqlite3_type, 
                                    column_cast, sqlite3_parameters, 
                                    column_cast_back, access_path)
@@ -531,119 +712,32 @@ class VirtualTable
         puts "sqlite3_parameters: " + sqlite3_parameters
         puts "column_cast_back: " + column_cast_back
         puts "access_path: " + access_path
+        if op == "union"
+          puts "Union: " + union_view_name
+        end
         if line != nil
           puts "line: " + (line + 1).to_s
         else 
           puts "line: nil"
         end
       end
-      idenF = ""
-      idenN = ""
       access_pathF = ""
       access_pathN = ""
-      add_to_result_setF = ""
-      add_to_result_setN = ""
-      if @container_class.length > 0
-        access_path.length == 0 ? idenF = "(*iter)" : idenF = "(*iter)."
-        access_path.length == 0 ? idenN = "(**resIterC)" : idenN = "(**resIterC)."
-      else
-        access_path.length == 0 ? idenF = "any_dstr" : idenF = "any_dstr->"
-        access_path.length == 0 ? idenN = "any_dstr" : idenN = "any_dstr->"
-      end
-      if access_path.match(/this\.|this->/)
-        access_pathF = access_path.gsub(/this\.|this->/, "#{idenF}")
-        access_pathN = access_path.gsub(/this\.|this->/, "#{idenN}")
-      else
-        access_pathF = "#{idenF}#{access_path}"
-        access_pathN = "#{idenN}#{access_path}"
-      end
+      access_pathF, access_pathN = configure_search(access_path)
       case op
       when "fk"
-        if fk_type == "object" : column_cast.concat("&") end
-        fw.puts "#{space}if (first_constr) {"
-        space.concat("  ")
-        if $argM == "MEM_MGT" && fk_method_ret == 1
-          fw.puts "#{space}{"
-          space.concat("  ")
-          fw.puts "#{space}typeof(#{access_pathF}) t = #{access_pathF};"
-        end
-        if @container_class.length > 0
-          fw.puts "#{space}for (iter = any_dstr->begin(); iter != any_dstr->end(); iter++) {"
-          add_to_result_setF = "#{space}    rs->res.push_back(#{@signature.chomp('*')}::iterator(iter));\n#{space}    rs->resBts.set(index, 1);\n#{space}  }\n#{space}  index++;\n#{space}}"
-          add_to_result_setN = "\n#{space}    resIterC = rs->res.erase(resIterC);\n#{space}    rs->resBts.reset(index);\n#{space}  } else\n#{space}    resIterC++;\n#{space}  index = rs->resBts.find_next(index);\n#{space}}"
-          space.concat("  ")
-        else
-          add_to_result_setF = "#{space}  stcsr->size = 1;\n#{space}}"
-          add_to_result_setN = "#{space}  stcsr->size = 0;\n#{space}}"
-        end
-        notC = ""
-        gen_fk_col(fw, fk_method_ret, access_pathF, fk_type, column_cast, 
-                   column_cast_back, sqlite3_type, sqlite3_parameters, 
-                   line, add_to_result_setF, space, notC)
-        if @container_class.length > 0
-          space.chomp!("    ")
-        end
-        if $argM == "MEM_MGT" && fk_method_ret == 1
-          space.chomp!("  ")
-          fw.puts "#{space}}"
-        end
-        if @container_class.length > 0
-          fw.puts "#{space}} else {"
-        else
-          space.chomp!("  ")
-          fw.puts "#{space}} else if (stcsr->size == 1) {"
-        end
-        notC = "!"
-        space.concat("  ")
-        if @container_class.length > 0        
-        end
-        if $argM == "MEM_MGT" && fk_method_ret == 1
-          fw.puts "#{space}{"
-          space.concat("  ")
-          fw.puts "#{space}typeof(#{access_pathN}) t = #{access_pathN};"
-        end
-        if @container_class.length > 0        
-          fw.puts "#{space}index = rs->resBts.find_first();\n#{space}resIterC = rs->res.begin();\n#{space} while (resIterC != rs->res.end()) {"
-          space.concat("  ")
-        end
-        gen_fk_col(fw, fk_method_ret, access_pathN, fk_type, column_cast, 
-                     column_cast_back, sqlite3_type, sqlite3_parameters, 
-                     line, add_to_result_setN, space, notC)
-        if @container_class.length > 0        
-          space.chomp!("    ")
-        end
-        if $argM == "MEM_MGT" && fk_method_ret == 1
-          space.chomp!("  ")          
-          fw.puts "#{space}}"
-        end
-        if @container_class.length == 0
-          space.chomp!("  ")
-        end
-        fw.puts "#{space}}"
-        fw.puts "#{space}break;"
+        gen_fk(fw, fk_type, column_cast, column_cast_back, space, 
+             fk_method_ret, access_pathF, access_pathN, sqlite3_type, 
+             sqlite3_parameters, line)
       when "gen_all"
+        gen_all(fw, column_cast, access_pathF, access_pathN, 
+                column_cast_back, sqlite3_type, line)
+      when "union"
         fw.puts "      if (first_constr == 1) {"
-        if @container_class.length > 0
-          fw.puts "#{$s}for (iter = any_dstr->begin(); iter != any_dstr->end(); iter++) {"
-          fw.puts "#{$s}  if (compare(#{column_cast}#{access_pathF}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val))) {"
-          print_line_directive(fw, line)
-          fw.puts "#{$s}    rs->res.push_back(#{@signature.chomp('*')}::iterator(iter));\n#{$s}    rs->resBts.set(index, 1);\n#{$s}  }\n#{$s}  index++;\n#{$s}}"
-          fw.puts "      } else {"
-          fw.puts "#{$s}index = rs->resBts.find_first();"
-          fw.puts "#{$s}resIterC = rs->res.begin();"
-          fw.puts "#{$s}while (resIterC != rs->res.end()) {"
-          fw.puts "#{$s}  if (!compare(#{column_cast}#{access_pathN}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val))) {"
-          print_line_directive(fw, line)
-          fw.puts "\n#{$s}    resIterC = rs->res.erase(resIterC);\n#{$s}    rs->resBts.reset(index);\n#{$s}  } else\n#{$s}    resIterC++;\n#{$s}  index = rs->resBts.find_next(index);\n#{$s}}"
-          fw.puts "      }"
-        else
-          fw.puts "#{$s}if (compare(#{column_cast}#{access_pathF}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val)))"
-          fw.puts "#{$s}  stcsr->size = 1;"
-          fw.puts "      } else if (stcsr->size == 1)"
-          fw.puts "#{$s}if (!compare(#{column_cast}#{access_pathF}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val)))"
-          fw.puts "#{$s}  stcsr->size = 0;"
-        end
-        fw.puts "      break;"
+        gen_union_col_constr(union_view_name, access_pathF)
+        fw.puts "      } else {"
+        gen_union_col_constr(union_view_name, access_pathN)
+        fw.puts "      }"
       when "base"
         fw.puts "      if (first_constr == 1) {"
         if @container_class.length > 0
@@ -793,7 +887,7 @@ class VirtualTable
       @signature = matchdata[4]
     end
     verify_signature()
-    $struct_views.each { |sv| if sv.name == struct_view_name : @struct_view = sv end }   
+    $struct_views.each { |sv| if sv.name == struct_view_name : @struct_view = sv end }
     begin
       if @struct_view == nil
         raise "Cannot match struct_view for table #{@name}.\\n"
@@ -829,38 +923,30 @@ class VirtualTable
 
 end
 
-# Models a struct_view table.
-class StructView
-  def initialize
+class View
+  def initialize(derived)
     @name = ""
     @columns = Array.new
     @include_text_col = 0 # True if StructView includes column
     		      	  # of text data type. Required for
 			  # generating code for
 			  # PICO_QL_HANDLE_POLYMORPHISM C++ flag.
+    @derived = derived    # 'union' or 'struct'
   end
-  attr_accessor(:name,:columns,:include_text_col)
+  attr_accessor(:name,:columns,:include_text_col,:derived)
 
-  # Removes the last entry in the columns table and returns the table 
-  # itself. Useful when including a struct_view definition to remove the 
-  # entry left empty.
-  def columns_delete_last()
-    @columns.delete(@columns.last)
-    return @columns
-  end
-
-  # Matches a struct view definition against the prototype pattern and 
+  # Matches a view definition against the prototype pattern and 
   # extracts the characteristics.
-  def match_struct_view(struct_view_description)
+  def match_view(view_description)
     if $argD == "DEBUG"
-      puts "Struct view description is: #{struct_view_description}"
+      puts "View description is: #{view_description}"
     end
-    pattern = /^create struct view (\w+)(\s*)\((.+)(\s*)\)/im
-    matchdata = pattern.match(struct_view_description)
+    pattern = /^create #{Regexp.escape(@derived)} view (\w+)(\s*)\((.+)(\s*)\)/im
+    matchdata = pattern.match(view_description)
     if matchdata
       # First record of table_data contains the whole description of the 
-      # struct_view.
-      # Second record contains the struct_view's name
+      # view.
+      # Second record contains the view's name
       @name = matchdata[1]
       columns_str = Array.new
       if matchdata[3].match(/,/)
@@ -871,17 +957,32 @@ class StructView
     end
     columns_str.each { |x| @include_text_col += @columns.push(Column.new).last.set(x) }
     if $argD == "DEBUG"
-      puts "StructView #{@name} registered."
-      puts "StructView includes #{@include_text_col} columns of type text."
+      puts "#{@derived} #{@name} registered."
+      puts "#{@derived} includes #{@include_text_col} columns of type text."
       puts "Columns follow:"
       @columns.each { |x| p x }
     end
+    return self
   end
 
 end
 
+# Models a struct_view table.
+class StructView < View
+
+  # Removes the last entry in the columns table and returns the table 
+  # itself. Useful when including a struct_view definition to remove the 
+  # entry left empty.
+  def columns_delete_last()
+    @columns.delete(@columns.last)
+    return @columns
+  end
+
+end
+
+
 # Models a (standard relational) view definition.
-class View
+class RelationalView
 
   def initialize(definition)
     @stmt = definition
@@ -897,6 +998,36 @@ class View
       # struct_view.
       # Second record contains the view's name
       @name = matchdata[1]
+    end
+  end
+
+end
+
+class UnionView < View
+
+  def verify
+    if @derived == "union"
+      begin
+        arr = @columns.select { |x| x.name =~ /switch/i }
+        if arr.length > 1
+          puts "More than one 'SWITCH' columns for union."
+          puts "Exiting now."
+          exit(1)
+        end
+        if $argD == "DEBUG"
+          puts "Special column for union found."
+        end
+      rescue
+        puts "Special column 'SWITCH' missing from union view #{@name}."
+        puts "Exiting now."
+        exit(1)
+      end
+      arr = @columns.select { |x| x.case > -1 }
+      if arr != nil && arr.length != @columns.length
+        puts "Case values not provided for some but not all union #{@name} fields."
+        puts "Exiting now."
+        exit(1)
+      end
     end
   end
 
@@ -1063,6 +1194,7 @@ class InputDescription
       @description.each { |x| p x }
     end
     $struct_views = Array.new
+    $union_views = Array.new
     $table_index = Hash.new
     w = 0
     @description.each { |stmt|
@@ -1073,11 +1205,13 @@ class InputDescription
       stmt.rstrip!
       case stmt
       when /^create struct view/im
-        $struct_views.push(StructView.new).last.match_struct_view(stmt)
+        $struct_views.push(StructView.new("struct")).last.match_view(stmt)
       when /^create virtual table/im
         @tables.push(VirtualTable.new).last.match_table(stmt)
       when /^create view (\w+) as/im
-        @views.push(View.new(stmt)).last.extract_name()
+        @views.push(RelationalView.new(stmt)).last.extract_name()
+      when /^create union view/im
+        $union_views.push(UnionView.new("union")).last.match_view(stmt).verify()
       end
       w += 1
     }
