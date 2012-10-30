@@ -58,7 +58,7 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
 <%      else %>
     printf("Searching embedded VT <%= @name %> with no BASE constraint makes no sense.\n");
     return SQLITE_MISUSE;
-<%      end %>  
+<%      end %>
   } else {
 <%      if @base_var.length == 0 %>
     if (first_constr) {

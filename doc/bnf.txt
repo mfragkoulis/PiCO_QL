@@ -1,6 +1,5 @@
 <--VIRTUAL TABLE DEFINITION-->
 
-
 <table_def> ::= 'CREATE VIRTUAL TABLE' <db_name>'.'<virtual_table_name> 
 	    	USING STRUCT VIEW  <struct_view_name> 
 		[WITH REGISTERED C NAME <base_variable>] 
@@ -31,25 +30,24 @@
 
 <object> ::= <class_name> ['*']
 
+
 <--STRUCT VIEW DEFINITION-->
 
-
-<struct_view_def> ::= 'CREATE STRUCT VIEW' <struct_view_name> '{' <column_def> {',' <column_def>} '}'
+<struct_view_def> ::= 'CREATE STRUCT VIEW' <struct_view_name> '(' <column_def> {',' <column_def>} ');'
 
 <struct_view_name> ::= 'identifier'
 
-<column_def> ::=  <primitive_column_def> 
-	     	  | <struct_column_def>  
-		  | <struct_view_inheritance>
+<column_def> ::=  <primitive_column_def> | 
+	     	  <struct_column_def> | 
+		  <struct_view_inheritance
 
-
-<primitive_column_def> ::= <column_name> <primitive_data_type> 'FROM'
-		       	   (<access_statement> | 'self')
+<primitive_column_def> ::= <column_name> <primitive_data_type> 'FROM' (<access_statement> | 'self')
 
 <column_name> ::= 'identifier'
 
-<primitive_data_type> ::= 'int' | 'string' | 'double' | 'char' |
-	    	 'float' | 'real' | 'bool'
+<primitive_data_type> ::= 'int' | 'string' | 'double' | 
+		      	  'char' | 'float' | 'real' | 
+			  'bool' | 'union'
 
 <struct_column_def> ::= 'FOREIGN KEY(<column_name>) FROM' 
 		    	(<access_statement> | 'self') 
@@ -61,6 +59,16 @@
 previously by referencing the struct view's name
 <struct_view_inheritance> ::= 'INHERITS STRUCT VIEW' <struct_view_name> 
 			      ['FROM' <access_statement>]
+
+
+<--UNION VIEW DEFINITION-->
+
+
+<union_view_definition> ::= 'CREATE UNION VIEW' <u_name> '('
+			    'union_mode' ('INT' | 'ENUM') 'FROM' <access_stetement>,
+			    <column_def>
+			    {, <column_def>}
+			    ');'
 
 <--STANDARD RELATIONAL VIEW DEFINITION-->
 
