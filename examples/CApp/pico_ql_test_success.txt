@@ -1,0 +1,96 @@
+Query 0:
+ select * from Money;
+
+Statement prepared.
+name price_mode price weight_mode weight 
+
+Euro 1 foewr 0 bnofn 
+
+Done
+
+Query 1:
+ select * from Money where name like '%eu';
+
+Statement prepared.
+name price_mode price weight_mode weight 
+
+
+Done
+
+Query 2:
+ select * from Money where price > 10;
+
+Statement prepared.
+name price_mode price weight_mode weight 
+
+Euro 1 foewr 0 bnofn 
+
+Done
+
+Query 3:
+ select * from Money where price like 'f%';
+
+Statement prepared.
+name price_mode price weight_mode weight 
+
+Euro 1 foewr 0 bnofn 
+
+Done
+
+Query 4:
+ select * from Money where price like 'j%';
+
+Statement prepared.
+name price_mode price weight_mode weight 
+
+
+Done
+
+Query 5:
+ select * from Money join GoldEquivalent on GoldEquivalent.base = Money.weight where ounce > 10;
+
+Statement prepared.
+name price_mode price weight_mode weight base pound ounce grain exchange_rate 
+
+
+Library used incorrectly
+
+Query 6:
+ select * from Money where weight like 'a%';
+
+Statement prepared.
+name price_mode price weight_mode weight 
+
+
+Done
+
+Query 7:
+ select * from Money where weight like '%o%';
+
+Statement prepared.
+name price_mode price weight_mode weight 
+
+Euro 1 foewr 0 bnofn 
+
+Done
+
+Query 8:
+ select * from Price;
+
+Statement prepared.
+union_mode price 
+
+0 12.500000 
+
+Done
+
+Query 9:
+ select * from Price where price > 10;
+
+Statement prepared.
+union_mode price 
+
+0 12.500000 
+
+Done
+

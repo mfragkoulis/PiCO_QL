@@ -38,6 +38,18 @@ echo "-> Executing tests."
 ./schedule cvrp/solomon.txt 2 > /dev/null
 cat pico_ql_test_output.txt
 
+cd ../CApp
+echo "\n CApp..."
+echo "-> Generating files."
+make prep > /dev/null
+make clean > /dev/null
+ruby pico_ql_generator.rb pico_ql_dsl.sql
+echo "-> Building."
+make PICO_QL_JOIN_THREADS=1 > /dev/null
+echo "-> Executing tests."
+./capp > /dev/null
+cat pico_ql_test_output.txt
+
 #cd ../bowtie
 #echo "\nIn bowtie..."
 #echo "-> Generating files."

@@ -25,7 +25,7 @@ require 'erb'
 
 # Models a column of the Virtual Table (VT).
 class Column
-  def initialize
+  def initialize(ucase)
     @name = ""
     @line = 0                 # Line in DSL description that the column
                               # (the column's access path to be precise)
@@ -44,7 +44,7 @@ class Column
     @col_type = ""            # Record type (pointer or reference) for 
                               # special columns, the ones that refer to 
                               # other VT.
-    @case = -1                # switch case for union view fields
+    @case = ucase             # switch case for union view fields
     @@int_data_types = ["int", "integer", "tinyint", "smallint", 
                         "mediumint", "bigint", "unsigned bigint", "int2",
                         "bool", "boolean", "int8", "numeric"]
@@ -62,7 +62,7 @@ class Column
 # Used to clone a Column object. Ruby does not support deep copies.
   def construct(name, data_type, related_to, fk_method_ret, 
       		fk_col_type, saved_results_index,access_path, 
-		type, line)
+		type, line, ucase)
     @name = name
     @data_type = data_type
     @related_to = related_to
@@ -72,6 +72,7 @@ class Column
     @access_path = access_path
     @col_type = type
     @line = line
+    @case = ucase
   end
 
 
@@ -198,8 +199,7 @@ class Column
     column_ptn1 = /inherits struct view (\w+) from (.+)/im
     column_ptn2 = /inherits struct view (\w+)/im
     column_ptn3 = /foreign key(\s*)\((\s*)(\w+)(\s*)\) from (.+) references (\w+)(\s*)(\w*)/im
-    column_ptn4 = /(\w+) (\w+) from (.+) case (\w+)/im
-    column_ptn5 = /(\w+) (\w+) from (.+)/im
+    column_ptn4 = /(\w+) (\w+) from (.+)/im
     case column
     when column_ptn1
       matchdata = column_ptn1.match(column)
@@ -215,9 +215,9 @@ class Column
           if index < 0 : index = 0 end
           this_struct_view.columns_delete_last()
           vs.columns.each_index { |col| 
-            coln = vs.columns[col]         # Manually construct a deep 
-                                           # copy of coln
-            this_columns.push(Column.new)  # and push it to 'this'.
+            coln = vs.columns[col]            # Manually construct a deep 
+                                              # copy of coln
+            this_columns.push(Column.new("")) # and push it to 'this'.
             this_columns.last.construct(coln.name.clone, 
                                         coln.data_type.clone, 
                                         coln.related_to.clone, 
@@ -226,7 +226,8 @@ class Column
                                         coln.saved_results_index,
                                         coln.access_path.clone, 
                                         coln.col_type.clone,
-                                        coln.line)
+                                        coln.line,
+                                        coln.case)
           }
 	  col_type_text = vs.include_text_col
         end
@@ -277,12 +278,6 @@ class Column
       @name = matchdata[1]
       @data_type = matchdata[2]
       @access_path = matchdata[3]
-      @case = matchdata[4].to_i
-    when column_ptn5
-      matchdata = column_ptn5.match(column)
-      @name = matchdata[1]
-      @data_type = matchdata[2]
-      @access_path = matchdata[3]
     end
     register_line()
     col_type_text = verify_data_type()
@@ -299,7 +294,7 @@ class Column
       puts "Column access path is: " + @access_path
       puts "Column type is: " + @col_type
       puts "Column is of text type: " + col_type_text.to_s
-      puts "Column case: " + @case.to_s
+      puts "Column case: " + @case
     end
     return col_type_text
   end
@@ -352,24 +347,23 @@ class VirtualTable
 
   def union_retrieve(fw, union_view_name, iden, union_access_path, space)
     columns = Array.new
-    $union_views.each { |uv| if uv.name == union_view_name : columns = uv.columns end }
+    switch = ""
+    $union_views.each { |uv| 
+      if uv.name == union_view_name
+        columns = uv.columns 
+        switch = uv.switch
+      end 
+    }
     if !union_access_path.end_with?(".") && !union_access_path.end_with?("->")
       union_access_path.concat(".")
     end
-    columns.each { |col| 
-      if col.name =~ /union_mode/i
+    fw.puts "#{space}    switch (#{iden}#{switch}) {"
 # Will not work for union in struct1 in struct2 (user responsibility?)
 # if struct1.struct2.union then access path would be 
 # (any_dstr->)struct2.union . reasonable to await struct2.union_mode
 # from user?
-        fw.puts "#{space}    switch (#{iden}#{col.access_path}) {"
-      end
-    }
-    case_value = 0
     columns.each_index { |col|
-      if columns[col].name =~ /union_mode/i : next end
-      if columns[col].case > -1 : case_value = columns[col].case end 
-      fw.puts "#{space}    case #{case_value.to_s}:"
+      fw.puts "#{space}    case #{columns[col].case}:"
       space.concat("  ")
       sqlite3_type = "retrieve"
       column_cast = ""
@@ -387,7 +381,7 @@ class VirtualTable
         puts "column_cast: " + column_cast
         puts "sqlite3_parameters: " + sqlite3_parameters
         puts "column_cast_back: " + column_cast_back
-        puts "access_path: " + access_path
+        puts "access_path: " + access_path_col
         if op == "union"
           fk_col_name  = union_view_embedded
           puts "Union: " + union_view_embedded
@@ -416,10 +410,10 @@ class VirtualTable
         union_retrieve(fw, union_view_embedded, iden, access_path_col, 
                        space)
       end
-      case_value += 1
       space.chomp!("  ")
     }
     fw.puts "#{space}    }"
+    fw.puts "#{space}    break;"
   end
 
   def all_retrieve(fw, iden, access_path, sqlite3_type,
@@ -646,20 +640,19 @@ class VirtualTable
                            access_path, add_to_result_set, 
                            iteration, notC)
     columns = Array.new
-    $union_views.each { |uv| if uv.name == union_view_name : columns = uv.columns end }
+    switch = ""
+    $union_views.each { |uv| 
+      if uv.name == union_view_name
+        columns = uv.columns 
+        switch = uv.switch
+      end 
+    }
     if !access_path.end_with?(".") && !access_path.end_with?("->")
       access_path.concat(".")
     end
-    columns.each { |col| 
-      if col.name =~ /union_mode/i
-        fw.puts "#{$s}switch (#{root_access_path}#{col.access_path}) {"
-      end
-    }
-    case_value = 0
+    fw.puts "#{$s}switch (#{root_access_path}#{switch}) {"
     columns.each { |col|
-      if col.name =~ /union_mode/i : next end
-      if col.case > -1 : case_value = col.case end 
-      fw.puts "#{$s}case #{case_value.to_s}:"
+      fw.puts "#{$s}case #{col.case}:"
       sqlite3_type = "search"
       column_cast = ""
       sqlite3_parameters = ""
@@ -690,6 +683,7 @@ class VirtualTable
       end
       case op
       when "fk"
+        if fk_type == "object" : column_cast.concat("&") end
         gen_fk_col_constr(fw, fk_method_ret, total_access_path, fk_type, 
                           column_cast, column_cast_back, sqlite3_type, 
                           sqlite3_parameters, line, add_to_result_set, 
@@ -703,7 +697,6 @@ class VirtualTable
                              total_access_path, add_to_result_set, 
                              iteration, notC)
       end
-      case_value += 1
       fw.puts "#{$s}  break;"
     }
     fw.puts "#{$s}}"
@@ -795,7 +788,9 @@ class VirtualTable
       fw.puts "#{iteration.gsub("<space>", "#{space}")}"
     end
     if $argM != "MEM_MGT" || fk_method_ret == 0
-      space.concat("  ")
+      if @container_class.length > 0
+        space.concat("  ")
+      end
     end
     fw.puts "#ifdef ENVIRONMENT64"
     if $argM == "MEM_MGT" && fk_method_ret == 1    # Returning from a method.
@@ -811,7 +806,9 @@ class VirtualTable
       fw.puts "#{space}if (#{notC}compare(#{column_cast}#{access_path}#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_parameters}(val))) {"
     end
     if $argM != "MEM_MGT" || fk_method_ret == 0
-      space.chomp!("  ")
+      if @container_class.length > 0
+        space.chomp!("  ")
+      end
     end
     print_line_directive(fw, line)
     fw.puts "#endif"
@@ -1073,10 +1070,10 @@ class VirtualTable
     end
     $table_index[@name] = @signature
     if @base_var.length == 0        # base column for embedded structs.
-      @columns.push(Column.new).last.set("base INT FROM self") 
+      @columns.push(Column.new("")).last.set("base INT FROM self") 
     end
     if @container_class.length > 0  # rownum column for container structs.
-      @columns.push(Column.new).last.set("rownum INT FROM self") 
+      @columns.push(Column.new("")).last.set("rownum INT FROM self") 
     end
     @include_text_col = @struct_view.include_text_col
     @columns = @columns | @struct_view.columns
@@ -1094,30 +1091,29 @@ class VirtualTable
 
 end
 
-class View
-  def initialize(derived)
+class StructView
+  def initialize()
     @name = ""
     @columns = Array.new
     @include_text_col = 0 # True if StructView includes column
     		      	  # of text data type. Required for
 			  # generating code for
 			  # PICO_QL_HANDLE_POLYMORPHISM C++ flag.
-    @derived = derived    # 'union' or 'struct'
   end
-  attr_accessor(:name,:columns,:include_text_col,:derived)
+  attr_accessor(:name,:columns,:include_text_col)
 
-  # Matches a view definition against the prototype pattern and 
+  # Matches a struct view definition against the prototype pattern and 
   # extracts the characteristics.
-  def match_view(view_description)
+  def match_struct_view(struct_view_description)
     if $argD == "DEBUG"
-      puts "View description is: #{view_description}"
+      puts "Struct view description is: #{struct_view_description}"
     end
-    pattern = /^create #{Regexp.escape(@derived)} view (\w+)(\s*)\((.+)(\s*)\)/im
-    matchdata = pattern.match(view_description)
+    pattern = /^create struct view (\w+)(\s*)\((.+)(\s*)\)/im
+    matchdata = pattern.match(struct_view_description)
     if matchdata
       # First record of table_data contains the whole description of the 
-      # view.
-      # Second record contains the view's name
+      # structview.
+      # Second record contains the struct view's name
       @name = matchdata[1]
       columns_str = Array.new
       if matchdata[3].match(/,/)
@@ -1126,20 +1122,14 @@ class View
         columns_str[0] = matchdata[3]
       end
     end
-    columns_str.each { |x| @include_text_col += @columns.push(Column.new).last.set(x) }
+    columns_str.each { |x| @include_text_col += @columns.push(Column.new("")).last.set(x) }
     if $argD == "DEBUG"
-      puts "#{@derived} #{@name} registered."
-      puts "#{@derived} includes #{@include_text_col} columns of type text."
+      puts "Struct view #{@name} registered."
+      puts "Struct view includes #{@include_text_col} columns of type text."
       puts "Columns follow:"
       @columns.each { |x| p x }
     end
-    return self
   end
-
-end
-
-# Models a struct_view table.
-class StructView < View
 
   # Removes the last entry in the columns table and returns the table 
   # itself. Useful when including a struct_view definition to remove the 
@@ -1174,32 +1164,65 @@ class RelationalView
 
 end
 
-class UnionView < View
+class UnionView
 
-  def verify
-    if @derived == "union"
-      begin
-        arr = @columns.select { |x| x.name =~ /union_mode/i }
-        if arr.length > 1
-          puts "More than one 'UNION_MODE' columns for union."
-          puts "Exiting now."
-          exit(1)
-        end
-        if $argD == "DEBUG"
-          puts "Special column for union found."
-        end
-      rescue
-        puts "Special column 'UNION_MODE' missing from union view #{@name}."
-        puts "Exiting now."
+  def initialize()
+    @name = ""
+    @switch = ""
+    @columns = Array.new
+    @include_text_col = 0 # True if StructView includes column
+                          # of text data type. Required for
+			  # generating code for
+			  # PICO_QL_HANDLE_POLYMORPHISM C++ flag.
+  end
+  attr_accessor(:name,:switch,:columns,:include_text_col)
+
+  def match_union_view(union_view_description)
+    if $argD == "DEBUG"
+      puts "Union view description is: #{union_view_description}"
+    end
+    union_view_description.lstrip!
+    union_view_description.chomp!(")")
+    union_view_description.rstrip!
+    if union_view_description.match(/when/i)
+      utokened = union_view_description.split(/when/i)
+    else
+      puts "Union description not matched: #{union_view_description}"
+      puts "Exiting now"
+      exit(1)
+    end
+    header = utokened[0]
+    header.rstrip!
+    utokened.delete_at(0)
+    pattern = /^create union view (\w+)(\s*)\((\s*)case (.+)/im
+    matchdata = pattern.match(header)
+    if matchdata
+      # First record of table_data contains the whole description of the 
+      # structview.
+      # Second record contains the struct view's name
+      @name = matchdata[1]
+      @switch = matchdata[4]
+      columns_str = Array.new
+    else
+      puts "Union description header not matched: #{header}"
+      puts "Exiting now"
+      exit(1)
+    end
+    utokened.each { |x| 
+      matchdata = / (\w+) then (.+)/im.match(x)
+      if matchdata
+        @include_text_col += @columns.push(Column.new(matchdata[1])).last.set(matchdata[2])
+      else
+        puts "Invalid description for union column: #{x}"
+        puts "Exiting now"
         exit(1)
       end
-      arr = @columns.select { |x| x.case > -1 }
-      if arr.length != 0 && arr.length != @columns.length - 1 # union_mode column
-        puts "Case values not provided for some but not all union #{@name} fields."
-        puts "Arr length #{arr.length}, columns length #{@columns.length}"
-        puts "Exiting now."
-        exit(1)
-      end
+    }
+    if $argD == "DEBUG"
+      puts "Union view #{@name} registered."
+      puts "Union view includes #{@include_text_col} columns of type text."
+      puts "Columns follow:"
+      @columns.each { |x| p x }
     end
   end
 
@@ -1377,13 +1400,13 @@ class InputDescription
       stmt.rstrip!
       case stmt
       when /^create struct view/im
-        $struct_views.push(StructView.new("struct")).last.match_view(stmt)
+        $struct_views.push(StructView.new).last.match_struct_view(stmt)
       when /^create virtual table/im
         @tables.push(VirtualTable.new).last.match_table(stmt)
       when /^create view (\w+) as/im
         @views.push(RelationalView.new(stmt)).last.extract_name()
       when /^create union view/im
-        $union_views.push(UnionView.new("union")).last.match_view(stmt).verify()
+        $union_views.push(UnionView.new).last.match_union_view(stmt)
       end
       w += 1
     }

@@ -65,9 +65,9 @@ previously by referencing the struct view's name
 
 
 <union_view_definition> ::= 'CREATE UNION VIEW' <u_name> '('
-			    'union_mode' ('INT' | 'ENUM') 'FROM' <access_stetement>,
-			    <column_def>
-			    {, <column_def>}
+			    'CASE' <access_stetement>
+			    'WHEN' <case> THEN <column_def>
+			    {'WHEN' <case> THEN  <column_def>}
 			    ');'
 
 <--STANDARD RELATIONAL VIEW DEFINITION-->
