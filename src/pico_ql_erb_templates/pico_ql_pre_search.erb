@@ -21,6 +21,10 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
 <%      if @container_class.length > 0 %>
   int index = 0;
   ResultSet *rs = &cursors[cur];
+<%        if @base_var.length > 0 %>
+  if (rs->resBts.size() == 0)
+    rs->resBts.resize(stcsr->max_size, 0);
+<%        end %>
   int rowNum = -1;
 <%      end %>
   if (struct_empty_null(cur, val, picoQL->embedded, nCol)) {
@@ -90,6 +94,9 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
             return SQLITE_OK;
           } else {
             rs->resBts.resize(stcsr->max_size, 0);
+#ifdef PICO_QL_DEBUG
+            printf("VT %s reallocated. Now max_size: %i\n", picoQL->zName, stcsr->max_size);
+#endif
           }
 <%        end %>
           stcsr->isInstanceEmpty = 0;
@@ -103,3 +110,6 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
       }
     }
 <%      end %>
+#ifdef PICO_QL_DEBUG
+  printf("Searching column %i of VT %s, first_constraint %i\n", nCol, picoQL->zName, first_constr);
+#endif

@@ -6,58 +6,34 @@
 #include "Customer.h"
 ;
 
-CREATE STRUCT VIEW Trucks (
-      FOREIGN KEY (truck_id) FROM self REFERENCES Truck POINTER
-);
-
-CREATE VIRTUAL TABLE mydb.Trucks 
-USING STRUCT VIEW Trucks
-WITH REGISTERED C NAME vehicles 
-WITH REGISTERED C TYPE vector<Truck*>*;
-
 CREATE STRUCT VIEW Truck (
-      FOREIGN KEY(customers_id) FROM get_Customers() REFERENCES Customers POINTER,
+      FOREIGN KEY(customers_id) FROM get_Customers() REFERENCES Customer POINTER,
       cost DOUBLE FROM get_cost(),
       delcapacity INT FROM get_delcapacity(),
       delcapacity_root DOUBLE FROM get_delcapacity_math_root(this.get_delcapacity())
 );
 
-CREATE VIRTUAL TABLE mydb.Truck 
+CREATE VIRTUAL TABLE mydb.Truck
 USING STRUCT VIEW Truck
-WITH REGISTERED C TYPE Truck;
-
-CREATE STRUCT VIEW Customers (
-      FOREIGN KEY(customer_id) FROM self REFERENCES Customer POINTER
-);
-
-CREATE VIRTUAL TABLE mydb.Customers 
-USING STRUCT VIEW Customers
-WITH REGISTERED C TYPE vector<Customer*>;
+WITH REGISTERED C NAME vehicles 
+WITH REGISTERED C TYPE vector<Truck*>*;
 
 CREATE STRUCT VIEW Customer (
-      FOREIGN KEY(position_id) FROM get_pos() REFERENCES Position POINTER,
       demand INT FROM get_demand(),  // Demand column 
       code STRING FROM get_code(),
       serviced INT FROM get_serviced(),
+      x_coord INT FROM get_pos()->get_x(),
+      y_coord INT FROM get_pos()->get_y()
 );
 
 // Customer description
-CREATE VIRTUAL TABLE mydb.Customer 
+CREATE VIRTUAL TABLE mydb.Customer
 USING STRUCT VIEW Customer
-WITH REGISTERED C TYPE Customer;
-
-CREATE STRUCT VIEW Position (
-      x_coord INT FROM get_x(),
-      y_coord INT FROM get_y()
-);
-
-CREATE VIRTUAL TABLE mydb.Position 
-USING STRUCT VIEW Position
-WITH REGISTERED C TYPE Position;
+WITH REGISTERED C TYPE vector<Customer*>;
 
 CREATE STRUCT VIEW MapIndex (
       map_index INT FROM first,
-      FOREIGN KEY(customer_id) FROM second REFERENCES Customer POINTER
+      INHERITS STRUCT VIEW Customer FROM second->
 );
 
 CREATE VIRTUAL TABLE mydb.MapIndex 
@@ -67,7 +43,5 @@ WITH REGISTERED C TYPE map<int, Customer*>;
 
 CREATE VIEW MyTrucks AS
 SELECT rownum, cost, delcapacity
-FROM Trucks
-JOIN Truck
-ON Truck.base=Trucks.truck_id
+FROM Truck
 WHERE cost>400;

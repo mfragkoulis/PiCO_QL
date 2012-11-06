@@ -41,9 +41,9 @@ class Column
     @saved_results_index = -1 # Required for naming the particular 
                               # saved results instance.
     @access_path = ""         # The access statement for the column value.
-    @col_type = ""            # Record type (pointer or reference) for 
+    @col_type = "object"      # Record type (pointer or reference) for 
                               # special columns, the ones that refer to 
-                              # other VT.
+                              # other VT or UNIONS.
     @case = ucase             # switch case for union view fields
     @@int_data_types = ["int", "integer", "tinyint", "smallint", 
                         "mediumint", "bigint", "unsigned bigint", "int2",
@@ -54,17 +54,20 @@ class Column
                                /varying character/i, /native character/i,
                                /nchar/i]
   end
-  attr_accessor(:name,:line,:data_type,:related_to,:fk_col_type,
+  attr_accessor(:name,:line,:data_type,:cpp_data_type,
+                :related_to,:fk_col_type,
 		:fk_method_ret,:saved_results_index,
 		:access_path,:col_type,:case)
 
 
 # Used to clone a Column object. Ruby does not support deep copies.
-  def construct(name, data_type, related_to, fk_method_ret, 
+  def construct(name, data_type, cpp_data_type, 
+                related_to, fk_method_ret, 
       		fk_col_type, saved_results_index,access_path, 
 		type, line, ucase)
     @name = name
     @data_type = data_type
+    @cpp_data_type = cpp_data_type
     @related_to = related_to
     @fk_method_ret = fk_method_ret
     @fk_col_type = fk_col_type
@@ -92,13 +95,13 @@ class Column
       sqlite3_type.replace("int64")
       column_cast.replace("(long int)")
       sqlite3_parameters.replace("int");    # for 32-bit architectures.used in retrieve.
-      return "base", nil, nil, nil
+      return "base", nil, "", nil
     elsif @name == "rownum"           # 'rownum'column
       sqlite3_type.replace("int")
       return "rownum", nil, nil, nil
     elsif @cpp_data_type == "union"
       access_path.replace(@access_path)
-      return "union", @name, nil, @line
+      return "union", @name, @col_type, @line
     else
       dt = @data_type.downcase         # Normal data column.
       if @@int_data_types.include?(dt)
@@ -127,7 +130,7 @@ class Column
         sqlite3_parameters.replace(", -1, SQLITE_STATIC")
       end
       access_path.replace(@access_path)
-      return "gen_all", nil, nil, @line
+      return "gen_all", nil, "", @line
     end
   end
 
@@ -199,7 +202,8 @@ class Column
     column_ptn1 = /inherits struct view (\w+) from (.+)/im
     column_ptn2 = /inherits struct view (\w+)/im
     column_ptn3 = /foreign key(\s*)\((\s*)(\w+)(\s*)\) from (.+) references (\w+)(\s*)(\w*)/im
-    column_ptn4 = /(\w+) (\w+) from (.+)/im
+    column_ptn4 = /(\w+) (\w+) from (.+) pointer/im # for UNION column
+    column_ptn5 = /(\w+) (\w+) from (.+)/im
     case column
     when column_ptn1
       matchdata = column_ptn1.match(column)
@@ -219,7 +223,8 @@ class Column
                                               # copy of coln
             this_columns.push(Column.new("")) # and push it to 'this'.
             this_columns.last.construct(coln.name.clone, 
-                                        coln.data_type.clone, 
+                                        coln.data_type.clone,
+                                        coln.cpp_data_type.clone,
                                         coln.related_to.clone, 
                                         coln.fk_col_type.clone,
                                         coln.fk_method_ret,
@@ -275,6 +280,12 @@ class Column
       end
     when column_ptn4
       matchdata = column_ptn4.match(column)
+      @name = matchdata[1]
+      @data_type = matchdata[2]
+      @access_path = matchdata[3]
+      @col_type = "pointer"
+    when column_ptn5
+      matchdata = column_ptn5.match(column)
       @name = matchdata[1]
       @data_type = matchdata[2]
       @access_path = matchdata[3]
@@ -421,7 +432,7 @@ class VirtualTable
                    line, space)
     if access_path.match(/this\.|this->/)
       access_path.gsub!(/this\.|this->/, "#{iden}")
-    else 
+    else
       access_path = "#{iden}#{access_path}"
     end
     if sqlite3_type == "text"
@@ -510,13 +521,44 @@ class VirtualTable
 
 # Method performs case analysis to generate 
 # the correct form of the variable
-  def configure_retrieve(access_path)
+  def configure_retrieve(access_path, op)
     iden = ""
     type_check = ""
     if @container_class.length > 0
       access_path.length == 0 ? iden =  "**(rs->resIter)" : iden = "(**(rs->resIter))."
     else
       access_path.length == 0 ? iden = "any_dstr" : iden = "any_dstr->"
+    end
+    case op
+    when "gen_all"
+      if @container_class.length > 0
+        if access_path.length == 0
+          if @type.match(/\*/)
+            iden = "*#{iden}"
+          end
+        else
+          if (access_path == "first" && 
+              @type.gsub(/ /,"").match(/\*,/)) ||
+              (access_path == "second" &&
+               @type.gsub(/ /,"").match(/(.+)\*/))
+            iden = "*#{iden}"
+          elsif !access_path.match(/first/) &&
+              !access_path.match(/second/) &&
+              @type.gsub(/ /,"").match(/(.+)\*/)
+            iden.chomp!(".")
+            iden.concat("->")
+          end
+        end
+      end
+    when "fk"
+      # is object after transformations
+      if access_path.length > 0 &&
+        !access_path.match(/first/) &&
+          !access_path.match(/second/) &&
+          @type.gsub(/ /,"").match(/(.+)\*/)
+        iden.chomp!(".")
+        iden.concat("->")
+      end
     end
     return iden
   end
@@ -547,7 +589,7 @@ class VirtualTable
                                    sqlite3_parameters, column_cast_back, 
                                    access_path)
       iden = ""
-      iden = configure_retrieve(access_path)
+      iden = configure_retrieve(access_path, op)
       case op
       when "base"
         fw.puts "#ifdef ENVIRONMENT64"
@@ -596,17 +638,79 @@ class VirtualTable
     return add_to_result_setF, add_to_result_setN
   end
 
-  def configure_search(access_path)
-    access_pathF = ""
-    access_pathN = ""
+  def configure_search(op, access_path, fk_type)
     idenF = ""
     idenN = ""
+    access_pathF = ""
+    access_pathN = ""
     if @container_class.length > 0
       access_path.length == 0 ? idenF = "(*iter)" : idenF = "(*iter)."
       access_path.length == 0 ? idenN = "(**resIterC)" : idenN = "(**resIterC)."
     else
       access_path.length == 0 ? idenF = "any_dstr" : idenF = "any_dstr->"
       access_path.length == 0 ? idenN = "any_dstr" : idenN = "any_dstr->"
+    end
+    case op
+    when "union"
+      if access_path.length > 0 
+        if (@type.gsub(/ /,"").match(/(\w+)\*,/) &&
+            access_path.match(/first/)) || 
+            (@type.gsub(/ /,"").match(/,(\w+)\*/) &&
+            access_path.match(/second/)) ||
+            @type.gsub(/ /,"").match(/(\w+)\*/)
+          idenF.chomp!(".")
+          idenF.concat("->")
+          idenN.chomp!(".")
+          idenN.concat("->")
+        end
+      end
+      if fk_type == "pointer"
+        access_path.concat("->")
+      else
+        access_path.concat(".")
+      end
+    when "all"
+      if @container_class.length > 0
+        if access_path.length == 0
+          if @type.match(/\*/)
+            idenF = "*#{idenF}"
+            idenN = "*#{idenN}"
+          end
+        else
+          if (access_path == "first" && 
+              @type.gsub(/ /,"").match(/\*,/)) ||
+              (access_path == "second" &&
+               @type.gsub(/ /,"").match(/(.+)\*/))
+            idenF = "*#{idenF}"
+            idenN = "*#{idenN}"
+          elsif !access_path.match(/first/) &&
+              !access_path.match(/second/) &&
+              @type.gsub(/ /,"").match(/(.+)\*/)
+            idenF.chomp!(".")
+            idenF.concat("->")
+            idenN.chomp!(".")
+            idenN.concat("->")
+          end
+        end
+      end
+    when "fk"
+# is object after transformations
+      if access_path.length > 0 &&
+        !access_path.match(/first/) &&
+          !access_path.match(/second/) &&
+          @type.gsub(/ /,"").match(/(.+)\*/)
+        idenF.chomp!(".")
+        idenF.concat("->")
+        idenN.chomp!(".")
+        idenN.concat("->")
+      end
+      if (access_path.length == 0 && 
+          !@type.gsub(/ /,"").match(/(.+)\*/)) ||
+          (access_path.length > 0 && 
+           fk_type == "object")
+        idenF = "&#{idenF}"
+        idenN = "&#{idenN}"
+      end
     end
     if access_path.match(/this\.|this->/)
       access_pathF = access_path.gsub(/this\.|this->/, "#{idenF}")
@@ -637,7 +741,7 @@ class VirtualTable
   end
 
   def gen_union_col_constr(fw, union_view_name, root_access_path, 
-                           access_path, add_to_result_set, 
+                           union_access_path, add_to_result_set, 
                            iteration, notC)
     columns = Array.new
     switch = ""
@@ -647,9 +751,6 @@ class VirtualTable
         switch = uv.switch
       end 
     }
-    if !access_path.end_with?(".") && !access_path.end_with?("->")
-      access_path.concat(".")
-    end
     fw.puts "#{$s}switch (#{root_access_path}#{switch}) {"
     columns.each { |col|
       fw.puts "#{$s}case #{col.case}:"
@@ -661,17 +762,27 @@ class VirtualTable
       total_access_path = ""
       space = ""
       space.replace($s).concat("  ")
-      op, union_view_embedded, fk_type, line, fk_method_ret, useless3 = 
+      op, union_view_embedded, col_type, line, fk_method_ret, useless3 = 
       col.bind_datatypes(sqlite3_type, 
                                    column_cast, sqlite3_parameters, 
                                    column_cast_back, access_path_col)
-      total_access_path.replace(access_path).concat(access_path_col)
+      total_access_path.replace(union_access_path).concat(access_path_col)
+      if op == "fk" && col_type == "object"
+        total_access_path = "&#{total_access_path}"
+      elsif op == "union"
+        if fk_type == "pointer"
+          total_access_path.concat("->")
+        else
+          total_access_path.concat(".")
+        end
+      end
       if $argD == "DEBUG"
         puts "sqlite3_type: " + sqlite3_type
         puts "column_cast: " + column_cast
         puts "sqlite3_parameters: " + sqlite3_parameters
         puts "column_cast_back: " + column_cast_back
-        puts "access_path: " + access_path
+        puts "access_path: " + access_path_col
+        puts "col_type: " + col_type
         if op == "union"
           puts "Union: " + union_view_embedded
         end
@@ -683,8 +794,7 @@ class VirtualTable
       end
       case op
       when "fk"
-        if fk_type == "object" : column_cast.concat("&") end
-        gen_fk_col_constr(fw, fk_method_ret, total_access_path, fk_type, 
+        gen_fk_col_constr(fw, fk_method_ret, total_access_path, col_type, 
                           column_cast, column_cast_back, sqlite3_type, 
                           sqlite3_parameters, line, add_to_result_set, 
                           space, notC, iteration)
@@ -693,7 +803,7 @@ class VirtualTable
                        column_cast_back, sqlite3_type, notC, 
                        iteration, add_to_result_set, line, space)
       when "union"
-        gen_union_col_constr(fw, union_view_embedded, root_access_path, 
+        gen_union_col_constr(fw, union_view_embedded, union_access_path, 
                              total_access_path, add_to_result_set, 
                              iteration, notC)
       end
@@ -702,19 +812,14 @@ class VirtualTable
     fw.puts "#{$s}}"
   end
 
-  def gen_union(fw, union_view_name, root_access_path)
-    access_pathF = ""
-    access_pathN = ""
-    add_to_result_setF = ""
-    add_to_result_setN = ""
-    iterationF, iterationN = ""
-    access_pathF, access_pathN, idenF, idenN = configure_search(root_access_path)
+  def gen_union(fw, union_view_name, union_access_path, col_type)
+    full_union_access_pathF, full_union_access_pathN, idenF, idenN = configure_search("union", union_access_path, col_type)
     add_to_result_setF, add_to_result_setN = configure_result_set()
     iterationF, iterationN = configure_iteration()
     fw.puts "      if (first_constr == 1) {"
     notC = ""
     gen_union_col_constr(fw, union_view_name, idenF,
-                         access_pathF, add_to_result_setF, 
+                         full_union_access_pathF, add_to_result_setF, 
                          iterationF, notC)
     if @container_class.length > 0
       fw.puts "      } else {"
@@ -723,7 +828,7 @@ class VirtualTable
     end
     notC = "!"
     gen_union_col_constr(fw, union_view_name, idenN, 
-                         access_pathN, add_to_result_setN, 
+                         full_union_access_pathN, add_to_result_setN, 
                          iterationN, notC)
     fw.puts "      }"
     fw.puts "      break;"
@@ -754,7 +859,7 @@ class VirtualTable
     iterationN = ""
     space = ""
     space.replace($s)
-    access_pathF, access_pathN, useless, useless2 = configure_search(access_path)
+    access_pathF, access_pathN, idenF, idenN = configure_search("all", access_path, "")
     add_to_result_setF, add_to_result_setN = configure_result_set()
     iterationF, iterationN = configure_iteration()
     fw.puts "      if (first_constr == 1) {"
@@ -835,10 +940,9 @@ class VirtualTable
     iterationN = ""
     space = ""
     space.replace($s)
-    access_pathF, access_pathN, useless, useless2 = configure_search(access_path)
+    access_pathF, access_pathN, idenF, idenN = configure_search("fk", access_path, fk_type)
     add_to_result_setF, add_to_result_setN = configure_result_set()
     iterationF, iterationN = configure_iteration()
-    if fk_type == "object" : column_cast.concat("&") end
     fw.puts "      if (first_constr) {"
     notC = ""
     gen_fk_col_constr(fw, fk_method_ret, access_pathF, fk_type, 
@@ -878,7 +982,7 @@ class VirtualTable
       column_cast_back = ""
       access_path = ""
       space = "      "
-      op, union_view_name, fk_type, line, fk_method_ret, useless3 = 
+      op, union_view_name, col_type, line, fk_method_ret, useless3 = 
       @columns[col].bind_datatypes(sqlite3_type, 
                                    column_cast, sqlite3_parameters, 
                                    column_cast_back, access_path)
@@ -899,13 +1003,14 @@ class VirtualTable
       end
       case op
       when "fk"
-        gen_fk(fw, fk_type, fk_method_ret, column_cast, column_cast_back, 
+        gen_fk(fw, col_type, fk_method_ret, column_cast, 
+               column_cast_back, 
                sqlite3_type, sqlite3_parameters, line, access_path)
       when "gen_all"
         gen_all(fw, column_cast, access_path, 
                 column_cast_back, sqlite3_type, line)
       when "union"
-        gen_union(fw, union_view_name, access_path)
+        gen_union(fw, union_view_name, access_path, col_type)
       when "base"
         fw.puts "      if (first_constr == 1) {"
         if @container_class.length > 0
@@ -1122,7 +1227,12 @@ class StructView
         columns_str[0] = matchdata[3]
       end
     end
-    columns_str.each { |x| @include_text_col += @columns.push(Column.new("")).last.set(x) }
+    begin
+      columns_str.each { |x| @include_text_col += @columns.push(Column.new("")).last.set(x) }
+    rescue Exception => e
+      puts e.message
+      exit(1)
+    end
     if $argD == "DEBUG"
       puts "Struct view #{@name} registered."
       puts "Struct view includes #{@include_text_col} columns of type text."

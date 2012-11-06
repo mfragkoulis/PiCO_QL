@@ -16,3 +16,7 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int nCol, sqlite3_con
 #line <%= @signature_line + 1 %> "<%= $argF %>" 
 <%        end %>
 <%    end %>
+#ifdef PICO_QL_DEBUG
+  picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
+  printf("Retrieving column %i of VT %s element %i\n", nCol, picoQL->zName, rs->current);
+#endif
