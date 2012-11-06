@@ -215,21 +215,23 @@ class Column
                                        # definitions to find the one 
                                        # specified and include it.
           # -1 standard + (-1) because we delete inheritance def column.
-          index = this_struct_view.columns.length - 2
+          index = this_struct_view.columns.length - 1
           if index < 0 : index = 0 end
           this_struct_view.columns_delete_last()
+          up_to = vs.columns.length
           vs.columns.each_index { |col| 
             coln = vs.columns[col]            # Manually construct a deep 
                                               # copy of coln
             this_columns.push(Column.new("")) # and push it to 'this'.
-            this_columns.last.construct(coln.name.clone, 
+            access_path = "#{matchdata[2]}#{coln.access_path}"
+            this_columns.last.construct(coln.name.clone,
                                         coln.data_type.clone,
                                         coln.cpp_data_type.clone,
                                         coln.related_to.clone, 
                                         coln.fk_method_ret,
                                         coln.fk_col_type.clone,
                                         coln.saved_results_index,
-                                        coln.access_path.clone, 
+                                        access_path, 
                                         coln.col_type.clone,
                                         coln.line,
                                         coln.case)
@@ -237,12 +239,12 @@ class Column
 	  col_type_text = vs.include_text_col
         end
       }
-      this_columns.each_index { |col|    # Adapt access path for included.
-        if col > index 
-          this_columns[col].access_path.replace(matchdata[2] + 
-                                                this_columns[col].access_path)
-        end
-      }
+#      this_columns.each_index { |col|    # Adapt access path for included.
+#        if col >= index && col < 
+#          this_columns[col].access_path.replace(matchdata[2] + 
+#                                                this_columns[col].access_path)
+#        end
+#      }
       return col_type_text
     when column_ptn2                      # Include a struct_view 
                                           # definition without adapting.
