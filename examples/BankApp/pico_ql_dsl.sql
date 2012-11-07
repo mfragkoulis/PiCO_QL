@@ -13,7 +13,9 @@ CREATE STRUCT VIEW SuperAccount (
        balance DOUBLE FROM get_balance(),
        account_no TEXT FROM get_account_no(),
        rate DOUBLE FROM get_rate(),
-       isbn INT FROM get_isbn());   // this is isbn
+       isbn INT FROM get_isbn(),   // this is isbn
+       isbn_root DOUBLE FROM get_math_root(this.get_isbn())
+);
 
 CREATE STRUCT VIEW SuperAccounts (
        id STRING FROM first,

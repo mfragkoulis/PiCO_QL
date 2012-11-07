@@ -22,6 +22,8 @@
 #ifndef SUPERACCOUNT_H
 #define SUPERACCOUNT_H
 
+double get_math_root(int i);
+
 class SuperAccount {
 
  protected:

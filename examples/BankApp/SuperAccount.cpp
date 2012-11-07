@@ -19,6 +19,7 @@
  *  permissions and limitations under the License.
  */
 
+#include <math.h>
 #include "SuperAccount.h"
 
 using namespace std;
@@ -49,4 +50,8 @@ int SuperAccount::get_isbn() const {
 
 double SuperAccount::get_rate() {
     return balance / 100;
+}
+
+double get_math_root(int i) {
+  return sqrt(i);
 }

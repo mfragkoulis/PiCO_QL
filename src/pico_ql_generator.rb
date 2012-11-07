@@ -221,7 +221,8 @@ class Column
             this_columns.push(Column.new("")) # and push it to current.
             access_path = ""
             if coln.access_path.match(/this\.|this->/)
-              access_path = coln.access_path.gsub(/this\.|this->/, "\1#{matchdata[2]}")
+              access_path = coln.access_path.gsub(/this\.|this->/, '\0<accessor>')
+              access_path.gsub!("<accessor>", "#{matchdata[2]}")
             else
               access_path = "#{matchdata[2]}#{coln.access_path}"
             end
