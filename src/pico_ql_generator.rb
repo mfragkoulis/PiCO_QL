@@ -207,16 +207,12 @@ class Column
     case column
     when column_ptn1
       matchdata = column_ptn1.match(column)
-      index = 0
       this_struct_view = $struct_views.last
       this_columns = this_struct_view.columns
       $struct_views.each { |vs| 
         if vs.name == matchdata[1]     # Search all struct_view 
                                        # definitions to find the one 
                                        # specified and include it.
-          # -1 standard + (-1) because we delete inheritance def column.
-          index = this_struct_view.columns.length - 1
-          if index < 0 : index = 0 end
           this_struct_view.columns_delete_last()
           up_to = vs.columns.length
           vs.columns.each_index { |col| 
@@ -239,12 +235,6 @@ class Column
 	  col_type_text = vs.include_text_col
         end
       }
-#      this_columns.each_index { |col|    # Adapt access path for included.
-#        if col >= index && col < 
-#          this_columns[col].access_path.replace(matchdata[2] + 
-#                                                this_columns[col].access_path)
-#        end
-#      }
       return col_type_text
     when column_ptn2                      # Include a struct_view 
                                           # definition without adapting.
@@ -927,9 +917,7 @@ class VirtualTable
       space.chomp!("  ")          
       fw.puts "#{space}}"
     end
-#    if @container_class.length == 0
       space.chomp!("  ")
-#    end
   end
 
   def gen_fk(fw, fk_type, fk_method_ret, column_cast, column_cast_back, 
@@ -961,9 +949,7 @@ class VirtualTable
     end
     notC = "!"
     space.concat("  ")
-#    if @container_class.length > 0
-      space.concat("  ")
-#    end
+    space.concat("  ")
     gen_fk_col_constr(fw, fk_method_ret, access_pathN, fk_type, 
                       column_cast, column_cast_back, sqlite3_type, 
                       sqlite3_parameters, line, add_to_result_setN, 
