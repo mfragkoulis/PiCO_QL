@@ -218,8 +218,13 @@ class Column
           vs.columns.each_index { |col| 
             coln = vs.columns[col]            # Manually construct a deep 
                                               # copy of coln
-            this_columns.push(Column.new("")) # and push it to 'this'.
-            access_path = "#{matchdata[2]}#{coln.access_path}"
+            this_columns.push(Column.new("")) # and push it to current.
+            access_path = ""
+            if coln.access_path.match(/this\.|this->/)
+              access_path = coln.access_path.gsub(/this\.|this->/, "\1#{matchdata[2]}")
+            else
+              access_path = "#{matchdata[2]}#{coln.access_path}"
+            end
             this_columns.last.construct(coln.name.clone,
                                         coln.data_type.clone,
                                         coln.cpp_data_type.clone,
@@ -1539,11 +1544,11 @@ if __FILE__ == $0
       fw.readlines.each{ |line| 
         # Drop single-line comments, multi-line comments not supported.
         if line.match(/\/\/(.+)/)
-          line.gsub!(/\/\/(.+)\n/, "")
+          line.gsub!(/\/\/(.+)/, "")
         end
       }
     }
-    $lined_description = $lined_description.select { |line| !line.empty? }
+#    $lined_description = $lined_description.select { |line| !line.empty? }
   rescue Exception => e
     puts e.message
     exit(1)
