@@ -1457,7 +1457,8 @@ class InputDescription
       @description.each { |x| p x }
     end
     token_d = @description
-    token_d = token_d.select { |x| x.length > 0 }
+    token_d = token_d.select { |x| x =~ /(\S+)/ }
+    token_d[0].lstrip!
     if token_d[0].start_with?("#include")
       @directives = token_d[0]
       # Putback the ';' after the namespace.
@@ -1486,7 +1487,7 @@ class InputDescription
       if / ,|, /.match(token_d[x]) : token_d[x].gsub!(/ ,|, /, ",") end
       x += 1
     end
-    @description = token_d.select{ |x| x.length > 0 }
+    @description = token_d.select{ |x| x =~ /(\S+)/ }
     if $argD == "DEBUG"
       puts "Description after whitespace cleanup: "
       @description.each { |x| p x }
