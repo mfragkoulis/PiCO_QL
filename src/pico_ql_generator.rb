@@ -226,7 +226,8 @@ class Column
             else
               access_path = "#{matchdata[2]}#{coln.access_path}"
             end
-            this_columns.last.construct(coln.name.clone,
+            name = "#{matchdata[1]}#{coln.name}"
+            this_columns.last.construct(name,
                                         coln.data_type.clone,
                                         coln.cpp_data_type.clone,
                                         coln.related_to.clone, 
@@ -254,6 +255,7 @@ class Column
 	end
       }
       return col_type_text
+# ?            name = "#{matchdata[1]}#{coln.name}"
     when column_ptn3
       matchdata = column_ptn3.match(column)
       @name = matchdata[3]

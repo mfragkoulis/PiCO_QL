@@ -372,7 +372,7 @@ int call_test(sqlite3 *db) {
 #endif
   result = test_prep_exec(f, db, q);
 
-  q = "select c.code, c.demand, c.x_coord, c.y_coord, c.code, c.demand, c.x_coord, c.y_coord from truck, customer c, mapindex where c.base=truck.customers_id and c.code like '%99' and mapindex.x_coord>133 and c.y_coord=mapindex.y_coord;";
+  q = "select c.code, c.demand, c.x_coord, c.y_coord, c.code, c.demand, c.x_coord, c.y_coord from truck, customer c, mapindex where c.base=truck.customers_id and c.code like '%99' and mapindex.Customerx_coord>133 and c.y_coord=mapindex.Customery_coord;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
 #ifdef PICO_QL_DEBUG
   printf("Query %i:\n %s\n\n", i, q);
@@ -455,28 +455,28 @@ int call_test(sqlite3 *db) {
   fprintf(f, "COMPOUND QUERIES\n\n\n");
 
 
-  q = "select code, demand, x_coord, y_coord from truck, customer where customer.base=truck.customers_id and code like '%99' UNION select code, demand, x_coord,y_coord from mapindex where x_coord>133;";
+  q = "select code, demand, x_coord, y_coord from truck, customer where customer.base=truck.customers_id and code like '%99' UNION select Customercode, Customerdemand, Customerx_coord,Customery_coord from mapindex where Customerx_coord>133;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
 #ifdef PICO_QL_DEBUG
   printf("Query %i:\n %s\n\n", i, q);
 #endif
   result = test_prep_exec(f, db, q);
 
-  q = "select code, demand, x_coord, y_coord from truck, customer where customer.base=truck.customers_id and code like '%99' UNION ALL select code, demand, x_coord,y_coord from mapindex where x_coord>133;";
+  q = "select code, demand, x_coord, y_coord from truck, customer where customer.base=truck.customers_id and code like '%99' UNION ALL select Customercode, Customerdemand, Customerx_coord,Customery_coord from mapindex where Customerx_coord>133;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
 #ifdef PICO_QL_DEBUG
   printf("Query %i:\n %s\n\n", i, q);
 #endif
   result = test_prep_exec(f, db, q);
 
-  q = "select code, demand, x_coord, y_coord from truck, customer where customer.base=truck.customers_id and code like '%99' INTERSECT select code, demand, x_coord,y_coord from mapindex where x_coord>133;";
+  q = "select code, demand, x_coord, y_coord from truck, customer where customer.base=truck.customers_id and code like '%99' INTERSECT select Customercode, Customerdemand, Customerx_coord,Customery_coord from mapindex where Customerx_coord>133;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
 #ifdef PICO_QL_DEBUG
   printf("Query %i:\n %s\n\n", i, q);
 #endif
   result = test_prep_exec(f, db, q);
 
-  q = "select code, demand, x_coord, y_coord from truck, customer where customer.base=truck.customers_id and code like '%99' EXCEPT select code, demand, x_coord,y_coord from mapindex where x_coord>133;";
+  q = "select code, demand, x_coord, y_coord from truck, customer where customer.base=truck.customers_id and code like '%99' EXCEPT select Customercode, Customerdemand, Customerx_coord,Customery_coord from mapindex where Customerx_coord>133;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
 #ifdef PICO_QL_DEBUG
   printf("Query %i:\n %s\n\n", i, q);
@@ -487,14 +487,14 @@ int call_test(sqlite3 *db) {
   fprintf(f, "AGGREGATIONS\n\n\n");
 
 
-  q = "select sum(m.map_index), m.demand from (select * from mapindex where map_index<187) as m GROUP BY m.demand";
+  q = "select sum(m.map_index), m.Customerdemand from (select * from mapindex where map_index<187) as m GROUP BY m.Customerdemand";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
 #ifdef PICO_QL_DEBUG
   printf("Query %i:\n %s\n\n", i, q);
 #endif
   result = test_prep_exec(f, db, q);
 
-  q = "select sum(m.map_index), m.demand from (select * from mapindex where map_index<187) as m GROUP BY m.demand HAVING sum(m.map_index)>200;";
+  q = "select sum(m.map_index), m.Customerdemand from (select * from mapindex where map_index<187) as m GROUP BY m.Customerdemand HAVING sum(m.map_index)>200;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
 #ifdef PICO_QL_DEBUG
   printf("Query %i:\n %s\n\n", i, q);
@@ -560,7 +560,7 @@ int call_test(sqlite3 *db) {
 #endif
   result = test_prep_exec(f, db, q);
 
-  q = "select truck.rownum, cost, delcapacity,customer.rownum, customer.code, customer.demand from truck join customer on customer.base=truck.customers_id where exists (select * from Mapindex where mapindex.code='159' and mapindex.demand>customer.demand) LIMIT 10;";
+  q = "select truck.rownum, cost, delcapacity,customer.rownum, customer.code, customer.demand from truck join customer on customer.base=truck.customers_id where exists (select * from Mapindex where mapindex.Customercode='159' and mapindex.Customerdemand>customer.demand) LIMIT 10;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
 #ifdef PICO_QL_DEBUG
   printf("Query %i:\n %s\n\n", i, q);
@@ -578,7 +578,7 @@ int call_test(sqlite3 *db) {
 #endif
   result = test_prep_exec(f, db, q);
 
-  q = "select code, demand, x_coord, y_coord from truck, customer where customer.base=truck.customers_id and code LIKE '%69' ESCAPE '%' INTERSECT select code, demand, x_coord,y_coord from mapindex where x_coord>133;";
+  q = "select code, demand, x_coord, y_coord from truck, customer where customer.base=truck.customers_id and code LIKE '%69' ESCAPE '%' INTERSECT select Customercode, Customerdemand, Customerx_coord,Customery_coord from mapindex where Customerx_coord>133;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
 #ifdef PICO_QL_DEBUG
   printf("Query %i:\n %s\n\n", i, q);
@@ -589,21 +589,21 @@ int call_test(sqlite3 *db) {
   fprintf(f, "CASE\n\n\n");
 
 
-  q = "select summed, (select case when demand>30 then 'high' when demand between 25 and 30 then 'moderate' when demand between 20 and 24 then 'towards moderate' when demand between 10 and 19 then 'low' when demand<10 then 'tiny' end) tag from (select sum(map_index) summed, demand from (select * from mapindex where map_index<187) as m group by demand) grouped;";
+  q = "select summed, (select case when Customerdemand>30 then 'high' when Customerdemand between 25 and 30 then 'moderate' when Customerdemand between 20 and 24 then 'towards moderate' when Customerdemand between 10 and 19 then 'low' when Customerdemand<10 then 'tiny' end) tag from (select sum(map_index) summed, Customerdemand from (select * from mapindex where map_index<187) as m group by Customerdemand) grouped;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
 #ifdef PICO_QL_DEBUG
   printf("Query %i:\n %s\n\n", i, q);
 #endif
   result = test_prep_exec(f, db, q);
 
-  q = "select c.code, c.x_coord, c.y_coord, mapindex.code, mapindex.x_coord, mapindex.y_coord, (select case when (c.x_coord*c.x_coord-mapindex.x_coord*mapindex.x_coord) + (c.y_coord*c.y_coord-mapindex.y_coord*mapindex.y_coord)<=100 then c.code||'-'||mapindex.code||' are close' when(c.x_coord*c.x_coord-mapindex.x_coord*mapindex.x_coord) + (c.y_coord*c.y_coord-mapindex.y_coord*mapindex.y_coord)>100 then c.code||'-'||mapindex.code||' are far' end) distanceP2 from truck, customer c, mapindex where c.base=truck.customers_id and c.code like '%99' and mapindex.code like '_50';";
+  q = "select c.code, c.x_coord, c.y_coord, mapindex.Customercode, mapindex.Customerx_coord, mapindex.Customery_coord, (select case when (c.x_coord*c.x_coord-mapindex.Customerx_coord*mapindex.Customerx_coord) + (c.y_coord*c.y_coord-mapindex.Customery_coord*mapindex.Customery_coord)<=100 then c.code||'-'||mapindex.Customercode||' are close' when(c.x_coord*c.x_coord-mapindex.Customerx_coord*mapindex.Customerx_coord) + (c.y_coord*c.y_coord-mapindex.Customery_coord*mapindex.Customery_coord)>100 then c.code||'-'||mapindex.Customercode||' are far' end) distanceP2 from truck, customer c, mapindex where c.base=truck.customers_id and c.code like '%99' and mapindex.Customercode like '_50';";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
 #ifdef PICO_QL_DEBUG
   printf("Query %i:\n %s\n\n", i, q);
 #endif
   result = test_prep_exec(f, db, q);
 
-  q = "select c.code, c.x_coord, c.y_coord, mapindex.code, mapindex.x_coord, mapindex.y_coord, (select case when (c.x_coord*c.x_coord-mapindex.x_coord*mapindex.x_coord) + (c.y_coord*c.y_coord-mapindex.y_coord*mapindex.y_coord)<=100 then c.code||'-'||mapindex.code||' are close' when(c.x_coord*c.x_coord-mapindex.x_coord*mapindex.x_coord) + (c.y_coord*c.y_coord-mapindex.y_coord*mapindex.y_coord)>100 then c.code||'-'||mapindex.code||' are far' end) distanceP2 from truck, customer c, mapindex where c.base=truck.customers_id and c.code like '%99' and mapindex.code in ('050','011');";
+  q = "select c.code, c.x_coord, c.y_coord, mapindex.Customercode, mapindex.Customerx_coord, mapindex.Customery_coord, (select case when (c.x_coord*c.x_coord-mapindex.Customerx_coord*mapindex.Customerx_coord) + (c.y_coord*c.y_coord-mapindex.Customery_coord*mapindex.Customery_coord)<=100 then c.code||'-'||mapindex.Customercode||' are close' when(c.x_coord*c.x_coord-mapindex.Customerx_coord*mapindex.Customerx_coord) + (c.y_coord*c.y_coord-mapindex.Customery_coord*mapindex.Customery_coord)>100 then c.code||'-'||mapindex.Customercode||' are far' end) distanceP2 from truck, customer c, mapindex where c.base=truck.customers_id and c.code like '%99' and mapindex.Customercode in ('050','011');";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
 #ifdef PICO_QL_DEBUG
   printf("Query %i:\n %s\n\n", i, q);

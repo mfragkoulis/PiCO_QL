@@ -2,7 +2,7 @@ Query 1:
  select * from SuperAccounts;
 
 Statement prepared.
-rownum id balance account_no rate isbn isbn_root 
+rownum id SuperAccountbalance SuperAccountaccount_no SuperAccountrate SuperAccountisbn SuperAccountisbn_root 
 
 0 0 500.000000 10068 5.000000 478923743 21884.326423 
 1 1 394.279999 10234 3.942800 692346729 26312.482380 
@@ -26,10 +26,10 @@ rownum id balance account_no rate isbn isbn_root
 Done
 
 Query 2:
- select * from SuperAccounts where isbn > 0 and balance < 500 and account_no>1000 order by id;
+ select * from SuperAccounts where SuperAccountisbn > 0 and SuperAccountbalance < 500 and SuperAccountaccount_no>1000 order by id;
 
 Statement prepared.
-rownum id balance account_no rate isbn isbn_root 
+rownum id SuperAccountbalance SuperAccountaccount_no SuperAccountrate SuperAccountisbn SuperAccountisbn_root 
 
 1 1 394.279999 10234 3.942800 692346729 26312.482380 
 3 12 -347389.000000 22974 -3473.889893 580383483 24091.149474 
