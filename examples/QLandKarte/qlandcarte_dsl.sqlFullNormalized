@@ -13,8 +13,6 @@
 #include "IOverlay.h"
 #include "CDiaryDB.h"
 #include "CDiary.h"
-
-using namespace std;
 ;
 
 CREATE STRUCT VIEW IItem (
@@ -25,46 +23,32 @@ CREATE STRUCT VIEW IItem (
 );
 
 
-CREATE STRUCT VIEW MapTrack (
+CREATE STRUCT VIEW MapTracks (
        key STRING FROM first.toStdString(),
-       INHERITS STRUCT VIEW IItem FROM second->,
-       descend DOUBLE FROM second->getDescend(),
-       ascend DOUBLE FROM second->getAscend(),
-       distance DOUBLE FROM second->getTotalDistance(),
-       totalTime INT FROM second->getTotalTime(),
-       totalTimeMoving INT FROM second->getTotalTimeMoving(),
-       FOREIGN KEY(trackWaypoints_id) FROM second->getStdTrackPoints() REFERENCES TrackWaypoint POINTER,
-       FOREIGN KEY(stageWaypoints_id) FROM second->getStdStagePoints() REFERENCES StageWaypoint POINTER
+       FOREIGN KEY(track_id) FROM second REFERENCES Track POINTER
 );
 
-CREATE VIRTUAL TABLE LandKarte.MapTrack 
-USING STRUCT VIEW MapTrack
+CREATE VIRTUAL TABLE LandKarte.MapTracks 
+USING STRUCT VIEW MapTracks
 WITH REGISTERED C NAME tracks 
 WITH REGISTERED C TYPE map<QString, CTrack*>;
 
-CREATE STRUCT VIEW Waypoint (
+CREATE STRUCT VIEW Track (
        INHERITS STRUCT VIEW IItem,
-       lon FLOAT FROM lon,
-       lat FLOAT FROM lat,
-       ele FLOAT FROM ele,
-       prx FLOAT FROM prx,
-       link STRING FROM link.toStdString(),
-       urlName STRING FROM urlname.toStdString(),
-       type STRING FROM type.toStdString(),
-       FOREIGN KEY(geoData) FROM getGeocacheData() REFERENCES GeoData   // should not be separated according to design rules, however promotes modularity and encapsulation
+       descend DOUBLE FROM getDescend(),
+       ascend DOUBLE FROM getAscend(),
+       distance DOUBLE FROM getTotalDistance(),
+       totalTime INT FROM getTotalTime(),
+       totalTimeMoving INT FROM getTotalTimeMoving(),
+       FOREIGN KEY(trackWaypoints_id) FROM getStdTrackPoints() REFERENCES TrackWaypoints POINTER,
+       FOREIGN KEY(stageWaypoints_id) FROM getStdStagePoints() REFERENCES StageWaypoints POINTER
 );
 
-CREATE STRUCT VIEW MapWaypoint (
-       key STRING FROM first.toStdString(),
-       INHERITS STRUCT VIEW Waypoint FROM second->
-);
+CREATE VIRTUAL TABLE LandKarte.Track 
+USING STRUCT VIEW Track
+WITH REGISTERED C TYPE CTrack;
 
-CREATE VIRTUAL TABLE LandKarte.MapWaypoint
-USING STRUCT VIEW MapWaypoint
-WITH REGISTERED C NAME wpts 
-WITH REGISTERED C TYPE map<QString, CWpt*>;
-
-CREATE STRUCT VIEW TrackWaypoint (
+CREATE STRUCT VIEW TrackWaypoints (
        lon FLOAT FROM lon,
        lat FLOAT FROM lat,
        ele FLOAT FROM ele,
@@ -93,21 +77,47 @@ CREATE STRUCT VIEW TrackWaypoint (
        dem FLOAT FROM dem
 );
 
-CREATE VIRTUAL TABLE LandKarte.TrackWaypoint
-USING STRUCT VIEW TrackWaypoint
+CREATE VIRTUAL TABLE LandKarte.TrackWaypoints 
+USING STRUCT VIEW TrackWaypoints
 WITH REGISTERED C TYPE list<CTrack::pt_t>;
 
-CREATE STRUCT VIEW StageWaypoint (
-       INHERITS STRUCT VIEW Waypoint FROM wpt->,
+CREATE STRUCT VIEW StageWaypoints (
+       FOREIGN KEY(wpt_id) FROM wpt REFERENCES Waypoint POINTER,
        x DOUBLE FROM x,
        y DOUBLE FROM y,
        d DOUBLE FROM d,
        FOREIGN KEY(pt_t_id) FROM trkpt REFERENCES TrackWaypoint
 );
 
-CREATE VIRTUAL TABLE LandKarte.StageWaypoint 
-USING STRUCT VIEW StageWaypoint
+CREATE VIRTUAL TABLE LandKarte.StageWaypoints 
+USING STRUCT VIEW StageWaypoints
 WITH REGISTERED C TYPE list<CTrack::wpt_t>;
+
+CREATE STRUCT VIEW Waypoints (
+       key STRING FROM first.toStdString(),
+       FOREIGN KEY(wpt_id) FROM second REFERENCES Waypoint POINTER
+);
+
+CREATE VIRTUAL TABLE LandKarte.Waypoints 
+USING STRUCT VIEW Waypoints
+WITH REGISTERED C NAME wpts 
+WITH REGISTERED C TYPE map<QString, CWpt*>;
+
+CREATE STRUCT VIEW Waypoint (
+       INHERITS STRUCT VIEW IItem,
+       lon FLOAT FROM lon,
+       lat FLOAT FROM lat,
+       ele FLOAT FROM ele,
+       prx FLOAT FROM prx,
+       link STRING FROM link.toStdString(),
+       urlName STRING FROM urlname.toStdString(),
+       type STRING FROM type.toStdString(),
+       FOREIGN KEY(geoData) FROM getGeocacheData() REFERENCES GeoData   // should not be separated according to design rules, however promotes modularity and encapsulation
+);
+
+CREATE VIRTUAL TABLE LandKarte.Waypoint 
+USING STRUCT VIEW Waypoint
+WITH REGISTERED C TYPE CWpt;
 
 CREATE STRUCT VIEW GeoData (
        difficulty FLOAT FROM difficulty,
@@ -129,23 +139,30 @@ CREATE VIRTUAL TABLE LandKarte.GeoData
 USING STRUCT VIEW GeoData
 WITH REGISTERED C TYPE CWpt::geocache_t;
 
-CREATE STRUCT VIEW Route (
+CREATE STRUCT VIEW Routes (
        key STRING FROM first.toStdString(),
-       INHERITS STRUCT VIEW IItem FROM second->,
-       distance DOUBLE FROM second->getDistance(),
-       time INT FROM second->getTime()
+       FOREIGN KEY(route_id) FROM second REFERENCES Route POINTER
 );
 
-CREATE VIRTUAL TABLE LandKarte.Route
-USING STRUCT VIEW Route
+CREATE VIRTUAL TABLE LandKarte.Routes 
+USING STRUCT VIEW Routes
 WITH REGISTERED C NAME routes 
 WITH REGISTERED C TYPE map<QString, CRoute*>;
 
-//not updated to relaxed rules
-//CREATE STRUCT VIEW Diaries (
-//       key STRING FROM first.toStdString(),
-//       FOREIGN KEY(diary_id) FROM second REFERENCES Diary POINTER
-//);
+CREATE STRUCT VIEW Route (
+       INHERITS STRUCT VIEW IItem,
+       distance DOUBLE FROM getDistance(),
+       time INT FROM getTime()
+);
+
+CREATE VIRTUAL TABLE LandKarte.Route 
+USING STRUCT VIEW Route
+WITH REGISTERED C TYPE CRoute;
+
+CREATE STRUCT VIEW Diaries (
+       key STRING FROM first.toStdString(),
+       FOREIGN KEY(diary_id) FROM second REFERENCES Diary POINTER
+);
 
 //CREATE VIRTUAL TABLE LandKarte.Diaries 
 //USING STRUCT VIEW Diaries
