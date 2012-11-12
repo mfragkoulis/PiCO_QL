@@ -66,7 +66,7 @@ class forward_iterator_concept_class {
 // For the compiler to verify.
 void check_concepts() {
 <%    @tables.each_index { |vt| %>
-<%      if @tables[vt].container_class.length > 0 %>
+<%      if @tables[vt].container_class.length > 0 && !@tables[vt].C_container_types.include?(@tables[vt].container_class) %>
 <%# Chomp the pointer from signature. %>
 <%# For non-pointers it will have zero effect. %>
   <%= @tables[vt].signature.chomp('*') %> container_instance<%= vt %>;
@@ -236,12 +236,23 @@ list <<%= col.fk_col_type.chomp('*') %> > saved_results_<%= i %>;
 <%      if vt.container_class.length > 0 %>
   class ResultSet {
   public:
+<%        if vt.C_container_types.include?(vt.container_class) %>
+<%          vt.pointer.match(/\*/) ? retype = "" : retype = "*" %> 
+    vector<<%= vt.signature %><%= retype %>> res;
+    vector<<%= vt.signature %><%= retype %>>::iterator resIter;
+<%        else %>
     vector<<%= vt.signature.chomp('*') %>::iterator> res;
     vector<<%= vt.signature.chomp('*') %>::iterator>::iterator resIter;
+<%        end %>
     dynamic_bitset<unsigned long> resBts;
     int resultSetIterState;
     int current;
+<%        if vt.C_container_types.include?(vt.container_class) %>
+<%          vt.pointer.match(/\*/) ? retype = "" : retype = "*" %> 
+    ResultSet(int res_max_size, int resIterState, int cur, vector<<%= vt.signature %><%= retype %>>::iterator it) {
+<%        else %>
     ResultSet(int res_max_size, int resIterState, int cur, vector<<%= vt.signature.chomp('*') %>::iterator>::iterator it) {
+<%        end %>
       resBts.resize(res_max_size);
       resultSetIterState = resIterState;
       current = cur;
@@ -251,8 +262,14 @@ list <<%= col.fk_col_type.chomp('*') %> > saved_results_<%= i %>;
     ~ResultSet() {resBts.clear();};
   };
   map<sqlite3_vtab_cursor *, ResultSet> cursors;
+<%        if vt.C_container_types.include?(vt.container_class) %>
+<%          vt.pointer.match(/\*/) ? retype = "" : retype = "*" %> 
+  vector<<%= vt.signature %><%= retype %>>::iterator resIterC;
+  <%= vt.signature %><%= retype %> iter;
+<%        else %>
   vector<<%= vt.signature.chomp('*') %>::iterator>::iterator resIterC;
   <%= vt.signature.chomp('*') %>::iterator iter;
+<%        end %>
 <%      else %>
   set<sqlite3_vtab_cursor *> cursors;
 <%      end %>

@@ -5,7 +5,12 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
   picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
   if (cursors.find(cur) == cursors.end()) {
 <%      if @container_class.length > 0 %>
+<%        if @@C_container_types.include?(@container_class) %>
+<%          @pointer.match(/\*/) ? retype = "" : retype = "*" %>
+    vector<<%= @signature %><%= retype %>> res;
+<%        else %>
     vector<<%= @signature.chomp('*') %>::iterator> res;
+<%        end %>
     ResultSet r(stcsr->max_size, -1, -1, res.begin());
     pair<map<sqlite3_vtab_cursor *, ResultSet>::iterator, bool> inserted = cursors.insert(pair<sqlite3_vtab_cursor *, ResultSet>(cur, r));
 #ifdef PICO_QL_DEBUG
@@ -33,7 +38,12 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
 <%	else %>
     rs->res.clear();
     rs->resBts.clear();
+<%        if @@C_container_types.include?(@container_class) %>
+<%          @pointer.match(/\*/) ? retype = "" : retype = "*" %>
+    rs->res.push_back(<%= @signature %><%= retype %> dummy);
+<%	  else %>
     rs->res.push_back(<%= @signature.chomp('*') %>::iterator());
+<%        end %>
     rs->resIter = rs->res.begin();
 <%      end %>
     return SQLITE_OK;
@@ -53,6 +63,14 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
   if (val == NULL) {
 <%      if @base_var.length > 0 %>
 <%        if @container_class.length > 0 %>
+<%          if @@C_container_types.include?(@container_class) %>
+    iter = any_dstr;
+    while (iter != NULL) {
+      rs->res.push_back(iter);
+      rs->resBts.push_back(1);
+      iter = <%= @iterator %>;
+    }
+<%          else %>
     for (iter = any_dstr->begin(); iter != any_dstr->end(); iter++)
       rs->res.push_back(<%= @signature.chomp('*') %>::iterator(iter));
     rs->resBts.set();
@@ -81,7 +99,12 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
             stcsr->size = 1;
 <%	  else %>
 // BASE is first constraint by default, so no need to delete resultset here.
+<%          if @@C_container_types.include?(@container_class) %>
+<%            @pointer.match(/\*/) ? retype = "" : retype = "*" %>
+            rs->res.push_back(<%= @signature %><%= retype %> dummy);
+<%	    else %>
             rs->res.push_back(<%= @signature.chomp('*') %>::iterator());
+<%	    end %>
 <%        end %>
             return SQLITE_OK;
           }
@@ -90,7 +113,12 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
 <%        if @container_class.length > 0 %>
           if ((stcsr->max_size = (int)(*this)(cur, cur->pVtab)) == 0) {
             stcsr->isInstanceEmpty = 1;
+<%          if @@C_container_types.include?(@container_class) %>
+<%            @pointer.match(/\*/) ? retype = "" : retype = "*" %>
+            rs->res.push_back(<%= @signature %><%= retype %> dummy);
+<%	    else %>
             rs->res.push_back(<%= @signature.chomp('*') %>::iterator());
+<%	    end %>
             return SQLITE_OK;
           } else {
             rs->resBts.resize(stcsr->max_size, 0);

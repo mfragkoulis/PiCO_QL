@@ -331,16 +331,19 @@ class VirtualTable
                           # Use @type for management. It is active for 
                           # both container and object.
     @pointer = ""         # Type of the base_var.
+    @iterator = ""        # Iterator name in app to use for C containers. 
     @object_class = ""    # If an object instance.
     @columns = Array.new  # References to the VT columns.
     @include_text_col = 0 # True if VirtualTable includes column
     		      	  # of text data type. Required for
 			  # generating code for
 			  # PICO_QL_HANDLE_POLYMORPHISM C++ flag.
+    @@C_container_types = ["clist"]
   end
   attr_accessor(:name,:base_var_line,:signature_line,:base_var,
                 :struct_view,:db,:signature,:container_class,:type,
-                :pointer,:object_class,:columns,:include_text_col)
+                :pointer,:iterator,:object_class,:columns,
+                :include_text_col,:C_container_types)
 
 # Support templating of member data
   def get_binding
@@ -525,7 +528,11 @@ class VirtualTable
     iden = ""
     type_check = ""
     if @container_class.length > 0
-      access_path.length == 0 ? iden =  "**(rs->resIter)" : iden = "(**(rs->resIter))."
+      if @@C_container_types.include?(@container_class)
+        access_path.length == 0 ? iden =  "*(rs->resIter)" : iden = "(*(rs->resIter))."
+      else
+        access_path.length == 0 ? iden =  "**(rs->resIter)" : iden = "(**(rs->resIter))."
+      end
     else
       access_path.length == 0 ? iden = "any_dstr" : iden = "any_dstr->"
     end
@@ -629,7 +636,12 @@ class VirtualTable
 
   def configure_result_set()
     if @container_class.length > 0
-      add_to_result_setF = "<space>    rs->res.push_back(#{@signature.chomp('*')}::iterator(iter));\n<space>    rs->resBts.set(index, 1);\n<space>  }\n<space>  index++;\n<space>}"
+      if @@C_container_types.include?(@container_class)
+        @pointer.match(/\*/) ? retype = "" : retype = "*"
+        add_to_result_setF = "<space>    rs->res.push_back(iter);\n<space>    rs->resBts.push_back(1);\n<space>  } else {\n<space>    rs->resBts.push_back(0);\n<space>  }\n<space>  index++;\n<space>}"
+      else
+        add_to_result_setF = "<space>    rs->res.push_back(#{@signature.chomp('*')}::iterator(iter));\n<space>    rs->resBts.set(index, 1);\n<space>  }\n<space>  index++;\n<space>}"
+      end
       add_to_result_setN = "<space>    resIterC = rs->res.erase(resIterC);\n<space>    rs->resBts.reset(index);\n<space>  } else\n<space>    resIterC++;\n<space>  index = rs->resBts.find_next(index);\n<space>}"
     else
       add_to_result_setF = "<space>  stcsr->size = 1;\n<space>}"
@@ -644,8 +656,13 @@ class VirtualTable
     access_pathF = ""
     access_pathN = ""
     if @container_class.length > 0
-      access_path.length == 0 ? idenF = "(*iter)" : idenF = "(*iter)."
-      access_path.length == 0 ? idenN = "(**resIterC)" : idenN = "(**resIterC)."
+      if @@C_container_types.include?(@container_class)
+        access_path.length == 0 ? idenF = "iter" : idenF = "iter."
+        access_path.length == 0 ? idenN = "(*resIterC)" : idenN = "(*resIterC)."
+      else
+        access_path.length == 0 ? idenF = "(*iter)" : idenF = "(*iter)."
+        access_path.length == 0 ? idenN = "(**resIterC)" : idenN = "(**resIterC)."
+      end
     else
       access_path.length == 0 ? idenF = "any_dstr" : idenF = "any_dstr->"
       access_path.length == 0 ? idenN = "any_dstr" : idenN = "any_dstr->"
@@ -724,7 +741,11 @@ class VirtualTable
 
   def configure_iteration()
     if @container_class.length > 0
-      iterationF = "<space>for (iter = any_dstr->begin(); iter != any_dstr->end(); iter++) {"
+      if @@C_container_types.include?(@container_class)
+        iterationF = "<space>iter = any_dstr;\n<space>while (iter != NULL) {"
+      else
+        iterationF = "<space>for (iter = any_dstr->begin(); iter != any_dstr->end(); iter++) {"
+      end
       iterationN = "<space>index = rs->resBts.find_first();\n<space>resIterC = rs->res.begin();\n<space>while (resIterC != rs->res.end()) {"
       return iterationF, iterationN
     end
@@ -1010,9 +1031,17 @@ class VirtualTable
       when "base"
         fw.puts "      if (first_constr == 1) {"
         if @container_class.length > 0
-          fw.puts "#{$s}for (iter = any_dstr->begin(); iter != any_dstr->end(); iter++) {"
-          fw.puts "#{$s}  rs->res.push_back(#{@signature.chomp('*')}::iterator(iter));\n#{$s}}"
-          fw.puts "#{$s}rs->resBts.set();"
+          if @@C_container_types.include?(@container_class)
+            @pointer.match(/\*/) ? retype = "" : retype = "*"
+            fw.puts "#{$s}iter = any_dstr;"
+            fw.puts "#{$s}while (iter != NULL) {"
+            fw.puts "#{$s}  rs->res.push_back(#{@signature}#{retype} dummy);"
+            fw.puts "#{$s}  rs->resBts.push_back(1);\n#{$s}}"
+          else
+            fw.puts "#{$s}for (iter = any_dstr->begin(); iter != any_dstr->end(); iter++) {"
+            fw.puts "#{$s}  rs->res.push_back(#{@signature.chomp('*')}::iterator(iter));\n#{$s}}"
+            fw.puts "#{$s}rs->resBts.set();"
+          end
         else
           fw.puts "#{$s}stcsr->size = 1;"
         end
@@ -1105,9 +1134,16 @@ class VirtualTable
       case @signature
       when /(\w+)<(.+)>(\**)/m
         matchdata = /(\w+)<(.+)>(\**)/m.match(@signature)
+        if @C_container_types.include?(matchdata[1])
+          @signature = matchdata[2]
+          if @signature.match(/(\w+)\*/)
+            @pointer = "*"
+          end
+        else
+          @pointer = matchdata[3]
+        end
         @container_class = matchdata[1]
         @type = matchdata[2]
-        @pointer = matchdata[3]
         if $argD == "DEBUG"
           puts "Virtual table container class name is: " + @container_class
           puts "Virtual table record is of type: " + @type
@@ -1134,8 +1170,10 @@ class VirtualTable
 
 # Matches VT definitions against prototype patterns.
   def match_table(table_description)
-    table_ptn1 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c name (.+) with registered c type (.+)/im
-    table_ptn2 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c type (.+)/im
+    table_ptn1 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c name (.+) with registered c type (.+) using iterator name (\w+)/im
+    table_ptn2 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c type (.+) using iterator name (\w+)/im
+    table_ptn3 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c name (.+) with registered c type (.+)/im
+    table_ptn4 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c type (.+)/im
     if $argD == "DEBUG"
       puts "Table description is: #{table_description}"
     end
@@ -1148,8 +1186,23 @@ class VirtualTable
       struct_view_name = matchdata[3]
       @base_var = matchdata[4]
       @signature = matchdata[5]
+      @iterator = matchdata[6]
     when table_ptn2
       matchdata = table_ptn2.match(table_description)
+      @db = matchdata[1]
+      @name = matchdata[2]
+      struct_view_name = matchdata[3]
+      @signature = matchdata[4]
+      @iterator = matchdata[5]
+    when table_ptn3
+      matchdata = table_ptn3.match(table_description)
+      @db = matchdata[1]
+      @name = matchdata[2]
+      struct_view_name = matchdata[3]
+      @base_var = matchdata[4]
+      @signature = matchdata[5]
+    when table_ptn4
+      matchdata = table_ptn4.match(table_description)
       @db = matchdata[1]
       @name = matchdata[2]
       struct_view_name = matchdata[3]
@@ -1172,8 +1225,11 @@ class VirtualTable
     $table_index[@name] = @signature
     if @base_var.length == 0        # base column for embedded structs.
       @columns.push(Column.new("")).last.set("base INT FROM self") 
+# perhaps PRIMARY KEY(base)
     end
-    if @container_class.length > 0  # rownum column for container structs.
+    if @container_class.length > 0 && 
+        !@@C_container_types.include?(@container_class)
+      # rownum column for container structs.
       @columns.push(Column.new("")).last.set("rownum INT FROM self") 
     end
     @include_text_col = @struct_view.include_text_col

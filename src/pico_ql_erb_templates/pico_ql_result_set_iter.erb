@@ -3,17 +3,19 @@ size_t <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, sqlite3_vtab *vtab
   picoQLTable *picoQL = (picoQLTable *)vtab;
 <%      if @container_class.length > 0 %>
   picoQL->object = 0;
+<%        if @@C_container_types.include?(@container_class) %>
   if (cur != NULL) {
     picoQLTableCursor *stc = (picoQLTableCursor *)cur;
-<%        /\*/.match(@pointer) == nil ? retype = "*" : retype = "" %>
+<%          /\*/.match(@pointer) == nil ? retype = "*" : retype = "" %>
 <%# stc->source will definitely hold a pointer so retyping the signature
 <%# as follows is correct. %>
     <%= @signature %><%= retype %> any_dstr = (<%= @signature %><%= retype %>)stc->source;
-<%        if $argD == "DEBUG" %>
+<%          if $argD == "DEBUG" %>
 #line <%= @signature_line + 1 %> "<%= $argF %>" 
-<%        end %>
+<%          end %>
     return any_dstr->size();
   }
+<%        end %>
 <%      else %>
   (void)cur;
   picoQL->object = 1;
