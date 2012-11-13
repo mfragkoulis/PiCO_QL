@@ -28,15 +28,16 @@ typedef union {
 
 } weight;
 
-typedef struct {
+struct Money {
 
   char name[30];
   int price_mode;
   uprice prc;
   int weight_mode;
   weight wgt;
+  struct Money *next;
   
-} Money;
+};
 
 typedef struct {
 

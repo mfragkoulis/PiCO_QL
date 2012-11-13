@@ -542,7 +542,8 @@ class VirtualTable
       access_path.length == 0 ? iden = "any_dstr" : iden = "any_dstr->"
     end
     case op
-    when "gen_all"
+    when /gen_all|union/
+      puts op
       if @container_class.length > 0
         if access_path.length == 0
           if @type.match(/\*/)
@@ -643,7 +644,7 @@ class VirtualTable
     if @container_class.length > 0
       if @@C_container_types.include?(@container_class)
         @pointer.match(/\*/) ? retype = "" : retype = "*"
-        add_to_result_setF = "<space>    rs->res.push_back(iter);\n<space>    rs->resBts.push_back(1);\n<space>  } else {\n<space>    rs->resBts.push_back(0);\n<space>  }\n<space>  index++;\n<space>}"
+        add_to_result_setF = "<space>    rs->res.push_back(iter);\n<space>    rs->resBts.push_back(1);\n<space>  } else {\n<space>    rs->resBts.push_back(0);\n<space>  }\n<space>  index++;\n<space>  iter = iter->#{@iterator};\n<space>}"
       else
         add_to_result_setF = "<space>    rs->res.push_back(#{@signature.chomp('*')}::iterator(iter));\n<space>    rs->resBts.set(index, 1);\n<space>  }\n<space>  index++;\n<space>}"
       end
@@ -777,21 +778,25 @@ class VirtualTable
         switch = uv.switch
       end 
     }
-    fw.puts "#{$s}switch (#{root_access_path}#{switch}) {"
+    space = ""
+    space.replace($s)
+    if @container_class.length > 0
+      space.concat("  ")
+    end
+    fw.puts "#{space}switch (#{root_access_path}#{switch}) {"
     columns.each { |col|
-      fw.puts "#{$s}case #{col.case}:"
+      fw.puts "#{space}case #{col.case}:"
+      space.concat("  ")
       sqlite3_type = "search"
       column_cast = ""
       sqlite3_parameters = ""
       column_cast_back = ""
       access_path_col = ""
       total_access_path = ""
-      space = ""
-      space.replace($s).concat("  ")
       op, union_view_embedded, col_type, line, fk_method_ret, useless3 = 
       col.bind_datatypes(sqlite3_type, 
-                                   column_cast, sqlite3_parameters, 
-                                   column_cast_back, access_path_col)
+                         column_cast, sqlite3_parameters, 
+                         column_cast_back, access_path_col)
       total_access_path.replace(union_access_path).concat(access_path_col)
       if op == "fk" && col_type == "object"
         total_access_path = "&#{total_access_path}"
@@ -843,19 +848,29 @@ class VirtualTable
     add_to_result_setF, add_to_result_setN = configure_result_set()
     iterationF, iterationN = configure_iteration()
     fw.puts "      if (first_constr == 1) {"
+    space = "#{$s}"
+    if @container_class.length > 0
+      fw.puts "#{iterationF.gsub(/<space>/, "#{space}")}"
+#      space.concat("  ")
+    end
     notC = ""
+    iteration = ""
     gen_union_col_constr(fw, union_view_name, idenF,
                          full_union_access_pathF, add_to_result_setF, 
-                         iterationF, notC)
+                         iteration, notC)
     if @container_class.length > 0
+#C_cont:iter->next
       fw.puts "      } else {"
+      fw.puts "#{iterationN.gsub(/<space>/, "#{space}")}"
+#      space.concat("  ")
     else
       fw.puts "      } else if (stcsr->size == 1) {"
     end
     notC = "!"
     gen_union_col_constr(fw, union_view_name, idenN, 
                          full_union_access_pathN, add_to_result_setN, 
-                         iterationN, notC)
+                         iteration, notC)
+#C_cont:iter->next
     fw.puts "      }"
     fw.puts "      break;"
   end
@@ -864,7 +879,10 @@ class VirtualTable
                      sqlite3_type, notC, iteration, add_to_result_set,
                      line, space)
     if @container_class.length > 0
-      fw.puts "#{iteration.gsub(/<space>/, "#{space}")}"
+      if iteration.length > 0
+        fw.puts "#{iteration.gsub(/<space>/, "#{space}")}"
+      end
+# not for union
       space.concat("  ")
     end
     fw.puts "#{space}if (#{notC}compare(#{column_cast}#{access_path}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val))) {"
@@ -916,7 +934,9 @@ class VirtualTable
       fw.puts "#{space}typeof(#{access_path}) t = #{access_path};"
     end
     if @container_class.length > 0
-      fw.puts "#{iteration.gsub("<space>", "#{space}")}"
+      if iteration.length > 0
+        fw.puts "#{iteration.gsub("<space>", "#{space}")}"
+      end
     end
     if $argM != "MEM_MGT" || fk_method_ret == 0
       if @container_class.length > 0

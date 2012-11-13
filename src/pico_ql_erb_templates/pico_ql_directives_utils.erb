@@ -237,7 +237,7 @@ list <<%= col.fk_col_type.chomp('*') %> > saved_results_<%= i %>;
   class ResultSet {
   public:
 <%        if VirtualTable.C_container_types.include?(vt.container_class) %>
-<%          vt.pointer.match(/\*/) ? retype = "" : retype = "*" %> 
+<%          vt.pointer.match(/\*/) ? retype = "" : retype = "*" %>
     vector<<%= vt.signature %><%= retype %>> res;
     vector<<%= vt.signature %><%= retype %>>::iterator resIter;
 <%        else %>
@@ -248,7 +248,7 @@ list <<%= col.fk_col_type.chomp('*') %> > saved_results_<%= i %>;
     int resultSetIterState;
     int current;
 <%        if VirtualTable.C_container_types.include?(vt.container_class) %>
-<%          vt.pointer.match(/\*/) ? retype = "" : retype = "*" %> 
+<%          vt.pointer.match(/\*/) ? retype = "" : retype = "*" %>
     ResultSet(int res_max_size, int resIterState, int cur, vector<<%= vt.signature %><%= retype %>>::iterator it) {
 <%        else %>
     ResultSet(int res_max_size, int resIterState, int cur, vector<<%= vt.signature.chomp('*') %>::iterator>::iterator it) {

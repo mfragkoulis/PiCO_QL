@@ -30,7 +30,9 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
   if (rs->resBts.size() == 0)
     rs->resBts.resize(stcsr->max_size, 0);
 <%        end %>
+<%        if !@@C_container_types.include?(@container_class) %>
   int rowNum = -1;
+<%        end %>
 <%      end %>
   if (struct_empty_null(cur, val, picoQL->embedded, nCol)) {
 <%      if @container_class.length == 0 %>
@@ -40,7 +42,8 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
     rs->resBts.clear();
 <%        if @@C_container_types.include?(@container_class) %>
 <%          @pointer.match(/\*/) ? retype = "" : retype = "*" %>
-    rs->res.push_back(<%= @signature %><%= retype %> dummy);
+    <%= @signature %><%= retype %> dummy;
+    rs->res.push_back(dummy);
 <%	  else %>
     rs->res.push_back(<%= @signature.chomp('*') %>::iterator());
 <%        end %>
@@ -68,7 +71,7 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
     while (iter != NULL) {
       rs->res.push_back(iter);
       rs->resBts.push_back(1);
-      iter = <%= @iterator %>;
+      iter = iter-><%= @iterator %>;
     }
 <%          else %>
     for (iter = any_dstr->begin(); iter != any_dstr->end(); iter++)
@@ -102,7 +105,8 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
 // BASE is first constraint by default, so no need to delete resultset here.
 <%          if @@C_container_types.include?(@container_class) %>
 <%            @pointer.match(/\*/) ? retype = "" : retype = "*" %>
-            rs->res.push_back(<%= @signature %><%= retype %> dummy);
+            <%= @signature %><%= retype %> dummy;
+            rs->res.push_back(dummy);
 <%	    else %>
             rs->res.push_back(<%= @signature.chomp('*') %>::iterator());
 <%	    end %>
@@ -116,7 +120,8 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
             stcsr->isInstanceEmpty = 1;
 <%          if @@C_container_types.include?(@container_class) %>
 <%            @pointer.match(/\*/) ? retype = "" : retype = "*" %>
-            rs->res.push_back(<%= @signature %><%= retype %> dummy);
+            <%= @signature %><%= retype %> dummy;
+            rs->res.push_back(dummy);
 <%	    else %>
             rs->res.push_back(<%= @signature.chomp('*') %>::iterator());
 <%	    end %>
