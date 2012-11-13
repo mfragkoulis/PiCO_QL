@@ -66,7 +66,7 @@ class forward_iterator_concept_class {
 // For the compiler to verify.
 void check_concepts() {
 <%    @tables.each_index { |vt| %>
-<%      if @tables[vt].container_class.length > 0 && !@tables[vt].C_container_types.include?(@tables[vt].container_class) %>
+<%      if @tables[vt].container_class.length > 0 && !VirtualTable.C_container_types.include?(@tables[vt].container_class) %>
 <%# Chomp the pointer from signature. %>
 <%# For non-pointers it will have zero effect. %>
   <%= @tables[vt].signature.chomp('*') %> container_instance<%= vt %>;
@@ -236,7 +236,7 @@ list <<%= col.fk_col_type.chomp('*') %> > saved_results_<%= i %>;
 <%      if vt.container_class.length > 0 %>
   class ResultSet {
   public:
-<%        if vt.C_container_types.include?(vt.container_class) %>
+<%        if VirtualTable.C_container_types.include?(vt.container_class) %>
 <%          vt.pointer.match(/\*/) ? retype = "" : retype = "*" %> 
     vector<<%= vt.signature %><%= retype %>> res;
     vector<<%= vt.signature %><%= retype %>>::iterator resIter;
@@ -247,7 +247,7 @@ list <<%= col.fk_col_type.chomp('*') %> > saved_results_<%= i %>;
     dynamic_bitset<unsigned long> resBts;
     int resultSetIterState;
     int current;
-<%        if vt.C_container_types.include?(vt.container_class) %>
+<%        if VirtualTable.C_container_types.include?(vt.container_class) %>
 <%          vt.pointer.match(/\*/) ? retype = "" : retype = "*" %> 
     ResultSet(int res_max_size, int resIterState, int cur, vector<<%= vt.signature %><%= retype %>>::iterator it) {
 <%        else %>
@@ -262,7 +262,7 @@ list <<%= col.fk_col_type.chomp('*') %> > saved_results_<%= i %>;
     ~ResultSet() {resBts.clear();};
   };
   map<sqlite3_vtab_cursor *, ResultSet> cursors;
-<%        if vt.C_container_types.include?(vt.container_class) %>
+<%        if VirtualTable.C_container_types.include?(vt.container_class) %>
 <%          vt.pointer.match(/\*/) ? retype = "" : retype = "*" %> 
   vector<<%= vt.signature %><%= retype %>>::iterator resIterC;
   <%= vt.signature %><%= retype %> iter;

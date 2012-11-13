@@ -3,7 +3,7 @@ size_t <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, sqlite3_vtab *vtab
   picoQLTable *picoQL = (picoQLTable *)vtab;
 <%      if @container_class.length > 0 %>
   picoQL->object = 0;
-<%        if @@C_container_types.include?(@container_class) %>
+<%        if !@@C_container_types.include?(@container_class) %>
   if (cur != NULL) {
     picoQLTableCursor *stc = (picoQLTableCursor *)cur;
 <%          /\*/.match(@pointer) == nil ? retype = "*" : retype = "" %>

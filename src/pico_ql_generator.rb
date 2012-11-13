@@ -345,6 +345,11 @@ class VirtualTable
                 :pointer,:iterator,:object_class,:columns,
                 :include_text_col,:C_container_types)
 
+# Getter for static member C_container_types at class level
+  def self.C_container_types
+    @@C_container_types
+  end
+
 # Support templating of member data
   def get_binding
     binding
@@ -1134,7 +1139,7 @@ class VirtualTable
       case @signature
       when /(\w+)<(.+)>(\**)/m
         matchdata = /(\w+)<(.+)>(\**)/m.match(@signature)
-        if @C_container_types.include?(matchdata[1])
+        if @@C_container_types.include?(matchdata[1])
           @signature = matchdata[2]
           if @signature.match(/(\w+)\*/)
             @pointer = "*"
@@ -1160,10 +1165,10 @@ class VirtualTable
           puts "Table type is of type pointer: " + @pointer
         end
       when /(.+)/
-        raise "Template instantiation faulty: #{@signature}.\\n"
+        raise "Template instantiation faulty: #{@signature}.\n"
       end
     rescue
-      puts "Template instantiation faulty: #{@signature}.\\n"
+      puts "Template instantiation faulty: #{@signature}.\n"
       exit(1)
     end
   end

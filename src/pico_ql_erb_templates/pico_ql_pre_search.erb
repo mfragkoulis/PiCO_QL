@@ -74,6 +74,7 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
     for (iter = any_dstr->begin(); iter != any_dstr->end(); iter++)
       rs->res.push_back(<%= @signature.chomp('*') %>::iterator(iter));
     rs->resBts.set();
+<%          end %>
 <%        else %>
     stcsr->size = 1;
 <%        end %>
