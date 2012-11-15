@@ -1,4 +1,5 @@
 //.cpp #include <vector>
+#include "Monetary_System.h"
 #include "Money.h"
 //.cpp using namespace std;
 ;
@@ -50,8 +51,24 @@ CREATE STRUCT VIEW Money (
 
 CREATE VIRTUAL TABLE myCApp.Money
 USING STRUCT VIEW Money
+//WITH REGISTERED C NAME money
+WITH REGISTERED C TYPE clist<struct Money*>
+USING ITERATOR NAME next;
+//.cpp C TYPE vector<Money>;
+
+CREATE VIRTUAL TABLE myCApp.MoneyList
+USING STRUCT VIEW Money
 WITH REGISTERED C NAME money
 WITH REGISTERED C TYPE clist<struct Money*>
 USING ITERATOR NAME next;
 //.cpp C TYPE vector<Money>;
 
+CREATE STRUCT VIEW MonetarySystem (
+       nCurrency INT FROM nCurrency,
+       FOREIGN KEY(currency) FROM root REFERENCES Money POINTER
+);
+
+CREATE VIRTUAL TABLE myCApp.MonetarySystem
+USING STRUCT VIEW MonetarySystem
+WITH REGISTERED C NAME monetary_system
+WITH REGISTERED C TYPE Monetary_System;

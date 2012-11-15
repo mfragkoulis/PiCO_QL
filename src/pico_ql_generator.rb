@@ -748,7 +748,10 @@ class VirtualTable
   def configure_iteration()
     if @container_class.length > 0
       if @@C_container_types.include?(@container_class)
-        iterationF = "<space>iter = any_dstr;\n<space>while (iter != NULL) {"
+# for C containers resBts has size 1 to differ from error conditions.
+# Since we don't know size before hand we push_back as in result set.
+# We need to start pushing from scratch.
+        iterationF = "<space>iter = any_dstr;\n<space>rs->resBts.clear();\n<space>while (iter != NULL) {"
       else
         iterationF = "<space>for (iter = any_dstr->begin(); iter != any_dstr->end(); iter++) {"
       end
@@ -838,9 +841,13 @@ class VirtualTable
                              total_access_path, add_to_result_set, 
                              iteration, notC)
       end
-      fw.puts "#{$s}  break;"
+      if @container_class.length > 0
+        space.concat("  ")
+      end
+      fw.puts "#{space}break;"
+      space.chomp!("  ")
     }
-    fw.puts "#{$s}}"
+    fw.puts "#{space}}"
   end
 
   def gen_union(fw, union_view_name, union_access_path, col_type)
@@ -850,6 +857,8 @@ class VirtualTable
     fw.puts "      if (first_constr == 1) {"
     space = "#{$s}"
     if @container_class.length > 0
+      add_to_result_setF.chomp!("\n<space>  index++;\n<space>  iter = iter->#{@iterator};\n<space>}")
+      add_to_result_setN.chomp!("\n<space>}")
       fw.puts "#{iterationF.gsub(/<space>/, "#{space}")}"
 #      space.concat("  ")
     end
@@ -859,7 +868,10 @@ class VirtualTable
                          full_union_access_pathF, add_to_result_setF, 
                          iteration, notC)
     if @container_class.length > 0
-#C_cont:iter->next
+      if @@C_container_types.include?(@container_class)
+        fw.puts "#{$s}  iter = iter->#{@iterator};"
+      end
+      fw.puts "#{$s}}"
       fw.puts "      } else {"
       fw.puts "#{iterationN.gsub(/<space>/, "#{space}")}"
 #      space.concat("  ")
@@ -870,7 +882,9 @@ class VirtualTable
     gen_union_col_constr(fw, union_view_name, idenN, 
                          full_union_access_pathN, add_to_result_setN, 
                          iteration, notC)
-#C_cont:iter->next
+    if @container_class.length > 0
+      fw.puts "#{$s}}"
+    end
     fw.puts "      }"
     fw.puts "      break;"
   end
@@ -881,9 +895,9 @@ class VirtualTable
     if @container_class.length > 0
       if iteration.length > 0
         fw.puts "#{iteration.gsub(/<space>/, "#{space}")}"
+        space.concat("  ")
       end
 # not for union
-      space.concat("  ")
     end
     fw.puts "#{space}if (#{notC}compare(#{column_cast}#{access_path}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val))) {"
     print_line_directive(fw, line)
@@ -929,6 +943,7 @@ class VirtualTable
                         sqlite3_parameters, line, add_to_result_set, 
                         space, notC, iteration)
     if $argM == "MEM_MGT" && fk_method_ret == 1
+      space.concat("  ")
       fw.puts "#{space}{"
       space.concat("  ")
       fw.puts "#{space}typeof(#{access_path}) t = #{access_path};"
@@ -936,11 +951,11 @@ class VirtualTable
     if @container_class.length > 0
       if iteration.length > 0
         fw.puts "#{iteration.gsub("<space>", "#{space}")}"
-      end
-    end
-    if $argM != "MEM_MGT" || fk_method_ret == 0
-      if @container_class.length > 0
         space.concat("  ")
+        if $argM != "MEM_MGT" || fk_method_ret == 0
+# correctness?
+#          space.concat("  ")
+        end
       end
     end
     fw.puts "#ifdef ENVIRONMENT64"
@@ -956,8 +971,12 @@ class VirtualTable
     else
       fw.puts "#{space}if (#{notC}compare(#{column_cast}#{access_path}#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_parameters}(val))) {"
     end
-    if $argM != "MEM_MGT" || fk_method_ret == 0
-      if @container_class.length > 0
+    if @container_class.length > 0
+      if iteration.length > 0
+        space.chomp!("  ")
+      end
+      if $argM != "MEM_MGT" || fk_method_ret == 0
+# correctness?
         space.chomp!("  ")
       end
     end
@@ -965,13 +984,15 @@ class VirtualTable
     fw.puts "#endif"
     fw.puts "#{add_to_result_set.gsub("<space>", "#{space}")}"
     if @container_class.length > 0
-      space.chomp!("    ")
+      if iteration.length > 0
+#        space.chomp!("    ")
+      end
     end
     if $argM == "MEM_MGT" && fk_method_ret == 1
-      space.chomp!("  ")          
-      fw.puts "#{space}}"
-    end
       space.chomp!("  ")
+      fw.puts "#{space}}"
+      space.chomp!("  ")
+    end
   end
 
   def gen_fk(fw, fk_type, fk_method_ret, column_cast, column_cast_back, 
@@ -996,14 +1017,14 @@ class VirtualTable
     if @container_class.length > 0
       fw.puts "      } else {"
 # not sure if it aligns correctly typeof
-      space.concat("  ")
     else
-      space.chomp!("  ")
+      space.chomp!("    ")
       fw.puts "      } else if (stcsr->size == 1) {"
+      space.concat("  ")
     end
     notC = "!"
-    space.concat("  ")
-    space.concat("  ")
+#    space.concat("  ")
+#    space.concat("  ")
     gen_fk_col_constr(fw, fk_method_ret, access_pathN, fk_type, 
                       column_cast, column_cast_back, sqlite3_type, 
                       sqlite3_parameters, line, add_to_result_setN, 
@@ -1059,9 +1080,12 @@ class VirtualTable
           if @@C_container_types.include?(@container_class)
             @pointer.match(/\*/) ? retype = "" : retype = "*"
             fw.puts "#{$s}iter = any_dstr;"
+            fw.puts "#{$s}rs->resBts.clear();"
             fw.puts "#{$s}while (iter != NULL) {"
-            fw.puts "#{$s}  rs->res.push_back(#{@signature}#{retype} dummy);"
-            fw.puts "#{$s}  rs->resBts.push_back(1);\n#{$s}}"
+            fw.puts "#{$s}  rs->res.push_back(iter);"
+            fw.puts "#{$s}  rs->resBts.push_back(1);"
+            fw.puts "#{$s}  iter = iter->#{@iterator};"
+            fw.puts "#{$s}}"
           else
             fw.puts "#{$s}for (iter = any_dstr->begin(); iter != any_dstr->end(); iter++) {"
             fw.puts "#{$s}  rs->res.push_back(#{@signature.chomp('*')}::iterator(iter));\n#{$s}}"
