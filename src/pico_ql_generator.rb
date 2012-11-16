@@ -943,7 +943,6 @@ class VirtualTable
                         sqlite3_parameters, line, add_to_result_set, 
                         space, notC, iteration)
     if $argM == "MEM_MGT" && fk_method_ret == 1
-      space.concat("  ")
       fw.puts "#{space}{"
       space.concat("  ")
       fw.puts "#{space}typeof(#{access_path}) t = #{access_path};"
@@ -952,10 +951,6 @@ class VirtualTable
       if iteration.length > 0
         fw.puts "#{iteration.gsub("<space>", "#{space}")}"
         space.concat("  ")
-        if $argM != "MEM_MGT" || fk_method_ret == 0
-# correctness?
-#          space.concat("  ")
-        end
       end
     end
     fw.puts "#ifdef ENVIRONMENT64"
@@ -972,24 +967,20 @@ class VirtualTable
       fw.puts "#{space}if (#{notC}compare(#{column_cast}#{access_path}#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_parameters}(val))) {"
     end
     if @container_class.length > 0
-      if iteration.length > 0
-        space.chomp!("  ")
-      end
-      if $argM != "MEM_MGT" || fk_method_ret == 0
-# correctness?
-        space.chomp!("  ")
-      end
+      space.chomp!("  ")
     end
     print_line_directive(fw, line)
     fw.puts "#endif"
     fw.puts "#{add_to_result_set.gsub("<space>", "#{space}")}"
     if @container_class.length > 0
       if iteration.length > 0
-#        space.chomp!("    ")
+        space.chomp!("  ")
       end
     end
-    if $argM == "MEM_MGT" && fk_method_ret == 1
+    if @container_class.length == 0
       space.chomp!("  ")
+    end
+    if $argM == "MEM_MGT" && fk_method_ret == 1
       fw.puts "#{space}}"
       space.chomp!("  ")
     end
@@ -1004,11 +995,11 @@ class VirtualTable
     iterationF = ""
     iterationN = ""
     space = ""
-    space.replace($s)
     access_pathF, access_pathN, idenF, idenN = configure_search("fk", access_path, fk_type)
     add_to_result_setF, add_to_result_setN = configure_result_set()
     iterationF, iterationN = configure_iteration()
     fw.puts "      if (first_constr) {"
+    space.replace($s)
     notC = ""
     gen_fk_col_constr(fw, fk_method_ret, access_pathF, fk_type, 
                       column_cast, column_cast_back, sqlite3_type, 
@@ -1016,15 +1007,11 @@ class VirtualTable
                       space, notC, iterationF)
     if @container_class.length > 0
       fw.puts "      } else {"
-# not sure if it aligns correctly typeof
     else
-      space.chomp!("    ")
       fw.puts "      } else if (stcsr->size == 1) {"
-      space.concat("  ")
     end
+    space.concat("  ")
     notC = "!"
-#    space.concat("  ")
-#    space.concat("  ")
     gen_fk_col_constr(fw, fk_method_ret, access_pathN, fk_type, 
                       column_cast, column_cast_back, sqlite3_type, 
                       sqlite3_parameters, line, add_to_result_setN, 
@@ -1219,8 +1206,8 @@ class VirtualTable
 
 # Matches VT definitions against prototype patterns.
   def match_table(table_description)
-    table_ptn1 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c name (.+) with registered c type (.+) using iterator name (\w+)/im
-    table_ptn2 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c type (.+) using iterator name (\w+)/im
+    table_ptn1 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c name (.+) with registered c type (.+) using c iterator name (\w+)/im
+    table_ptn2 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c type (.+) using c iterator name (\w+)/im
     table_ptn3 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c name (.+) with registered c type (.+)/im
     table_ptn4 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c type (.+)/im
     if $argD == "DEBUG"
