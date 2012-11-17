@@ -1,9 +1,10 @@
 <--VIRTUAL TABLE DEFINITION-->
 
 <table_def> ::= 'CREATE VIRTUAL TABLE' <db_name>'.'<virtual_table_name> 
-	    	USING STRUCT VIEW  <struct_view_name> 
-		[WITH REGISTERED C NAME <base_variable>] 
-		'WITH REGISTERED C TYPE' <struct_type> ';'
+	    	'USING STRUCT VIEW'  <struct_view_name> 
+		['WITH REGISTERED C NAME' <base_variable>] 
+		'WITH REGISTERED C TYPE' <struct_type>
+		['USING C ITERATOR NAME' <iterator_name>]';'
 
 <db_name> ::= 'identifier'
 
@@ -13,7 +14,9 @@
 
 <base_variable> ::= 'identifier'
 
-<struct_type> ::= <container> | <object>
+<struct_type> ::= <container> | <object> | <struct>
+
+<iterator_name> ::= 'identifier'
 
 <container> ::= <container_class> '<' <type>
 <--if associative container-->
@@ -24,12 +27,19 @@
 <stl_class> ::= 'list' | 'vector' | 'deque' | 'set' | 
 		  'multiset' | 'map' | 'multimap'
 
-<other_container_class> ::= 'SGI_forward_container_concept_compatible'
+<other_container_class> ::= 'SGI_forward_container_concept_compatible' | <C_linked_list>
+
+<C_linked_list> ::= 'clist'
 
 <type> ::= <struct_type> | <primitive_data_type> ['*']
 
 <object> ::= <class_name> ['*']
 
+<class_name> ::= 'identifier'
+
+<struct> ::= ['struct'] <struct_name> ['*']
+
+<struct_name> ::= 'identifier'
 
 <--STRUCT VIEW DEFINITION-->
 
@@ -72,4 +82,4 @@ previously by referencing the struct view's name
 
 <--STANDARD RELATIONAL VIEW DEFINITION-->
 
-<view_def> ::= 'as_per_ansi_92_sql_standard'
+<rel_view_def> ::= 'as_per_ansi_92_sql_standard'

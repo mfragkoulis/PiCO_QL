@@ -88,7 +88,7 @@ int call_test(sqlite3 *db) {
   int result, i = 1;
   char *q;
 
-  q = "select * from ChessBoard;";
+  q = "select rownum from ChessBoard;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);
 
@@ -96,11 +96,11 @@ int call_test(sqlite3 *db) {
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);
 
-  q = "select * from ChessBoard,ChessRow where ChessRow.base=ChessBoard.row_id";
+  q = "select ChessBoard.rownum,ChessRow.rownum,color,name from ChessBoard,ChessRow where ChessRow.base=ChessBoard.row_id";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);
 
-  q = "select * from ChessBoard,ChessRow where ChessRow.base=ChessBoard.row_id and color=\"white\" and name=\"bishop\";";
+  q = "select ChessBoard.rownum,ChessRow.rownum,color,name from ChessBoard,ChessRow where ChessRow.base=ChessBoard.row_id and color=\"white\" and name=\"bishop\";";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);
 

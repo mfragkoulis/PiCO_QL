@@ -543,7 +543,6 @@ class VirtualTable
     end
     case op
     when /gen_all|union/
-      puts op
       if @container_class.length > 0
         if access_path.length == 0
           if @type.match(/\*/)
