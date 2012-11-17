@@ -30,8 +30,10 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
   if (rs->resBts.size() == 0)
     rs->resBts.resize(stcsr->max_size, 0);
 <%        end %>
-<%        if !@@C_container_types.include?(@container_class) %>
   int rowNum = -1;
+<%        if @@C_container_types.include?(@container_class) %>
+  int i = 0;
+  bool found = false;
 <%        end %>
 <%      end %>
   if (struct_empty_null(cur, val, picoQL->embedded, nCol)) {
@@ -68,6 +70,7 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
 <%        if @container_class.length > 0 %>
 <%          if @@C_container_types.include?(@container_class) %>
     iter = any_dstr;
+    rs->resBts.clear();
     while (iter != NULL) {
       rs->res.push_back(iter);
       rs->resBts.push_back(1);

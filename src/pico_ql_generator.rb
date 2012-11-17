@@ -639,6 +639,15 @@ class VirtualTable
     fw.puts pre_retrieve.result(get_binding)
   end
 
+# Calls template to generates code in retrieve method. Code makes the 
+# necessary arrangements for retrieve to happen successfully 
+# (condition checks, reallocation)
+  def finish_search(fw)
+    file = File.open("pico_ql_erb_templates/pico_ql_post_search.erb").read
+    post_search = ERB.new(file, 0, '>')
+    fw.puts post_search.result(get_binding)
+  end
+
   def configure_result_set()
     if @container_class.length > 0
       if @@C_container_types.include?(@container_class)
@@ -760,15 +769,79 @@ class VirtualTable
     return "", ""
   end
 
-# Calls template to generates code in retrieve method. Code makes the 
-# necessary arrangements for retrieve to happen successfully 
-# (condition checks, reallocation)
-  def finish_search(fw)
-    file = File.open("pico_ql_erb_templates/pico_ql_post_search.erb").read
-    post_search = ERB.new(file, 0, '>')
-    fw.puts post_search.result(get_binding)
+  def gen_rownum(fw)
+    fw.puts "      rowNum = sqlite3_value_int(val);"
+    if !@@C_container_types.include?(@container_class)
+      fw.puts "      if (rowNum > (int)rs->resBts.size()) {"
+    else
+      fw.puts "      iter = any_dstr;"
+      fw.puts "      while (iter != NULL) {"
+      fw.puts "#{$s}if (rowNum == i) {"
+      fw.puts "#{$s}  found = true;"
+      fw.puts "#{$s}  break;"
+      fw.puts "#{$s}}"
+      fw.puts "#{$s}iter = iter->#{@iterator};"
+      fw.puts "#{$s}i++;"
+      fw.puts "      }"
+      fw.puts "      if (!found) {"
+    end
+    fw.puts "        rs->res.clear();"
+    fw.puts "        rs->resBts.clear();"
+    fw.puts "        return SQLITE_OK;" 
+    fw.puts "      }"
+    if !@@C_container_types.include?(@container_class)
+      fw.puts "      iter = any_dstr->begin();"
+      fw.puts "      for (int i = 0; i < rowNum; i++)"
+      fw.puts "        iter++;"
+    end
+    fw.puts "      if (first_constr == 1) {"
+    if @@C_container_types.include?(@container_class)
+      fw.puts "#{$s}rs->resBts.resize(rowNum + 1, 0);"
+    end
+    fw.puts "#{$s}rs->res.push_back(iter);"
+    fw.puts "#{$s}rs->resBts.set(rowNum, 1);"
+    fw.puts "      } else {"
+    fw.puts "#{$s}if (rs->resBts.test(rowNum)) {"
+    fw.puts "#{$s}  rs->resBts.reset();"
+    fw.puts "#{$s}  rs->resBts.set(rowNum, 1);"
+    fw.puts "#{$s}  rs->res.clear();"
+    fw.puts "#{$s}  rs->res.push_back(iter);"
+    fw.puts "#{$s}  rs->resIter = rs->res.begin();"
+    fw.puts "#{$s}} else {"
+    fw.puts "#{$s}  rs->resBts.clear();"
+    fw.puts "#{$s}  rs->res.clear();"
+    fw.puts "#{$s}}"
+    fw.puts "      }"
+    fw.puts "      break;"
   end
 
+  def gen_base(fw)
+    fw.puts "      if (first_constr == 1) {"
+    if @container_class.length > 0
+      if @@C_container_types.include?(@container_class)
+        @pointer.match(/\*/) ? retype = "" : retype = "*"
+        fw.puts "#{$s}iter = any_dstr;"
+        fw.puts "#{$s}rs->resBts.clear();"
+        fw.puts "#{$s}while (iter != NULL) {"
+        fw.puts "#{$s}  rs->res.push_back(iter);"
+        fw.puts "#{$s}  rs->resBts.push_back(1);"
+        fw.puts "#{$s}  iter = iter->#{@iterator};"
+        fw.puts "#{$s}}"
+      else
+        fw.puts "#{$s}for (iter = any_dstr->begin(); iter != any_dstr->end(); iter++) {"
+        fw.puts "#{$s}  rs->res.push_back(#{@signature.chomp('*')}::iterator(iter));\n#{$s}}"
+        fw.puts "#{$s}rs->resBts.set();"
+      end
+    else
+      fw.puts "#{$s}stcsr->size = 1;"
+    end
+    fw.puts "      } else {"
+    fw.puts "#{$s}printf(\"Constraint for BASE column on embedded data structure has not been placed first. Exiting now.\\n\");"
+    fw.puts "#{$s}return SQLITE_MISUSE;"
+    fw.puts "      }"
+    fw.puts "      break;"
+  end
+  
   def gen_union_col_constr(fw, union_view_name, root_access_path, 
                            union_access_path, add_to_result_set, 
                            iteration, notC)
@@ -1061,56 +1134,9 @@ class VirtualTable
       when "union"
         gen_union(fw, union_view_name, access_path, col_type)
       when "base"
-        fw.puts "      if (first_constr == 1) {"
-        if @container_class.length > 0
-          if @@C_container_types.include?(@container_class)
-            @pointer.match(/\*/) ? retype = "" : retype = "*"
-            fw.puts "#{$s}iter = any_dstr;"
-            fw.puts "#{$s}rs->resBts.clear();"
-            fw.puts "#{$s}while (iter != NULL) {"
-            fw.puts "#{$s}  rs->res.push_back(iter);"
-            fw.puts "#{$s}  rs->resBts.push_back(1);"
-            fw.puts "#{$s}  iter = iter->#{@iterator};"
-            fw.puts "#{$s}}"
-          else
-            fw.puts "#{$s}for (iter = any_dstr->begin(); iter != any_dstr->end(); iter++) {"
-            fw.puts "#{$s}  rs->res.push_back(#{@signature.chomp('*')}::iterator(iter));\n#{$s}}"
-            fw.puts "#{$s}rs->resBts.set();"
-          end
-        else
-          fw.puts "#{$s}stcsr->size = 1;"
-        end
-        fw.puts "      } else {"
-        fw.puts "#{$s}printf(\"Constraint for BASE column on embedded data structure has not been placed first. Exiting now.\\n\");"
-        fw.puts "#{$s}return SQLITE_MISUSE;"
-        fw.puts "      }"
-        fw.puts "      break;"
+        gen_base(fw)
       when "rownum"
-        fw.puts "      rowNum = sqlite3_value_int(val);"
-        fw.puts "      if (rowNum > (int)rs->resBts.size()) {"
-        fw.puts "        rs->res.clear();"
-        fw.puts "        rs->resBts.clear();"
-        fw.puts "        return SQLITE_OK;" 
-        fw.puts "      }"
-        fw.puts "      iter = any_dstr->begin();"
-        fw.puts "      for (int i = 0; i < rowNum; i++)"
-        fw.puts "        iter++;"
-        fw.puts "      if (first_constr == 1) {"
-        fw.puts "        rs->res.push_back(#{@signature.chomp('*')}::iterator(iter));"
-        fw.puts "        rs->resBts.set(rowNum, 1);"
-        fw.puts "      } else {"
-        fw.puts "        if (rs->resBts.test(rowNum)) {"
-        fw.puts "          rs->resBts.reset();"
-        fw.puts "          rs->resBts.set(rowNum, 1);"
-        fw.puts "          rs->res.clear();"
-        fw.puts "          rs->res.push_back(#{@signature.chomp('*')}::iterator(iter));"
-        fw.puts "          rs->resIter = rs->res.begin();"
-        fw.puts "        } else {"
-        fw.puts "          rs->resBts.clear();"
-        fw.puts "          rs->res.clear();"
-        fw.puts "        }"
-        fw.puts "      }"
-        fw.puts "      break;"
+        gen_rownum(fw)
       end
     }
     fw.puts "    }"
@@ -1262,9 +1288,7 @@ class VirtualTable
       @columns.push(Column.new("")).last.set("base INT FROM self") 
 # perhaps PRIMARY KEY(base)
     end
-    if @container_class.length > 0 && 
-        !@@C_container_types.include?(@container_class)
-      # rownum column for container structs.
+    if @container_class.length > 0
       @columns.push(Column.new("")).last.set("rownum INT FROM self") 
     end
     @include_text_col = @struct_view.include_text_col

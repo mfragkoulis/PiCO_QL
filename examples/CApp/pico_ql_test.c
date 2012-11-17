@@ -99,67 +99,99 @@ int call_test(sqlite3 *db) {
   int result, i = 0;
   char *q;
 
-  q = "select nCurrency, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency;";
+  q = "select nCurrency, rownum, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);
 
-  q = "select name, price_mode, price, weight_mode, weight from Moneylist;";
+  q = "select rownum, name, price_mode, price, weight_mode, weight from Moneylist;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);
 
-  q = "select nCurrency, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where name like '%eu';";
+  q = "select nCurrency, rownum, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where rownum = 1;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);
 
-  q = "select name, price_mode, price, weight_mode, weight from Moneylist where name like '%eu';";
+  q = "select rownum, name, price_mode, price, weight_mode, weight from Moneylist where rownum = 1;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);
 
-  q = "select nCurrency, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where price > 10;";
+  q = "select nCurrency, rownum, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where rownum = 4;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);
 
-  q = "select name, price_mode, price, weight_mode, weight from Moneylist where price > 10;";
+  q = "select rownum, name, price_mode, price, weight_mode, weight from Moneylist where rownum = 4;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);
 
-  q = "select nCurrency, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where price like 'f%';";
+  q = "select nCurrency, rownum, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where name like '%eu';";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);
 
-  q = "select name, price_mode, price, weight_mode, weight from Moneylist where price like 'f%';";
+  q = "select rownum, name, price_mode, price, weight_mode, weight from Moneylist where name like '%eu';";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);
 
-  q = "select nCurrency, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where price like 'd%';";
+  q = "select nCurrency, rownum, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where price > 10;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);
 
-  q = "select name, price_mode, price, weight_mode, weight from Moneylist where price like 'd%';";
+  q = "select rownum, name, price_mode, price, weight_mode, weight from Moneylist where price > 10;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);
 
-  q = "select nCurrency, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency join GoldEquivalent on GoldEquivalent.base = Money.weight where ounce > 10;";
+  q = "select nCurrency, rownum, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where price > 10 and rownum = 0;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);
 
-  q = "select name, price_mode, price, weight_mode, weight from Moneylist join GoldEquivalent on GoldEquivalent.base = Moneylist.weight where ounce > 10;";
+  q = "select rownum, name, price_mode, price, weight_mode, weight from Moneylist where price > 10 and rownum = 0;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);
 
-  q = "select nCurrency, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where weight like 'a%';";
+  q = "select nCurrency, rownum, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where price > 10 and rownum = 5;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);
 
-  q = "select name, price_mode, price, weight_mode, weight from Moneylist where weight like 'a%';";
+  q = "select rownum, name, price_mode, price, weight_mode, weight from Moneylist where price > 10 and rownum = 5;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);
 
-  q = "select nCurrency, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where weight like '%o%';";
+  q = "select nCurrency, rownum, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where price like 'f%';";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);
 
-  q = "select name, price_mode, price, weight_mode, weight from Moneylist where weight like '%o%';";
+  q = "select rownum, name, price_mode, price, weight_mode, weight from Moneylist where price like 'f%';";
+  fprintf(f, "Query %i:\n %s\n\n", i++, q);
+  result = test_prep_exec(f, db, q);
+
+  q = "select nCurrency, rownum, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where price like 'd%';";
+  fprintf(f, "Query %i:\n %s\n\n", i++, q);
+  result = test_prep_exec(f, db, q);
+
+  q = "select rownum, name, price_mode, price, weight_mode, weight from Moneylist where price like 'd%';";
+  fprintf(f, "Query %i:\n %s\n\n", i++, q);
+  result = test_prep_exec(f, db, q);
+
+  q = "select nCurrency, rownum, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency join GoldEquivalent on GoldEquivalent.base = Money.weight where ounce > 10;";
+  fprintf(f, "Query %i:\n %s\n\n", i++, q);
+  result = test_prep_exec(f, db, q);
+
+  q = "select rownum, name, price_mode, price, weight_mode, weight from Moneylist join GoldEquivalent on GoldEquivalent.base = Moneylist.weight where ounce > 10;";
+  fprintf(f, "Query %i:\n %s\n\n", i++, q);
+  result = test_prep_exec(f, db, q);
+
+  q = "select nCurrency, rownum, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where weight like 'a%';";
+  fprintf(f, "Query %i:\n %s\n\n", i++, q);
+  result = test_prep_exec(f, db, q);
+
+  q = "select rownum, name, price_mode, price, weight_mode, weight from Moneylist where weight like 'a%';";
+  fprintf(f, "Query %i:\n %s\n\n", i++, q);
+  result = test_prep_exec(f, db, q);
+
+  q = "select nCurrency, rownum, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where weight like '%o%';";
+  fprintf(f, "Query %i:\n %s\n\n", i++, q);
+  result = test_prep_exec(f, db, q);
+
+  q = "select rownum, name, price_mode, price, weight_mode, weight from Moneylist where weight like '%o%';";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);
 
