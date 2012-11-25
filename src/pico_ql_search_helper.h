@@ -1,5 +1,5 @@
 /*
- *   Declare interface to workers.cpp
+ *   Declare interface to pico_ql_search_helper.c
  *
  *   Copyright 2012 Marios Fragkoulis
  *
@@ -23,17 +23,25 @@
 #define PICO_QL_SEARCH_HELPER_H
 
 #include <sqlite3.h>
-#include "pico_ql_internal.h"
 
-namespace picoQL {
-  int struct_empty_null(sqlite3_vtab_cursor *cur, sqlite3_value *val, int structEmbedded, int nCol);
-  int struct_is_empty_null(sqlite3_vtab_cursor *cur, sqlite3_context *con);
-  int compare(int dstr_value, int op, int value);
-  int compare(long int dstr_value, int op, long int value);
-  int compare(double dstr_value, int op, double value);
-  int compare(const void *dstr_value, int op, 
-	      const void *value);
-  int compare(const unsigned char *dstr_value, int op,
-	      const unsigned char *value);
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+int struct_empty_null(sqlite3_vtab_cursor *cur, sqlite3_value *val, int structEmbedded, int nCol);
+int struct_is_empty_null(sqlite3_vtab_cursor *cur, sqlite3_context *con);
+int compare_int(int dstr_value, int op, int value);
+int compare_int64(long int dstr_value, int op, long int value);
+int compare_double(double dstr_value, int op, double value);
+int compare_blob(const void *dstr_value, int op, 
+	    const void *value);
+int compare_text(const unsigned char *dstr_value, int op,
+	    const unsigned char *value);
+
+#ifdef __cplusplus
 }
+#endif
+
+
 #endif

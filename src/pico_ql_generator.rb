@@ -971,7 +971,7 @@ class VirtualTable
       end
 # not for union
     end
-    fw.puts "#{space}if (#{notC}compare(#{column_cast}#{access_path}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val))) {"
+    fw.puts "#{space}if (#{notC}compare_#{sqlite3_type}(#{column_cast}#{access_path}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val))) {"
     print_line_directive(fw, line)
     if @container_class.length > 0
       space.chomp!("  ")
@@ -1027,16 +1027,16 @@ class VirtualTable
     end
     fw.puts "#ifdef ENVIRONMENT64"
     if $argM == "MEM_MGT" && fk_method_ret == 1    # Returning from a method.
-      fw.puts "#{space}if (#{notC}compare(#{column_cast}t#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_type}(val))) {"
+      fw.puts "#{space}if (#{notC}compare_#{sqlite3_type}(#{column_cast}t#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_type}(val))) {"
     else
-      fw.puts "#{space}if (#{notC}compare(#{column_cast}#{access_path}#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_type}(val))) {"
+      fw.puts "#{space}if (#{notC}compare_#{sqlite3_type}(#{column_cast}#{access_path}#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_type}(val))) {"
     end
     print_line_directive(fw, line)
     fw.puts "#else"
     if $argM == "MEM_MGT" && fk_method_ret == 1
-      fw.puts "#{space}if (#{notC}compare(#{column_cast}t#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_parameters}(val))) {"
+      fw.puts "#{space}if (#{notC}compare_#{sqlite3_parameters}(#{column_cast}t#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_parameters}(val))) {"
     else
-      fw.puts "#{space}if (#{notC}compare(#{column_cast}#{access_path}#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_parameters}(val))) {"
+      fw.puts "#{space}if (#{notC}compare_#{sqlite3_parameters}(#{column_cast}#{access_path}#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_parameters}(val))) {"
     end
     if @container_class.length > 0
       space.chomp!("  ")
