@@ -337,7 +337,7 @@ class VirtualTable
     @include_text_col = 0 # True if VirtualTable includes column
     		      	  # of text data type. Required for
 			  # generating code for
-			  # PICO_QL_HANDLE_POLYMORPHISM C++ flag.
+			  # PICO_QL_HANDLE_TEXT_ARRAY C++ flag.
     @@C_container_types = ["clist"]
   end
   attr_accessor(:name,:base_var_line,:signature_line,:base_var,
@@ -449,7 +449,7 @@ class VirtualTable
       else
         string_construct_cast = "(const char *)"
       end
-      fw.puts "#ifdef PICO_QL_HANDLE_POLYMORPHISM"
+      fw.puts "#ifdef PICO_QL_HANDLE_TEXT_ARRAY"
       fw.puts "#{space}    textVector.push_back(#{string_construct_cast}#{access_path});"
       print_line_directive(fw, line)
       fw.puts "#{space}    sqlite3_result_text(con, (const char *)textVector.back().c_str()#{sqlite3_parameters});"
@@ -1314,7 +1314,7 @@ class StructView
     @include_text_col = 0 # True if StructView includes column
     		      	  # of text data type. Required for
 			  # generating code for
-			  # PICO_QL_HANDLE_POLYMORPHISM C++ flag.
+			  # PICO_QL_HANDLE_TEXT_ARRAY C++ flag.
   end
   attr_accessor(:name,:columns,:include_text_col)
 
@@ -1394,7 +1394,7 @@ class UnionView
     @include_text_col = 0 # True if StructView includes column
                           # of text data type. Required for
 			  # generating code for
-			  # PICO_QL_HANDLE_POLYMORPHISM C++ flag.
+			  # PICO_QL_HANDLE_TEXT_ARRAY C++ flag.
   end
   attr_accessor(:name,:switch,:columns,:include_text_col)
 

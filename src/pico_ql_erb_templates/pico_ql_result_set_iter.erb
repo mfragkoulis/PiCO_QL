@@ -71,7 +71,7 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur) {
 
 void <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, void *shadowRes) {
   (void)shadowRes;
-#ifdef PICO_QL_HANDLE_POLYMORPHISM
+#ifdef PICO_QL_HANDLE_TEXT_ARRAY
   textVector.clear();
 #endif
   if (cursors.find(cur) != cursors.end()) {
