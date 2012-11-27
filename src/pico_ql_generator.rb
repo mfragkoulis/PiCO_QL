@@ -90,7 +90,7 @@ class Column
       sqlite3_parameters.replace("int")    # for 32-bit architectures.used in retrieve and search.
       column_cast.replace("(long int)")
       access_path.replace(@access_path)
-      return "fk", @related_to, @col_type, @line, @fk_method_ret, @saved_results_index
+      return "fk", @related_to, @col_type, @line, @fk_method_ret, @saved_results_index, @fk_col_type
     elsif @name == "base"              # 'base' column. refactor: elsif perhaps?
       sqlite3_type.replace("int64")
       column_cast.replace("(long int)")
@@ -391,7 +391,7 @@ class VirtualTable
       total_access_path = ""
       access_path_col = ""
       op, fk_col_name, column_type, line, fk_method_ret, 
-      saved_results_index = 
+      saved_results_index, fk_col_type = 
       columns[col].bind_datatypes(sqlite3_type, column_cast, 
                                    sqlite3_parameters, column_cast_back, 
                                    access_path_col)
@@ -417,7 +417,7 @@ class VirtualTable
         fk_retrieve(fw, access_path_col, column_type, fk_method_ret,
                     line, iden, saved_results_index, sqlite3_type,
                     column_cast, sqlite3_parameters, fk_col_name, 
-                    col, space)
+                    fk_col_type, col, space)
       when "gen_all"
         access_path_col.insert(0, union_access_path)
         all_retrieve(fw, iden, access_path_col, sqlite3_type,
@@ -465,8 +465,8 @@ class VirtualTable
 
   def fk_retrieve(fw, access_path, column_type, fk_method_ret,
                   line, iden, saved_results_index, sqlite3_type,
-                  column_cast, sqlite3_parameters, fk_col_name, col, 
-                  space)
+                  column_cast, sqlite3_parameters, fk_col_name, 
+                  fk_col_type, col, space)
     record_type = ""
     p_type = ""
     if access_path.length == 0    # Access with (*iter) .
@@ -486,8 +486,39 @@ class VirtualTable
         p_type = "&"
       end
     end
-    if $argM == "MEM_MGT" && fk_method_ret == 1 
-      fw.puts "#{space}    {"
+    fw.puts "#{space}    {"
+    fw.puts "#ifdef PICO_QL_HANDLE_POLYMORPHISM"
+    def_nop = "*"
+    if fk_col_type.match(/(.+)\*/)
+      def_nop = ""
+    end
+    fw.puts "#{space}      #{fk_col_type}#{def_nop} cast = dynamic_cast<#{fk_col_type}#{def_nop}>(#{p_type}#{iden}#{access_path});"
+    if $argM == "MEM_MGT" && fk_method_ret == 1
+      fw.puts "#{space}      if (cast != NULL) {"
+      fw.puts "#{space}        saved_results_#{saved_results_index}.push_back(*cast);"
+      print_line_directive(fw, line)
+      fw.puts "#ifdef ENVIRONMENT64"
+      fw.puts "#{space}        sqlite3_result_#{sqlite3_type}(con, #{column_cast}&(saved_results_#{saved_results_index}.back()));"
+      fw.puts "#else"
+      fw.puts "#{space}        sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}&(saved_results_#{saved_results_index}.back()));"
+      fw.puts "#endif"
+      fw.puts "#{space}      } else {"
+      fw.puts "#ifdef ENVIRONMENT64"
+      fw.puts "#{space}        sqlite3_result_#{sqlite3_type}(con, #{column_cast}(0));"
+      fw.puts "#else"
+      fw.puts "#{space}        sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}(0));"
+      fw.puts "#endif"
+    else
+      fw.puts "#ifdef ENVIRONMENT64"
+      fw.puts "#{space}      sqlite3_result_#{sqlite3_type}(con, #{column_cast}cast);"
+      print_line_directive(fw, line)
+      fw.puts "#else"
+      fw.puts "#{space}      sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}cast);"
+      print_line_directive(fw, line)
+      fw.puts "#endif"
+    end
+    fw.puts "#else"
+    if $argM == "MEM_MGT" && fk_method_ret == 1
       fw.puts "#{space}      saved_results_#{saved_results_index}.push_back(#{record_type}#{iden}#{access_path});"
       print_line_directive(fw, line)
       fw.puts "#ifdef ENVIRONMENT64"
@@ -495,18 +526,7 @@ class VirtualTable
       fw.puts "#else"
       fw.puts "#{space}      sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}&(saved_results_#{saved_results_index}.back()));"
       fw.puts "#endif"
-      fw.puts "#{space}      VtblImpl *chargeVT#{col} = selector_vt[\"#{fk_col_name}\"];"
-      if @base_var.length == 0
-        fw.puts "#{space}      (*chargeVT#{col})(cur, 1, &charged);"
-      else
-        fw.puts "#{space}      map<sqlite3_vtab_cursor *, bool> *map#{@name}#{col};"
-        fw.puts "#{space}      map#{@name}#{col} = NULL;"
-        fw.puts "#{space}      (*chargeVT#{col})(cur, 1, map#{@name}#{col});"
-      end
-      fw.puts "#{space}      break;"
-      fw.puts "#{space}    }"
     else
-      fw.puts "#{space}    {"
       fw.puts "#ifdef ENVIRONMENT64"
       fw.puts "#{space}      sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{p_type}#{iden}#{access_path});"
       print_line_directive(fw, line)
@@ -514,17 +534,18 @@ class VirtualTable
       fw.puts "#{space}      sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}#{p_type}#{iden}#{access_path});"
       print_line_directive(fw, line)
       fw.puts "#endif"
-      fw.puts "#{space}      VtblImpl *chargeVT#{col} = selector_vt[\"#{fk_col_name}\"];"
-      if @base_var.length == 0
-        fw.puts "#{space}      (*chargeVT#{col})(cur, 1, &charged);"
-      else
-        fw.puts "#{space}      map<sqlite3_vtab_cursor *, bool> *map#{@name}#{col};"
-        fw.puts "#{space}      map#{@name}#{col} = NULL;"
-        fw.puts "#{space}      (*chargeVT#{col})(cur, 1, map#{@name}#{col});"
-      end
-      fw.puts "#{space}      break;"
-      fw.puts "#{space}    }"
     end
+    fw.puts "#endif"
+    fw.puts "#{space}      VtblImpl *chargeVT#{col} = selector_vt[\"#{fk_col_name}\"];"
+    if @base_var.length == 0
+      fw.puts "#{space}      (*chargeVT#{col})(cur, 1, &charged);"
+    else
+      fw.puts "#{space}      map<sqlite3_vtab_cursor *, bool> *map#{@name}#{col};"
+      fw.puts "#{space}      map#{@name}#{col} = NULL;"
+      fw.puts "#{space}      (*chargeVT#{col})(cur, 1, map#{@name}#{col});"
+    end
+    fw.puts "#{space}      break;"
+    fw.puts "#{space}    }"
   end
 
 # Method performs case analysis to generate 
@@ -596,7 +617,7 @@ class VirtualTable
       column_cast_back = ""
       access_path = ""
       op, fk_col_name, column_type, line, fk_method_ret, 
-      saved_results_index = 
+      saved_results_index, fk_col_type = 
       @columns[col].bind_datatypes(sqlite3_type, column_cast, 
                                    sqlite3_parameters, column_cast_back, 
                                    access_path)
@@ -618,7 +639,8 @@ class VirtualTable
       when "fk"
         fk_retrieve(fw, access_path, column_type, fk_method_ret,
                     line, iden, saved_results_index, sqlite3_type,
-                    column_cast, sqlite3_parameters, fk_col_name, col, "")
+                    column_cast, sqlite3_parameters, fk_col_name, 
+                    fk_col_type, col, "")
       when "gen_all"
         all_retrieve(fw, iden, access_path, sqlite3_type,
                      column_cast_back, sqlite3_parameters, column_cast,
@@ -868,7 +890,8 @@ class VirtualTable
       column_cast_back = ""
       access_path_col = ""
       total_access_path = ""
-      op, union_view_embedded, col_type, line, fk_method_ret, useless3 = 
+      op, union_view_embedded, col_type, line, fk_method_ret, useless3,
+      useless4 = 
       col.bind_datatypes(sqlite3_type, 
                          column_cast, sqlite3_parameters, 
                          column_cast_back, access_path_col)
@@ -1104,7 +1127,8 @@ class VirtualTable
       column_cast_back = ""
       access_path = ""
       space = "      "
-      op, union_view_name, col_type, line, fk_method_ret, useless3 = 
+      op, union_view_name, col_type, line, fk_method_ret, useless3,
+      useless4 = 
       @columns[col].bind_datatypes(sqlite3_type, 
                                    column_cast, sqlite3_parameters, 
                                    column_cast_back, access_path)

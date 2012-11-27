@@ -217,9 +217,9 @@ class <%= vt.name %>_vt : public VtblImpl {
 private:
 <%      i = 0 %>
 <%      vt.columns.each { |col| %>
-<%       if col.related_to.length > 0 && col.fk_method_ret == 1 %>
+<%       if col.related_to.length > 0 %>
 <%        col.fk_col_type = $table_index[col.related_to] %>
-<%        if $argM == "MEM_MGT" %>
+<%        if $argM == "MEM_MGT" && col.fk_method_ret == 1 %>
 list <<%= col.fk_col_type.chomp('*') %> > saved_results_<%= i %>;
 <%        end %>
 <%        col.saved_results_index = i %>
