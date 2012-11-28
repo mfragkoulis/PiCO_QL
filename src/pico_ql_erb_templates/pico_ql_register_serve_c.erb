@@ -1,7 +1,7 @@
 /*
  *
  *   Automatically-generated file.  Do not modify.
- *   Modify pico_ql_register_serve.erb and pico_ql_generator.rb
+ *   Modify pico_ql_register_serve_c.erb and pico_ql_generator.rb
  *   instead.
  *
  *   Implement the filter and projection functions for
@@ -34,7 +34,6 @@
 #include "pico_ql_search.h"
 #include "pico_ql_internal.h"
 
-namespace picoQL {
 
 <%     @tables.each { |vt| %>
 <%      if vt.base_var.length > 0 %>
@@ -78,7 +77,8 @@ void pico_ql_register(const void *data_structure, const char *ds_name) {
 
 // The API with user application code. Creates the PiCO_QL thread.
 int pico_ql_serve(int port) {
-  int *portN = new int(port);
+  int *portN = (int *)sqlite3_malloc(sizeof(int));
+  *portN = port;
 #ifndef PICO_QL_SINGLE_THREADED
   pthread_t sqlite_thread;
   pthread_create(&sqlite_thread, NULL, thread_sqlite, (void *)portN);
@@ -89,6 +89,4 @@ int pico_ql_serve(int port) {
   thread_sqlite((void *)portN);
 #endif
   return 0;
-}
-
 }

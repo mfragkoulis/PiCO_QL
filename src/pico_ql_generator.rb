@@ -370,7 +370,7 @@ class VirtualTable
 # necessary arrangements for retrieve to happen successfully 
 # (condition checks, reallocation)
   def finish_retrieve(fw)
-    file = File.open("pico_ql_erb_templates/pico_ql_post_retrieve.erb").read
+    file = File.open("pico_ql_erb_templates/pico_ql_post_retrieve_#{$argLB.downcase}.erb").read
     post_retrieve = ERB.new(file, 0, '>')
     fw.puts post_retrieve.result(get_binding)
   end
@@ -667,7 +667,7 @@ class VirtualTable
 # Code makes the necessary arrangements for retrieve to happen 
 # successfully (condition checks, reallocation).
   def setup_retrieve(fw)
-    file = File.open("pico_ql_erb_templates/pico_ql_pre_retrieve.erb").read
+    file = File.open("pico_ql_erb_templates/pico_ql_pre_retrieve_#{$argLB.downcase}.erb").read
     pre_retrieve = ERB.new(file, 0 , '>')
     fw.puts pre_retrieve.result(get_binding)
   end
@@ -676,7 +676,7 @@ class VirtualTable
 # necessary arrangements for retrieve to happen successfully 
 # (condition checks, reallocation)
   def finish_search(fw)
-    file = File.open("pico_ql_erb_templates/pico_ql_post_search.erb").read
+    file = File.open("pico_ql_erb_templates/pico_ql_post_search_#{$argLB.downcase}.erb").read
     post_search = ERB.new(file, 0, '>')
     fw.puts post_search.result(get_binding)
   end
@@ -1181,7 +1181,7 @@ class VirtualTable
 # Code makes the necessary arrangements for search to happen successfully 
 # (condition checks, reallocation).
   def setup_search(fw)
-    file = File.open("pico_ql_erb_templates/pico_ql_pre_search.erb").read
+    file = File.open("pico_ql_erb_templates/pico_ql_pre_search_#{$argLB.downcase}.erb").read
     pre_search = ERB.new(file, 0, '>')
     fw.puts pre_search.result(get_binding)
   end
@@ -1189,7 +1189,7 @@ class VirtualTable
 # Calls template to generate code in result set iterator methods. 
 # Code makes the necessary arrangements for managing a result set. 
   def result_set_iter(fw)
-    file = File.open("pico_ql_erb_templates/pico_ql_result_set_iter.erb").read
+    file = File.open("pico_ql_erb_templates/pico_ql_result_set_iter_#{$argLB.downcase}.erb").read
     result_set_iter = ERB.new(file, 0, '>')
     fw.puts result_set_iter.result(get_binding)
   end
@@ -1505,7 +1505,7 @@ class InputDescription
 # Code makes the necessary arrangements for retrieve to happen successfully 
 # (condition checks, reallocation)
   def wrap_retrieve(fw)
-    file = File.open("pico_ql_erb_templates/pico_ql_wrapper_retrieve.erb").read
+    file = File.open("pico_ql_erb_templates/pico_ql_wrapper_retrieve_#{$argLB.downcase}.erb").read
     wrapper_retrieve = ERB.new(file, 0, '>')
     fw.puts wrapper_retrieve.result(get_binding)
   end
@@ -1527,7 +1527,7 @@ class InputDescription
 # Code makes the necessary arrangements for retrieve to happen successfully 
 # (condition checks, reallocation)
   def wrap_search(fw)
-    file = File.open("pico_ql_erb_templates/pico_ql_wrapper_search.erb").read
+    file = File.open("pico_ql_erb_templates/pico_ql_wrapper_search_#{$argLB.downcase}.erb").read
     wrapper_search = ERB.new(file, 0, '>')
     fw.puts wrapper_search.result(get_binding)
   end
@@ -1547,7 +1547,7 @@ class InputDescription
 # Calls template to generate code in result set iterator methods. 
 # Code makes the necessary arrangements for managing a result set. 
   def wrap_result_set_iter(fw)
-    file = File.open("pico_ql_erb_templates/pico_ql_wrapper_result_set_iter.erb").read
+    file = File.open("pico_ql_erb_templates/pico_ql_wrapper_result_set_iter_#{$argLB.downcase}.erb").read
     wrapper_result_set_iter = ERB.new(file, 0, '>')
     fw.puts wrapper_result_set_iter.result(get_binding)
   end
@@ -1564,7 +1564,7 @@ class InputDescription
 # Generates the LICENSE copyright notice and directives as prescribed 
 # from user in the description for pico_ql_internal.cpp
   def print_directives_utils(fw)
-    file = File.open("pico_ql_erb_templates/pico_ql_directives_utils.erb").read
+    file = File.open("pico_ql_erb_templates/pico_ql_directives_utils_#{$argLB.downcase}.erb").read
     directives = ERB.new(file, 0, '>')
     fw.puts directives.result(get_binding)
   end
@@ -1572,7 +1572,7 @@ class InputDescription
 # Generates the LICENSE copyright notice and application interface 
 # functions in pico_ql_search.cpp
   def print_register_serve(fw)
-    file = File.open("pico_ql_erb_templates/pico_ql_register_serve.erb").read
+    file = File.open("pico_ql_erb_templates/pico_ql_register_serve_#{$argLB.downcase}.erb").read
     app_interface = ERB.new(file, 0, '>')
     fw.puts app_interface.result(get_binding)
   end
@@ -1580,19 +1580,19 @@ class InputDescription
 # Generates application-specific code to complement the SQTL library.
 # There is a call to each of the above generative functions.
   def generate()
-    myfile = File.open("pico_ql_search.cpp", "w") do |fw|
+    myfile = File.open("pico_ql_search.#{$argLB.downcase}", "w") do |fw|
       print_register_serve(fw)
     end
-    puts "Created/updated pico_ql_search.cpp ."
-    myfile = File.open("pico_ql_internal.cpp", "w") do |fw|
+    puts "Created/updated pico_ql_search.#{$argLB.downcase} ."
+    myfile = File.open("pico_ql_internal.#{$argLB.downcase}", "w") do |fw|
       print_directives_utils(fw)
       print_result_set_iter(fw)
       print_search_functions(fw)
       print_retrieve_functions(fw)
     end
-    puts "Created/updated pico_ql_internal.cpp ."
+    puts "Created/updated pico_ql_internal.#{$argLB.downcase} ."
     myFile = File.open("pico_ql_makefile.append", "w") do |fw|
-      file = File.open("pico_ql_erb_templates/pico_ql_makefile.erb").read
+      file = File.open("pico_ql_erb_templates/pico_ql_makefile_#{$argLB.downcase}.erb").read
       makefile = ERB.new(file, 0, '>')
       fw.puts makefile.result(get_binding)
     end
@@ -1683,6 +1683,8 @@ def take_cases(argv)
     $argD = "DEBUG"
   when /no_mem_mgt/i
     $argM = "NO_MEM_MGT"
+  when "C"
+    $argLB = "C"
   end
 end
 
@@ -1691,8 +1693,8 @@ end
 if __FILE__ == $0
   $argF = ARGV[0]
   $argM = "MEM_MGT"
-  take_cases(ARGV[1])
-  take_cases(ARGV[2])
+  $argLB = "CPP"
+  ARGV.each_index { |arg| if arg > 0 : take_cases(ARGV[arg]) end }
   begin
     $lined_description = File.open($argF, "r") { |fw| 
       fw.readlines.each{ |line| 

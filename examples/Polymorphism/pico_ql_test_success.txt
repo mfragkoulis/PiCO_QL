@@ -10,13 +10,13 @@ rownum description balance available_amount binded_amount
 Done
 
 Query 1:
- select description, balance, available_amount, binded_amount, overlimit, due_date from Account JOIN PremiumAccount ON PremiumAccount.base=Account.premiumaccount_id JOIN SavingsAccount ON SavingsAccount.base=Account.savingsaccount_id;
+ select rownum, description, balance, available_amount, binded_amount, overlimit, due_date from Account JOIN PremiumAccount ON PremiumAccount.base=Account.premiumaccount_id JOIN SavingsAccount ON SavingsAccount.base=Account.savingsaccount_id;
 
 Statement prepared.
-description balance available_amount binded_amount overlimit due_date 
+rownum description balance available_amount binded_amount overlimit due_date 
 
-pa121 1292.760000 1231.200000 0.000000 200.000000 (null) 
-sa989 865.370000 586.700000 200.000000 (null) 31/12/2013 
+0 pa121 1292.760000 1231.200000 0.000000 200.000000 (null) 
+1 sa989 865.370000 586.700000 200.000000 (null) 31/12/2013 
 
 Done
 
