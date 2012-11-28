@@ -1,0 +1,107 @@
+// Redirect to the appropriate retrieve function for a virtual table.
+int retrieve(sqlite3_vtab_cursor *cur, int nCol, sqlite3_context *con) {
+  picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
+  VtblImpl *retrieveVT = selector_vt[picoQL->zName];
+  return (*retrieveVT)(cur, nCol, con);
+}
+
+<%     @tables.each { |vt| %>
+struct Vtbl <%= vt.name %>_vtbl = {
+
+  <%= vt.name %>_search,
+  <%= vt.name %>_retrieve,
+  <%= vt.name %>_get_datastructure_size,
+  <%= vt.name %>_init_resultSet,
+  <%= vt.name %>_deinit_resultSet,
+  <%= vt.name %>_report_charge,
+  <%= vt.name %>_discharge_saved_results
+
+}
+ 
+<%     } %>
+
+
+<%      if vt.base_var.length == 0 %>
+  virtual void operator() (sqlite3_vtab_cursor *cur, int current, map<sqlite3_vtab_cursor *, bool> *oCharged) {
+    pair<map<sqlite3_vtab_cursor *, bool>::iterator, bool> operation;
+    if (current) {
+      operation = charged.insert(pair<sqlite3_vtab_cursor *, bool>(cur, false));
+      if ((operation.second) && (oCharged != NULL)) {
+        map<sqlite3_vtab_cursor *, bool>::iterator iter;
+        for (iter = oCharged->begin(); iter != oCharged->end(); iter++) {
+          if (cursors.find(iter->first) != cursors.end()) {
+            if (!iter->second) {
+              recursive += 1;
+              iter->second = true;
+            }
+          }
+        }
+      }
+    } else {
+      charged.clear();
+      recursive = 0;
+    }
+  };
+<%      else %>
+  virtual void operator() (sqlite3_vtab_cursor *, int, map<sqlite3_vtab_cursor *, bool> *) {};
+<%      end %>
+
+  virtual void operator() (const char *dummy) {
+    (void)dummy;
+<%      vt.columns.each { |col| %>
+<%       if $argM == "MEM_MGT" && col.related_to.length > 0 && col.fk_method_ret == 1 %>
+    saved_results_<%= col.saved_results_index %>.clear();    
+<%       end %>
+<%      } %>
+  };
+
+
+void assign_VtblImpl(VtblImpl *vtbl) {
+
+}
+
+void set_VtblImpl() {
+<%     @tables.each { |vt| %>
+  <%= vt.name %>_vt *<%= vt.name %>VT = new <%= vt.name %>_vt;
+  selector_vt["<%= vt.name %>"] = <%= vt.name %>VT;
+<%     } %>
+}
+
+// Thread. Creates the queries and passes them on to PiCO_QL.
+void * thread_sqlite(void *data) {
+  const char **queries, **sqlite_names;
+<% view_length = 0 %>
+<% @views == nil ? views_length = 0 : views_length = @views.length %>
+  queries = (const char **)sqlite3_malloc(sizeof(char *) * <%= (@tables.length + views_length).to_s %>);
+  sqlite_names = (const char **)sqlite3_malloc(sizeof(char *) * <%= (@tables.length + views_length).to_s %>);
+  int failure = 0;
+<%# <db>.<table> does not work for some reason. test. %>
+<%# counter %>
+<%    @tables.each_index { |vt| %>
+<%#     query =  "CREATE VIRTUAL TABLE #{@tables[vt].db}.#{@tables[vt].name} USING PicoQL(" %>
+<%      query =  "CREATE VIRTUAL TABLE #{@tables[vt].name} USING PicoQL(" %>
+<%      @tables[vt].columns.each { |c| %>
+<%        query += "#{c.name} #{c.data_type}, " %>
+<%      } %>
+<%      query = query.chomp(", ") + ")" %>
+  queries[<%= vt %>] = "<%= query %>";
+  sqlite_names[<%= vt %>] = "<%= @tables[vt].name %>";
+<%    } %>
+<%    if views_length > 0 %>
+<%      @views.each_index { |vs| %>
+  queries[<%= vs + @tables.length %>] = "<%= @views[vs].stmt %>";
+  sqlite_names[<%= vs + @tables.length %>] = "<%= @views[vs].name %>";
+<%      } %>
+<%    end %>
+  set_VtblImpl();
+  int port_number = *(int *)data;
+  sqlite3_free(data);
+  failure = register_table( "<%= @tables[0].db %>" , <%= (@tables.length + views_length).to_s %>, <%= @tables.length.to_s %>, queries, sqlite_names, port_number);
+  printf("Thread sqlite returns %i\n", failure);
+  sqlite3_free(queries);
+  sqlite3_free(sqlite_names);
+  return NULL;
+}
+
+ 
+ 
