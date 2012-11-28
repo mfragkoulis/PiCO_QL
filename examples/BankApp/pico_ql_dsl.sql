@@ -19,7 +19,7 @@ CREATE STRUCT VIEW SuperAccount (
 
 CREATE STRUCT VIEW SuperAccounts (
        id STRING FROM first,
-       INHERITS STRUCT VIEW SuperAccount FROM second.);
+       INHERITS STRUCT VIEW SuperAccount FROM second);
 
 CREATE VIRTUAL TABLE Bank.SuperAccounts 
 USING STRUCT VIEW SuperAccounts

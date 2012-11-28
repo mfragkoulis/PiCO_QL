@@ -185,6 +185,46 @@ class Column
       exit(1)
     end
   end
+
+  def manage_inclusion(matchdata, access_type_link)
+    this_struct_view = $struct_views.last
+    this_columns = this_struct_view.columns
+    col_type_text = 0
+    $struct_views.each { |vs| 
+      if vs.name == matchdata[1]     # Search all struct_view 
+                                     # definitions to find the one 
+                                     # specified and include it.
+        this_struct_view.columns_delete_last()
+        up_to = vs.columns.length
+        vs.columns.each_index { |col| 
+          coln = vs.columns[col]            # Manually construct a deep 
+                                            # copy of coln
+          this_columns.push(Column.new("")) # and push it to current.
+          access_path = ""
+          if coln.access_path.match(/this\.|this->/)
+            access_path = coln.access_path.gsub(/this\.|this->/, '\0<accessor>')
+            access_path.gsub!("<accessor>", "#{matchdata[2]}#{access_type_link}")
+          else
+            access_path = "#{matchdata[2]}#{access_type_link}#{coln.access_path}"
+          end
+          name = "#{matchdata[1]}#{coln.name}"
+          this_columns.last.construct(name,
+                                      coln.data_type.clone,
+                                      coln.cpp_data_type.clone,
+                                      coln.related_to.clone, 
+                                      coln.fk_method_ret,
+                                      coln.fk_col_type.clone,
+                                      coln.saved_results_index,
+                                      access_path, 
+                                      coln.col_type.clone,
+                                      coln.line,
+                                      coln.case)
+        }
+        col_type_text = vs.include_text_col
+      end
+    }
+    return col_type_text
+  end
   
 
 # Matches each column description against a pattern and extracts 
@@ -199,49 +239,20 @@ class Column
     if column.match(/\n/)
       column.gsub!(/\n/, "")
     end
-    column_ptn1 = /inherits struct view (\w+) from (.+)/im
+    column_ptn1a = /inherits struct view (\w+) from (.+) pointer/im
+    column_ptn1b = /inherits struct view (\w+) from (.+)/im
     column_ptn2 = /inherits struct view (\w+)/im
     column_ptn3 = /foreign key(\s*)\((\s*)(\w+)(\s*)\) from (.+) references (\w+)(\s*)(\w*)/im
     column_ptn4 = /(\w+) (\w+) from (.+) pointer/im # for UNION column
     column_ptn5 = /(\w+) (\w+) from (.+)/im
     case column
-    when column_ptn1
-      matchdata = column_ptn1.match(column)
-      this_struct_view = $struct_views.last
-      this_columns = this_struct_view.columns
-      $struct_views.each { |vs| 
-        if vs.name == matchdata[1]     # Search all struct_view 
-                                       # definitions to find the one 
-                                       # specified and include it.
-          this_struct_view.columns_delete_last()
-          up_to = vs.columns.length
-          vs.columns.each_index { |col| 
-            coln = vs.columns[col]            # Manually construct a deep 
-                                              # copy of coln
-            this_columns.push(Column.new("")) # and push it to current.
-            access_path = ""
-            if coln.access_path.match(/this\.|this->/)
-              access_path = coln.access_path.gsub(/this\.|this->/, '\0<accessor>')
-              access_path.gsub!("<accessor>", "#{matchdata[2]}")
-            else
-              access_path = "#{matchdata[2]}#{coln.access_path}"
-            end
-            name = "#{matchdata[1]}#{coln.name}"
-            this_columns.last.construct(name,
-                                        coln.data_type.clone,
-                                        coln.cpp_data_type.clone,
-                                        coln.related_to.clone, 
-                                        coln.fk_method_ret,
-                                        coln.fk_col_type.clone,
-                                        coln.saved_results_index,
-                                        access_path, 
-                                        coln.col_type.clone,
-                                        coln.line,
-                                        coln.case)
-          }
-	  col_type_text = vs.include_text_col
-        end
-      }
+    when column_ptn1a
+      matchdata = column_ptn1a.match(column)
+      col_type_text = manage_inclusion(matchdata, "->")
+      return col_type_text
+    when column_ptn1b
+      matchdata = column_ptn1b.match(column)
+      col_type_text = manage_inclusion(matchdata, ".")
       return col_type_text
     when column_ptn2                      # Include a struct_view 
                                           # definition without adapting.
