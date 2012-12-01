@@ -566,7 +566,11 @@ class VirtualTable
     type_check = ""
     if @container_class.length > 0
       if @@C_container_types.include?(@container_class)
-        access_path.length == 0 ? iden =  "*(rs->resIter)" : iden = "(*(rs->resIter))."
+        if $argLB = "CPP"
+          access_path.length == 0 ? iden =  "*(rs->resIter)" : iden = "(*(rs->resIter))."
+        else
+          access_path.length == 0 ? iden =  "((resultSetImpl *)rs)->res[rs->current]" : iden = "((resultSetImpl *)rs)->res[rs->current]."
+        end
       else
         access_path.length == 0 ? iden =  "**(rs->resIter)" : iden = "(**(rs->resIter))."
       end
@@ -684,12 +688,20 @@ class VirtualTable
   def configure_result_set()
     if @container_class.length > 0
       if @@C_container_types.include?(@container_class)
-        @pointer.match(/\*/) ? retype = "" : retype = "*"
-        add_to_result_setF = "<space>    rs->res.push_back(iter);\n<space>    rs->resBts.push_back(1);\n<space>  } else {\n<space>    rs->resBts.push_back(0);\n<space>  }\n<space>  index++;\n<space>  iter = iter->#{@iterator};\n<space>}"
+        if $argLB == "CPP"
+          @pointer.match(/\*/) ? retype = "" : retype = "*"
+          add_to_result_setF = "<space>    rs->res.push_back(iter);\n<space>    rs->resBts.push_back(1);\n<space>  } else {\n<space>    rs->resBts.push_back(0);\n<space>  }\n<space>  iter = iter->#{@iterator};\n<space>}"
+        else
+          add_to_result_setF = "<space>    rs->size++;\n<space>    ((resultSetImpl *)rs)->res = (resultSetImpl *)sqlite3_realloc(((resultSetImpl *)rs)->res, rs->size);\n<space>    ((resultSetImpl *)rs)->res[rs->size - 1] = iter;\n<space>  iter = iter->#{@iterator};\n<space>}"
+        end
       else
-        add_to_result_setF = "<space>    rs->res.push_back(#{@signature.chomp('*')}::iterator(iter));\n<space>    rs->resBts.set(index, 1);\n<space>  }\n<space>  index++;\n<space>}"
+        add_to_result_setF = "<space>    rs->res.push_back(iter);\n<space>    rs->resBts.set(index, 1);\n<space>  }\n<space>  index++;\n<space>}"
       end
-      add_to_result_setN = "<space>    resIterC = rs->res.erase(resIterC);\n<space>    rs->resBts.reset(index);\n<space>  } else\n<space>    resIterC++;\n<space>  index = rs->resBts.find_next(index);\n<space>}"
+      if $argLB == "CPP"
+        add_to_result_setN = "<space>    resIterC = rs->res.erase(resIterC);\n<space>    rs->resBts.reset(index);\n<space>  } else\n<space>    resIterC++;\n<space>  index = rs->resBts.find_next(index);\n<space>}"
+      else
+        add_to_result_setF = "<space>    rs->actualSize--;\n<space>    ((resultSetImpl *)rs)->res[index] = iter;\n<space>  index++;\n<space>  iter = iter->#{@iterator};\n<space>}"
+      end
     else
       add_to_result_setF = "<space>  stcsr->size = 1;\n<space>}"
       add_to_result_setN = "<space>  stcsr->size = 0;\n<space>}"
@@ -705,7 +717,11 @@ class VirtualTable
     if @container_class.length > 0
       if @@C_container_types.include?(@container_class)
         access_path.length == 0 ? idenF = "iter" : idenF = "iter."
+        if $argLB == "CPP"
         access_path.length == 0 ? idenN = "(*resIterC)" : idenN = "(*resIterC)."
+        else
+          access_path.length == 0 ? idenN = "((resultSetImpl *)rs)->res[index]" : idenN = "((resultSetImpl *)rs)->res[index]."
+        end
       else
         access_path.length == 0 ? idenF = "(*iter)" : idenF = "(*iter)."
         access_path.length == 0 ? idenN = "(**resIterC)" : idenN = "(**resIterC)."
@@ -792,11 +808,20 @@ class VirtualTable
 # for C containers resBts has size 1 to differ from error conditions.
 # Since we don't know size before hand we push_back as in result set.
 # We need to start pushing from scratch.
-        iterationF = "<space>iter = any_dstr;\n<space>rs->resBts.clear();\n<space>while (iter != NULL) {"
+# TODO:support for carray?
+        if $argLB == "CPP"
+          iterationF = "<space>iter = any_dstr;\n<space>rs->resBts.clear();\n<space>while (iter != NULL) {"
+        else
+          iterationF = "<space>iter = any_dstr;\n<space>while (iter != NULL) {"
+        end
       else
         iterationF = "<space>for (iter = any_dstr->begin(); iter != any_dstr->end(); iter++) {"
       end
-      iterationN = "<space>index = rs->resBts.find_first();\n<space>resIterC = rs->res.begin();\n<space>while (resIterC != rs->res.end()) {"
+      if $argLB == "CPP"
+        iterationN = "<space>index = rs->resBts.find_first();\n<space>resIterC = rs->res.begin();\n<space>while (resIterC != rs->res.end()) {"
+      else
+        iterationN = "<space>index = 0;\n<space>while (index != rs->size) {"
+      end
       return iterationF, iterationN
     end
     return "", ""
@@ -850,24 +875,36 @@ class VirtualTable
 
   def gen_base(fw)
     fw.puts "      if (first_constr == 1) {"
+    iterationF, useless = configure_iteration()
+    add_to_result_setF, useless = configure_result_set
     if @container_class.length > 0
+      fw.puts "#{iteration.gsub(/<space>/, "#{$s}")}"
+    end
+#should escape symbol?
+    fw.puts "#{add_to_result_set.gsub(/\n<space>  } else {\n<space>    rs->resBts.push_back(0);\n<space>  }/, "")}"
+    fw.puts "#{add_to_result_set.gsub("<space>", "#{$s  }")}"
+# not needed
       if @@C_container_types.include?(@container_class)
         @pointer.match(/\*/) ? retype = "" : retype = "*"
         fw.puts "#{$s}iter = any_dstr;"
         fw.puts "#{$s}rs->resBts.clear();"
         fw.puts "#{$s}while (iter != NULL) {"
+
         fw.puts "#{$s}  rs->res.push_back(iter);"
         fw.puts "#{$s}  rs->resBts.push_back(1);"
         fw.puts "#{$s}  iter = iter->#{@iterator};"
+#
         fw.puts "#{$s}}"
+# not needed
       else
         fw.puts "#{$s}for (iter = any_dstr->begin(); iter != any_dstr->end(); iter++) {"
-        fw.puts "#{$s}  rs->res.push_back(#{@signature.chomp('*')}::iterator(iter));\n#{$s}}"
+        fw.puts "#{$s}  rs->res.push_back(iter);\n#{$s}}"
         fw.puts "#{$s}rs->resBts.set();"
       end
     else
       fw.puts "#{$s}stcsr->size = 1;"
     end
+#
     fw.puts "      } else {"
     fw.puts "#{$s}printf(\"Constraint for BASE column on embedded data structure has not been placed first. Exiting now.\\n\");"
     fw.puts "#{$s}return SQLITE_MISUSE;"
@@ -1323,7 +1360,7 @@ class VirtualTable
       @columns.push(Column.new("")).last.set("base INT FROM self") 
 # perhaps PRIMARY KEY(base)
     end
-    if @container_class.length > 0
+    if @container_class.length > 0 && $argLB == "CPP"
       @columns.push(Column.new("")).last.set("rownum INT FROM self") 
     end
     @include_text_col = @struct_view.include_text_col

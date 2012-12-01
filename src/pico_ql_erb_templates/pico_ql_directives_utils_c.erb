@@ -102,97 +102,132 @@ int equals(const char *zCol, const char *key) {
     return SQLITE_NOMEM;
 }
 
-<%# TODO %>
-/* Deinitiates vectors which store temporary FK
- * column values so that they are
- * manageable by SQLite safely.
- */
-void deinit_temp_structs() {
-<%     @tables.each { |vt| %>
-  VtblImpl *discharge<%= vt.name %>VT = selector_vt["<%= vt.name %>"];
-  (*discharge<%= vt.name %>VT)("clear_saved_results");
-<%      if vt.base_var.length == 0 %>
-  map<sqlite3_vtab_cursor *, bool> *map<%= vt.name %>;
-  map<%= vt.name %> = NULL;
-  (*discharge<%= vt.name %>VT)(NULL, 0, map<%= vt.name %>);
-<%      end %>
-<%     } %>
-}
+typedef struct ResultSet {
 
-<%# TODO %>
-/* Deinitiates map which stores pairs of
- * virtual table names to functors virtualizing
- * individual VT search/retrieve implementations.
- */
-void deinit_vt_selectors() {
-  map<string, VtblImpl *>::iterator it;
-  for (it = selector_vt.begin(); it != selector_vt.end(); it++)
-    delete it->second;
-}
+  size_t size;
+  size_t actualSize;
+  int current;
+  int resultSetIterState;
+
+} ResultSet;
+
+  typedef struct cursor {
+
+    sqlite3_vtab_cursor *cur;
+<%# deviated from C++ where object does not have ResultSet %>
+    ResultSet res;
+
+  } cursor;
+
+  typedef struct cursorCharged {
+
+    sqlite3_vtab_cursor *cur;
+    int flag;
+
+  } cursorCharged;
 
 struct Vtbl {
 
-  int (*search)(sqlite3_vtab_cursor *, int,
-                    int, sqlite3_value *);
+  int (*search)(sqlite3_vtab_cursor *, int, int, sqlite3_value *, 
+                  struct Vtbl*);
   int (*retrieve)(sqlite3_vtab_cursor *,
-                    int, sqlite3_context *);
-  size_t (*get_datastructure_size)(sqlite3_vtab_cursor *, 
-                                         sqlite3_vtab *);
-  void (*init_resultSet)(sqlite3_vtab *, sqlite3_vtab_cursor *);
-  int (*next_resultSet)(sqlite3_vtab_cursor *);
-  void (*deinit_resultSet)(sqlite3_vtab_cursor *cur, void *shadowRes);
-  void (*report_charge)(sqlite3_vtab_cursor *cur, int current, 
-       			     struct *oCharged);
-  void (*discharge_saved_results)(const char *dummy);
+                    int, sqlite3_context *, struct Vtbl*);
+  size_t (*get_datastructure_size)(sqlite3_vtab_cursor *, sqlite3_vtab *);
+<%# perhaps init ResultSet for real? %>
+  void (*init_result_set)(sqlite3_vtab *, sqlite3_vtab_cursor *);
+  int (*advance_result_set_iter)(sqlite3_vtab_cursor *, struct Vtbl*);
+  void (*deinit_result_set)(sqlite3_vtab_cursor *, struct Vtbl*);
+  void (*report_charge)(sqlite3_vtab_cursor *, int, cursorCharged **, 
+       				size_t, struct Vtbl*);
+  void (*discharge_saved_results)(struct Vtbl*);
 
 };
 
-struct ResultSet {
-  
-  void **res;
-  int current;
-  int size;
-  int resultSetIterState;
+typedef struct VtblAll {
 
-};
+  struct Vtbl **instances;
+  const char **instanceNames;
+  size_t size;
 
-struct Cursor {
+} VtblAll;
 
-  sqlite3_vtab_cursor *cur;
-  struct ResultSet res;
-
-};
-
-struct Charged {
-
-  sqlite3_vtab_cursor *cur;
-  int charged;
-
-};
+VtblAll vtAll = {0, 0, 0};
 
 <%     @tables.each { |vt| %>
-struct VtblImpl {
+
+<%      if vt.container_class.length > 0 %>
+  typedef struct <%= vt.name %>ResultSetImpl {
+  
+<%          vt.pointer.match(/\*/) ? retype = "" : retype = "*" %>
+    <%= vt.signature.chomp('*') %> **res;
+    ResultSet *r;
+  } resultSetImpl;
+<%      end %>
+
+typedef struct VtblImpl {
 
   const char *name;
   struct Vtbl *impl;
-  struct Cursor **cursors;
-  struct Charged **chrg;
+
 <%      i = 0 %>
 <%      vt.columns.each { |col| %>
 <%       if col.related_to.length > 0 %>
 <%        col.fk_col_type = $table_index[col.related_to] %>
 <%        if $argM == "MEM_MGT" && col.fk_method_ret == 1 %>
-  struct saved_results_<%= i %> {
-    struct <<%= col.fk_col_type.chomp('*') %> **captcha;
-    int size;
-  };
- 
+  typedef struct saved_results_<%= i %> {
+    struct <%= col.fk_col_type.chomp('*') %> **captcha;
+    size_t size;
+  } saved_results_<%= i %>;
+
+   saved_results_<%= i %> sr<%= i %>;
 <%        end %>
 <%        col.saved_results_index = i %>
 <%        i += 1 %>
 <%       end %>
 <%      } %>
 
+
+  cursor **cursors;
+  size_t cursorsSize;
+
+<%      if vt.base_var.length == 0 %>
+  cursorCharged **charged;
+  size_t chargedSize;
+  int recursive;
+<%      end %>
+
 } <%= vt.name %>_vt;
 
 <%     } %>
+
+/* Deinitiates vectors which store temporary FK
+ * column values so that they are
+ * manageable by SQLite safely.
+ */
+void deinit_temp_structs() {
+  for (int i = 0; i< (int)vtAll.size; i++) {
+    vtAll.instances[i]->discharge_saved_results(vtAll.instances[i]);
+    vtAll.instances[i]->report_charge(NULL, 0, NULL, vtAll.instances[i]);
+  }
+<%#     @tables.each { |vt| %>
+<%#      if vt.base_var.length == 0 %>
+<%#  map<sqlite3_vtab_cursor *, bool> *map<%= vt.name %>; %>
+<%#  map<%= vt.name %> = NULL; %>
+<%#  (*discharge<%= vt.name %>VT)(NULL, 0, map<%= vt.name %>); %>
+<%#      end %>
+<%#     } %>
+}
+
+/* Deinitiates map which stores pairs of
+ * virtual table names to functors virtualizing
+ * individual VT search/retrieve implementations.
+ */
+void deinit_vt_selectors() {
+<%     @tables.each_index { |vt| %>
+  sqlite3_free((<%= @name %>_vt *)vtAll.instances[<%= vt %>]->name);
+  sqlite3_free((<%= @name %>_vt *)vtAll.instances[<%= vt %>]);
+<%
+  sqlite3_free(vtAll.instances);
+  sqlite3_free(vtAll.instanceNames);
+}
+

@@ -1,69 +1,100 @@
 // Redirect to the appropriate retrieve function for a virtual table.
 int retrieve(sqlite3_vtab_cursor *cur, int nCol, sqlite3_context *con) {
   picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
-  VtblImpl *retrieveVT = selector_vt[picoQL->zName];
-  return (*retrieveVT)(cur, nCol, con);
+  int j = 0;
+  while ((j < (int)vtAll.size) && (!strcmp(vtAll.instanceNames[j], picoQL->zName)) {j++;}
+  if (j == (int)vtAll.size) {
+    printf("In search: VT %s not registered.\nExiting now.\n", picoQL->zName);
+    return SQLITE_ERROR;
+  }
+  struct Vtbl *retrieveVT = vtAll.instances[j];
+  return retrieveVT->retrieve(cur, nCol, con, retrieveVT);
 }
 
+  void report_charge (sqlite3_vtab_cursor *cur, int current, cursorCharged **oCharged, size_t oChargedSize, struct Vtbl *vtbl) {
+    cursor **cursors = ((<%= @name %>_vt *)vtbl)->cursors;
+    size_t cursorsSize = ((<%= @name %>_vt *)vtbl)->cursorsSize;
+    cursorCharged **charged = ((<%= @name %>_vt *)vtbl)->chrg;
+    size_t chargedSize = ((<%= @name %>_vt *)vtbl)->chrgSize;
+    if (current) {
+      int j = 0, i = 0;
+      while ((j < (int)chargedSize) && (charged[j]->cur != cur)) {j++;}
+      if (j == (int)chargedSize) {
+        chargedSize++;
+        cursorCharged *ch = sqlite3_malloc(sizeof(cursorCharged));
+        ch->cur = cur;
+	ch->flag = 0;
+        if (oCharged != NULL) {
+          j = 0;
+          while (j < (int)oChargedSize) {
+            for (int i = 0; i < (int)chargedSize; i++) { 
+              if (charged[i]->cur == oCharged[j]->cur) {
+                if (!oCharged[j]->flag) {
+                  recursive += 1;
+                  oCharged[j]->flag = 1;
+                }
+              }
+            }
+            j++;
+          }
+        }
+      }
+    } else {
+      for (int i = 0; i < (int)chargedSize; i++)
+        sqlite3_free(charged[i]);
+      sqlite3_free(charged);
+      recursive = 0;
+    }
+  }
+
+
 <%     @tables.each { |vt| %>
-struct Vtbl <%= vt.name %>_vtbl = {
+Vtbl <%= vt.name %>_vtbl = {
 
-  <%= vt.name %>_search,
-  <%= vt.name %>_retrieve,
-  <%= vt.name %>_get_datastructure_size,
-  <%= vt.name %>_init_resultSet,
-  <%= vt.name %>_deinit_resultSet,
-  <%= vt.name %>_report_charge,
+  <%= vt.name %>_vt_search,
+  <%= vt.name %>_vt_retrieve,
+  <%= vt.name %>_vt_get_datastructure_size,
+  <%= vt.name %>_vt_init_result_set,
+  <%= vt.name %>_vt_advance_result_set_iter,
+  <%= vt.name %>_vt_deinit_result_set,
+<%      if vt.base_var.length > 0 %>
+  report_charge,
   <%= vt.name %>_discharge_saved_results
-
+<%      else %>
+  0,
+  0
+<%      end %>
 }
  
 <%     } %>
 
 
-<%      if vt.base_var.length == 0 %>
-  virtual void operator() (sqlite3_vtab_cursor *cur, int current, map<sqlite3_vtab_cursor *, bool> *oCharged) {
-    pair<map<sqlite3_vtab_cursor *, bool>::iterator, bool> operation;
-    if (current) {
-      operation = charged.insert(pair<sqlite3_vtab_cursor *, bool>(cur, false));
-      if ((operation.second) && (oCharged != NULL)) {
-        map<sqlite3_vtab_cursor *, bool>::iterator iter;
-        for (iter = oCharged->begin(); iter != oCharged->end(); iter++) {
-          if (cursors.find(iter->first) != cursors.end()) {
-            if (!iter->second) {
-              recursive += 1;
-              iter->second = true;
-            }
-          }
-        }
-      }
-    } else {
-      charged.clear();
-      recursive = 0;
-    }
-  };
-<%      else %>
-  virtual void operator() (sqlite3_vtab_cursor *, int, map<sqlite3_vtab_cursor *, bool> *) {};
-<%      end %>
-
-  virtual void operator() (const char *dummy) {
-    (void)dummy;
+void set_VtblImpl() {
+  vtAll.instances = (struct Vtbl **)sqlite3_realloc(vtAll.instances, sizeof(Vtbl *)*<%= @tables.length %>);
+  vtAll.instanceNames = (const char **)sqlite3_realloc(vtAll.instanceNames, sizeof(const char *)*<%= @tables.length %>);
+  vtAll.size = (size_t)<%= @tables.length %>;
+<%     @tables.each_index { |vt| %>
+  <%= @tables[vt].name %>_vt *<%= @tables[vt].name %>VT = (<%= @tables[vt].name %>_vt *)sqlite3_malloc(sizeof(<%= @tables[vt].name %>_vt));
+  <%= @tables[vt].name %>VT->name = (const char *)sqlite3_malloc(sizeof(char)*<%= @tables[vt].name.length %>;
+  strcpy((char *)<%= @tables[vt].name %>VT->name, "<%= vt.name %>");
+  vtAll.instanceNames[<%= vt %>] = <%= @tables[vt].name %>VT->name;
+  <%= @tables[vt].name %>VT->impl = &<%= @tables[vt].name %>_vtbl;
+  vtAll.instances[<%= vt %>] = <%= @tables[vt].name %>VT->impl;
 <%      vt.columns.each { |col| %>
-<%       if $argM == "MEM_MGT" && col.related_to.length > 0 && col.fk_method_ret == 1 %>
-    saved_results_<%= col.saved_results_index %>.clear();    
+<%       if col.related_to.length > 0 %>
+<%        if $argM == "MEM_MGT" && col.fk_method_ret == 1 %>
+  <%= vt.name %>VT->saved_results_<%= saved_results_index %> = {0, 0};
+<%        end %>
 <%       end %>
 <%      } %>
-  };
+  <%= vt.name %>VT->cursors = 0;
+  <%= vt.name %>VT->cursorsSize = 0;
+<%      if vt.base_var.length == 0 %>
+  <%= vt.name %>VT->charged = 0;
+  <%= vt.name %>VT->chargedSize = 0;
+  <%= vt.name %>VT->recursive = 0;
+<%      end %>
 
-
-void assign_VtblImpl(VtblImpl *vtbl) {
-
-}
-
-void set_VtblImpl() {
-<%     @tables.each { |vt| %>
-  <%= vt.name %>_vt *<%= vt.name %>VT = new <%= vt.name %>_vt;
-  selector_vt["<%= vt.name %>"] = <%= vt.name %>VT;
 <%     } %>
 }
 

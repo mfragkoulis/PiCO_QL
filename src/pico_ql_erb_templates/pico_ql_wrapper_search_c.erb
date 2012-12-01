@@ -1,0 +1,15 @@
+ // Redirect to the appropriate search function for a virtual table.
+int search(sqlite3_vtab_cursor* cur, int op, int nCol, sqlite3_value *val) {
+  picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
+  int j = 0;
+  while ((j < (int)vtAll.size) && (!strcmp(vtAll.instanceNames[j], picoQL->zName)) {j++;}
+  if (j == (int)vtAll.size) {
+    printf("In search: VT %s not registered.\nExiting now.\n", picoQL->zName);
+    return SQLITE_ERROR;
+  }
+  struct Vtbl *searchVT = vtAll.instances[j];
+  return searchVT->search(cur, op, nCol, val, searchVT);
+}
+
+  
+ 
