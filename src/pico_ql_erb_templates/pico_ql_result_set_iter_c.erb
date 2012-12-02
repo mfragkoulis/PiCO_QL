@@ -66,8 +66,6 @@ int <%= @name %>_vt_advance_result_set_iter (sqlite3_vtab_cursor *cur,
   res->actualSize = 0;
   res->current = -1;
   res->resultSetIterState = -1;
-<%# If reused, we will realloc, so not needed to free %>
-<%#  sqlite3_free(((<%= @name %>ResultSetImpl *)res)->res); %>
 <%    else %>
   stc->current++;
   if (stc->current >= stc->size)
@@ -82,10 +80,10 @@ int <%= @name %>_vt_advance_result_set_iter (sqlite3_vtab_cursor *cur,
   return SQLITE_OK;
 }
 
-void <%= @name %>_vt_deinit_result_set (sqlite3_vtab_cursor *cur, struct Vtbl *vtbl, ResultSet *res, cursor **cursors, size_t cursorsSize, charged **chrg) {
+void <%= @name %>_vt_deinit_result_set (sqlite3_vtab_cursor *cur, struct Vtbl *vtbl) {
   cursor **cursors = ((<%= @name %>_vt *)vtbl)->cursors;
   size_t cursorsSize = ((<%= @name %>_vt *)vtbl)->cursorsSize;
-  charged **chrg = ((<%= @name %>_vt *)vtbl)->chrg;
+  charged **charged = ((<%= @name %>_vt *)vtbl)->charged;
   int j = 0;
   while ((j < (int)cursorsSize) && (cursors[j]->cur != cur)) {j++;}
   if (j == (int)cursorsSize) {
@@ -93,21 +91,16 @@ void <%= @name %>_vt_deinit_result_set (sqlite3_vtab_cursor *cur, struct Vtbl *v
     return SQLITE_ERROR;
   }
   ResultSet *res = &cursors[j]->res;
-  int i = 0;
-  while (i < (int)cursorsSize) {
-    if (cursors[i]->cur == cur) {
 <%      if @container_class.length > 0 %>
-      sqlite3_free(((<%= @name %>ResultSetImpl *)res)->res);
+  sqlite3_free(((<%= @name %>ResultSetImpl *)res)->res);
 <%      end %>
-      cursors[i]->cur = 0;
-      memset(cursors[i]->res, 0, sizeof(ResultSet));
-      cursorsSize--;
-    } else
-      printf("No such cursor %li inserted\n", (long int)cur);
-  }
+  sqlite3_free(cursors[j]);
+  cursorsSize--;
 <%      if @base_var.length == 0 %>
 <%# need to malloc %>
-  sqlite3_free(chrg);
+  for (int i = 0; i < (int)chargedSize; i++)
+    sqlite3_free(charged[i]);
+  chargedSize = 0;
   recursive = 0;
 <%      end %>
 }

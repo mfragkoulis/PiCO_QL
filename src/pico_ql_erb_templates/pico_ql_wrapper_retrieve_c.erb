@@ -2,7 +2,7 @@
 int retrieve(sqlite3_vtab_cursor *cur, int nCol, sqlite3_context *con) {
   picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
   int j = 0;
-  while ((j < (int)vtAll.size) && (!strcmp(vtAll.instanceNames[j], picoQL->zName)) {j++;}
+  while ((j < (int)vtAll.size) && (strcmp(vtAll.instanceNames[j], picoQL->zName)) {j++;}
   if (j == (int)vtAll.size) {
     printf("In search: VT %s not registered.\nExiting now.\n", picoQL->zName);
     return SQLITE_ERROR;
@@ -14,8 +14,8 @@ int retrieve(sqlite3_vtab_cursor *cur, int nCol, sqlite3_context *con) {
   void report_charge (sqlite3_vtab_cursor *cur, int current, cursorCharged **oCharged, size_t oChargedSize, struct Vtbl *vtbl) {
     cursor **cursors = ((<%= @name %>_vt *)vtbl)->cursors;
     size_t cursorsSize = ((<%= @name %>_vt *)vtbl)->cursorsSize;
-    cursorCharged **charged = ((<%= @name %>_vt *)vtbl)->chrg;
-    size_t chargedSize = ((<%= @name %>_vt *)vtbl)->chrgSize;
+    cursorCharged **charged = ((<%= @name %>_vt *)vtbl)->charged;
+    size_t chargedSize = ((<%= @name %>_vt *)vtbl)->chargedSize;
     if (current) {
       int j = 0, i = 0;
       while ((j < (int)chargedSize) && (charged[j]->cur != cur)) {j++;}
@@ -24,11 +24,16 @@ int retrieve(sqlite3_vtab_cursor *cur, int nCol, sqlite3_context *con) {
         cursorCharged *ch = sqlite3_malloc(sizeof(cursorCharged));
         ch->cur = cur;
 	ch->flag = 0;
+        ((<%= @name %>_vt *)vtbl)->charged = (cursorCharged **)sqlite3_realloc(((<%= @name %>_vt *)vtbl)->charged, sizeof(cursorCharged *)*chargedSize);
+        ((<%= @name %>_vt *)vtbl)->charged[chargedSize-1] = ch;
+#ifdef PICO_QL_DEBUG
+        printf("Table %s, chargedCursor: %li inserted, max size %i\n", picoQL->zName, (long int)cur, stcsr->max_size);
+#endif
         if (oCharged != NULL) {
           j = 0;
           while (j < (int)oChargedSize) {
-            for (int i = 0; i < (int)chargedSize; i++) { 
-              if (charged[i]->cur == oCharged[j]->cur) {
+            for (int i = 0; i < (int)cursorsSize; i++) { 
+              if (cursors[i]->cur == oCharged[j]->cur) {
                 if (!oCharged[j]->flag) {
                   recursive += 1;
                   oCharged[j]->flag = 1;
@@ -42,7 +47,7 @@ int retrieve(sqlite3_vtab_cursor *cur, int nCol, sqlite3_context *con) {
     } else {
       for (int i = 0; i < (int)chargedSize; i++)
         sqlite3_free(charged[i]);
-      sqlite3_free(charged);
+      chargedSize = 0;
       recursive = 0;
     }
   }
@@ -70,8 +75,8 @@ Vtbl <%= vt.name %>_vtbl = {
 
 
 void set_VtblImpl() {
-  vtAll.instances = (struct Vtbl **)sqlite3_realloc(vtAll.instances, sizeof(Vtbl *)*<%= @tables.length %>);
-  vtAll.instanceNames = (const char **)sqlite3_realloc(vtAll.instanceNames, sizeof(const char *)*<%= @tables.length %>);
+  vtAll.instances = (struct Vtbl **)sqlite3_malloc(sizeof(Vtbl *)*<%= @tables.length %>);
+  vtAll.instanceNames = (const char **)sqlite3_malloc(sizeof(const char *)*<%= @tables.length %>);
   vtAll.size = (size_t)<%= @tables.length %>;
 <%     @tables.each_index { |vt| %>
   <%= @tables[vt].name %>_vt *<%= @tables[vt].name %>VT = (<%= @tables[vt].name %>_vt *)sqlite3_malloc(sizeof(<%= @tables[vt].name %>_vt));
@@ -87,10 +92,11 @@ void set_VtblImpl() {
 <%        end %>
 <%       end %>
 <%      } %>
-  <%= vt.name %>VT->cursors = 0;
+  <%= vt.name %>VT->cursors = (cursor **)sqlite3_malloc(sizeof(cursor *));
+<%# Will be balanced in first insert (pre_search_c.erb). First realloc will have no effect. %>
   <%= vt.name %>VT->cursorsSize = 0;
 <%      if vt.base_var.length == 0 %>
-  <%= vt.name %>VT->charged = 0;
+  <%= vt.name %>VT->charged = (cursorCharged **)sqlite3_malloc(sizeof(cursorCharged *));
   <%= vt.name %>VT->chargedSize = 0;
   <%= vt.name %>VT->recursive = 0;
 <%      end %>

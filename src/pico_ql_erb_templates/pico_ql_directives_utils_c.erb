@@ -157,9 +157,7 @@ VtblAll vtAll = {0, 0, 0};
 
 <%      if vt.container_class.length > 0 %>
   typedef struct <%= vt.name %>ResultSetImpl {
-  
-<%          vt.pointer.match(/\*/) ? retype = "" : retype = "*" %>
-    <%= vt.signature.chomp('*') %> **res;
+      <%= vt.signature.chomp('*') %> **res;
     ResultSet *r;
   } resultSetImpl;
 <%      end %>
@@ -188,11 +186,11 @@ typedef struct VtblImpl {
 
 
   cursor **cursors;
-  size_t cursorsSize;
+  size_t cursorsSize;   // how many malloced
 
 <%      if vt.base_var.length == 0 %>
   cursorCharged **charged;
-  size_t chargedSize;
+  size_t chargedSize; // how many malloced
   int recursive;
 <%      end %>
 
@@ -225,9 +223,12 @@ void deinit_temp_structs() {
 void deinit_vt_selectors() {
 <%     @tables.each_index { |vt| %>
   sqlite3_free((<%= @name %>_vt *)vtAll.instances[<%= vt %>]->name);
+  sqlite3_free((<%= @name %>_vt *)vtAll.instances[<%= vt %>]->cursors);
+  sqlite3_free((<%= @name %>_vt *)vtAll.instances[<%= vt %>]->charged);
   sqlite3_free((<%= @name %>_vt *)vtAll.instances[<%= vt %>]);
-<%
+<%     } %>
   sqlite3_free(vtAll.instances);
   sqlite3_free(vtAll.instanceNames);
+
 }
 

@@ -547,13 +547,19 @@ class VirtualTable
       fw.puts "#endif"
     end
     fw.puts "#endif"
-    fw.puts "#{space}      VtblImpl *chargeVT#{col} = selector_vt[\"#{fk_col_name}\"];"
+    fw.puts "#{space}      int j = 0;"
+    fw.puts "#{space}      while ((j < (int)vtAll.size) && (strcmp(vtAll.instanceNames[j], \"#{fk_col_name}\")) {j++;}"
+    fw.puts "#{space}      if (j == (int)vtAll.size) {"
+    fw.puts "#{space}        printf(\"In search: VT %s not registered.\\nExiting now.\\n\", picoQL->zName);"
+    fw.puts "#{space}        return SQLITE_ERROR;"
+    fw.puts "#{space}      }"
+    fw.puts "#{space}      struct Vtbl *chargeVT#{col} = vtAll.instances[j];"
     if @base_var.length == 0
-      fw.puts "#{space}      (*chargeVT#{col})(cur, 1, &charged);"
+      fw.puts "#{space}      chargeVT#{col}->report_charge(cur, 1, &charged, chargeVT);"
     else
-      fw.puts "#{space}      map<sqlite3_vtab_cursor *, bool> *map#{@name}#{col};"
-      fw.puts "#{space}      map#{@name}#{col} = NULL;"
-      fw.puts "#{space}      (*chargeVT#{col})(cur, 1, map#{@name}#{col});"
+#      fw.puts "#{space}      map<sqlite3_vtab_cursor *, bool> *map#{@name}#{col};"
+#      fw.puts "#{space}      map#{@name}#{col} = NULL;"
+      fw.puts "#{space}      chargeVT#{col}->report_charge(cur, 1, NULL, chargeVT);"
     end
     fw.puts "#{space}      break;"
     fw.puts "#{space}    }"
@@ -692,7 +698,7 @@ class VirtualTable
           @pointer.match(/\*/) ? retype = "" : retype = "*"
           add_to_result_setF = "<space>    rs->res.push_back(iter);\n<space>    rs->resBts.push_back(1);\n<space>  } else {\n<space>    rs->resBts.push_back(0);\n<space>  }\n<space>  iter = iter->#{@iterator};\n<space>}"
         else
-          add_to_result_setF = "<space>    rs->size++;\n<space>    ((resultSetImpl *)rs)->res = (resultSetImpl *)sqlite3_realloc(((resultSetImpl *)rs)->res, rs->size);\n<space>    ((resultSetImpl *)rs)->res[rs->size - 1] = iter;\n<space>  iter = iter->#{@iterator};\n<space>}"
+          add_to_result_setF = "<space>    rs->size++;<space>    rs->actualSize++;\n<space>    ((#{@name}ResultSetImpl *)rs)->res = (#{@signature}#{retype}*)sqlite3_realloc(((#{@name}ResultSetImpl *)rs)->res, sizeof(#{@signature}#{retype})*rs->size);\n<space>    ((#{@name}ResultSetImpl *)rs)->res[rs->size - 1] = iter;\n<space>  iter = iter->#{@iterator};\n<space>}"
         end
       else
         add_to_result_setF = "<space>    rs->res.push_back(iter);\n<space>    rs->resBts.set(index, 1);\n<space>  }\n<space>  index++;\n<space>}"
@@ -700,7 +706,7 @@ class VirtualTable
       if $argLB == "CPP"
         add_to_result_setN = "<space>    resIterC = rs->res.erase(resIterC);\n<space>    rs->resBts.reset(index);\n<space>  } else\n<space>    resIterC++;\n<space>  index = rs->resBts.find_next(index);\n<space>}"
       else
-        add_to_result_setF = "<space>    rs->actualSize--;\n<space>    ((resultSetImpl *)rs)->res[index] = iter;\n<space>  index++;\n<space>  iter = iter->#{@iterator};\n<space>}"
+        add_to_result_setN = "<space>    rs->actualSize--;\n<space>    ((#{@name}ResultSetImpl *)rs)->res[index] = iter;\n<space>  index++;\n<space>  iter = iter->#{@iterator};\n<space>}"
       end
     else
       add_to_result_setF = "<space>  stcsr->size = 1;\n<space>}"
