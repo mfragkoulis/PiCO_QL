@@ -370,7 +370,7 @@ class VirtualTable
 # necessary arrangements for retrieve to happen successfully 
 # (condition checks, reallocation)
   def finish_retrieve(fw)
-    file = File.open("pico_ql_erb_templates/pico_ql_post_retrieve_#{$argLB.downcase}.erb").read
+    file = File.open("pico_ql_erb_templates/pico_ql_post_retrieve.erb").read
     post_retrieve = ERB.new(file, 0, '>')
     fw.puts post_retrieve.result(get_binding)
   end
@@ -686,7 +686,7 @@ class VirtualTable
 # necessary arrangements for retrieve to happen successfully 
 # (condition checks, reallocation)
   def finish_search(fw)
-    file = File.open("pico_ql_erb_templates/pico_ql_post_search_#{$argLB.downcase}.erb").read
+    file = File.open("pico_ql_erb_templates/pico_ql_post_search.erb").read
     post_search = ERB.new(file, 0, '>')
     fw.puts post_search.result(get_binding)
   end
