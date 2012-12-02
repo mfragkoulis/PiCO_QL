@@ -547,19 +547,30 @@ class VirtualTable
       fw.puts "#endif"
     end
     fw.puts "#endif"
-    fw.puts "#{space}      int j = 0;"
-    fw.puts "#{space}      while ((j < (int)vtAll.size) && (strcmp(vtAll.instanceNames[j], \"#{fk_col_name}\")) {j++;}"
-    fw.puts "#{space}      if (j == (int)vtAll.size) {"
-    fw.puts "#{space}        printf(\"In search: VT %s not registered.\\nExiting now.\\n\", picoQL->zName);"
-    fw.puts "#{space}        return SQLITE_ERROR;"
-    fw.puts "#{space}      }"
-    fw.puts "#{space}      struct Vtbl *chargeVT#{col} = vtAll.instances[j];"
-    if @base_var.length == 0
-      fw.puts "#{space}      chargeVT#{col}->report_charge(cur, 1, &charged, chargeVT);"
+    if $argLB == "C"
+      fw.puts "#{space}      int j = 0;"
+      fw.puts "#{space}      while ((j < (int)vtAll.size) && (strcmp(vtAll.instanceNames[j], \"#{fk_col_name}\")) {j++;}"
+      fw.puts "#{space}      if (j == (int)vtAll.size) {"
+      fw.puts "#{space}        printf(\"In search: VT %s not registered.\\nExiting now.\\n\", picoQL->zName);"
+      fw.puts "#{space}        return SQLITE_ERROR;"
+      fw.puts "#{space}      }"
+      fw.puts "#{space}      struct Vtbl *chargeVT#{col} = vtAll.instances[j];"
+      if @base_var.length == 0
+        fw.puts "#{space}      chargeVT#{col}->report_charge(cur, 1, &charged, chargeVT);"
+      else
+        #      fw.puts "#{space}      map<sqlite3_vtab_cursor *, bool> *map#{@name}#{col};"
+        #      fw.puts "#{space}      map#{@name}#{col} = NULL;"
+        fw.puts "#{space}      chargeVT#{col}->report_charge(cur, 1, NULL, chargeVT);"
+      end
     else
-#      fw.puts "#{space}      map<sqlite3_vtab_cursor *, bool> *map#{@name}#{col};"
-#      fw.puts "#{space}      map#{@name}#{col} = NULL;"
-      fw.puts "#{space}      chargeVT#{col}->report_charge(cur, 1, NULL, chargeVT);"
+      fw.puts "#{space}      VtblImpl *chargeVT#{col} = selector_vt[\"#{fk_col_name}\"];"
+      if @base_var.length == 0
+        fw.puts "#{space}      (*chargeVT#{col})(cur, 1, &charged);"
+      else
+        fw.puts "#{space}      map<sqlite3_vtab_cursor *, bool> *map#{@name}#{col};"
+        fw.puts "#{space}      map#{@name}#{col} = NULL;"
+        fw.puts "#{space}      (*chargeVT#{col})(cur, 1, map#{@name}#{col});"
+      end
     end
     fw.puts "#{space}      break;"
     fw.puts "#{space}    }"
@@ -572,7 +583,7 @@ class VirtualTable
     type_check = ""
     if @container_class.length > 0
       if @@C_container_types.include?(@container_class)
-        if $argLB = "CPP"
+        if $argLB == "CPP"
           access_path.length == 0 ? iden =  "*(rs->resIter)" : iden = "(*(rs->resIter))."
         else
           access_path.length == 0 ? iden =  "((resultSetImpl *)rs)->res[rs->current]" : iden = "((resultSetImpl *)rs)->res[rs->current]."
@@ -884,33 +895,22 @@ class VirtualTable
     iterationF, useless = configure_iteration()
     add_to_result_setF, useless = configure_result_set
     if @container_class.length > 0
-      fw.puts "#{iteration.gsub(/<space>/, "#{$s}")}"
+      fw.puts "#{iterationF.gsub(/<space>/, "#{$s}")}"
     end
-#should escape symbol?
-    fw.puts "#{add_to_result_set.gsub(/\n<space>  } else {\n<space>    rs->resBts.push_back(0);\n<space>  }/, "")}"
-    fw.puts "#{add_to_result_set.gsub("<space>", "#{$s  }")}"
-# not needed
-      if @@C_container_types.include?(@container_class)
-        @pointer.match(/\*/) ? retype = "" : retype = "*"
-        fw.puts "#{$s}iter = any_dstr;"
-        fw.puts "#{$s}rs->resBts.clear();"
-        fw.puts "#{$s}while (iter != NULL) {"
-
-        fw.puts "#{$s}  rs->res.push_back(iter);"
-        fw.puts "#{$s}  rs->resBts.push_back(1);"
-        fw.puts "#{$s}  iter = iter->#{@iterator};"
-#
-        fw.puts "#{$s}}"
-# not needed
-      else
-        fw.puts "#{$s}for (iter = any_dstr->begin(); iter != any_dstr->end(); iter++) {"
-        fw.puts "#{$s}  rs->res.push_back(iter);\n#{$s}}"
-        fw.puts "#{$s}rs->resBts.set();"
-      end
+# Customizing..each gsub targets a single case so safe.
+# CPP, C_containers
+    add_to_result_setF.gsub!(/\n<space>  \} else \{\n<space>    rs->resBts.push_back\(0\);\n<space>  \}/, "")
+# All cases except CPP, C containers: no compare to close if in base
+    if !@@C_container_types.include?(@container_class)
+      add_to_result_setF.gsub!(/\n<space>\}/, "")
     else
-      fw.puts "#{$s}stcsr->size = 1;"
+# CPP, C containers: configure spacing
+      add_to_result_setF.gsub!(/\n<space>  iter = iter->#{@iterator};\n<space>\}/, "\n<space>    iter = iter->#{@iterator};\n<space>  }")
     end
-#
+# CPP, CPP_containers
+    add_to_result_setF.gsub!(/\n<space>  index\+\+;/, "")
+    add_to_result_setF.gsub!(/index/, "index++")
+    fw.puts "#{add_to_result_setF.gsub("<space>", "      ")}"
     fw.puts "      } else {"
     fw.puts "#{$s}printf(\"Constraint for BASE column on embedded data structure has not been placed first. Exiting now.\\n\");"
     fw.puts "#{$s}return SQLITE_MISUSE;"
@@ -1006,7 +1006,7 @@ class VirtualTable
     fw.puts "      if (first_constr == 1) {"
     space = "#{$s}"
     if @container_class.length > 0
-      add_to_result_setF.chomp!("\n<space>  index++;\n<space>  iter = iter->#{@iterator};\n<space>}")
+      add_to_result_setF.chomp!("\n<space>  iter = iter->#{@iterator};\n<space>}")
       add_to_result_setN.chomp!("\n<space>}")
       fw.puts "#{iterationF.gsub(/<space>/, "#{space}")}"
 #      space.concat("  ")
