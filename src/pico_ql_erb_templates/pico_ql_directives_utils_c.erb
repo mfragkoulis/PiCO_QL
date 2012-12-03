@@ -115,7 +115,7 @@ typedef struct cursor {
 
   sqlite3_vtab_cursor *cur;
 <%# deviated from C++ where object does not have ResultSet %>
-  ResultSet res;
+  ResultSet *res;
 
 } cursor;
 
@@ -153,15 +153,15 @@ VtblAll vtAll = {0, 0, 0};
 <%     @tables.each { |vt| %>
 <%      if vt.container_class.length > 0 %>
 typedef struct <%= vt.name %>ResultSetImpl {
+  ResultSet r;
   <%= vt.signature.chomp('*') %> **res;
-  ResultSet *r;
 } <%= vt.name %>ResultSetImpl;
 <%      end %>
 
 typedef struct <%= vt.name %>VtblImpl {
 
+  struct Vtbl impl;
   const char *name;
-  struct Vtbl *impl;
 
 <%      i = 0 %>
 <%      vt.columns.each { |col| %>
@@ -200,7 +200,8 @@ void deinit_temp_structs() {
   int i = 0;
   for (i = 0; i < (int)vtAll.size; i++) {
     vtAll.instances[i]->discharge_saved_results(vtAll.instances[i]);
-    vtAll.instances[i]->report_charge(NULL, 0, NULL, 0, vtAll.instances[i]);
+    if (vtAll.instances[i]->report_charge)
+      vtAll.instances[i]->report_charge(NULL, 0, NULL, 0, vtAll.instances[i]);
   }
 <%#     @tables.each { |vt| %>
 <%#      if vt.base_var.length == 0 %>

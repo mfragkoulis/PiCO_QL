@@ -42,7 +42,7 @@ int <%= @name %>_vt_advance_result_set_iter (sqlite3_vtab_cursor *cur,
     return SQLITE_ERROR;
   }
 <%    if @container_class.length > 0 %>
-  ResultSet *res = &cursors[j]->res;
+  ResultSet *res = cursors[j]->res;
   if ((int)res->size > 0) {
     if (res->resultSetIterState == -1) {
       res->actualSize = res->size;
@@ -87,7 +87,7 @@ void <%= @name %>_vt_deinit_result_set (sqlite3_vtab_cursor *cur, struct Vtbl *v
     printf("In <%= @name %>_vt_deinit_resultSet: Cursor %li not registered.\n", (long int)cur);
   } else {
 <%      if @container_class.length > 0 %>
-    ResultSet *res = &cursors[j]->res;
+    ResultSet *res = cursors[j]->res;
     sqlite3_free(((<%= @name %>ResultSetImpl *)res)->res);
 <%      end %>
     sqlite3_free(cursors[j]);
@@ -118,6 +118,7 @@ void <%= @name %>_report_charge (sqlite3_vtab_cursor *cur, int current, cursorCh
     while ((j < (int)chargedSize) && (charged[j]->cur != cur)) {j++;}
     if (j == (int)chargedSize) {
       ((<%= @name %>_vt *)vtbl)->chargedSize++;
+      chargedSize = ((<%= @name %>_vt *)vtbl)->chargedSize;
       cursorCharged *ch = sqlite3_malloc(sizeof(cursorCharged));
       ch->cur = cur;
       ch->flag = 0;

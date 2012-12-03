@@ -41,8 +41,8 @@ void set_VtblImpl() {
   <%= @tables[vt].name %>VT->name = (const char *)sqlite3_malloc(sizeof(char)*<%= @tables[vt].name.length + 1 %>);
   strcpy((char *)<%= @tables[vt].name %>VT->name, "<%= @tables[vt].name %>");
   vtAll.instanceNames[<%= vt %>] = <%= @tables[vt].name %>VT->name;
-  <%= @tables[vt].name %>VT->impl = &<%= @tables[vt].name %>_vtbl;
-  vtAll.instances[<%= vt %>] = <%= @tables[vt].name %>VT->impl;
+  <%= @tables[vt].name %>VT->impl = <%= @tables[vt].name %>_vtbl;
+  vtAll.instances[<%= vt %>] = &<%= @tables[vt].name %>VT->impl;
 <%      @tables[vt].columns.each { |col| %>
 <%       if col.related_to.length > 0 %>
 <%        if $argM == "MEM_MGT" && col.fk_method_ret == 1 %>

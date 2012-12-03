@@ -9,7 +9,7 @@ int <%= @name %>_vt_retrieve (sqlite3_vtab_cursor *cur, int nCol, sqlite3_contex
     printf("In <%= @name %>_vt_next_resultSet: Cursor %li not registered.\nExiting now.\n", (long int)cur);
     return SQLITE_ERROR;
   }
-  ResultSet *rs = &cursors[j]->res;
+  ResultSet *rs = cursors[j]->res;
 <%    end %>
   if (struct_is_empty_null(cur, con)) return SQLITE_OK; 
 <%    if /\*/.match(@pointer) == nil %>

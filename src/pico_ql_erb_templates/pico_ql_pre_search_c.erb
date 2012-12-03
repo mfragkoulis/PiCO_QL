@@ -18,19 +18,16 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
     c->cur = cur;
 <%      if @container_class.length > 0 %>
 <%#    c->res = {stcsr->max_size, stcsr->max_size, -1, -1}; FOR CARRAY ? %>
-    c->res.size = 0;
-    c->res.actualSize = 0;
-    c->res.current = -1;
-    c->res.resultSetIterState = -1;
     <%= @name %>ResultSetImpl *resImpl = (<%= @name %>ResultSetImpl *)sqlite3_malloc(sizeof(<%= @name %>ResultSetImpl));
-    resImpl->r = &c->res;
+    resImpl->r.size = 0;
+    resImpl->r.actualSize = 0;
+    resImpl->r.current = -1;
+    resImpl->r.resultSetIterState = -1;
+    c->res = &resImpl->r;
     resImpl->res = (<%= @signature.chomp('*') %> **)sqlite3_malloc(sizeof(<%= @signature.chomp('*') %> *));
 <%      else %>
 <%# ResultSet unused for object %>
-    c->res.size = -2;
-    c->res.actualSize = -2;
-    c->res.current = -2;
-    c->res.resultSetIterState = -2;
+    c->res = NULL;
 <%      end %>
     ((<%= @name %>_vt *)vtbl)->cursors = (cursor **)sqlite3_realloc(((<%= @name %>_vt *)vtbl)->cursors, sizeof(cursor *)*cursorsSize);
     ((<%= @name %>_vt *)vtbl)->cursors[cursorsSize-1] = c;
@@ -46,7 +43,7 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
 <%      if @container_class.length > 0 %>
   <%= sign_retype %> iter;
   int index = 0;
-  ResultSet *rs = &cursors[j]->res;
+  ResultSet *rs = cursors[j]->res;
 <%        if $argLB == "CPP" %>
   int i = 0;
   int found = 0;
