@@ -1,242 +1,166 @@
 Query 0:
- select nCurrency, rownum, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency;
+ select nCurrency, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency;
 
 Statement prepared.
-nCurrency rownum name price_mode price weight_mode weight 
+nCurrency name price_mode price weight_mode weight 
 
-3 0 Euro 1 Euro_price 0 euro_wgt 
-3 1 Pound 1 pnd_price 0 pound_wgt 
-3 2 Dollar 1 dlr_price 0 dlr_wgt 
+3 Euro 1 Euro_price 0 euro_wgt 
+3 Pound 1 pnd_price 0 pound_wgt 
+3 Dollar 1 dlr_price 0 dlr_wgt 
 
 Done
 
 Query 1:
- select rownum, name, price_mode, price, weight_mode, weight from Moneylist;
+ select name, price_mode, price, weight_mode, weight from Moneylist;
 
 Statement prepared.
-rownum name price_mode price weight_mode weight 
+name price_mode price weight_mode weight 
 
-0 Euro 1 Euro_price 0 euro_wgt 
-1 Pound 1 pnd_price 0 pound_wgt 
-2 Dollar 1 dlr_price 0 dlr_wgt 
+Euro 1 Euro_price 0 euro_wgt 
+Pound 1 pnd_price 0 pound_wgt 
+Dollar 1 dlr_price 0 dlr_wgt 
 
 Done
 
 Query 2:
- select nCurrency, rownum, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where rownum = 1;
+ select nCurrency, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where name like '%eu';
 
 Statement prepared.
-nCurrency rownum name price_mode price weight_mode weight 
+nCurrency name price_mode price weight_mode weight 
 
-3 1 Pound 1 pnd_price 0 pound_wgt 
 
 Done
 
 Query 3:
- select rownum, name, price_mode, price, weight_mode, weight from Moneylist where rownum = 1;
+ select name, price_mode, price, weight_mode, weight from Moneylist where name like '%eu';
 
 Statement prepared.
-rownum name price_mode price weight_mode weight 
+name price_mode price weight_mode weight 
 
-1 Pound 1 pnd_price 0 pound_wgt 
 
 Done
 
 Query 4:
- select nCurrency, rownum, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where rownum = 4;
+ select nCurrency, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where price > 10;
 
 Statement prepared.
-nCurrency rownum name price_mode price weight_mode weight 
+nCurrency name price_mode price weight_mode weight 
 
+3 Euro 1 Euro_price 0 euro_wgt 
+3 Pound 1 pnd_price 0 pound_wgt 
+3 Dollar 1 dlr_price 0 dlr_wgt 
 
 Done
 
 Query 5:
- select rownum, name, price_mode, price, weight_mode, weight from Moneylist where rownum = 4;
+ select name, price_mode, price, weight_mode, weight from Moneylist where price > 10;
 
 Statement prepared.
-rownum name price_mode price weight_mode weight 
+name price_mode price weight_mode weight 
 
+Euro 1 Euro_price 0 euro_wgt 
+Pound 1 pnd_price 0 pound_wgt 
+Dollar 1 dlr_price 0 dlr_wgt 
 
 Done
 
 Query 6:
- select nCurrency, rownum, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where name like '%eu';
+ select nCurrency, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where price like 'f%';
 
 Statement prepared.
-nCurrency rownum name price_mode price weight_mode weight 
+nCurrency name price_mode price weight_mode weight 
 
 
 Done
 
 Query 7:
- select rownum, name, price_mode, price, weight_mode, weight from Moneylist where name like '%eu';
+ select name, price_mode, price, weight_mode, weight from Moneylist where price like 'f%';
 
 Statement prepared.
-rownum name price_mode price weight_mode weight 
+name price_mode price weight_mode weight 
 
 
 Done
 
 Query 8:
- select nCurrency, rownum, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where price > 10;
+ select nCurrency, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where price like 'd%';
 
 Statement prepared.
-nCurrency rownum name price_mode price weight_mode weight 
+nCurrency name price_mode price weight_mode weight 
 
-3 0 Euro 1 Euro_price 0 euro_wgt 
-3 1 Pound 1 pnd_price 0 pound_wgt 
-3 2 Dollar 1 dlr_price 0 dlr_wgt 
+3 Dollar 1 dlr_price 0 dlr_wgt 
 
 Done
 
 Query 9:
- select rownum, name, price_mode, price, weight_mode, weight from Moneylist where price > 10;
+ select name, price_mode, price, weight_mode, weight from Moneylist where price like 'd%';
 
 Statement prepared.
-rownum name price_mode price weight_mode weight 
+name price_mode price weight_mode weight 
 
-0 Euro 1 Euro_price 0 euro_wgt 
-1 Pound 1 pnd_price 0 pound_wgt 
-2 Dollar 1 dlr_price 0 dlr_wgt 
+Dollar 1 dlr_price 0 dlr_wgt 
 
 Done
 
 Query 10:
- select nCurrency, rownum, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where price > 10 and rownum = 0;
+ select nCurrency, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency join GoldEquivalent on GoldEquivalent.base = Money.weight where ounce > 10;
 
 Statement prepared.
-nCurrency rownum name price_mode price weight_mode weight 
+nCurrency name price_mode price weight_mode weight 
 
-3 0 Euro 1 Euro_price 0 euro_wgt 
 
-Done
+Library used incorrectly
 
 Query 11:
- select rownum, name, price_mode, price, weight_mode, weight from Moneylist where price > 10 and rownum = 0;
+ select name, price_mode, price, weight_mode, weight from Moneylist join GoldEquivalent on GoldEquivalent.base = Moneylist.weight where ounce > 10;
 
 Statement prepared.
-rownum name price_mode price weight_mode weight 
+name price_mode price weight_mode weight 
 
-0 Euro 1 Euro_price 0 euro_wgt 
 
-Done
+Library used incorrectly
 
 Query 12:
- select nCurrency, rownum, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where price > 10 and rownum = 5;
+ select nCurrency, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where weight like 'a%';
 
 Statement prepared.
-nCurrency rownum name price_mode price weight_mode weight 
+nCurrency name price_mode price weight_mode weight 
 
 
 Done
 
 Query 13:
- select rownum, name, price_mode, price, weight_mode, weight from Moneylist where price > 10 and rownum = 5;
+ select name, price_mode, price, weight_mode, weight from Moneylist where weight like 'a%';
 
 Statement prepared.
-rownum name price_mode price weight_mode weight 
+name price_mode price weight_mode weight 
 
 
 Done
 
 Query 14:
- select nCurrency, rownum, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where price like 'f%';
+ select nCurrency, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where weight like '%o%';
 
 Statement prepared.
-nCurrency rownum name price_mode price weight_mode weight 
+nCurrency name price_mode price weight_mode weight 
 
+3 Euro 1 Euro_price 0 euro_wgt 
+3 Pound 1 pnd_price 0 pound_wgt 
 
 Done
 
 Query 15:
- select rownum, name, price_mode, price, weight_mode, weight from Moneylist where price like 'f%';
+ select name, price_mode, price, weight_mode, weight from Moneylist where weight like '%o%';
 
 Statement prepared.
-rownum name price_mode price weight_mode weight 
+name price_mode price weight_mode weight 
 
+Euro 1 Euro_price 0 euro_wgt 
+Pound 1 pnd_price 0 pound_wgt 
 
 Done
 
 Query 16:
- select nCurrency, rownum, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where price like 'd%';
-
-Statement prepared.
-nCurrency rownum name price_mode price weight_mode weight 
-
-3 2 Dollar 1 dlr_price 0 dlr_wgt 
-
-Done
-
-Query 17:
- select rownum, name, price_mode, price, weight_mode, weight from Moneylist where price like 'd%';
-
-Statement prepared.
-rownum name price_mode price weight_mode weight 
-
-2 Dollar 1 dlr_price 0 dlr_wgt 
-
-Done
-
-Query 18:
- select nCurrency, rownum, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency join GoldEquivalent on GoldEquivalent.base = Money.weight where ounce > 10;
-
-Statement prepared.
-nCurrency rownum name price_mode price weight_mode weight 
-
-
-Library used incorrectly
-
-Query 19:
- select rownum, name, price_mode, price, weight_mode, weight from Moneylist join GoldEquivalent on GoldEquivalent.base = Moneylist.weight where ounce > 10;
-
-Statement prepared.
-rownum name price_mode price weight_mode weight 
-
-
-Library used incorrectly
-
-Query 20:
- select nCurrency, rownum, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where weight like 'a%';
-
-Statement prepared.
-nCurrency rownum name price_mode price weight_mode weight 
-
-
-Done
-
-Query 21:
- select rownum, name, price_mode, price, weight_mode, weight from Moneylist where weight like 'a%';
-
-Statement prepared.
-rownum name price_mode price weight_mode weight 
-
-
-Done
-
-Query 22:
- select nCurrency, rownum, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where weight like '%o%';
-
-Statement prepared.
-nCurrency rownum name price_mode price weight_mode weight 
-
-3 0 Euro 1 Euro_price 0 euro_wgt 
-3 1 Pound 1 pnd_price 0 pound_wgt 
-
-Done
-
-Query 23:
- select rownum, name, price_mode, price, weight_mode, weight from Moneylist where weight like '%o%';
-
-Statement prepared.
-rownum name price_mode price weight_mode weight 
-
-0 Euro 1 Euro_price 0 euro_wgt 
-1 Pound 1 pnd_price 0 pound_wgt 
-
-Done
-
-Query 24:
  select * from Price;
 
 Statement prepared.
@@ -246,7 +170,7 @@ union_mode price
 
 Done
 
-Query 25:
+Query 17:
  select * from Price where price > 10;
 
 Statement prepared.
