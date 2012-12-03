@@ -460,15 +460,17 @@ class VirtualTable
       else
         string_construct_cast = "(const char *)"
       end
-      fw.puts "#ifdef PICO_QL_HANDLE_TEXT_ARRAY"
-      fw.puts "#{space}    textVector.push_back(#{string_construct_cast}#{access_path});"
-      print_line_directive(fw, line)
+      if $argLB == "CPP"
+        fw.puts "#ifdef PICO_QL_HANDLE_TEXT_ARRAY"
+        fw.puts "#{space}    textVector.push_back(#{string_construct_cast}#{access_path});"
+        print_line_directive(fw, line)
       fw.puts "#{space}    sqlite3_result_text(con, (const char *)textVector.back().c_str()#{sqlite3_parameters});"
       fw.puts "#else"
+      end
     end
     fw.puts "#{space}    sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{access_path}#{column_cast_back}#{sqlite3_parameters});"
     print_line_directive(fw, line)
-    if sqlite3_type == "text"
+    if sqlite3_type == "text" && $argLB == "CPP"
       fw.puts "#endif"
     end
     fw.puts "#{space}    break;"
@@ -498,37 +500,39 @@ class VirtualTable
       end
     end
     fw.puts "#{space}    {"
-    fw.puts "#ifdef PICO_QL_HANDLE_POLYMORPHISM"
-    def_nop = "*"
-    if fk_col_type.match(/(.+)\*/)
-      def_nop = ""
+    if $argLB == "CPP"
+      fw.puts "#ifdef PICO_QL_HANDLE_POLYMORPHISM"
+      def_nop = "*"
+      if fk_col_type.match(/(.+)\*/)
+        def_nop = ""
+      end
+      fw.puts "#{space}      #{fk_col_type}#{def_nop} cast = dynamic_cast<#{fk_col_type}#{def_nop}>(#{p_type}#{iden}#{access_path});"
+      if $argM == "MEM_MGT" && fk_method_ret == 1
+        fw.puts "#{space}      if (cast != NULL) {"
+        fw.puts "#{space}        saved_results_#{saved_results_index}.push_back(*cast);"
+        print_line_directive(fw, line)
+        fw.puts "#ifdef ENVIRONMENT64"
+        fw.puts "#{space}        sqlite3_result_#{sqlite3_type}(con, #{column_cast}&(saved_results_#{saved_results_index}.back()));"
+        fw.puts "#else"
+        fw.puts "#{space}        sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}&(saved_results_#{saved_results_index}.back()));"
+        fw.puts "#endif"
+        fw.puts "#{space}      } else {"
+        fw.puts "#ifdef ENVIRONMENT64"
+        fw.puts "#{space}        sqlite3_result_#{sqlite3_type}(con, #{column_cast}(0));"
+        fw.puts "#else"
+        fw.puts "#{space}        sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}(0));"
+        fw.puts "#endif"
+      else
+        fw.puts "#ifdef ENVIRONMENT64"
+        fw.puts "#{space}      sqlite3_result_#{sqlite3_type}(con, #{column_cast}cast);"
+        print_line_directive(fw, line)
+        fw.puts "#else"
+        fw.puts "#{space}      sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}cast);"
+        print_line_directive(fw, line)
+        fw.puts "#endif"
+      end
+      fw.puts "#else"
     end
-    fw.puts "#{space}      #{fk_col_type}#{def_nop} cast = dynamic_cast<#{fk_col_type}#{def_nop}>(#{p_type}#{iden}#{access_path});"
-    if $argM == "MEM_MGT" && fk_method_ret == 1
-      fw.puts "#{space}      if (cast != NULL) {"
-      fw.puts "#{space}        saved_results_#{saved_results_index}.push_back(*cast);"
-      print_line_directive(fw, line)
-      fw.puts "#ifdef ENVIRONMENT64"
-      fw.puts "#{space}        sqlite3_result_#{sqlite3_type}(con, #{column_cast}&(saved_results_#{saved_results_index}.back()));"
-      fw.puts "#else"
-      fw.puts "#{space}        sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}&(saved_results_#{saved_results_index}.back()));"
-      fw.puts "#endif"
-      fw.puts "#{space}      } else {"
-      fw.puts "#ifdef ENVIRONMENT64"
-      fw.puts "#{space}        sqlite3_result_#{sqlite3_type}(con, #{column_cast}(0));"
-      fw.puts "#else"
-      fw.puts "#{space}        sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}(0));"
-      fw.puts "#endif"
-    else
-      fw.puts "#ifdef ENVIRONMENT64"
-      fw.puts "#{space}      sqlite3_result_#{sqlite3_type}(con, #{column_cast}cast);"
-      print_line_directive(fw, line)
-      fw.puts "#else"
-      fw.puts "#{space}      sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}cast);"
-      print_line_directive(fw, line)
-      fw.puts "#endif"
-    end
-    fw.puts "#else"
     if $argM == "MEM_MGT" && fk_method_ret == 1
       fw.puts "#{space}      saved_results_#{saved_results_index}.push_back(#{record_type}#{iden}#{access_path});"
       print_line_directive(fw, line)
@@ -546,23 +550,8 @@ class VirtualTable
       print_line_directive(fw, line)
       fw.puts "#endif"
     end
-    fw.puts "#endif"
-    if $argLB == "C"
-      fw.puts "#{space}      int j = 0;"
-      fw.puts "#{space}      while ((j < (int)vtAll.size) && (strcmp(vtAll.instanceNames[j], \"#{fk_col_name}\")) {j++;}"
-      fw.puts "#{space}      if (j == (int)vtAll.size) {"
-      fw.puts "#{space}        printf(\"In search: VT %s not registered.\\nExiting now.\\n\", picoQL->zName);"
-      fw.puts "#{space}        return SQLITE_ERROR;"
-      fw.puts "#{space}      }"
-      fw.puts "#{space}      struct Vtbl *chargeVT#{col} = vtAll.instances[j];"
-      if @base_var.length == 0
-        fw.puts "#{space}      chargeVT#{col}->report_charge(cur, 1, &charged, chargeVT);"
-      else
-        #      fw.puts "#{space}      map<sqlite3_vtab_cursor *, bool> *map#{@name}#{col};"
-        #      fw.puts "#{space}      map#{@name}#{col} = NULL;"
-        fw.puts "#{space}      chargeVT#{col}->report_charge(cur, 1, NULL, chargeVT);"
-      end
-    else
+    if $argLB == "CPP"
+      fw.puts "#endif"
       fw.puts "#{space}      VtblImpl *chargeVT#{col} = selector_vt[\"#{fk_col_name}\"];"
       if @base_var.length == 0
         fw.puts "#{space}      (*chargeVT#{col})(cur, 1, &charged);"
@@ -570,6 +559,21 @@ class VirtualTable
         fw.puts "#{space}      map<sqlite3_vtab_cursor *, bool> *map#{@name}#{col};"
         fw.puts "#{space}      map#{@name}#{col} = NULL;"
         fw.puts "#{space}      (*chargeVT#{col})(cur, 1, map#{@name}#{col});"
+      end
+    else
+      fw.puts "#{space}      int j = 0;"
+      fw.puts "#{space}      while ((j < (int)vtAll.size) && (strcmp(vtAll.instanceNames[j], \"#{fk_col_name}\"))) {j++;}"
+      fw.puts "#{space}      if (j == (int)vtAll.size) {"
+      fw.puts "#{space}        printf(\"In search: VT %s not registered.\\nExiting now.\\n\", ((picoQLTable *)cur->pVtab)->zName);"
+      fw.puts "#{space}        return SQLITE_ERROR;"
+      fw.puts "#{space}      }"
+      fw.puts "#{space}      struct Vtbl *chargeVT#{col} = vtAll.instances[j];"
+      if @base_var.length == 0
+        fw.puts "#{space}      chargeVT#{col}->report_charge(cur, 1, ((#{@name}_vt *)vtbl)->charged, ((#{@name}_vt *)vtbl)->chargedSize, chargeVT#{col});"
+      else
+        #      fw.puts "#{space}      map<sqlite3_vtab_cursor *, bool> *map#{@name}#{col};"
+        #      fw.puts "#{space}      map#{@name}#{col} = NULL;"
+        fw.puts "#{space}      chargeVT#{col}->report_charge(cur, 1, NULL, 0, chargeVT#{col});"
       end
     end
     fw.puts "#{space}      break;"
@@ -586,7 +590,7 @@ class VirtualTable
         if $argLB == "CPP"
           access_path.length == 0 ? iden =  "*(rs->resIter)" : iden = "(*(rs->resIter))."
         else
-          access_path.length == 0 ? iden =  "((resultSetImpl *)rs)->res[rs->current]" : iden = "((resultSetImpl *)rs)->res[rs->current]."
+          access_path.length == 0 ? iden =  "((#{@name}ResultSetImpl *)rs)->res[rs->current]" : iden = "((#{@name}ResultSetImpl *)rs)->res[rs->current]."
         end
       else
         access_path.length == 0 ? iden =  "**(rs->resIter)" : iden = "(**(rs->resIter))."
@@ -709,7 +713,7 @@ class VirtualTable
           @pointer.match(/\*/) ? retype = "" : retype = "*"
           add_to_result_setF = "<space>    rs->res.push_back(iter);\n<space>    rs->resBts.push_back(1);\n<space>  } else {\n<space>    rs->resBts.push_back(0);\n<space>  }\n<space>  iter = iter->#{@iterator};\n<space>}"
         else
-          add_to_result_setF = "<space>    rs->size++;<space>    rs->actualSize++;\n<space>    ((#{@name}ResultSetImpl *)rs)->res = (#{@signature}#{retype}*)sqlite3_realloc(((#{@name}ResultSetImpl *)rs)->res, sizeof(#{@signature}#{retype})*rs->size);\n<space>    ((#{@name}ResultSetImpl *)rs)->res[rs->size - 1] = iter;\n<space>  iter = iter->#{@iterator};\n<space>}"
+          add_to_result_setF = "<space>    rs->size++;\n<space>    rs->actualSize++;\n<space>    ((#{@name}ResultSetImpl *)rs)->res = (#{@signature}#{retype}*)sqlite3_realloc(((#{@name}ResultSetImpl *)rs)->res, sizeof(#{@signature}#{retype})*rs->size);\n<space>    ((#{@name}ResultSetImpl *)rs)->res[rs->size - 1] = iter;\n<space>  }\n<space>  iter = iter->#{@iterator};\n<space>}"
         end
       else
         add_to_result_setF = "<space>    rs->res.push_back(iter);\n<space>    rs->resBts.set(index, 1);\n<space>  }\n<space>  index++;\n<space>}"
@@ -717,7 +721,7 @@ class VirtualTable
       if $argLB == "CPP"
         add_to_result_setN = "<space>    resIterC = rs->res.erase(resIterC);\n<space>    rs->resBts.reset(index);\n<space>  } else\n<space>    resIterC++;\n<space>  index = rs->resBts.find_next(index);\n<space>}"
       else
-        add_to_result_setN = "<space>    rs->actualSize--;\n<space>    ((#{@name}ResultSetImpl *)rs)->res[index] = iter;\n<space>  index++;\n<space>  iter = iter->#{@iterator};\n<space>}"
+        add_to_result_setN = "<space>    rs->actualSize--;\n<space>    ((#{@name}ResultSetImpl *)rs)->res[index] = NULL;\n<space>  }\n<space>  index++;\n<space>  while (((#{@name}ResultSetImpl *)rs)->res[index] == NULL) {index++;}\n<space>}"
       end
     else
       add_to_result_setF = "<space>  stcsr->size = 1;\n<space>}"
@@ -737,7 +741,7 @@ class VirtualTable
         if $argLB == "CPP"
         access_path.length == 0 ? idenN = "(*resIterC)" : idenN = "(*resIterC)."
         else
-          access_path.length == 0 ? idenN = "((resultSetImpl *)rs)->res[index]" : idenN = "((resultSetImpl *)rs)->res[index]."
+          access_path.length == 0 ? idenN = "((#{@name}ResultSetImpl *)rs)->res[index]" : idenN = "((#{@name}ResultSetImpl *)rs)->res[index]."
         end
       else
         access_path.length == 0 ? idenF = "(*iter)" : idenF = "(*iter)."
@@ -837,7 +841,7 @@ class VirtualTable
       if $argLB == "CPP"
         iterationN = "<space>index = rs->resBts.find_first();\n<space>resIterC = rs->res.begin();\n<space>while (resIterC != rs->res.end()) {"
       else
-        iterationN = "<space>index = 0;\n<space>while (index != rs->size) {"
+        iterationN = "<space>index = 0;\n<space>while (((#{@name}ResultSetImpl *)rs)->res[index] == NULL) {index++;}\n<space>while (index < (int)rs->size) {"
       end
       return iterationF, iterationN
     end
@@ -852,7 +856,11 @@ class VirtualTable
       fw.puts "      iter = any_dstr;"
       fw.puts "      while (iter != NULL) {"
       fw.puts "#{$s}if (rowNum == i) {"
-      fw.puts "#{$s}  found = true;"
+      if $argLB == "CPP"
+        fw.puts "#{$s}  found = true;"
+      else
+        fw.puts "#{$s}  found = 1;"
+      end
       fw.puts "#{$s}  break;"
       fw.puts "#{$s}}"
       fw.puts "#{$s}iter = iter->#{@iterator};"
@@ -905,7 +913,11 @@ class VirtualTable
       add_to_result_setF.gsub!(/\n<space>\}/, "")
     else
 # CPP, C containers: configure spacing
-      add_to_result_setF.gsub!(/\n<space>  iter = iter->#{@iterator};\n<space>\}/, "\n<space>    iter = iter->#{@iterator};\n<space>  }")
+      add_to_result_setF.gsub!(/\n<space>  \}\n<space>  iter = iter->#{@iterator};\n<space>\}/, "\n<space>    }\n<space>    iter = iter->#{@iterator};\n<space>  }")
+# C, C containers : remove extra '}'
+      if $argLB == "C"
+        add_to_result_setF.gsub!(/\n<space>    \}\n<space>    iter = iter->#{@iterator};\n<space>  \}/, "\n<space>    iter = iter->#{@iterator};\n<space>  }")
+      end
     end
 # CPP, CPP_containers
     add_to_result_setF.gsub!(/\n<space>  index\+\+;/, "")

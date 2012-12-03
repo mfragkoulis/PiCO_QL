@@ -5,22 +5,32 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
   picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
   cursor **cursors = ((<%= @name %>_vt *)vtbl)->cursors;
   size_t cursorsSize = ((<%= @name %>_vt *)vtbl)->cursorsSize;
+<%      if @base_var.length == 0 %>
   size_t chargedSize = ((<%= @name %>_vt *)vtbl)->chargedSize;
+  int recursive = ((<%= @name %>_vt *)vtbl)->recursive;
+<%      end %>
   int j = 0;
   while ((j < (int)cursorsSize) && (cursors[j]->cur != cur)) {j++;}
   if (j == (int)cursorsSize) {
-    cursorsSize++;
+    ((<%= @name %>_vt *)vtbl)->cursorsSize++;
+    cursorsSize = ((<%= @name %>_vt *)vtbl)->cursorsSize;
     cursor *c = sqlite3_malloc(sizeof(cursor));
     c->cur = cur;
 <%      if @container_class.length > 0 %>
-<%#    c->res = {0, 0, -1, -1}; FOR CARRAY ? %>
-    c->res = {0, 0, -1, -1};
+<%#    c->res = {stcsr->max_size, stcsr->max_size, -1, -1}; FOR CARRAY ? %>
+    c->res.size = 0;
+    c->res.actualSize = 0;
+    c->res.current = -1;
+    c->res.resultSetIterState = -1;
     <%= @name %>ResultSetImpl *resImpl = (<%= @name %>ResultSetImpl *)sqlite3_malloc(sizeof(<%= @name %>ResultSetImpl));
     resImpl->r = &c->res;
-    resImpl->res = (<%= @signature.chomp('*') %> **)sqlite3_malloc(sizeof((<%= @signature.chomp('*') %> *));
+    resImpl->res = (<%= @signature.chomp('*') %> **)sqlite3_malloc(sizeof(<%= @signature.chomp('*') %> *));
 <%      else %>
 <%# ResultSet unused for object %>
-    c->res = {-2, -2, -2, -2};
+    c->res.size = -2;
+    c->res.actualSize = -2;
+    c->res.current = -2;
+    c->res.resultSetIterState = -2;
 <%      end %>
     ((<%= @name %>_vt *)vtbl)->cursors = (cursor **)sqlite3_realloc(((<%= @name %>_vt *)vtbl)->cursors, sizeof(cursor *)*cursorsSize);
     ((<%= @name %>_vt *)vtbl)->cursors[cursorsSize-1] = c;
@@ -28,12 +38,18 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
     printf("Table %s, Cursor: %li inserted, max size %i\n", picoQL->zName, (long int)cur, stcsr->max_size);
 #endif
   }
+<%      if /\*/.match(@pointer) == nil %>
+<%        sign_retype = "#{@signature}*" %>
+<%      else %>
+<%        sign_retype = @signature %>
+<%      end %>
 <%      if @container_class.length > 0 %>
+  <%= sign_retype %> iter;
   int index = 0;
   ResultSet *rs = &cursors[j]->res;
-<%        if @container_class.length > 0 %>
+<%        if $argLB == "CPP" %>
   int i = 0;
-  bool found = false;
+  int found = 0;
 <%        end %>
 <%      end %>
   if (struct_empty_null(cur, val, picoQL->embedded, nCol)) {
@@ -43,14 +59,9 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
     rs->size = 0;
     rs->actualSize = 0;
 <%        @pointer.match(/\*/) ? retype = "" : retype = "*" %>
-    <%= @signature %><%= retype %> dummy;
+    <%= @signature %><%= retype %> dummy = NULL;
     rs->size++;
     rs->actualSize++;
-<%      if /\*/.match(@pointer) == nil %>
-<%        sign_retype = "#{@signature}*" %>
-<%      else %>
-<%        sign_retype = @signature %>
-<%      end %>
     ((<%= @name %>ResultSetImpl *)rs)->res = (<%= sign_retype %>*)sqlite3_realloc(((<%= @name %>ResultSetImpl *)rs)->res, sizeof(<%= sign_retype %>)*rs->size);
     ((<%= @name %>ResultSetImpl *)rs)->res[rs->size - 1] = dummy;
     rs->current = 0;
@@ -100,7 +111,7 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
 <%	  else %>
 // BASE is first constraint by default, so no need to delete resultset here.
 <%            @pointer.match(/\*/) ? retype = "" : retype = "*" %>
-            <%= @signature %><%= retype %> dummy;
+            <%= @signature %><%= retype %> dummy = NULL;
             rs->size++;
             rs->actualSize++;
             ((<%= @name %>ResultSetImpl *)rs)->res = (<%= sign_retype %>*)sqlite3_realloc(((<%= @name %>ResultSetImpl *)rs)->res, sizeof(<%= sign_retype %>)*rs->size);
@@ -114,7 +125,7 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
           if ((stcsr->max_size = (int)<%= @name %>_vt_get_datastructure_size(cur, cur->pVtab)) == 0) {
             stcsr->isInstanceEmpty = 1;
 <%          @pointer.match(/\*/) ? retype = "" : retype = "*" %>
-            <%= @signature %><%= retype %> dummy;
+            <%= @signature %><%= retype %> dummy = NULL;
             rs->size++;
             rs->actualSize++;
             ((<%= @name %>ResultSetImpl *)rs)->res = (<%= sign_retype %>*)sqlite3_realloc(((<%= @name %>ResultSetImpl *)rs)->res, sizeof(<%= sign_retype %>)*rs->size);
@@ -122,7 +133,7 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
             return SQLITE_OK;
           } else {
 <%#            rs->size = stcsr->max_size; %>
-<%#            ((<%= @name %>ResultSetImpl *)rs)->res = (<%= sign_retype %>*)sqlite3_realloc(((<%= @name %>ResultSetImpl *)rs)->res, sizeof(<%= sign_retype %>)*rs->size); FOR CARRAY? %>
+<%#            ((<%= @name ResultSetImpl *)rs)->res = (<%= sign_retype *)sqlite3_realloc(((<%= @name ResultSetImpl *)rs)->res, sizeof(<%= sign_retype )*rs->size); FOR CARRAY? %>
 #ifdef PICO_QL_DEBUG
             printf("VT %s instance changed.\n", picoQL->zName);
 <%#            printf("VT %s reallocated. Now max_size: %i\n", picoQL->zName, stcsr->max_size); %>

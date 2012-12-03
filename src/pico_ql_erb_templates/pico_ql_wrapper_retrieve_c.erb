@@ -2,7 +2,7 @@
 int retrieve(sqlite3_vtab_cursor *cur, int nCol, sqlite3_context *con) {
   picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
   int j = 0;
-  while ((j < (int)vtAll.size) && (strcmp(vtAll.instanceNames[j], picoQL->zName)) {j++;}
+  while ((j < (int)vtAll.size) && (strcmp(vtAll.instanceNames[j], picoQL->zName))) {j++;}
   if (j == (int)vtAll.size) {
     printf("In search: VT %s not registered.\nExiting now.\n", picoQL->zName);
     return SQLITE_ERROR;
@@ -11,50 +11,8 @@ int retrieve(sqlite3_vtab_cursor *cur, int nCol, sqlite3_context *con) {
   return retrieveVT->retrieve(cur, nCol, con, retrieveVT);
 }
 
-  void report_charge (sqlite3_vtab_cursor *cur, int current, cursorCharged **oCharged, size_t oChargedSize, struct Vtbl *vtbl) {
-    cursor **cursors = ((<%= @name %>_vt *)vtbl)->cursors;
-    size_t cursorsSize = ((<%= @name %>_vt *)vtbl)->cursorsSize;
-    cursorCharged **charged = ((<%= @name %>_vt *)vtbl)->charged;
-    size_t chargedSize = ((<%= @name %>_vt *)vtbl)->chargedSize;
-    if (current) {
-      int j = 0, i = 0;
-      while ((j < (int)chargedSize) && (charged[j]->cur != cur)) {j++;}
-      if (j == (int)chargedSize) {
-        chargedSize++;
-        cursorCharged *ch = sqlite3_malloc(sizeof(cursorCharged));
-        ch->cur = cur;
-	ch->flag = 0;
-        ((<%= @name %>_vt *)vtbl)->charged = (cursorCharged **)sqlite3_realloc(((<%= @name %>_vt *)vtbl)->charged, sizeof(cursorCharged *)*chargedSize);
-        ((<%= @name %>_vt *)vtbl)->charged[chargedSize-1] = ch;
-#ifdef PICO_QL_DEBUG
-        printf("Table %s, chargedCursor: %li inserted, max size %i\n", picoQL->zName, (long int)cur, stcsr->max_size);
-#endif
-        if (oCharged != NULL) {
-          j = 0;
-          while (j < (int)oChargedSize) {
-            for (int i = 0; i < (int)cursorsSize; i++) { 
-              if (cursors[i]->cur == oCharged[j]->cur) {
-                if (!oCharged[j]->flag) {
-                  recursive += 1;
-                  oCharged[j]->flag = 1;
-                }
-              }
-            }
-            j++;
-          }
-        }
-      }
-    } else {
-      for (int i = 0; i < (int)chargedSize; i++)
-        sqlite3_free(charged[i]);
-      chargedSize = 0;
-      recursive = 0;
-    }
-  }
-
-
 <%     @tables.each { |vt| %>
-Vtbl <%= vt.name %>_vtbl = {
+struct Vtbl <%= vt.name %>_vtbl = {
 
   <%= vt.name %>_vt_search,
   <%= vt.name %>_vt_retrieve,
@@ -62,43 +20,43 @@ Vtbl <%= vt.name %>_vtbl = {
   <%= vt.name %>_vt_init_result_set,
   <%= vt.name %>_vt_advance_result_set_iter,
   <%= vt.name %>_vt_deinit_result_set,
-<%      if vt.base_var.length > 0 %>
-  report_charge,
-  <%= vt.name %>_discharge_saved_results
+<%      if vt.base_var.length == 0 %>
+  <%= vt.name %>_report_charge,
 <%      else %>
   0,
-  0
 <%      end %>
-}
+  <%= vt.name %>_vt_discharge_saved_results
+
+};
  
 <%     } %>
 
 
 void set_VtblImpl() {
-  vtAll.instances = (struct Vtbl **)sqlite3_malloc(sizeof(Vtbl *)*<%= @tables.length %>);
+  vtAll.instances = (struct Vtbl **)sqlite3_malloc(sizeof(struct Vtbl *)*<%= @tables.length %>);
   vtAll.instanceNames = (const char **)sqlite3_malloc(sizeof(const char *)*<%= @tables.length %>);
   vtAll.size = (size_t)<%= @tables.length %>;
 <%     @tables.each_index { |vt| %>
   <%= @tables[vt].name %>_vt *<%= @tables[vt].name %>VT = (<%= @tables[vt].name %>_vt *)sqlite3_malloc(sizeof(<%= @tables[vt].name %>_vt));
-  <%= @tables[vt].name %>VT->name = (const char *)sqlite3_malloc(sizeof(char)*<%= @tables[vt].name.length %>;
-  strcpy((char *)<%= @tables[vt].name %>VT->name, "<%= vt.name %>");
+  <%= @tables[vt].name %>VT->name = (const char *)sqlite3_malloc(sizeof(char)*<%= @tables[vt].name.length + 1 %>);
+  strcpy((char *)<%= @tables[vt].name %>VT->name, "<%= @tables[vt].name %>");
   vtAll.instanceNames[<%= vt %>] = <%= @tables[vt].name %>VT->name;
   <%= @tables[vt].name %>VT->impl = &<%= @tables[vt].name %>_vtbl;
   vtAll.instances[<%= vt %>] = <%= @tables[vt].name %>VT->impl;
-<%      vt.columns.each { |col| %>
+<%      @tables[vt].columns.each { |col| %>
 <%       if col.related_to.length > 0 %>
 <%        if $argM == "MEM_MGT" && col.fk_method_ret == 1 %>
-  <%= vt.name %>VT->saved_results_<%= saved_results_index %> = {0, 0};
+  <%= @tables[vt].name %>VT->saved_results_<%= saved_results_index %> = {0, 0};
 <%        end %>
 <%       end %>
 <%      } %>
-  <%= vt.name %>VT->cursors = (cursor **)sqlite3_malloc(sizeof(cursor *));
+  <%= @tables[vt].name %>VT->cursors = (cursor **)sqlite3_malloc(sizeof(cursor *));
 <%# Will be balanced in first insert (pre_search_c.erb). First realloc will have no effect. %>
-  <%= vt.name %>VT->cursorsSize = 0;
-<%      if vt.base_var.length == 0 %>
-  <%= vt.name %>VT->charged = (cursorCharged **)sqlite3_malloc(sizeof(cursorCharged *));
-  <%= vt.name %>VT->chargedSize = 0;
-  <%= vt.name %>VT->recursive = 0;
+  <%= @tables[vt].name %>VT->cursorsSize = 0;
+<%      if @tables[vt].base_var.length == 0 %>
+  <%= @tables[vt].name %>VT->charged = (cursorCharged **)sqlite3_malloc(sizeof(cursorCharged *));
+  <%= @tables[vt].name %>VT->chargedSize = 0;
+  <%= @tables[vt].name %>VT->recursive = 0;
 <%      end %>
 
 <%     } %>
