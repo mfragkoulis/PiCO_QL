@@ -89,6 +89,7 @@ void <%= @name %>_vt_deinit_result_set (sqlite3_vtab_cursor *cur, struct Vtbl *v
 <%      if @container_class.length > 0 %>
     ResultSet *res = cursors[j]->res;
     sqlite3_free(((<%= @name %>ResultSetImpl *)res)->res);
+    sqlite3_free((<%= @name %>ResultSetImpl *)res);
 <%      end %>
     sqlite3_free(cursors[j]);
     ((<%= @name %>_vt *)vtbl)->cursorsSize--;
