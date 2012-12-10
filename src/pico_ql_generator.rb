@@ -855,7 +855,8 @@ class VirtualTable
           iterationF = "<space>iter = any_dstr;\n<space>rs->resBts.clear();\n<space>while (iter != NULL) {"
         else
           if @container_class == "generic_clist"
-            iterationF = "<space>#{display_traverse(\"iter\", \"any_dstr\", \"->\")} {"
+            loop = display_traverse("iter", "any_dstr", "->")
+            iterationF = "<space>#{loop} {"
           else
             iterationF = "<space>iter = any_dstr;\n<space>while (iter != NULL) {"
           end
@@ -1602,8 +1603,9 @@ class Lock
   def initialize
     @lock_function = ""
     @unlock_function = ""
+    @active = 0
   end
-  attr_accessor(:lock_function, :unlock_function)
+  attr_accessor(:lock_function, :unlock_function, :active)
 
   def match_lock(lock_description)
     lock_ptn = /use c lock (.+) unlock (.+)/im
@@ -1612,6 +1614,7 @@ class Lock
       matchdata = lock_ptn.match(lock_description)
       @lock_function = matchdata[1]
       @unclock_function = matchdata[2]
+      @active = 1
     end
   end
   
@@ -1780,7 +1783,7 @@ class InputDescription
     end
     $struct_views = Array.new
     $union_views = Array.new
-    $locks = Array.new
+    $lock = Lock.new
     $table_index = Hash.new
     w = 0
     @description.each { |stmt|
@@ -1799,7 +1802,7 @@ class InputDescription
       when /^create union view/im
         $union_views.push(UnionView.new).last.match_union_view(stmt)
       when /^use c lock/im
-        $locks.push(Lock.new).last.match_lock(stmt)
+        $lock.match_lock(stmt)
       end
       w += 1
     }
