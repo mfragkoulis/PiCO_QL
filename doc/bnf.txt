@@ -4,7 +4,9 @@
 	    	'USING STRUCT VIEW'  <struct_view_name> 
 		['WITH REGISTERED C NAME' <base_variable>] 
 		'WITH REGISTERED C TYPE' <struct_type>
-		['USING C ITERATOR NAME' <iterator_name>]';'
+		['USING C ITERATOR NAME' <iterator_name>]
+		['USING C TRAVERSE FUNCTION' 
+			<traverse_function>]';'
 
 <db_name> ::= 'identifier'
 
@@ -18,6 +20,8 @@
 
 <iterator_name> ::= 'identifier'
 
+<traverse_function> ::= 'identifier'
+
 <container> ::= <container_class> '<' <type>
 <--if associative container-->
 	    [',' <type>] '>' ['*']
@@ -27,9 +31,9 @@
 <stl_class> ::= 'list' | 'vector' | 'deque' | 'set' | 
 		  'multiset' | 'map' | 'multimap'
 
-<other_container_class> ::= 'SGI_forward_container_concept_compatible' | <C_linked_list>
+<other_container_class> ::= 'SGI_forward_container_concept_compatible' | <C_container_types>
 
-<C_linked_list> ::= 'clist'
+<C_container_types> ::= 'clist' | 'generic_clist'
 
 <type> ::= <struct_type> | <primitive_data_type> ['*']
 
@@ -83,3 +87,13 @@ previously by referencing the struct view's name
 <--STANDARD RELATIONAL VIEW DEFINITION-->
 
 <rel_view_def> ::= 'as_per_ansi_92_sql_standard'
+
+<--LOCK DEFINITION-->
+
+<lock_def> ::= 'USE C LOCK' <lock_function> 'UNLOCK'
+	       	      	    <unlock_function>';'
+
+<lock_function> ::= 'identifier'
+
+<unlock_function> ::= 'identifier'
+

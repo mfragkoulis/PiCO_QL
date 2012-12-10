@@ -25,7 +25,14 @@ size_t <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, sqlite3_vtab *vtab
 
 
 void <%= @name %>_vt::operator() (sqlite3_vtab *vtab, sqlite3_vtab_cursor *cur) {
+<%      if $lock.length > 0 %>
+  picoQLTable *picoQL = (picoQLTable *)vtab;
+  if (!picoQL->locked)
+    <%= $lock.lock_function %>;
+  picoQL->locked += 1;
+<%      else %>
   (void)vtab;
+<%      end %>
   (void)cur;
 }
 
@@ -86,6 +93,12 @@ void <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, void *shadowRes) {
 <%      if @base_var.length == 0 %>
   charged.clear();
   recursive = 0;
+<%      end %>
+<%      if $lock.length > 0 %>
+  picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
+  if (picoQL->locked == 1)
+    <%= $lock.unlock_function %>;
+  picoQL->locked -= 1;
 <%      end %>
 }
 

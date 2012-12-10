@@ -343,13 +343,15 @@ class VirtualTable
                           # both container and object.
     @pointer = ""         # Type of the base_var.
     @iterator = ""        # Iterator name in app to use for C containers. 
+    @traverse = ""        # Traverse function name for C container:
+                          # generic_clist.
     @object_class = ""    # If an object instance.
     @columns = Array.new  # References to the VT columns.
     @include_text_col = 0 # True if VirtualTable includes column
     		      	  # of text data type. Required for
 			  # generating code for
 			  # PICO_QL_HANDLE_TEXT_ARRAY C++ flag.
-    @@C_container_types = ["clist"]
+    @@C_container_types = ["clist", "generic_clist"]
   end
   attr_accessor(:name,:base_var_line,:signature_line,:base_var,
                 :struct_view,:db,:signature,:container_class,:type,
@@ -823,6 +825,25 @@ class VirtualTable
     return access_pathF, access_pathN, idenF, idenN
   end
 
+  def display_traverse(iterator, head, accessor)
+    loop = @traverse
+    matchdata = loop.match(/\((.+)\)/)
+    if matchdata
+      args = matchdata[1].split(/,/)
+      args.each { |rg|
+        case rg
+        when /<iterator>/
+          loop.gsub!("<#{rg}>", "#{iterator}")
+        when /<head>/
+          loop.gsub!("<#{rg}>", "#{head}")
+        else
+          loop.gsub!("#{rg}", "#{head}#{accessor}#{rg}")
+        end
+      }
+    end
+    return loop
+  end
+
   def configure_iteration()
     if @container_class.length > 0
       if @@C_container_types.include?(@container_class)
@@ -833,7 +854,11 @@ class VirtualTable
         if $argLB == "CPP"
           iterationF = "<space>iter = any_dstr;\n<space>rs->resBts.clear();\n<space>while (iter != NULL) {"
         else
-          iterationF = "<space>iter = any_dstr;\n<space>while (iter != NULL) {"
+          if @container_class == "generic_clist"
+            iterationF = "<space>#{display_traverse(\"iter\", \"any_dstr\", \"->\")} {"
+          else
+            iterationF = "<space>iter = any_dstr;\n<space>while (iter != NULL) {"
+          end
         end
       else
         iterationF = "<space>for (iter = any_dstr->begin(); iter != any_dstr->end(); iter++) {"
@@ -1319,12 +1344,29 @@ class VirtualTable
     end
   end
 
+  def process_traverse()
+    @traverse.gsub!(/(\s+)/, "")
+    matchdata = @traverse.match(/\((.+)\)/)
+    if matchdata
+      args = matchdata[1].split(/,/)
+      args.each { |rg|
+        @traverse.gsub!("#{rg}", "<#{rg}>")
+      }
+    else
+      puts "Invalid traverse function: #{@traverse}."
+      puts "Exiting now."
+      exit(1)
+    end
+  end
+
 # Matches VT definitions against prototype patterns.
   def match_table(table_description)
-    table_ptn1 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c name (.+) with registered c type (.+) using c iterator name (\w+)/im
-    table_ptn2 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c type (.+) using c iterator name (\w+)/im
-    table_ptn3 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c name (.+) with registered c type (.+)/im
-    table_ptn4 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c type (.+)/im
+    table_ptn1 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c type (.+) using c traverse function (.+)/im
+    table_ptn2 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c name (.+) with registered c type (.+) using c traverse function (.+)/im
+    table_ptn3 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c name (.+) with registered c type (.+) using c iterator name (\w+)/im
+    table_ptn4 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c type (.+) using c iterator name (\w+)/im
+    table_ptn5 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c name (.+) with registered c type (.+)/im
+    table_ptn6 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c type (.+)/im
     if $argD == "DEBUG"
       puts "Table description is: #{table_description}"
     end
@@ -1337,14 +1379,16 @@ class VirtualTable
       struct_view_name = matchdata[3]
       @base_var = matchdata[4]
       @signature = matchdata[5]
-      @iterator = matchdata[6]
+      @traverse = matchdata[6]
+      process_traverse()
     when table_ptn2
       matchdata = table_ptn2.match(table_description)
       @db = matchdata[1]
       @name = matchdata[2]
       struct_view_name = matchdata[3]
       @signature = matchdata[4]
-      @iterator = matchdata[5]
+      @traverse = matchdata[5]
+      process_traverse()
     when table_ptn3
       matchdata = table_ptn3.match(table_description)
       @db = matchdata[1]
@@ -1352,8 +1396,23 @@ class VirtualTable
       struct_view_name = matchdata[3]
       @base_var = matchdata[4]
       @signature = matchdata[5]
+      @iterator = matchdata[6]
     when table_ptn4
       matchdata = table_ptn4.match(table_description)
+      @db = matchdata[1]
+      @name = matchdata[2]
+      struct_view_name = matchdata[3]
+      @signature = matchdata[4]
+      @iterator = matchdata[5]
+    when table_ptn5
+      matchdata = table_ptn5.match(table_description)
+      @db = matchdata[1]
+      @name = matchdata[2]
+      struct_view_name = matchdata[3]
+      @base_var = matchdata[4]
+      @signature = matchdata[5]
+    when table_ptn6
+      matchdata = table_ptn6.match(table_description)
       @db = matchdata[1]
       @name = matchdata[2]
       struct_view_name = matchdata[3]
@@ -1539,6 +1598,25 @@ class UnionView
 
 end
 
+class Lock
+  def initialize
+    @lock_function = ""
+    @unlock_function = ""
+  end
+  attr_accessor(:lock_function, :unlock_function)
+
+  def match_lock(lock_description)
+    lock_ptn = /use c lock (.+) unlock (.+)/im
+    case lock_description
+    when lock_ptn
+      matchdata = lock_ptn.match(lock_description)
+      @lock_function = matchdata[1]
+      @unclock_function = matchdata[2]
+    end
+  end
+  
+end
+
 # Models the input description.
 class InputDescription
   def initialize(description)
@@ -1702,6 +1780,7 @@ class InputDescription
     end
     $struct_views = Array.new
     $union_views = Array.new
+    $locks = Array.new
     $table_index = Hash.new
     w = 0
     @description.each { |stmt|
@@ -1719,6 +1798,8 @@ class InputDescription
         @views.push(RelationalView.new(stmt)).last.extract_name()
       when /^create union view/im
         $union_views.push(UnionView.new).last.match_union_view(stmt)
+      when /^use c lock/im
+        $locks.push(Lock.new).last.match_lock(stmt)
       end
       w += 1
     }

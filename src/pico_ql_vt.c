@@ -444,6 +444,7 @@ int open_vtable(sqlite3_vtab *pVtab,
    * Useful when multiple instances of the VT are open.
    */
   stc->source = st->data;
+  st->locked = 0;
   /* To allocate space for the resultset.
    * Will need space at most equal to the data structure 
    * size. This is fixed for autonomous structs, variable 

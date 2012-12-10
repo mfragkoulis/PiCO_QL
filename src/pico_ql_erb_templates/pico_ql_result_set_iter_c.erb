@@ -26,7 +26,14 @@ size_t <%= @name %>_vt_get_datastructure_size (sqlite3_vtab_cursor *cur, sqlite3
 
 
 void <%= @name %>_vt_init_result_set (sqlite3_vtab *vtab, sqlite3_vtab_cursor *cur) {
+<%      if $lock.length > 0 %>
+  picoQLTable *picoQL = (picoQLTable *)vtab;
+  if (!picoQL->locked)
+    <%= $lock.lock_function %>;
+  picoQL->locked += 1;
+<%      else %>
   (void)vtab;
+<%      end %>
   (void)cur;
 }
 
@@ -103,6 +110,12 @@ void <%= @name %>_vt_deinit_result_set (sqlite3_vtab_cursor *cur, struct Vtbl *v
     sqlite3_free(charged[i]);
   ((<%= @name %>_vt *)vtbl)->chargedSize = 0;
   ((<%= @name %>_vt *)vtbl)->recursive = 0;
+<%      end %>
+<%      if $lock.length > 0 %>
+  picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
+  if (picoQL->locked == 1)
+    <%= $lock.unlock_function %>;
+  picoQL->locked -= 1;
 <%      end %>
 }
 

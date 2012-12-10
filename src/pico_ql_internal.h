@@ -84,6 +84,7 @@ namespace picoQL {
       sqlite3 *db;
       const char *zDb;
       const char *zName;
+      int locked;
       int embedded;
       int object;
       int nColumn;
