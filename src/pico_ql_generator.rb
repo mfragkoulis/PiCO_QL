@@ -833,13 +833,17 @@ class VirtualTable
       args.each { |rg|
         case rg
         when /<iterator>/
-          loop.gsub!("<#{rg}>", "#{iterator}")
+          loop.gsub!("#{rg}", "#{iterator}")
         when /<head>/
-          loop.gsub!("<#{rg}>", "#{head}")
+          loop.gsub!("#{rg}", "#{head}")
         else
-          loop.gsub!("#{rg}", "#{head}#{accessor}#{rg}")
+          cleaned = rg.gsub(/<|>/, "")
+          loop.gsub!("#{rg}", "#{head}#{accessor}#{cleaned}")
         end
       }
+    end
+    if $argD == "DEBUG"
+      puts "#{loop}"
     end
     return loop
   end
