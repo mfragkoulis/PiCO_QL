@@ -712,10 +712,20 @@ class VirtualTable
     if @container_class.length > 0
       if @@C_container_types.include?(@container_class)
         if $argLB == "CPP"
-          @pointer.match(/\*/) ? retype = "" : retype = "*"
-          add_to_result_setF = "<space>    rs->res.push_back(iter);\n<space>    rs->resBts.push_back(1);\n<space>  } else {\n<space>    rs->resBts.push_back(0);\n<space>  }\n<space>  iter = iter->#{@iterator};\n<space>}"
+          case @container_class
+          when "clist"
+            @pointer.match(/\*/) ? retype = "" : retype = "*"
+            add_to_result_setF = "<space>    rs->res.push_back(iter);\n<space>    rs->resBts.push_back(1);\n<space>  } else {\n<space>    rs->resBts.push_back(0);\n<space>  }\n<space>  iter = iter->#{@iterator};\n<space>}"
+          when "generic_clist"
+            add_to_result_setF = "<space>    rs->res.push_back(iter);\n<space>    rs->resBts.push_back(1);\n<space>  } else {\n<space>    rs->resBts.push_back(0);\n<space>  }\n<space>}"            
+          end
         else
-          add_to_result_setF = "<space>    rs->size++;\n<space>    rs->actualSize++;\n<space>    ((#{@name}ResultSetImpl *)rs)->res = (#{@signature}#{retype}*)sqlite3_realloc(((#{@name}ResultSetImpl *)rs)->res, sizeof(#{@signature}#{retype})*rs->size);\n<space>    ((#{@name}ResultSetImpl *)rs)->res[rs->size - 1] = iter;\n<space>  }\n<space>  iter = iter->#{@iterator};\n<space>}"
+          case @container_class
+          when "clist"
+            add_to_result_setF = "<space>    rs->size++;\n<space>    rs->actualSize++;\n<space>    ((#{@name}ResultSetImpl *)rs)->res = (#{@signature}#{retype}*)sqlite3_realloc(((#{@name}ResultSetImpl *)rs)->res, sizeof(#{@signature}#{retype})*rs->size);\n<space>    ((#{@name}ResultSetImpl *)rs)->res[rs->size - 1] = iter;\n<space>  }\n<space>  iter = iter->#{@iterator};\n<space>}"
+          when "generic_clist"
+            add_to_result_setF = "<space>    rs->size++;\n<space>    rs->actualSize++;\n<space>    ((#{@name}ResultSetImpl *)rs)->res = (#{@signature}#{retype}*)sqlite3_realloc(((#{@name}ResultSetImpl *)rs)->res, sizeof(#{@signature}#{retype})*rs->size);\n<space>    ((#{@name}ResultSetImpl *)rs)->res[rs->size - 1] = iter;\n<space>  }\n<space>}"
+          end
         end
       else
         add_to_result_setF = "<space>    rs->res.push_back(iter);\n<space>    rs->resBts.set(index, 1);\n<space>  }\n<space>  index++;\n<space>}"
@@ -943,10 +953,18 @@ class VirtualTable
       add_to_result_setF.gsub!(/\n<space>\}/, "")
     else
 # CPP, C containers: configure spacing
-      add_to_result_setF.gsub!(/\n<space>  \}\n<space>  iter = iter->#{@iterator};\n<space>\}/, "\n<space>    }\n<space>    iter = iter->#{@iterator};\n<space>  }")
+      if @container_class == "clist"
+        add_to_result_setF.gsub!(/\n<space>  \}\n<space>  iter = iter->#{@iterator};\n<space>\}/, "\n<space>    }\n<space>    iter = iter->#{@iterator};\n<space>  }")
+      elsif @container_class == "generic_clist"
+        add_to_result_setF.gsub!(/\n<space>  \}\n<space>\}/, "\n<space>    }\n<space>  }")
+      end
 # C, C containers : remove extra '}'
       if $argLB == "C"
-        add_to_result_setF.gsub!(/\n<space>    \}\n<space>    iter = iter->#{@iterator};\n<space>  \}/, "\n<space>    iter = iter->#{@iterator};\n<space>  }")
+        if @container_class == "clist"
+          add_to_result_setF.gsub!(/\n<space>    \}\n<space>    iter = iter->#{@iterator};\n<space>  \}/, "\n<space>    iter = iter->#{@iterator};\n<space>  }")
+        elsif @container_class == "generic_clist"
+          add_to_result_setF.gsub!(/\n<space>    \}\n<space>  \}/, "\n<space>  }")
+        end
       end
     end
 # CPP, CPP_containers
