@@ -1313,7 +1313,7 @@ class VirtualTable
         matchdata = /(\w+)<(.+)>(\**)/m.match(@signature)
         if @@C_container_types.include?(matchdata[1])
           @signature = matchdata[2]
-          if @signature.match(/(\w+)\*/)
+          if @signature.match(/(\w+)(\s*)\*/)
             @pointer = "*"
           end
         else
@@ -1362,8 +1362,8 @@ class VirtualTable
 
 # Matches VT definitions against prototype patterns.
   def match_table(table_description)
-    table_ptn1 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c type (.+) using c traverse function (.+)/im
-    table_ptn2 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c name (.+) with registered c type (.+) using c traverse function (.+)/im
+    table_ptn1 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c name (.+) with registered c type (.+) using c traverse function (.+)/im
+    table_ptn2 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c type (.+) using c traverse function (.+)/im
     table_ptn3 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c name (.+) with registered c type (.+) using c iterator name (\w+)/im
     table_ptn4 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c type (.+) using c iterator name (\w+)/im
     table_ptn5 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c name (.+) with registered c type (.+)/im
@@ -1613,8 +1613,15 @@ class Lock
     when lock_ptn
       matchdata = lock_ptn.match(lock_description)
       @lock_function = matchdata[1]
-      @unclock_function = matchdata[2]
+      @unlock_function = matchdata[2]
       @active = 1
+    end
+    if $argD == "DEBUG"
+      puts "Lock description: #{lock_description}"
+      puts "Lock function: #{@lock_function}"
+      puts "Unlock function: #{@unlock_function}"
+      puts "Active: #{@active}"
+      puts "Universal lock registered."
     end
   end
   

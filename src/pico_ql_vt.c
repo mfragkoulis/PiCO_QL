@@ -509,6 +509,7 @@ int close_vtable(sqlite3_vtab_cursor *cur) {
   // (part of polymorphized arsenal of methods).
   deinit_result_set(cur, stc);
   sqlite3_free(stc);
+  assert(((picoQLTable *)st)->locked == 0);
   return SQLITE_OK;
 }
 
