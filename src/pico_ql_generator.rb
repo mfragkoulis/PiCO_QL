@@ -722,9 +722,9 @@ class VirtualTable
         else
           case @container_class
           when "clist"
-            add_to_result_setF = "<space>    rs->size++;\n<space>    rs->actualSize++;\n<space>    ((#{@name}ResultSetImpl *)rs)->res = (#{@signature}#{retype}*)sqlite3_realloc(((#{@name}ResultSetImpl *)rs)->res, sizeof(#{@signature}#{retype})*rs->size);\n<space>    ((#{@name}ResultSetImpl *)rs)->res[rs->size - 1] = iter;\n<space>  }\n<space>  iter = iter->#{@iterator};\n<space>}"
+            add_to_result_setF = "<space>    rs->size++;\n<space>    rs->actualSize++;\n<space>    ((#{@name}ResultSetImpl *)rs)->res = (#{@signature}#{retype}*)sqlite3_realloc(((#{@name}ResultSetImpl *)rs)->res, sizeof(#{@signature}#{retype})*rs->size);\n<space>    if (((#{@name}ResultSetImpl *)rs)->res == NULL)\n<space>      return SQLITE_NOMEM;\n<space>    ((#{@name}ResultSetImpl *)rs)->res[rs->size - 1] = iter;\n<space>  }\n<space>  iter = iter->#{@iterator};\n<space>}"
           when "generic_clist"
-            add_to_result_setF = "<space>    rs->size++;\n<space>    rs->actualSize++;\n<space>    ((#{@name}ResultSetImpl *)rs)->res = (#{@signature}#{retype}*)sqlite3_realloc(((#{@name}ResultSetImpl *)rs)->res, sizeof(#{@signature}#{retype})*rs->size);\n<space>    ((#{@name}ResultSetImpl *)rs)->res[rs->size - 1] = iter;\n<space>  }\n<space>}"
+            add_to_result_setF = "<space>    rs->size++;\n<space>    rs->actualSize++;\n<space>    ((#{@name}ResultSetImpl *)rs)->res = (#{@signature}#{retype}*)sqlite3_realloc(((#{@name}ResultSetImpl *)rs)->res, sizeof(#{@signature}#{retype})*rs->size);\n<space>    if (((#{@name}ResultSetImpl *)rs)->res == NULL)\n<space>      return SQLITE_NOMEM;\n<space>    ((#{@name}ResultSetImpl *)rs)->res[rs->size - 1] = iter;\n<space>  }\n<space>}"
           end
         end
       else

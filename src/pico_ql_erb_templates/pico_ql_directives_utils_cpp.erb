@@ -107,7 +107,11 @@ void * thread_sqlite(void *data) {
 <% view_length = 0 %>
 <% @views == nil ? views_length = 0 : views_length = @views.length %>
   queries = (const char **)sqlite3_malloc(sizeof(char *) * <%= (@tables.length + views_length).to_s %>);
+  if (queries == NULL)
+    return (void *)SQLITE_NOMEM;
   sqlite_names = (const char **)sqlite3_malloc(sizeof(char *) * <%= (@tables.length + views_length).to_s %>);
+  if (sqlite_names == NULL)
+    return (void *)SQLITE_NOMEM;
   int failure = 0;
 <%# <db>.<table> does not work for some reason. test. %>
 <%# counter %>
@@ -289,7 +293,7 @@ public:
   virtual void operator() (sqlite3_vtab_cursor *, void *);
   virtual void operator() (sqlite3_vtab *, sqlite3_vtab_cursor *);
 <%      if vt.base_var.length == 0 %>
-  virtual void operator() (sqlite3_vtab_cursor *cur, int current, map<sqlite3_vtab_cursor *, bool> *oCharged) {
+  virtual int operator() (sqlite3_vtab_cursor *cur, int current, map<sqlite3_vtab_cursor *, bool> *oCharged) {
     pair<map<sqlite3_vtab_cursor *, bool>::iterator, bool> operation;
     if (current) {
       operation = charged.insert(pair<sqlite3_vtab_cursor *, bool>(cur, false));
@@ -308,9 +312,10 @@ public:
       charged.clear();
       recursive = 0;
     }
+    return SQLITE_INTERNAL;
   };
 <%      else %>
-  virtual void operator() (sqlite3_vtab_cursor *, int, map<sqlite3_vtab_cursor *, bool> *) {};
+  virtual int operator() (sqlite3_vtab_cursor *, int, map<sqlite3_vtab_cursor *, bool> *) {return SQLITE_INTERNAL;};
 <%      end %>
 
   virtual void operator() (const char *dummy) {

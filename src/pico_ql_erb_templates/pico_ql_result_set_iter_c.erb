@@ -121,7 +121,7 @@ void <%= @name %>_vt_deinit_result_set (sqlite3_vtab_cursor *cur, struct Vtbl *v
 
 <%    if @base_var.length == 0 %>
 
-void <%= @name %>_report_charge (sqlite3_vtab_cursor *cur, int current, cursorCharged **oCharged, size_t oChargedSize, struct Vtbl *vtbl) {
+int <%= @name %>_report_charge (sqlite3_vtab_cursor *cur, int current, cursorCharged **oCharged, size_t oChargedSize, struct Vtbl *vtbl) {
   cursor **cursors = ((<%= @name %>_vt *)vtbl)->cursors;
   size_t cursorsSize = ((<%= @name %>_vt *)vtbl)->cursorsSize;
   cursorCharged **charged = ((<%= @name %>_vt *)vtbl)->charged;
@@ -134,9 +134,13 @@ void <%= @name %>_report_charge (sqlite3_vtab_cursor *cur, int current, cursorCh
       ((<%= @name %>_vt *)vtbl)->chargedSize++;
       chargedSize = ((<%= @name %>_vt *)vtbl)->chargedSize;
       cursorCharged *ch = sqlite3_malloc(sizeof(cursorCharged));
+      if (ch == NULL)
+        return SQLITE_NOMEM;
       ch->cur = cur;
       ch->flag = 0;
       ((<%= @name %>_vt *)vtbl)->charged = (cursorCharged **)sqlite3_realloc(((<%= @name %>_vt *)vtbl)->charged, sizeof(cursorCharged *)*chargedSize);
+      if (((<%= @name %>_vt *)vtbl)->charged == NULL)
+        return SQLITE_NOMEM;
       ((<%= @name %>_vt *)vtbl)->charged[chargedSize-1] = ch;
 #ifdef PICO_QL_DEBUG
       printf("Table %s, chargedCursor: %li inserted, max size %i\n", picoQL->zName, (long int)cur, stcsr->max_size);
@@ -162,6 +166,7 @@ void <%= @name %>_report_charge (sqlite3_vtab_cursor *cur, int current, cursorCh
     ((<%= @name %>_vt *)vtbl)->chargedSize = 0;
     ((<%= @name %>_vt *)vtbl)->recursive = 0;
   }
+  return SQLITE_INTERNAL;
 }
 
 <%    end %>

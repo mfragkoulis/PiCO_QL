@@ -71,7 +71,7 @@ namespace picoQL {
 
     virtual void operator() (sqlite3_vtab_cursor *, void *) {};
 
-    virtual void operator() (sqlite3_vtab_cursor *, int, std::map<sqlite3_vtab_cursor *, bool> *) {};
+    virtual int operator() (sqlite3_vtab_cursor *, int, std::map<sqlite3_vtab_cursor *, bool> *) {return SQLITE_INTERNAL;};
 
     virtual void operator() (const char *) {};
   };

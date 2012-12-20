@@ -79,16 +79,17 @@ void pico_ql_register(const void *data_structure, const char *ds_name) {
 // The API with user application code. Creates the PiCO_QL thread.
 int pico_ql_serve(int port) {
   int *portN = new int(port);
+  void *exit_status;
 #ifndef PICO_QL_SINGLE_THREADED
   pthread_t sqlite_thread;
   pthread_create(&sqlite_thread, NULL, thread_sqlite, (void *)portN);
 #ifdef PICO_QL_JOIN_THREADS
-  pthread_join(sqlite_thread, NULL);
+  pthread_join(sqlite_thread, &exit_status);
 #endif
 #else
-  thread_sqlite((void *)portN);
+  exit_status = thread_sqlite((void *)portN);
 #endif
-  return 0;
+  return (int)(long)exit_status;
 }
 
 }

@@ -32,13 +32,21 @@ struct Vtbl <%= vt.name %>_vtbl = {
 <%     } %>
 
 
-void set_VtblImpl() {
+int set_VtblImpl(void) {
   vtAll.instances = (struct Vtbl **)sqlite3_malloc(sizeof(struct Vtbl *)*<%= @tables.length %>);
-  vtAll.instanceNames = (const char **)sqlite3_malloc(sizeof(const char *)*<%= @tables.length %>);
+  if (vtAll.instances == NULL)
+    return SQLITE_NOMEM;
+  vtAll.instanceNames = (const char **)sqlite3_malloc(sizeof(const char *)*<%= @tables.length %>);  
+  if (vtAll.instanceNames == NULL)
+    return SQLITE_NOMEM;
   vtAll.size = (size_t)<%= @tables.length %>;
 <%     @tables.each_index { |vt| %>
   <%= @tables[vt].name %>_vt *<%= @tables[vt].name %>VT = (<%= @tables[vt].name %>_vt *)sqlite3_malloc(sizeof(<%= @tables[vt].name %>_vt));
+  if (<%= @tables[vt].name %>VT == NULL)
+    return SQLITE_NOMEM;
   <%= @tables[vt].name %>VT->name = (const char *)sqlite3_malloc(sizeof(char)*<%= @tables[vt].name.length + 1 %>);
+  if (<%= @tables[vt].name %>VT->name == NULL)
+    return SQLITE_NOMEM;
   strcpy((char *)<%= @tables[vt].name %>VT->name, "<%= @tables[vt].name %>");
   vtAll.instanceNames[<%= vt %>] = <%= @tables[vt].name %>VT->name;
   <%= @tables[vt].name %>VT->impl = <%= @tables[vt].name %>_vtbl;
@@ -51,15 +59,20 @@ void set_VtblImpl() {
 <%       end %>
 <%      } %>
   <%= @tables[vt].name %>VT->cursors = (cursor **)sqlite3_malloc(sizeof(cursor *));
+  if (<%= @tables[vt].name %>VT->cursors == NULL)
+    return SQLITE_NOMEM;
 <%# Will be balanced in first insert (pre_search_c.erb). First realloc will have no effect. %>
   <%= @tables[vt].name %>VT->cursorsSize = 0;
 <%      if @tables[vt].base_var.length == 0 %>
   <%= @tables[vt].name %>VT->charged = (cursorCharged **)sqlite3_malloc(sizeof(cursorCharged *));
+  if (<%= @tables[vt].name %>VT->charged == NULL)
+    return SQLITE_NOMEM;
   <%= @tables[vt].name %>VT->chargedSize = 0;
   <%= @tables[vt].name %>VT->recursive = 0;
 <%      end %>
 
 <%     } %>
+  return SQLITE_OK;
 }
 
 // Thread. Creates the queries and passes them on to PiCO_QL.
@@ -68,7 +81,11 @@ void * thread_sqlite(void *data) {
 <% view_length = 0 %>
 <% @views == nil ? views_length = 0 : views_length = @views.length %>
   queries = (const char **)sqlite3_malloc(sizeof(char *) * <%= (@tables.length + views_length).to_s %>);
+  if (queries == NULL)
+    return (void *)SQLITE_NOMEM;
   sqlite_names = (const char **)sqlite3_malloc(sizeof(char *) * <%= (@tables.length + views_length).to_s %>);
+  if (sqlite_names == NULL)
+    return (void *)SQLITE_NOMEM;
   int failure = 0;
 <%# <db>.<table> does not work for some reason. test. %>
 <%# counter %>
@@ -88,7 +105,8 @@ void * thread_sqlite(void *data) {
   sqlite_names[<%= vs + @tables.length %>] = "<%= @views[vs].name %>";
 <%      } %>
 <%    end %>
-  set_VtblImpl();
+  if ((failure = set_VtblImpl()) > 0)
+    return (void *)(long)failure;
   int port_number = *(int *)data;
   sqlite3_free(data);
   failure = register_table( "<%= @tables[0].db %>" , <%= (@tables.length + views_length).to_s %>, <%= @tables.length.to_s %>, queries, sqlite_names, port_number);
