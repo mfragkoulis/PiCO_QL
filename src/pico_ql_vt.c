@@ -99,11 +99,12 @@ int init_vtable(int iscreate,
 		const char * const * argv, 
 		sqlite3_vtab **ppVtab,
 		char **pzErr) {
+  picoQLTable *picoQL;
+  int nDb, nName, nByte, nCol, nString, i, n;
+  char query[arrange_size(argc, argv)];
+  char *temp;
   (void)iscreate;
   (void)paux;
-  picoQLTable *picoQL;
-  int nDb, nName, nByte, nCol, nString, i;
-  char *temp;
   nDb = (int)strlen(argv[1]) + 1;
   nName = (int)strlen(argv[2]) + 1;
   nString=0;
@@ -133,7 +134,6 @@ int init_vtable(int iscreate,
   memcpy(temp, argv[1], nDb);
   temp += nDb;
 
-  int n;
   for (i = 3; i < argc; i++){
     n = (int)strlen(argv[i]) + 1;
     memcpy(temp, argv[i], n);
@@ -142,7 +142,6 @@ int init_vtable(int iscreate,
     assert(temp <= &((char *)picoQL)[nByte]);
   }
 
-  char query[arrange_size(argc, argv)];
   create(db, argc, argv, query);
 #ifdef PICO_QL_DEBUG
   printf("Query is: %s \n", query);
@@ -202,11 +201,11 @@ int create_vtable(sqlite3 *db,
 
 // xDestroy
 int destroy_vtable(sqlite3_vtab *ppVtab) {
+  int result;
 #ifdef PICO_QL_DEBUG
   picoQLTable *st = (picoQLTable *)ppVtab;
   printf("Destroying vtable %s \n\n", st->zName);
 #endif
-  int result;
   // Need to destroy additional structures. So far none.
   result = disconnect_vtable(ppVtab);
   return result;
@@ -232,8 +231,11 @@ void eval_constraint(int sqlite3_op,
 		     char *nidxStr, 
 		     int nidxLen) {
   char iOp[2], iCol[4]; // iCol supports up to 999 columns.
-  sprintf(iCol, "%d", nCol);
+  char op_iCol[9];      // iColLen + 5
+  int iColLen;
   int op = 0;
+  sprintf(iCol, "%d", nCol);
+  iColLen = (int)strlen(iCol);
   switch (sqlite3_op) {
   case SQLITE_INDEX_CONSTRAINT_LT:
     op = 0;
@@ -252,8 +254,6 @@ void eval_constraint(int sqlite3_op,
     break;
   }
   sprintf(iOp, "%d", op); 
-  int iColLen = (int)strlen(iCol);
-  char op_iCol[iColLen + 5];
   if (equals(colName, "base")) {
     assert(nCol == 0);
     nidxStr[0] = '{';
@@ -318,10 +318,10 @@ int best_index_vtable(sqlite3_vtab *pVtab,
   if (pInfo->nConstraint > 0) {
     int nCol;
     int nidxLen = pInfo->nConstraint*7 + 1;
+    int i, j = 0, counter = 0, score = 0;
     char nidxStr[nidxLen];
     memset(nidxStr, 0, sizeof(nidxStr));
     assert(pInfo->idxStr == 0);
-    int i, j = 0, counter = 0, score = 0;
     for (i = 0; i < pInfo->nConstraint; i++){
       struct sqlite3_index_constraint *pCons = 
 	&pInfo->aConstraint[i];
@@ -427,9 +427,7 @@ int next_vtable(sqlite3_vtab_cursor *cur) {
 int open_vtable(sqlite3_vtab *pVtab, 
 		sqlite3_vtab_cursor **ppCsr) {
   picoQLTable *st = (picoQLTable *)pVtab;
-#ifdef PICO_QL_DEBUG
-  printf("Opening vtable %s\n\n", st->zName);
-#endif
+  picoQLTableCursor *stc;
   sqlite3_vtab_cursor *pCsr;    /* Allocated cursor */
 
   *ppCsr = pCsr = 
@@ -437,9 +435,12 @@ int open_vtable(sqlite3_vtab *pVtab,
   if (!pCsr) {
     return SQLITE_NOMEM;
   }
+#ifdef PICO_QL_DEBUG
+  printf("Opening vtable %s\n\n", st->zName);
+#endif
   memset(pCsr, 0, sizeof(picoQLTableCursor));
   pCsr->pVtab = &st->vtab;
-  picoQLTableCursor *stc = (picoQLTableCursor *)pCsr;
+  stc = (picoQLTableCursor *)pCsr;
   /* Keep copy of initial data. Might change in search. 
    * Useful when multiple instances of the VT are open.
    */

@@ -3,15 +3,8 @@ int <%= @name %>_vt_retrieve (sqlite3_vtab_cursor *cur, int nCol, sqlite3_contex
 <%    if @container_class.length > 0 %>
   cursor **cursors = ((<%= @name %>_vt *)vtbl)->cursors;
   size_t cursorsSize = ((<%= @name %>_vt *)vtbl)->cursorsSize;
-  int j = 0;
-  while ((j < (int)cursorsSize) && (cursors[j]->cur != cur)) {j++;}
-  if (j == (int)cursorsSize) {
-    printf("In <%= @name %>_vt_next_resultSet: Cursor %li not registered.\nExiting now.\n", (long int)cur);
-    return SQLITE_ERROR;
-  }
-  ResultSet *rs = cursors[j]->res;
+  ResultSet *rs;
 <%    end %>
-  if (struct_is_empty_null(cur, con)) return SQLITE_OK; 
 <%    if /\*/.match(@pointer) == nil %>
 <%      sign_retype = "#{@signature}*" %>
 <%    else %>
@@ -24,10 +17,19 @@ int <%= @name %>_vt_retrieve (sqlite3_vtab_cursor *cur, int nCol, sqlite3_contex
 #line <%= @signature_line + 1 %> "<%= $argF %>" 
 <%        end %>
 <%    end %>
-#ifdef PICO_QL_DEBUG
-  picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
 <%    if @container_class.length > 0 %>
-  printf("Retrieving column %i of VT %s element %i\n", nCol, picoQL->zName, rs->offset);
+  int j = 0;
+  while ((j < (int)cursorsSize) && (cursors[j]->cur != cur)) {j++;}
+  if (j == (int)cursorsSize) {
+    printf("In <%= @name %>_vt_next_resultSet: Cursor %li not registered.\nExiting now.\n", (long int)cur);
+    return SQLITE_ERROR;
+  }
+  rs = cursors[j]->res;
+<%    end %>
+  if (struct_is_empty_null(cur, con)) return SQLITE_OK; 
+#ifdef PICO_QL_DEBUG
+<%    if @container_class.length > 0 %>
+  printf("Retrieving column %i of VT %s element %i\n", nCol, ((picoQLTable *)cur->pVtab)->zName, rs->offset);
 <%    else %>
   printf("Retrieving column %i of VT %s\n", nCol, picoQL->zName);
 <%    end %>

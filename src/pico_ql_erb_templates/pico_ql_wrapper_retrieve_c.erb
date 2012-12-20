@@ -1,13 +1,14 @@
 // Redirect to the appropriate retrieve function for a virtual table.
 int retrieve(sqlite3_vtab_cursor *cur, int nCol, sqlite3_context *con) {
   picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
+  struct Vtbl *retrieveVT;
   int j = 0;
   while ((j < (int)vtAll.size) && (strcmp(vtAll.instanceNames[j], picoQL->zName))) {j++;}
   if (j == (int)vtAll.size) {
-    printf("In search: VT %s not registered.\nExiting now.\n", picoQL->zName);
+    printf("In retrieve: VT %s not registered.\nExiting now.\n", picoQL->zName);
     return SQLITE_ERROR;
   }
-  struct Vtbl *retrieveVT = vtAll.instances[j];
+  retrieveVT = vtAll.instances[j];
   return retrieveVT->retrieve(cur, nCol, con, retrieveVT);
 }
 
@@ -33,6 +34,9 @@ struct Vtbl <%= vt.name %>_vtbl = {
 
 
 int set_VtblImpl(void) {
+<%     @tables.each_index { |vt| %>
+  <%= @tables[vt].name %>_vt *<%= @tables[vt].name %>VT = (<%= @tables[vt].name %>_vt *)sqlite3_malloc(sizeof(<%= @tables[vt].name %>_vt));
+<%     } %>
   vtAll.instances = (struct Vtbl **)sqlite3_malloc(sizeof(struct Vtbl *)*<%= @tables.length %>);
   if (vtAll.instances == NULL)
     return SQLITE_NOMEM;
@@ -41,7 +45,7 @@ int set_VtblImpl(void) {
     return SQLITE_NOMEM;
   vtAll.size = (size_t)<%= @tables.length %>;
 <%     @tables.each_index { |vt| %>
-  <%= @tables[vt].name %>_vt *<%= @tables[vt].name %>VT = (<%= @tables[vt].name %>_vt *)sqlite3_malloc(sizeof(<%= @tables[vt].name %>_vt));
+  <%= @tables[vt].name %>VT = (<%= @tables[vt].name %>_vt *)sqlite3_malloc(sizeof(<%= @tables[vt].name %>_vt));
   if (<%= @tables[vt].name %>VT == NULL)
     return SQLITE_NOMEM;
   <%= @tables[vt].name %>VT->name = (const char *)sqlite3_malloc(sizeof(char)*<%= @tables[vt].name.length + 1 %>);

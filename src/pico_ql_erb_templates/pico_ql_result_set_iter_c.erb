@@ -43,13 +43,16 @@ int <%= @name %>_vt_advance_result_set_iter (sqlite3_vtab_cursor *cur,
   cursor **cursors = ((<%= @name %>_vt *)vtbl)->cursors;
   size_t cursorsSize = ((<%= @name %>_vt *)vtbl)->cursorsSize;
   int j = 0;
+<%    if @container_class.length > 0 %>
+  ResultSet *res;
+<%    end %>
   while ((j < (int)cursorsSize) && (cursors[j]->cur != cur)) {j++;}
   if (j == (int)cursorsSize) {
     printf("In <%= @name %>_vt_next_resultSet: Cursor %li not registered.\nExiting now.\n", (long int)cur);
     return SQLITE_ERROR;
   }
 <%    if @container_class.length > 0 %>
-  ResultSet *res = cursors[j]->res;
+  res = cursors[j]->res;
   if ((int)res->size > 0) {
     if (res->resultSetIterState == -1) {
       res->actualSize = res->size;
@@ -78,8 +81,7 @@ int <%= @name %>_vt_advance_result_set_iter (sqlite3_vtab_cursor *cur,
     stc->isEof = 1;
 <%    end %>
 #ifdef PICO_QL_DEBUG
-  picoQLTable *st = (picoQLTable *)cur->pVtab;
-  printf("Table %s, stc->isEof: %i\n\n", st->zName, stc->isEof);
+  printf("Table %s, stc->isEof: %i\n\n", ((picoQLTable *)cur->pVtab)->zName, stc->isEof);
   printf("stc->offset: %i, stc->size: %i\n", stc->offset, stc->size);
 #endif
   return SQLITE_OK;
@@ -88,6 +90,15 @@ int <%= @name %>_vt_advance_result_set_iter (sqlite3_vtab_cursor *cur,
 void <%= @name %>_vt_deinit_result_set (sqlite3_vtab_cursor *cur, struct Vtbl *vtbl) {
   cursor **cursors = ((<%= @name %>_vt *)vtbl)->cursors;
   size_t cursorsSize = ((<%= @name %>_vt *)vtbl)->cursorsSize;
+<%      if $lock.active == 1 && @container_class.length > 0 %>
+  picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
+<%      end %>
+<%      if @base_var.length == 0 %>
+<%# need to malloc %>
+  cursorCharged **charged = ((<%= @name %>_vt *)vtbl)->charged;
+  size_t chargedSize = ((<%= @name %>_vt *)vtbl)->chargedSize;
+  int i = 0;
+<%      end %>
   int j = 0;
   while ((j < (int)cursorsSize) && (cursors[j]->cur != cur)) {j++;}
   if (j == (int)cursorsSize) {
@@ -102,17 +113,12 @@ void <%= @name %>_vt_deinit_result_set (sqlite3_vtab_cursor *cur, struct Vtbl *v
     ((<%= @name %>_vt *)vtbl)->cursorsSize--;
   }
 <%      if @base_var.length == 0 %>
-<%# need to malloc %>
-  cursorCharged **charged = ((<%= @name %>_vt *)vtbl)->charged;
-  size_t chargedSize = ((<%= @name %>_vt *)vtbl)->chargedSize;
-  int i = 0;
   for (i = 0; i < (int)chargedSize; i++)
     sqlite3_free(charged[i]);
   ((<%= @name %>_vt *)vtbl)->chargedSize = 0;
   ((<%= @name %>_vt *)vtbl)->recursive = 0;
 <%      end %>
 <%      if $lock.active == 1 && @container_class.length > 0 %>
-  picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
   if (picoQL->locked == 1)
     <%= $lock.unlock_function %>;
   picoQL->locked -= 1;

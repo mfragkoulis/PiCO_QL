@@ -2,13 +2,14 @@
  */
 size_t get_datastructure_size(sqlite3_vtab_cursor *cur, sqlite3_vtab *vtab) {
   picoQLTable *picoQL = (picoQLTable *)vtab;
+  struct Vtbl *sizeVT;
   int j = 0;
   while ((j < (int)vtAll.size) && (strcmp(vtAll.instanceNames[j], picoQL->zName))) {j++;}
   if (j == (int)vtAll.size) {
-    printf("In search: VT %s not registered.\nExiting now.\n", picoQL->zName);
+    printf("In get_datastructure_size: VT %s not registered.\nExiting now.\n", picoQL->zName);
     return SQLITE_ERROR;
   }
-  struct Vtbl *sizeVT = vtAll.instances[j];
+  sizeVT = vtAll.instances[j];
   return sizeVT->get_datastructure_size(cur, vtab);
 }
 
@@ -17,13 +18,14 @@ size_t get_datastructure_size(sqlite3_vtab_cursor *cur, sqlite3_vtab *vtab) {
 <%# Return INT %>
 void init_result_set(sqlite3_vtab *vtab, sqlite3_vtab_cursor *cur) {
   picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
+  struct Vtbl *iterVT;
   int j = 0;
   while ((j < (int)vtAll.size) && (strcmp(vtAll.instanceNames[j], picoQL->zName))) {j++;}
   if (j == (int)vtAll.size) {
-    printf("In search: VT %s not registered.\nExiting now.\n", picoQL->zName);
+    printf("In init_result_set: VT %s not registered.\nExiting now.\n", picoQL->zName);
 <%#    return SQLITE_ERROR; %>
   }
-  struct Vtbl *iterVT = vtAll.instances[j];
+  iterVT = vtAll.instances[j];
 <%#  return iterVT->init_result_set(vtab, cur); %>
   iterVT->init_result_set(vtab, cur);
 }
@@ -32,13 +34,14 @@ void init_result_set(sqlite3_vtab *vtab, sqlite3_vtab_cursor *cur) {
  */
 int advance_result_set_iter(sqlite3_vtab_cursor *cur) {
   picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
+  struct Vtbl *iterVT;
   int j = 0;
   while ((j < (int)vtAll.size) && (strcmp(vtAll.instanceNames[j], picoQL->zName))) {j++;}
   if (j == (int)vtAll.size) {
-    printf("In search: VT %s not registered.\nExiting now.\n", picoQL->zName);
+    printf("In advance_result_set_iter: VT %s not registered.\nExiting now.\n", picoQL->zName);
     return SQLITE_ERROR;
   }
-  struct Vtbl *iterVT = vtAll.instances[j];
+  iterVT = vtAll.instances[j];
   return iterVT->advance_result_set_iter(cur, iterVT);
 }
 
@@ -46,13 +49,14 @@ int advance_result_set_iter(sqlite3_vtab_cursor *cur) {
  */
 void deinit_result_set(sqlite3_vtab_cursor *cur, void *res) {
   picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
+  struct Vtbl *iterVT;
   int j = 0;
   while ((j < (int)vtAll.size) && (strcmp(vtAll.instanceNames[j], picoQL->zName))) {j++;}
   if (j == (int)vtAll.size) {
-    printf("In search: VT %s not registered.\nExiting now.\n", picoQL->zName);
+    printf("In deinit_result_set: VT %s not registered.\nExiting now.\n", picoQL->zName);
 <%#    return SQLITE_ERROR; %>
   }
-  struct Vtbl *iterVT = vtAll.instances[j];
+  iterVT = vtAll.instances[j];
 <%#  return iterVT->deinit_result_set(cur, iterVT); %>
   iterVT->deinit_result_set(cur, iterVT);
 }

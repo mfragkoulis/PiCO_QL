@@ -836,6 +836,7 @@ class VirtualTable
   end
 
   def display_traverse(iterator, head, accessor)
+    cleaned = ""
     loop = @traverse
     matchdata = loop.match(/\((.+)\)/)
     if matchdata
@@ -845,12 +846,19 @@ class VirtualTable
         when /<iterator>/
           loop.gsub!("#{rg}", "#{iterator}")
         when /<head>/
-          loop.gsub!("#{rg}", "#{head}")
+# Accessor might not be required since head is defined internally
+# (any_dstr).
+# member (what rg holds in this case) is supposed to be a struct;
+# as is the code, it would not work if it were struct * 
+# ('&' is hardcoded). Could define and check *member to denote that it's
+# pointer; then we would remove the '*' and not add '&'. Evaluate.
+          loop.gsub!("#{rg}", "&#{head}#{accessor}<member>")
         else
           cleaned = rg.gsub(/<|>/, "")
-          loop.gsub!("#{rg}", "#{head}#{accessor}#{cleaned}")
+          loop.gsub!("#{rg}", "#{cleaned}")
         end
       }
+      loop.gsub!("<member>", "#{cleaned}")
     end
     if $argD == "DEBUG"
       puts "#{loop}"
