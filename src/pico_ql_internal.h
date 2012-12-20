@@ -109,9 +109,9 @@ namespace picoQL {
     void * thread_sqlite(void *data);
     int register_vt(picoQLTable *picoQL);
     int equals(const char *zCol, const char *key);
-    void set_selectors(); // internal but inconvenient to position
-    void deinit_temp_structs();
-    void deinit_vt_selectors();
+    void set_selectors(void); // internal but inconvenient to position
+    void deinit_temp_structs(void);
+    void deinit_vt_selectors(void);
     void init_result_set(sqlite3_vtab *vtab, sqlite3_vtab_cursor *stc);
     int advance_result_set_iter(sqlite3_vtab_cursor *cur);
     void deinit_result_set(sqlite3_vtab_cursor *cur, void *);

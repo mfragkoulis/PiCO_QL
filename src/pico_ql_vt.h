@@ -88,8 +88,8 @@ int disconnect_vtable(sqlite3_vtab *ppVtab);
 
 void fill_module(sqlite3_module *m);
 
-void clear_temp_structs();
+void clear_temp_structs(void);
 
-void deinit_selectors();
+void deinit_selectors(void);
 
 #endif

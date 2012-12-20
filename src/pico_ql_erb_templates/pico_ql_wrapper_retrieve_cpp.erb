@@ -5,7 +5,7 @@ int retrieve(sqlite3_vtab_cursor *cur, int nCol, sqlite3_context *con) {
   return (*retrieveVT)(cur, nCol, con);
 }
 
-void set_selectors() {
+void set_selectors(void) {
 <%     @tables.each { |vt| %>
   <%= vt.name %>_vt *<%= vt.name %>VT = new <%= vt.name %>_vt;
   selector_vt["<%= vt.name %>"] = <%= vt.name %>VT;

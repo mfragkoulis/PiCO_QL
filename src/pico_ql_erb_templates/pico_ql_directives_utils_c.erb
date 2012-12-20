@@ -196,7 +196,7 @@ typedef struct <%= vt.name %>VtblImpl {
  * column values so that they are
  * manageable by SQLite safely.
  */
-void deinit_temp_structs() {
+void deinit_temp_structs(void) {
   int i = 0;
   for (i = 0; i < (int)vtAll.size; i++) {
     vtAll.instances[i]->discharge_saved_results(vtAll.instances[i]);
@@ -216,7 +216,7 @@ void deinit_temp_structs() {
  * virtual table names to functors virtualizing
  * individual VT search/retrieve implementations.
  */
-void deinit_vt_selectors() {
+void deinit_vt_selectors(void) {
 <%     @tables.each_index { |vt| %>
   sqlite3_free((char *)((<%= @tables[vt].name %>_vt *)vtAll.instances[<%= vt %>])->name);
   sqlite3_free((cursor **)((<%= @tables[vt].name %>_vt *)vtAll.instances[<%= vt %>])->cursors);
