@@ -42,18 +42,18 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur) {
   ResultSet *rs = &cursors[cur];
   if ((int)rs->res.size() > 0) {
     if (rs->resultSetIterState == -1) {
-      rs->current = (int)rs->resBts.find_first();
+      rs->offset = (int)rs->resBts.find_first();
       rs->resIter = rs->res.begin();
       rs->resultSetIterState = 1;
     } else if (rs->resultSetIterState == 1) {
       rs->resIter++;
-      rs->current = (int)rs->resBts.find_next(rs->current);
+      rs->offset = (int)rs->resBts.find_next(rs->offset);
     }
     if (rs->resIter < rs->res.end()) {
 #ifdef PICO_QL_DEBUG
   picoQLTable *st = (picoQLTable *)cur->pVtab;
-  printf("Table %s, now rs->current: %i \nstc->isEof: %i\n\n",
-         st->zName, rs->current, stc->isEof);
+  printf("Table %s, now rs->offset: %i \nstc->isEof: %i\n\n",
+         st->zName, rs->offset, stc->isEof);
 #endif
       return SQLITE_OK;
     }
@@ -63,15 +63,15 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur) {
   rs->res.clear();
   rs->resBts.clear();
 <%    else %>
-  stc->current++;
-  if (stc->current >= stc->size)
+  stc->offset++;
+  if (stc->offset >= stc->size)
     stc->isEof = 1;
 <%    end %>
 #ifdef PICO_QL_DEBUG
   picoQLTable *st = (picoQLTable *)cur->pVtab;
   printf("Table %s, stc->isEof: %i\n\n",
          st->zName, stc->isEof);
-  printf("stc->current: %i, stc->size: %i\n", stc->current, stc->size);
+  printf("stc->offset: %i, stc->size: %i\n", stc->offset, stc->size);
 #endif
   return SQLITE_OK;
 }

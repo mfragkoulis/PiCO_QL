@@ -21,7 +21,7 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
     <%= @name %>ResultSetImpl *resImpl = (<%= @name %>ResultSetImpl *)sqlite3_malloc(sizeof(<%= @name %>ResultSetImpl));
     resImpl->r.size = 0;
     resImpl->r.actualSize = 0;
-    resImpl->r.current = -1;
+    resImpl->r.offset = -1;
     resImpl->r.resultSetIterState = -1;
     c->res = &resImpl->r;
     resImpl->res = (<%= @signature.chomp('*') %> **)sqlite3_malloc(sizeof(<%= @signature.chomp('*') %> *));
@@ -61,7 +61,7 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
     rs->actualSize++;
     ((<%= @name %>ResultSetImpl *)rs)->res = (<%= sign_retype %>*)sqlite3_realloc(((<%= @name %>ResultSetImpl *)rs)->res, sizeof(<%= sign_retype %>)*rs->size);
     ((<%= @name %>ResultSetImpl *)rs)->res[rs->size - 1] = dummy;
-    rs->current = 0;
+    rs->offset = 0;
 <%      end %>
     return SQLITE_OK;
   }

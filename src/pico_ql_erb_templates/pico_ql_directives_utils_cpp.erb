@@ -246,16 +246,16 @@ list <<%= col.fk_col_type.chomp('*') %> > saved_results_<%= i %>;
 <%        end %>
     dynamic_bitset<unsigned long> resBts;
     int resultSetIterState;
-    int current;
+    int offset;
 <%        if VirtualTable.C_container_types.include?(vt.container_class) %>
 <%          vt.pointer.match(/\*/) ? retype = "" : retype = "*" %>
-    ResultSet(int res_max_size, int resIterState, int cur, vector<<%= vt.signature %><%= retype %>>::iterator it) {
+    ResultSet(int res_max_size, int resIterState, int off, vector<<%= vt.signature %><%= retype %>>::iterator it) {
 <%        else %>
-    ResultSet(int res_max_size, int resIterState, int cur, vector<<%= vt.signature.chomp('*') %>::iterator>::iterator it) {
+    ResultSet(int res_max_size, int resIterState, int off, vector<<%= vt.signature.chomp('*') %>::iterator>::iterator it) {
 <%        end %>
       resBts.resize(res_max_size);
       resultSetIterState = resIterState;
-      current = cur;
+      offset = off;
       resIter = it;
     };
     ResultSet() {};

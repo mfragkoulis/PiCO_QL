@@ -99,7 +99,7 @@ namespace picoQL {
       int isInstanceEmpty;
       int max_size;        // 
       int size;            // For objects only.
-      int current;         // For objects only.
+      int offset;         // For objects only.
       int isEof; 
       int first_constr; 
       void *source;

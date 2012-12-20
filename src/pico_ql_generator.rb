@@ -592,7 +592,7 @@ class VirtualTable
         if $argLB == "CPP"
           access_path.length == 0 ? iden =  "*(rs->resIter)" : iden = "(*(rs->resIter))."
         else
-          access_path.length == 0 ? iden =  "((#{@name}ResultSetImpl *)rs)->res[rs->current]" : iden = "((#{@name}ResultSetImpl *)rs)->res[rs->current]."
+          access_path.length == 0 ? iden =  "((#{@name}ResultSetImpl *)rs)->res[rs->offset]" : iden = "((#{@name}ResultSetImpl *)rs)->res[rs->offset]."
         end
       else
         access_path.length == 0 ? iden =  "**(rs->resIter)" : iden = "(**(rs->resIter))."
@@ -672,7 +672,7 @@ class VirtualTable
         fw.puts "#endif"
         fw.puts "    break;"
       when "rownum"
-        fw.puts "    sqlite3_result_#{sqlite3_type}(con, rs->current);"
+        fw.puts "    sqlite3_result_#{sqlite3_type}(con, rs->offset);"
         fw.puts "    break;"
       when "fk"
         fk_retrieve(fw, access_path, column_type, fk_method_ret,

@@ -377,7 +377,7 @@ int filter_vtable(sqlite3_vtab_cursor *cur,
   /* Initialize size of resultset data structure for objects. */
   /* Unused in containers. */
   stc->size = 0;
-  stc->current = -1;      /* Initial cursor position. */
+  stc->offset = -1;      /* Initial cursor position. */
 
   /* In case of a join, xfilter will be called many times, 
    *  x times for x eligible rows of the paired table. 
