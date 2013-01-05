@@ -58,6 +58,7 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
     ((<%= @name %>_vt *)vtbl)->cursors = (cursor **)sqlite3_realloc(((<%= @name %>_vt *)vtbl)->cursors, sizeof(cursor *)*cursorsSize);
     if (((<%= @name %>_vt *)vtbl)->cursors == NULL)
       return SQLITE_NOMEM;
+    cursors = ((<%= @name %>_vt *)vtbl)->cursors;
     ((<%= @name %>_vt *)vtbl)->cursors[cursorsSize-1] = c;
 #ifdef PICO_QL_DEBUG
     printf("Table %s, Cursor: %li inserted, max size %i\n", picoQL->zName, (long int)cur, stcsr->max_size);

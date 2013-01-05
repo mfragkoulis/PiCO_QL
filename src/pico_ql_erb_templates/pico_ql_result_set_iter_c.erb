@@ -110,9 +110,12 @@ void <%= @name %>_vt_deinit_result_set (sqlite3_vtab_cursor *cur, struct Vtbl *v
     sqlite3_free((<%= @name %>ResultSetImpl *)res);
 <%      end %>
     sqlite3_free(cursors[j]);
+    cursors[j] = cursors[cursorsSize - 1];
+    cursors[cursorsSize - 1] = NULL;
     ((<%= @name %>_vt *)vtbl)->cursorsSize--;
   }
 <%      if @base_var.length == 0 %>
+<%#  if (((<%= @name _vt *)vtbl)->cursorsSize == 0) { %>
   for (i = 0; i < (int)chargedSize; i++)
     sqlite3_free(charged[i]);
   ((<%= @name %>_vt *)vtbl)->chargedSize = 0;
