@@ -173,7 +173,7 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
 <%        end %>
           stcsr->isInstanceEmpty = 0;
         } else {
-          printf("Searching embedded VT <%= @name %> with invalid BASE constraint (%i<>%i)\n", cuSize, chSize);
+          printf("Searching embedded VT <%= @name %> with invalid BASE constraint (%i<>%i), recursive is %i.\n", cuSize, chSize, recursive);
           return SQLITE_MISUSE;
         }
       } else { 

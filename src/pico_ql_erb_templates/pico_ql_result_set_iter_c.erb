@@ -130,7 +130,7 @@ void <%= @name %>_vt_deinit_result_set (sqlite3_vtab_cursor *cur, struct Vtbl *v
 
 <%    if @base_var.length == 0 %>
 
-int <%= @name %>_report_charge (sqlite3_vtab_cursor *cur, int current, cursorCharged **oCharged, size_t oChargedSize, struct Vtbl *vtbl) {
+int <%= @name %>_report_charge (sqlite3_vtab_cursor *cur, int current, cursorCharged ***oCharged, size_t *oChargedSize, struct Vtbl *vtbl) {
   cursor **cursors = ((<%= @name %>_vt *)vtbl)->cursors;
   size_t cursorsSize = ((<%= @name %>_vt *)vtbl)->cursorsSize;
   cursorCharged **charged = ((<%= @name %>_vt *)vtbl)->charged;
@@ -156,12 +156,12 @@ int <%= @name %>_report_charge (sqlite3_vtab_cursor *cur, int current, cursorCha
 #endif
       if (oCharged != NULL) {
         j = 0;
-        while (j < (int)oChargedSize) {
+        while (j < (int)*oChargedSize) {
           for (i = 0; i < (int)cursorsSize; i++) { 
-            if (cursors[i]->cur == oCharged[j]->cur) {
-              if (!oCharged[j]->flag) {
+            if (cursors[i]->cur == (*oCharged)[j]->cur) {
+              if (!(*oCharged)[j]->flag) {
                 ((<%= @name %>_vt *)vtbl)->recursive += 1;
-                oCharged[j]->flag = 1;
+                (*oCharged)[j]->flag = 1;
               }
             }
           }

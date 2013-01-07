@@ -571,11 +571,11 @@ class VirtualTable
       fw.puts "#{space}      }"
       fw.puts "#{space}      struct Vtbl *chargeVT#{col} = vtAll.instances[j];"
       if @base_var.length == 0
-        fw.puts "#{space}      chargeVT#{col}->report_charge(cur, 1, ((#{@name}_vt *)vtbl)->charged, ((#{@name}_vt *)vtbl)->chargedSize, chargeVT#{col});"
+        fw.puts "#{space}      chargeVT#{col}->report_charge(cur, 1, &((#{@name}_vt *)vtbl)->charged, &((#{@name}_vt *)vtbl)->chargedSize, chargeVT#{col});"
       else
         #      fw.puts "#{space}      map<sqlite3_vtab_cursor *, bool> *map#{@name}#{col};"
         #      fw.puts "#{space}      map#{@name}#{col} = NULL;"
-        fw.puts "#{space}      chargeVT#{col}->report_charge(cur, 1, NULL, 0, chargeVT#{col});"
+        fw.puts "#{space}      chargeVT#{col}->report_charge(cur, 1, NULL, NULL, chargeVT#{col});"
       end
     end
     fw.puts "#{space}      break;"

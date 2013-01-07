@@ -135,7 +135,7 @@ struct Vtbl {
   void (*init_result_set)(sqlite3_vtab *, sqlite3_vtab_cursor *);
   int (*advance_result_set_iter)(sqlite3_vtab_cursor *, struct Vtbl*);
   void (*deinit_result_set)(sqlite3_vtab_cursor *, struct Vtbl*);
-  int (*report_charge)(sqlite3_vtab_cursor *, int, cursorCharged **, size_t, struct Vtbl*);
+  int (*report_charge)(sqlite3_vtab_cursor *, int, cursorCharged ***, size_t *, struct Vtbl*);
   void (*discharge_saved_results)(struct Vtbl*);
 
 };
