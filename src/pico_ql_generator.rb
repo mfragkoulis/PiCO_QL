@@ -94,7 +94,7 @@ class Column
     elsif @name == "base"              # 'base' column. refactor: elsif perhaps?
       sqlite3_type.replace("int64")
       column_cast.replace("(long int)")
-      sqlite3_parameters.replace("int");    # for 32-bit architectures.used in retrieve.
+      sqlite3_parameters.replace("int")    # for 32-bit architectures.used in retrieve.
       return "base", nil, "", nil
     elsif @name == "rownum"           # 'rownum'column
       sqlite3_type.replace("int")
@@ -335,15 +335,18 @@ class VirtualTable
     @struct_view          # Reference to the respective 
                           # struct_view definition.
     @db = ""              # Database name to be created/connected against.
-    @signature = ""       # The C++ signature of the struct.
+    @signature = ""       # The C/C++ signature of the (base) struct.
+    @signature_pointer = "" # Signature is of type pointer? ("*")
     @container_class = "" # If a container instance as per 
                           # the SGI container concept.
     @type = ""            # The record type for the VT. 
                           # Use @type for management. It is active for 
                           # both container and object.
-    @pointer = ""         # Type of the base_var.
+    @pointer = ""         # Is the record type pointer? ("*").
     @iterator = ""        # Iterator name in app to use for C containers. 
-    @traverse = ""        # Traverse function name for C container:
+    @loop = ""            # Custom loop to use for iterating C containers
+                          # (linked lists, arrays, etc.)
+                          # A uniform abstraction is defined.
                           # generic_clist.
     @object_class = ""    # If an object instance.
     @columns = Array.new  # References to the VT columns.
@@ -351,10 +354,12 @@ class VirtualTable
     		      	  # of text data type. Required for
 			  # generating code for
 			  # PICO_QL_HANDLE_TEXT_ARRAY C++ flag.
-    @@C_container_types = ["clist", "generic_clist"]
+    @@C_container_types = ["c_container"]
+              # Maintained for backward compatibility.
   end
   attr_accessor(:name,:base_var_line,:signature_line,:base_var,
-                :struct_view,:db,:signature,:container_class,:type,
+                :struct_view,:db,:signature,:signature_pointer,
+                :container_class,:type,
                 :pointer,:iterator,:object_class,:columns,
                 :include_text_col,:C_container_types)
 
@@ -709,23 +714,13 @@ class VirtualTable
   end
 
   def configure_result_set()
+    @pointer.match(/\*/) ? retype = "" : retype = "*"
     if @container_class.length > 0
       if @@C_container_types.include?(@container_class)
         if $argLB == "CPP"
-          case @container_class
-          when "clist"
-            @pointer.match(/\*/) ? retype = "" : retype = "*"
-            add_to_result_setF = "<space>    rs->res.push_back(iter);\n<space>    rs->resBts.push_back(1);\n<space>  } else {\n<space>    rs->resBts.push_back(0);\n<space>  }\n<space>  iter = iter->#{@iterator};\n<space>}"
-          when "generic_clist"
-            add_to_result_setF = "<space>    rs->res.push_back(iter);\n<space>    rs->resBts.push_back(1);\n<space>  } else {\n<space>    rs->resBts.push_back(0);\n<space>  }\n<space>}"            
-          end
+          add_to_result_setF = "<space>    rs->res.push_back(iter);\n<space>    rs->resBts.push_back(1);\n<space>  } else {\n<space>    rs->resBts.push_back(0);\n<space>  }\n<space>}"            
         else
-          case @container_class
-          when "clist"
-            add_to_result_setF = "<space>    rs->size++;\n<space>    rs->actualSize++;\n<space>    ((#{@name}ResultSetImpl *)rs)->res = (#{@signature}#{retype}*)sqlite3_realloc(((#{@name}ResultSetImpl *)rs)->res, sizeof(#{@signature}#{retype})*rs->size);\n<space>    if (((#{@name}ResultSetImpl *)rs)->res == NULL)\n<space>      return SQLITE_NOMEM;\n<space>    ((#{@name}ResultSetImpl *)rs)->res[rs->size - 1] = iter;\n<space>  }\n<space>  iter = iter->#{@iterator};\n<space>}"
-          when "generic_clist"
-            add_to_result_setF = "<space>    rs->size++;\n<space>    rs->actualSize++;\n<space>    ((#{@name}ResultSetImpl *)rs)->res = (#{@signature}#{retype}*)sqlite3_realloc(((#{@name}ResultSetImpl *)rs)->res, sizeof(#{@signature}#{retype})*rs->size);\n<space>    if (((#{@name}ResultSetImpl *)rs)->res == NULL)\n<space>      return SQLITE_NOMEM;\n<space>    ((#{@name}ResultSetImpl *)rs)->res[rs->size - 1] = iter;\n<space>  }\n<space>}"
-          end
+          add_to_result_setF = "<space>    rs->size++;\n<space>    rs->actualSize++;\n<space>    ((#{@name}ResultSetImpl *)rs)->res = (#{@type}#{retype}*)sqlite3_realloc(((#{@name}ResultSetImpl *)rs)->res, sizeof(#{@type}#{retype})*rs->size);\n<space>    if (((#{@name}ResultSetImpl *)rs)->res == NULL)\n<space>      return SQLITE_NOMEM;\n<space>    ((#{@name}ResultSetImpl *)rs)->res[rs->size - 1] = iter;\n<space>  }\n<space>}"
         end
       else
         add_to_result_setF = "<space>    rs->res.push_back(iter);\n<space>    rs->resBts.set(index, 1);\n<space>  }\n<space>  index++;\n<space>}"
@@ -751,7 +746,7 @@ class VirtualTable
       if @@C_container_types.include?(@container_class)
         access_path.length == 0 ? idenF = "iter" : idenF = "iter."
         if $argLB == "CPP"
-        access_path.length == 0 ? idenN = "(*resIterC)" : idenN = "(*resIterC)."
+          access_path.length == 0 ? idenN = "(*resIterC)" : idenN = "(*resIterC)."
         else
           access_path.length == 0 ? idenN = "((#{@name}ResultSetImpl *)rs)->res[index]" : idenN = "((#{@name}ResultSetImpl *)rs)->res[index]."
         end
@@ -835,33 +830,17 @@ class VirtualTable
     return access_pathF, access_pathN, idenF, idenN
   end
 
-  def display_traverse(iterator, head, accessor)
-    cleaned = ""
-    loop = @traverse
-    matchdata = loop.match(/\((.+)\)/)
+  def display_loop(base)
+    loop = String.new(@loop)
+    matchdata = loop.match(/base/)
     if matchdata
-      args = matchdata[1].split(/,/)
-      args.each { |rg|
-        case rg
-        when /<iterator>/
-          loop.gsub!("#{rg}", "#{iterator}")
-        when /<head>/
-# Accessor might not be required since head is defined internally
-# (any_dstr).
-# member (what rg holds in this case) is supposed to be a struct;
-# as is the code, it would not work if it were struct * 
-# ('&' is hardcoded). Could define and check *member to denote that it's
-# pointer; then we would remove the '*' and not add '&'. Evaluate.
-          loop.gsub!("#{rg}", "&#{head}#{accessor}<member>")
-        else
-          cleaned = rg.gsub(/<|>/, "")
-          loop.gsub!("#{rg}", "#{cleaned}")
-        end
-      }
-      loop.gsub!("<member>", "#{cleaned}")
+      loop.gsub!(/base\.|base->/, "#{base}->")
+      loop.gsub!(/base/, "#{base}")
+    else
+      puts "Attention: not matched 'base' in #{@loop}."
     end
     if $argD == "DEBUG"
-      puts "#{loop}"
+      puts "Loop to display is #{loop}."
     end
     return loop
   end
@@ -872,16 +851,14 @@ class VirtualTable
 # for C containers resBts has size 1 to differ from error conditions.
 # Since we don't know size before hand we push_back as in result set.
 # We need to start pushing from scratch.
-# TODO:support for carray?
+# C container handling for both bindings (CPP, C}.
+# Passing base as argument to display_loop:
+# base is always "any_dstr".
+        loop = display_loop("any_dstr")
         if $argLB == "CPP"
-          iterationF = "<space>iter = any_dstr;\n<space>rs->resBts.clear();\n<space>while (iter != NULL) {"
+          iterationF = "<space>rs->resBts.clear();\n<space>#{loop} {"
         else
-          if @container_class == "generic_clist"
-            loop = display_traverse("iter", "any_dstr", "->")
-            iterationF = "<space>#{loop} {"
-          else
-            iterationF = "<space>iter = any_dstr;\n<space>while (iter != NULL) {"
-          end
+          iterationF = "<space>#{loop} {"
         end
       else
         iterationF = "<space>for (iter = any_dstr->begin(); iter != any_dstr->end(); iter++) {"
@@ -901,8 +878,7 @@ class VirtualTable
     if !@@C_container_types.include?(@container_class)
       fw.puts "      if (rowNum > (int)rs->resBts.size()) {"
     else
-      fw.puts "      iter = any_dstr;"
-      fw.puts "      while (iter != NULL) {"
+      fw.puts "      #{display_loop("any_dstr")} {"
       fw.puts "#{$s}if (rowNum == i) {"
       if $argLB == "CPP"
         fw.puts "#{$s}  found = true;"
@@ -911,7 +887,6 @@ class VirtualTable
       end
       fw.puts "#{$s}  break;"
       fw.puts "#{$s}}"
-      fw.puts "#{$s}iter = iter->#{@iterator};"
       fw.puts "#{$s}i++;"
       fw.puts "      }"
       fw.puts "      if (!found) {"
@@ -961,18 +936,10 @@ class VirtualTable
       add_to_result_setF.gsub!(/\n<space>\}/, "")
     else
 # CPP, C containers: configure spacing
-      if @container_class == "clist"
-        add_to_result_setF.gsub!(/\n<space>  \}\n<space>  iter = iter->#{@iterator};\n<space>\}/, "\n<space>    }\n<space>    iter = iter->#{@iterator};\n<space>  }")
-      elsif @container_class == "generic_clist"
-        add_to_result_setF.gsub!(/\n<space>  \}\n<space>\}/, "\n<space>    }\n<space>  }")
-      end
+      add_to_result_setF.gsub!(/\n<space>  \}\n<space>\}/, "\n<space>    }\n<space>  }")
 # C, C containers : remove extra '}'
       if $argLB == "C"
-        if @container_class == "clist"
-          add_to_result_setF.gsub!(/\n<space>    \}\n<space>    iter = iter->#{@iterator};\n<space>  \}/, "\n<space>    iter = iter->#{@iterator};\n<space>  }")
-        elsif @container_class == "generic_clist"
-          add_to_result_setF.gsub!(/\n<space>    \}\n<space>  \}/, "\n<space>  }")
-        end
+        add_to_result_setF.gsub!(/\n<space>    \}\n<space>  \}/, "\n<space>  }")
       end
     end
 # CPP, CPP_containers
@@ -1074,7 +1041,7 @@ class VirtualTable
     fw.puts "      if (first_constr == 1) {"
     space = "#{$s}"
     if @container_class.length > 0
-      add_to_result_setF.chomp!("\n<space>  iter = iter->#{@iterator};\n<space>}")
+      add_to_result_setF.chomp!("\n<space>}")
       add_to_result_setN.chomp!("\n<space>}")
       fw.puts "#{iterationF.gsub(/<space>/, "#{space}")}"
 #      space.concat("  ")
@@ -1085,9 +1052,6 @@ class VirtualTable
                          full_union_access_pathF, add_to_result_setF, 
                          iteration, notC)
     if @container_class.length > 0
-      if @@C_container_types.include?(@container_class)
-        fw.puts "#{$s}  iter = iter->#{@iterator};"
-      end
       fw.puts "#{$s}}"
       fw.puts "      } else {"
       fw.puts "#{iterationN.gsub(/<space>/, "#{space}")}"
@@ -1341,33 +1305,51 @@ class VirtualTable
       case @signature
       when /(\w+)<(.+)>(\**)/m
         matchdata = /(\w+)<(.+)>(\**)/m.match(@signature)
-        if @@C_container_types.include?(matchdata[1])
-          @signature = matchdata[2]
-          if @signature.match(/(\w+)(\s*)\*/)
-            @pointer = "*"
-          end
-        else
-          @pointer = matchdata[3]
-        end
+        @signature_pointer = matchdata[3]
         @container_class = matchdata[1]
         @type = matchdata[2]
+        if @type.match(/\*/)
+          @pointer = "*"
+        end
         if $argD == "DEBUG"
           puts "Virtual table container class name is: " + @container_class
           puts "Virtual table record is of type: " + @type
           puts "Virtual table type is of type pointer: " + @pointer
         end
       when /(\w+)\*|(\w+)/
-        matchdata = /(\w+)(\**)/.match(@signature)
-        @object_class = @signature
-        @type = @signature
-        @pointer = matchdata[2]
-        if $argD == "DEBUG"
-          puts "Table object class name : " + @object_class
-          puts "Table record is of type: " + @type
-          puts "Table type is of type pointer: " + @pointer
+        if matchdata = /(.+):(.+)/.match(@signature)
+          @signature = matchdata[1]
+          @type = matchdata[2]
+          @signature.rstrip!
+          @type.rstrip!
+          if @signature.match(/\*/)
+            @signature_pointer = "*"
+          end
+          if @type.match(/\*/)
+            @pointer = "*"
+          end
+        else
+          @type = @signature
+          if @signature.match(/\*/)
+            @signature_pointer = "*"
+          end
+          @pointer = @signature_pointer
+        end
+        if @loop.length > 0
+          @container_class = "c_container"
+        else
+          @object_class = @signature
         end
       when /(.+)/
         raise "Template instantiation faulty: #{@signature}.\n"
+      end
+      if $argD == "DEBUG"
+        puts "Table object class name : " + @object_class
+        puts "Table container class name : " + @container_class
+        puts "Table base is of type : " + @signature
+        puts "Table base is pointer: " + @signature_pointer
+        puts "Table record is of type: " + @type
+        puts "Table type is of type pointer: " + @pointer
       end
     rescue
       puts "Template instantiation faulty: #{@signature}.\n"
@@ -1375,16 +1357,16 @@ class VirtualTable
     end
   end
 
-  def process_traverse()
-    @traverse.gsub!(/(\s+)/, "")
-    matchdata = @traverse.match(/\((.+)\)/)
+  def process_loop()
+    @loop.gsub!(/(\s+)/, "")
+    matchdata = @loop.match(/\((.+)\)/)
     if matchdata
       args = matchdata[1].split(/,/)
       args.each { |rg|
-        @traverse.gsub!("#{rg}", "<#{rg}>")
+        @loop.gsub!("#{rg}", "<#{rg}>")
       }
     else
-      puts "Invalid traverse function: #{@traverse}."
+      puts "Invalid loop: #{@loop}."
       puts "Exiting now."
       exit(1)
     end
@@ -1392,12 +1374,10 @@ class VirtualTable
 
 # Matches VT definitions against prototype patterns.
   def match_table(table_description)
-    table_ptn1 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c name (.+) with registered c type (.+) using c traverse function (.+)/im
-    table_ptn2 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c type (.+) using c traverse function (.+)/im
-    table_ptn3 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c name (.+) with registered c type (.+) using c iterator name (\w+)/im
-    table_ptn4 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c type (.+) using c iterator name (\w+)/im
-    table_ptn5 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c name (.+) with registered c type (.+)/im
-    table_ptn6 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c type (.+)/im
+    table_ptn1 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c name (.+) with registered c type (.+) using loop (.+)/im
+    table_ptn2 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c type (.+) using loop (.+)/im
+    table_ptn3 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c name (.+) with registered c type (.+)/im
+    table_ptn4 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c type (.+)/im
     if $argD == "DEBUG"
       puts "Table description is: #{table_description}"
     end
@@ -1410,16 +1390,16 @@ class VirtualTable
       struct_view_name = matchdata[3]
       @base_var = matchdata[4]
       @signature = matchdata[5]
-      @traverse = matchdata[6]
-      process_traverse()
+      @loop = matchdata[6]
+      #process_loop()
     when table_ptn2
       matchdata = table_ptn2.match(table_description)
       @db = matchdata[1]
       @name = matchdata[2]
       struct_view_name = matchdata[3]
       @signature = matchdata[4]
-      @traverse = matchdata[5]
-      process_traverse()
+      @loop = matchdata[5]
+      #process_loop()
     when table_ptn3
       matchdata = table_ptn3.match(table_description)
       @db = matchdata[1]
@@ -1427,23 +1407,8 @@ class VirtualTable
       struct_view_name = matchdata[3]
       @base_var = matchdata[4]
       @signature = matchdata[5]
-      @iterator = matchdata[6]
     when table_ptn4
       matchdata = table_ptn4.match(table_description)
-      @db = matchdata[1]
-      @name = matchdata[2]
-      struct_view_name = matchdata[3]
-      @signature = matchdata[4]
-      @iterator = matchdata[5]
-    when table_ptn5
-      matchdata = table_ptn5.match(table_description)
-      @db = matchdata[1]
-      @name = matchdata[2]
-      struct_view_name = matchdata[3]
-      @base_var = matchdata[4]
-      @signature = matchdata[5]
-    when table_ptn6
-      matchdata = table_ptn6.match(table_description)
       @db = matchdata[1]
       @name = matchdata[2]
       struct_view_name = matchdata[3]
@@ -1660,7 +1625,7 @@ end
 # Models the input description.
 class InputDescription
   def initialize(description)
-    # original description tokenised in an Array using ';' delimeter
+    # original description tokenised in an Array using '$' delimeter
     @description = description
     # array with entries the identity of each virtual table
     @tables = Array.new
@@ -1787,10 +1752,6 @@ class InputDescription
     token_d[0].lstrip!
     if token_d[0].start_with?("#include")
       @directives = token_d[0]
-      # Putback the ';' after the namespace.
-      if @directives.match(/using namespace (.+)/)
-        @directives.gsub!(/using namespace (.+)/, 'using namespace \1;')
-      end
       token_d.delete_at(0)
       if $argD == "DEBUG"
         line = 0              # Put line directives in include directives.
@@ -1895,14 +1856,10 @@ if __FILE__ == $0
     if / \)/.match(line) : line.gsub!(/ \)/, ")") end
   }
   description = $lined_description.to_s
-  # Remove the ';' from the namespace before splitting.
-  if description.match(/using namespace (.+);/)
-    description.gsub!(/using namespace (.+);/, 'using namespace \1')
-  end
   begin
-    token_description = description.split(/;/)
+    token_description = description.split(/\$/)
   rescue
-    puts "Invalid description..delimeter ';' not used."
+    puts "Invalid description..delimeter '$' not used."
     exit(1)
   end
   $s = "        "

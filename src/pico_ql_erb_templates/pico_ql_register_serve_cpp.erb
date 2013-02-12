@@ -38,7 +38,7 @@ namespace picoQL {
 
 <%     @tables.each { |vt| %>
 <%      if vt.base_var.length > 0 %>
-<%        /\*/.match(vt.pointer) == nil ? retype = "*" : retype = "" %>
+<%        /\*/.match(vt.signature_pointer) == nil ? retype = "*" : retype = "" %>
 <%        if $argD == "DEBUG" %>
 // C NAME (pico_ql_table_)<%= vt.base_var %> in line <%= vt.base_var_line + 1 %> <%= $argF %> 
 <%        end %>
@@ -65,7 +65,7 @@ void pico_ql_register(const void *data_structure, const char *ds_name) {
 <%        if $argD == "DEBUG" %>
 #line <%= @tables[vt].base_var_line + 1 %> "<%= $argF %>" 
 <%        end %>
-<%        /\*/.match(@tables[vt].pointer) == nil ? retype = "*" : retype = "" %>
+<%        /\*/.match(@tables[vt].signature_pointer) == nil ? retype = "*" : retype = "" %>
     pico_ql_table_<%= @tables[vt].base_var %> = (<%= @tables[vt].signature %> <%= retype %>)data_structure;
 <%        if $argD == "DEBUG" %>
 #line <%= @tables[vt].signature_line + 1 %> "<%= $argF %>" 

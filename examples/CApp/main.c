@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include "Monetary_System.h"
 #include "Money.h"
+#include "MoneyArray.h"
 #include "pico_ql_search.h"
 
 /* .cpp
@@ -13,7 +14,11 @@ using namespace picoQL;
 
 int main() {
   Monetary_System ms;
+  MoneyArray ma;
+  ma.mArraySize = 3;
+  ma.mArray = (struct Money **)malloc(sizeof(struct Money *) * ma.mArraySize);
   struct Money* M = (struct Money *)malloc(sizeof(struct Money));
+  ma.mArray[0] = M;
   ms.root = M;
   ms.nCurrency = 1;
   //.cpp:  vector<money> mon;
@@ -43,6 +48,7 @@ int main() {
   M->weight_mode = 0;
   struct Money* N = (struct Money *)malloc(sizeof(struct Money));
   M->next = N;
+  ma.mArray[1] = N;
   ms.nCurrency = 2;
   //.cpp:  vector<money> mon;
   strcpy((char *)N->name, "Pound");
@@ -67,6 +73,7 @@ int main() {
   N->next = NULL;
   struct Money* O = (struct Money *)malloc(sizeof(struct Money));
   N->next = O;
+  ma.mArray[2] = O;
   ms.nCurrency = 3;
   //.cpp:  vector<money> mon;
   strcpy((char *)O->name, "Dollar");
@@ -92,6 +99,7 @@ int main() {
   //.cpp:  mon.push_back(O);
   pico_ql_register(M, "money");
   pico_ql_register(&ms, "monetary_system");
+  pico_ql_register(&ma, "money_array");
   pico_ql_serve(8080);
   printf("Money M Price main: %f\n", M->prc.main);
   printf("Money N Price main: %f\n", N->prc.main);

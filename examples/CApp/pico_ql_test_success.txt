@@ -23,6 +23,18 @@ Dollar 1 dlr_price 0 dlr_wgt
 Done
 
 Query 2:
+ select name, price_mode, price, weight_mode, weight from MoneyArray;
+
+Statement prepared.
+name price_mode price weight_mode weight 
+
+Euro 1 Euro_price 0 euro_wgt 
+Pound 1 pnd_price 0 pound_wgt 
+Dollar 1 dlr_price 0 dlr_wgt 
+
+Done
+
+Query 3:
  select nCurrency, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where name like '%eu';
 
 Statement prepared.
@@ -31,7 +43,7 @@ nCurrency name price_mode price weight_mode weight
 
 Done
 
-Query 3:
+Query 4:
  select name, price_mode, price, weight_mode, weight from Moneylist where name like '%eu';
 
 Statement prepared.
@@ -40,7 +52,16 @@ name price_mode price weight_mode weight
 
 Done
 
-Query 4:
+Query 5:
+ select name, price_mode, price, weight_mode, weight from MoneyArray where name like '%eu';
+
+Statement prepared.
+name price_mode price weight_mode weight 
+
+
+Done
+
+Query 6:
  select nCurrency, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where price > 10;
 
 Statement prepared.
@@ -52,7 +73,7 @@ nCurrency name price_mode price weight_mode weight
 
 Done
 
-Query 5:
+Query 7:
  select name, price_mode, price, weight_mode, weight from Moneylist where price > 10;
 
 Statement prepared.
@@ -64,7 +85,19 @@ Dollar 1 dlr_price 0 dlr_wgt
 
 Done
 
-Query 6:
+Query 8:
+ select name, price_mode, price, weight_mode, weight from MoneyArray where price > 10;
+
+Statement prepared.
+name price_mode price weight_mode weight 
+
+Euro 1 Euro_price 0 euro_wgt 
+Pound 1 pnd_price 0 pound_wgt 
+Dollar 1 dlr_price 0 dlr_wgt 
+
+Done
+
+Query 9:
  select nCurrency, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where price like 'f%';
 
 Statement prepared.
@@ -73,7 +106,7 @@ nCurrency name price_mode price weight_mode weight
 
 Done
 
-Query 7:
+Query 10:
  select name, price_mode, price, weight_mode, weight from Moneylist where price like 'f%';
 
 Statement prepared.
@@ -82,7 +115,16 @@ name price_mode price weight_mode weight
 
 Done
 
-Query 8:
+Query 11:
+ select name, price_mode, price, weight_mode, weight from MoneyArray where price like 'f%';
+
+Statement prepared.
+name price_mode price weight_mode weight 
+
+
+Done
+
+Query 12:
  select nCurrency, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where price like 'd%';
 
 Statement prepared.
@@ -92,7 +134,7 @@ nCurrency name price_mode price weight_mode weight
 
 Done
 
-Query 9:
+Query 13:
  select name, price_mode, price, weight_mode, weight from Moneylist where price like 'd%';
 
 Statement prepared.
@@ -102,7 +144,17 @@ Dollar 1 dlr_price 0 dlr_wgt
 
 Done
 
-Query 10:
+Query 14:
+ select name, price_mode, price, weight_mode, weight from MoneyArray where price like 'd%';
+
+Statement prepared.
+name price_mode price weight_mode weight 
+
+Dollar 1 dlr_price 0 dlr_wgt 
+
+Done
+
+Query 15:
  select nCurrency, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency join GoldEquivalent on GoldEquivalent.base = Money.weight where ounce > 10;
 
 Statement prepared.
@@ -111,7 +163,7 @@ nCurrency name price_mode price weight_mode weight
 
 Library used incorrectly
 
-Query 11:
+Query 16:
  select name, price_mode, price, weight_mode, weight from Moneylist join GoldEquivalent on GoldEquivalent.base = Moneylist.weight where ounce > 10;
 
 Statement prepared.
@@ -120,7 +172,16 @@ name price_mode price weight_mode weight
 
 Library used incorrectly
 
-Query 12:
+Query 17:
+ select name, price_mode, price, weight_mode, weight from MoneyArray join GoldEquivalent on GoldEquivalent.base = MoneyArray.weight where ounce > 10;
+
+Statement prepared.
+name price_mode price weight_mode weight 
+
+
+Library used incorrectly
+
+Query 18:
  select nCurrency, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where weight like 'a%';
 
 Statement prepared.
@@ -129,7 +190,7 @@ nCurrency name price_mode price weight_mode weight
 
 Done
 
-Query 13:
+Query 19:
  select name, price_mode, price, weight_mode, weight from Moneylist where weight like 'a%';
 
 Statement prepared.
@@ -138,7 +199,16 @@ name price_mode price weight_mode weight
 
 Done
 
-Query 14:
+Query 20:
+ select name, price_mode, price, weight_mode, weight from MoneyArray where weight like 'a%';
+
+Statement prepared.
+name price_mode price weight_mode weight 
+
+
+Done
+
+Query 21:
  select nCurrency, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where weight like '%o%';
 
 Statement prepared.
@@ -149,7 +219,7 @@ nCurrency name price_mode price weight_mode weight
 
 Done
 
-Query 15:
+Query 22:
  select name, price_mode, price, weight_mode, weight from Moneylist where weight like '%o%';
 
 Statement prepared.
@@ -160,7 +230,18 @@ Pound 1 pnd_price 0 pound_wgt
 
 Done
 
-Query 16:
+Query 23:
+ select name, price_mode, price, weight_mode, weight from MoneyArray where weight like '%o%';
+
+Statement prepared.
+name price_mode price weight_mode weight 
+
+Euro 1 Euro_price 0 euro_wgt 
+Pound 1 pnd_price 0 pound_wgt 
+
+Done
+
+Query 24:
  select * from Price;
 
 Statement prepared.
@@ -170,7 +251,7 @@ union_mode price
 
 Done
 
-Query 17:
+Query 25:
  select * from Price where price > 10;
 
 Statement prepared.

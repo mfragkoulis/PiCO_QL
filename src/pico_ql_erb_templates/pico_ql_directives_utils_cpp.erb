@@ -89,7 +89,7 @@ static map<string, VtblImpl*> selector_vt;
 
 <%     @tables.each { |vt| %>
 <%      if vt.base_var.length > 0 %>
-<%        /\*/.match(vt.pointer) == nil ? retype = "*" : retype = "" %>
+<%        /\*/.match(vt.signature_pointer) == nil ? retype = "*" : retype = "" %>
 <%        if $argD == "DEBUG" %>
 // C NAME (pico_ql_table_)<%= vt.base_var %> in line <%= vt.base_var_line + 1 %> <%= $argF %> 
 <%        end %>
@@ -155,8 +155,6 @@ int register_vt(picoQLTable *picoQL) {
 <%        else %>
   } else if (!strcmp(picoQL->zName, "<%= @tables[vt].name %>")) {
 <%        end %>
-<%# Retyping has been taken care of in register_pico_ql %>
-<%#        /\*/.match(@tables[vt].pointer) == nil ? retype = "&" : retype = "" %>
 <%        if $argD == "DEBUG" %>
 #line <%= @tables[vt].base_var_line + 1 %> "<%= $argF %>" 
 <%        end %>
@@ -240,10 +238,10 @@ list <<%= col.fk_col_type.chomp('*') %> > saved_results_<%= i %>;
 <%      if vt.container_class.length > 0 %>
   class ResultSet {
   public:
+<%        vt.pointer.match(/\*/) ? type_retype = "" : type_retype = "*" %>
 <%        if VirtualTable.C_container_types.include?(vt.container_class) %>
-<%          vt.pointer.match(/\*/) ? retype = "" : retype = "*" %>
-    vector<<%= vt.signature %><%= retype %>> res;
-    vector<<%= vt.signature %><%= retype %>>::iterator resIter;
+    vector<<%= vt.type %><%= type_retype %>> res;
+    vector<<%= vt.type %><%= type_retype %>>::iterator resIter;
 <%        else %>
     vector<<%= vt.signature.chomp('*') %>::iterator> res;
     vector<<%= vt.signature.chomp('*') %>::iterator>::iterator resIter;
@@ -252,8 +250,7 @@ list <<%= col.fk_col_type.chomp('*') %> > saved_results_<%= i %>;
     int resultSetIterState;
     int offset;
 <%        if VirtualTable.C_container_types.include?(vt.container_class) %>
-<%          vt.pointer.match(/\*/) ? retype = "" : retype = "*" %>
-    ResultSet(int res_max_size, int resIterState, int off, vector<<%= vt.signature %><%= retype %>>::iterator it) {
+    ResultSet(int res_max_size, int resIterState, int off, vector<<%= vt.type %><%= type_retype %>>::iterator it) {
 <%        else %>
     ResultSet(int res_max_size, int resIterState, int off, vector<<%= vt.signature.chomp('*') %>::iterator>::iterator it) {
 <%        end %>
@@ -267,9 +264,9 @@ list <<%= col.fk_col_type.chomp('*') %> > saved_results_<%= i %>;
   };
   map<sqlite3_vtab_cursor *, ResultSet> cursors;
 <%        if VirtualTable.C_container_types.include?(vt.container_class) %>
-<%          vt.pointer.match(/\*/) ? retype = "" : retype = "*" %> 
-  vector<<%= vt.signature %><%= retype %>>::iterator resIterC;
-  <%= vt.signature %><%= retype %> iter;
+  vector<<%= vt.type %><%= type_retype %>>::iterator resIterC;
+<%# _decl(iter) .. ? %>
+  <%= vt.type %><%= type_retype %> iter;
 <%        else %>
   vector<<%= vt.signature.chomp('*') %>::iterator>::iterator resIterC;
   <%= vt.signature.chomp('*') %>::iterator iter;

@@ -43,7 +43,7 @@
 
 <%     @tables.each { |vt| %>
 <%      if vt.base_var.length > 0 %>
-<%        /\*/.match(vt.pointer) == nil ? retype = "*" : retype = "" %>
+<%        /\*/.match(vt.signature_pointer) == nil ? retype = "*" : retype = "" %>
 <%        if $argD == "DEBUG" %>
 // C NAME (pico_ql_table_)<%= vt.base_var %> in line <%= vt.base_var_line + 1 %> <%= $argF %> 
 <%        end %>
@@ -67,8 +67,6 @@ int register_vt(picoQLTable *picoQL) {
 <%        else %>
   } else if (!strcmp(picoQL->zName, "<%= @tables[vt].name %>")) {
 <%        end %>
-<%# Retyping has been taken care of in register_pico_ql %>
-<%#        /\*/.match(@tables[vt].pointer) == nil ? retype = "&" : retype = "" %>
 <%        if $argD == "DEBUG" %>
 #line <%= @tables[vt].base_var_line + 1 %> "<%= $argF %>" 
 <%        end %>
@@ -154,7 +152,7 @@ VtblAll vtAll = {0, 0, 0};
 <%      if vt.container_class.length > 0 %>
 typedef struct <%= vt.name %>ResultSetImpl {
   ResultSet r;
-  <%= vt.signature.chomp('*') %> **res;
+  <%= vt.type.chomp('*') %> **res;
 } <%= vt.name %>ResultSetImpl;
 <%      end %>
 

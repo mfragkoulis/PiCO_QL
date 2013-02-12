@@ -4,10 +4,11 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
   (void)picoQL;	// Silence compiler unused variable warning
   picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
   if (cursors.find(cur) == cursors.end()) {
+<%      @signature_pointer.match(/\*/) ? sign_retype = "#{@signature}" : sign_retype = "#{@signature}*" %>
+<%      @pointer.match(/\*/) ? type_retype = "#{@type}" : type_retype = "#{@type}*" %>
 <%      if @container_class.length > 0 %>
 <%        if @@C_container_types.include?(@container_class) %>
-<%          @pointer.match(/\*/) ? retype = "" : retype = "*" %>
-    vector<<%= @signature %><%= retype %>> res;
+    vector<<%= type_retype %>> res;
 <%        else %>
     vector<<%= @signature.chomp('*') %>::iterator> res;
 <%        end %>
@@ -43,8 +44,7 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
     rs->res.clear();
     rs->resBts.clear();
 <%        if @@C_container_types.include?(@container_class) %>
-<%          @pointer.match(/\*/) ? retype = "" : retype = "*" %>
-    <%= @signature %><%= retype %> dummy;
+    <%= type_retype %> dummy;
     rs->res.push_back(dummy);
 <%	  else %>
     rs->res.push_back(<%= @signature.chomp('*') %>::iterator());
@@ -53,11 +53,6 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
 <%      end %>
     return SQLITE_OK;
   }
-<%      if /\*/.match(@pointer) == nil %>
-<%        sign_retype = "#{@signature}*" %>
-<%      else %>
-<%        sign_retype = @signature %>
-<%      end %>
   <%= sign_retype %> any_dstr = (<%= sign_retype %>)stcsr->source;
 <%        if $argD == "DEBUG" %>
 #line <%= @signature_line + 1 %> "<%= $argF %>" 
@@ -69,12 +64,10 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
 <%      if @base_var.length > 0 %>
 <%        if @container_class.length > 0 %>
 <%          if @@C_container_types.include?(@container_class) %>
-    iter = any_dstr;
     rs->resBts.clear();
-    while (iter != NULL) {
+    <%= display_loop("any_dstr") %> {
       rs->res.push_back(iter);
       rs->resBts.push_back(1);
-      iter = iter-><%= @iterator %>;
     }
 <%          else %>
     for (iter = any_dstr->begin(); iter != any_dstr->end(); iter++)
@@ -107,8 +100,7 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
 <%	  else %>
 // BASE is first constraint by default, so no need to delete resultset here.
 <%          if @@C_container_types.include?(@container_class) %>
-<%            @pointer.match(/\*/) ? retype = "" : retype = "*" %>
-            <%= @signature %><%= retype %> dummy;
+            <%= type_retype %> dummy;
             rs->res.push_back(dummy);
 <%	    else %>
             rs->res.push_back(<%= @signature.chomp('*') %>::iterator());
@@ -122,8 +114,7 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
           if ((stcsr->max_size = (int)(*this)(cur, cur->pVtab)) == 0) {
             stcsr->isInstanceEmpty = 1;
 <%          if @@C_container_types.include?(@container_class) %>
-<%            @pointer.match(/\*/) ? retype = "" : retype = "*" %>
-            <%= @signature %><%= retype %> dummy;
+            <%= type_retype %> dummy;
             rs->res.push_back(dummy);
 <%	    else %>
             rs->res.push_back(<%= @signature.chomp('*') %>::iterator());

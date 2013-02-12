@@ -4,7 +4,7 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int nCol, sqlite3_con
   ResultSet *rs = &cursors[cur];
 <%    end %>
   if (struct_is_empty_null(cur, con)) return SQLITE_OK; 
-<%    if /\*/.match(@pointer) == nil %>
+<%    if /\*/.match(@signature_pointer) == nil %>
 <%      sign_retype = "#{@signature}*" %>
 <%    else %>
 <%      sign_retype = @signature %>

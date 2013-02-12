@@ -8,14 +8,19 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
   size_t chargedSize = ((<%= @name %>_vt *)vtbl)->chargedSize;
   int recursive = ((<%= @name %>_vt *)vtbl)->recursive;
 <%      end %>
-<%      if /\*/.match(@pointer) == nil %>
+<%      if /\*/.match(@signature_pointer) == nil %>
 <%        sign_retype = "#{@signature}*" %>
 <%      else %>
 <%        sign_retype = @signature %>
 <%      end %>
+<%      if /\*/.match(@pointer) == nil %>
+<%        type_retype = "#{@type}*" %>
+<%      else %>
+<%        type_retype = @type %>
+<%      end %>
   <%= sign_retype %> any_dstr;  
 <%      if @container_class.length > 0 %>
-  <%= sign_retype %> iter;
+  <%= @name %>_decl(iter);
   int index = 0;
   ResultSet *rs;
 <%        if $argLB == "CPP" %>
@@ -39,7 +44,6 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
       return SQLITE_NOMEM;
     c->cur = cur;
 <%      if @container_class.length > 0 %>
-<%#    c->res = {stcsr->max_size, stcsr->max_size, -1, -1}; FOR CARRAY ? %>
     resImpl = (<%= @name %>ResultSetImpl *)sqlite3_malloc(sizeof(<%= @name %>ResultSetImpl));
     if (resImpl == NULL)
       return SQLITE_NOMEM;
@@ -48,7 +52,7 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
     resImpl->r.offset = -1;
     resImpl->r.resultSetIterState = -1;
     c->res = &resImpl->r;
-    resImpl->res = (<%= @signature.chomp('*') %> **)sqlite3_malloc(sizeof(<%= @signature.chomp('*') %> *));
+    resImpl->res = (<%= @type.chomp('*') %> **)sqlite3_malloc(sizeof(<%= @type.chomp('*') %> *));
     if (resImpl->res == NULL)
       return SQLITE_NOMEM;
 <%      else %>
@@ -72,12 +76,12 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
     stcsr->size = 1;
 <%	else %>
 <%        @pointer.match(/\*/) ? retype = "" : retype = "*" %>
-    <%= @signature %><%= retype %> dummy = NULL;
+    <%= @type %><%= retype %> dummy = NULL;
     rs->size = 0;
     rs->actualSize = 0;
     rs->size++;
     rs->actualSize++;
-    ((<%= @name %>ResultSetImpl *)rs)->res = (<%= sign_retype %>*)sqlite3_realloc(((<%= @name %>ResultSetImpl *)rs)->res, sizeof(<%= sign_retype %>)*rs->size);
+    ((<%= @name %>ResultSetImpl *)rs)->res = (<%= type_retype %>*)sqlite3_realloc(((<%= @name %>ResultSetImpl *)rs)->res, sizeof(<%= type_retype %>)*rs->size);
     if (((<%= @name %>ResultSetImpl *)rs)->res == NULL)
       return SQLITE_NOMEM;
     ((<%= @name %>ResultSetImpl *)rs)->res[rs->size - 1] = dummy;
@@ -94,21 +98,15 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
   if (val == NULL) {
 <%      if @base_var.length > 0 %>
 <%        if @container_class.length > 0 %>
-<%          if @container_class == "clist" %>
-    iter = any_dstr;
-    while (iter != NULL) {
-<%          elsif @container_class == "generic_clist" %>
-    <%= display_traverse("iter", "any_dstr", "->") %> {
+<%          if @@C_container_types.include?(@container_class) %>
+    <%= display_loop("any_dstr") %> {
 <%          end %>
       rs->size++;
       rs->actualSize++;
-      ((<%= @name %>ResultSetImpl *)rs)->res = (<%= sign_retype %>*)sqlite3_realloc(((<%= @name %>ResultSetImpl *)rs)->res, sizeof(<%= sign_retype %>)*rs->size);
+      ((<%= @name %>ResultSetImpl *)rs)->res = (<%= type_retype %>*)sqlite3_realloc(((<%= @name %>ResultSetImpl *)rs)->res, sizeof(<%= type_retype %>)*rs->size);
       if (((<%= @name %>ResultSetImpl *)rs)->res == NULL)
         return SQLITE_NOMEM;
       ((<%= @name %>ResultSetImpl *)rs)->res[rs->size - 1] = iter;
-<%          if @container_class == "clist" %>
-      iter = iter-><%= @iterator %>;
-<%          end %>
     }
 <%        else %>
     stcsr->size = 1;
@@ -134,11 +132,11 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
             stcsr->size = 1;
 <%	  else %>
 <%            @pointer.match(/\*/) ? retype = "" : retype = "*" %>
-            <%= @signature %><%= retype %> dummy = NULL;
+            <%= @type %><%= retype %> dummy = NULL;
 // BASE is first constraint by default, so no need to delete resultset here.
             rs->size++;
             rs->actualSize++;
-            ((<%= @name %>ResultSetImpl *)rs)->res = (<%= sign_retype %>*)sqlite3_realloc(((<%= @name %>ResultSetImpl *)rs)->res, sizeof(<%= sign_retype %>)*rs->size);
+            ((<%= @name %>ResultSetImpl *)rs)->res = (<%= type_retype %>*)sqlite3_realloc(((<%= @name %>ResultSetImpl *)rs)->res, sizeof(<%= type_retype %>)*rs->size);
             if (((<%= @name %>ResultSetImpl *)rs)->res == NULL)
               return SQLITE_NOMEM;
             ((<%= @name %>ResultSetImpl *)rs)->res[rs->size - 1] = dummy;
@@ -151,23 +149,18 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
 <%        if @container_class.length > 0 %>
           if ((stcsr->max_size = (int)<%= @name %>_vt_get_datastructure_size(cur, cur->pVtab)) == 0) {
 <%          @pointer.match(/\*/) ? retype = "" : retype = "*" %>
-            <%= @signature %><%= retype %> dummy = NULL;
+            <%= @type %><%= retype %> dummy = NULL;
             stcsr->isInstanceEmpty = 1;
             rs->size++;
             rs->actualSize++;
-            ((<%= @name %>ResultSetImpl *)rs)->res = (<%= sign_retype %>*)sqlite3_realloc(((<%= @name %>ResultSetImpl *)rs)->res, sizeof(<%= sign_retype %>)*rs->size);
+            ((<%= @name %>ResultSetImpl *)rs)->res = (<%= type_retype %>*)sqlite3_realloc(((<%= @name %>ResultSetImpl *)rs)->res, sizeof(<%= type_retype %>)*rs->size);
             if (((<%= @name %>ResultSetImpl *)rs)->res == NULL)
               return SQLITE_NOMEM;
             ((<%= @name %>ResultSetImpl *)rs)->res[rs->size - 1] = dummy;
             return SQLITE_OK;
           } else {
-<%#            rs->size = stcsr->max_size; %>
-<%#            ((<%= @name ResultSetImpl *)rs)->res = (<%= sign_retype *)sqlite3_realloc(((<%= @name ResultSetImpl *)rs)->res, sizeof(<%= sign_retype )*rs->size); FOR CARRAY? %>
-<%#               if (((<%= @name ResultSetImpl *)rs)->res == NULL) %>
-<%#                 return SQLITE_NOMEM; %>
 #ifdef PICO_QL_DEBUG
             printf("VT %s instance changed.\n", picoQL->zName);
-<%#            printf("VT %s reallocated. Now max_size: %i\n", picoQL->zName, stcsr->max_size); %>
 #endif
           }
 <%        end %>

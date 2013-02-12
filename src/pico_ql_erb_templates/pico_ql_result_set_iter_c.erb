@@ -3,20 +3,6 @@ size_t <%= @name %>_vt_get_datastructure_size (sqlite3_vtab_cursor *cur, sqlite3
   picoQLTable *picoQL = (picoQLTable *)vtab;
 <%      if @container_class.length > 0 %>
   picoQL->object = 0;
-<%# TODO carray support %>
-<%        if @container_class == "carray" %>
-  if (cur != NULL) {
-    picoQLTableCursor *stc = (picoQLTableCursor *)cur;
-<%          /\*/.match(@pointer) == nil ? retype = "*" : retype = "" %>
-<%# stc->source will definitely hold a pointer so retyping the signature
-<%# as follows is correct. %>
-    <%= @signature %><%= retype %> any_dstr = (<%= @signature %><%= retype %>)stc->source;
-<%          if $argD == "DEBUG" %>
-#line <%= @signature_line + 1 %> "<%= $argF %>" 
-<%          end %>
-    return any_dstr-><%= vt.size %>;
-  }
-<%        end %>
 <%      else %>
   (void)cur;
   picoQL->object = 1;

@@ -58,7 +58,7 @@ OBJ=main.o pico_ql_search.o pico_ql_internal.o pico_ql_vt.o pico_ql_logo.o pico_
 capp: $(OBJ)
 	$(GC) -lswill -lsqlite3 $(CXXFLAGS) $(OBJ) -o $@
 
-main.o: main.c Money.h Monetary_System.h pico_ql_search.h
+main.o: main.c Money.h Monetary_System.h MoneyArray.h pico_ql_search.h
 
 pico_ql_search.o: pico_ql_search.cpp pico_ql_search.h pico_ql_internal.h
 

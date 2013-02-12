@@ -5,7 +5,7 @@ int <%= @name %>_vt_retrieve (sqlite3_vtab_cursor *cur, int nCol, sqlite3_contex
   size_t cursorsSize = ((<%= @name %>_vt *)vtbl)->cursorsSize;
   ResultSet *rs;
 <%    end %>
-<%    if /\*/.match(@pointer) == nil %>
+<%    if /\*/.match(@signature_pointer) == nil %>
 <%      sign_retype = "#{@signature}*" %>
 <%    else %>
 <%      sign_retype = @signature %>
