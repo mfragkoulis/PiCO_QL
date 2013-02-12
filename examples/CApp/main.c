@@ -13,8 +13,14 @@ using namespace picoQL;
 */
 
 int main() {
+  int num[] = {1, 2, 3, 4, 5, 6, 7, 8};
+  pico_ql_register(num, "numbers");
+
   Monetary_System ms;
   MoneyArray ma;
+  ma.intArray = num;
+  ma.iArraySize = 8;
+  pico_ql_register(&ma, "int_array");
   ma.mArraySize = 3;
   ma.mArray = (struct Money **)malloc(sizeof(struct Money *) * ma.mArraySize);
   struct Money* M = (struct Money *)malloc(sizeof(struct Money));

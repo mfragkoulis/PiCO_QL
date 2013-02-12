@@ -7,6 +7,9 @@
 #define MoneyList_decl(X) struct Money *X
 #define MoneyArray_decl(X) struct Money *X; int i = 0
 #define MoneyArray_advance(X, Y, Z) X = Y[Z]
+#define Number_decl(X) int *X; int i = 0
+#define Number_advance(X, Y, Z) X = &Y[Z]
+#define ENumber_decl(X) int *X; int i = 0
 $
 
 CREATE UNION VIEW price (
@@ -83,3 +86,20 @@ USING STRUCT VIEW Money
 WITH REGISTERED C NAME money_array
 WITH REGISTERED C TYPE MoneyArray:struct Money *
 USING LOOP for(iter = base->mArray[i]; i < base->mArraySize; MoneyArray_advance(iter, base->mArray, ++i))$
+
+CREATE STRUCT VIEW Number (
+	number INT FROM self
+)$
+
+CREATE VIRTUAL TABLE myCApp.Number
+USING STRUCT VIEW Number
+WITH REGISTERED C NAME numbers
+WITH REGISTERED C TYPE int
+USING LOOP for(iter = &base[i]; i < 8; Number_advance(iter, base, ++i))$
+
+
+CREATE VIRTUAL TABLE myCApp.ENumber
+USING STRUCT VIEW Number
+WITH REGISTERED C NAME int_array
+WITH REGISTERED C TYPE MoneyArray:int
+USING LOOP for(iter = &base->intArray[i]; i < base->iArraySize; Number_advance(iter, base->intArray, ++i))$

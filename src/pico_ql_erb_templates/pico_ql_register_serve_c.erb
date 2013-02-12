@@ -39,9 +39,9 @@
 <%      if vt.base_var.length > 0 %>
 <%        /\*/.match(vt.signature_pointer) == nil ? retype = "*" : retype = "" %>
 <%        if $argD == "DEBUG" %>
-// C NAME (pico_ql_table_)<%= vt.base_var %> in line <%= vt.base_var_line + 1 %> <%= $argF %> 
+// C NAME (pico_ql_table_)<%= vt.base_var %>_<%= vt.type.gsub(/(\s*)/, "").chomp("*") %> in line <%= vt.base_var_line + 1 %> <%= $argF %> 
 <%        end %>
-<%= vt.signature %> <%= retype %>pico_ql_table_<%= vt.base_var %>;
+<%= vt.signature %> <%= retype %>pico_ql_table_<%= vt.base_var %>_<%= vt.type.gsub(/(\s*)/, "").chomp("*") %>;
 <%        if $argD == "DEBUG" %>
 #line <%= vt.signature_line + 1 %> "<%= $argF %>" 
 <%        end %>
@@ -65,7 +65,7 @@ void pico_ql_register(const void *data_structure, const char *ds_name) {
 #line <%= @tables[vt].base_var_line + 1 %> "<%= $argF %>" 
 <%        end %>
 <%        /\*/.match(@tables[vt].signature_pointer) == nil ? retype = "*" : retype = "" %>
-    pico_ql_table_<%= @tables[vt].base_var %> = (<%= @tables[vt].signature %> <%= retype %>)data_structure;
+    pico_ql_table_<%= @tables[vt].base_var %>_<%= @tables[vt].type.gsub(/(\s*)/, "").chomp("*") %> = (<%= @tables[vt].signature %> <%= retype %>)data_structure;
 <%        if $argD == "DEBUG" %>
 #line <%= @tables[vt].signature_line + 1 %> "<%= $argF %>" 
 <%        end %>

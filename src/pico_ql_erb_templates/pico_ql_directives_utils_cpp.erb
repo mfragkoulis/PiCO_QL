@@ -89,11 +89,12 @@ static map<string, VtblImpl*> selector_vt;
 
 <%     @tables.each { |vt| %>
 <%      if vt.base_var.length > 0 %>
+<%        type = vt.type.gsub(/(\s*)/, "").gsub(/,/, "").gsub(/</, "").gsub(/>/, "").chomp("*") %>
 <%        /\*/.match(vt.signature_pointer) == nil ? retype = "*" : retype = "" %>
 <%        if $argD == "DEBUG" %>
-// C NAME (pico_ql_table_)<%= vt.base_var %> in line <%= vt.base_var_line + 1 %> <%= $argF %> 
+// C NAME (pico_ql_table_)<%= vt.base_var %>_<%= type %> in line <%= vt.base_var_line + 1 %> <%= $argF %> 
 <%        end %>
-extern <%= vt.signature %> <%= retype %>pico_ql_table_<%= vt.base_var %>;
+extern <%= vt.signature %> <%= retype %>pico_ql_table_<%= vt.base_var %>_<%= type %>;
 <%        if $argD == "DEBUG" %>
 #line <%= vt.signature_line + 1 %> "<%= $argF %>" 
 <%        end %>
@@ -149,6 +150,7 @@ int register_vt(picoQLTable *picoQL) {
 <%    count = 0 %>
 <%    @tables.each_index { |vt| %>
 <%      if @tables[vt].base_var.length > 0 %>
+<%        type = @tables[vt].type.gsub(/(\s*)/, "").gsub(/,/, "").gsub(/</, "").gsub(/>/, "").chomp("*") %>
 <%        if count == 0 %>
   if (!strcmp(picoQL->zName, "<%= @tables[vt].name %>")) {
 <%	  count += 1 %>
@@ -158,9 +160,9 @@ int register_vt(picoQLTable *picoQL) {
 <%        if $argD == "DEBUG" %>
 #line <%= @tables[vt].base_var_line + 1 %> "<%= $argF %>" 
 <%        end %>
-    if (pico_ql_table_<%= @tables[vt].base_var %> == NULL)
+    if (pico_ql_table_<%= @tables[vt].base_var %>_<%= type %> == NULL)
       return SQLITE_ERROR;
-    picoQL->data = (void *)pico_ql_table_<%= @tables[vt].base_var %>;
+    picoQL->data = (void *)pico_ql_table_<%= @tables[vt].base_var %>_<%= type %>;
     picoQL->embedded = 0;
 <%      end %>
 <%    } %>

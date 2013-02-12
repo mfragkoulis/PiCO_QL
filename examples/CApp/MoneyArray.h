@@ -5,6 +5,8 @@
 
 typedef struct {
 
+  int *intArray;
+  int iArraySize;
   struct Money **mArray;
   int mArraySize;
 

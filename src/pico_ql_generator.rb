@@ -609,8 +609,12 @@ class VirtualTable
     when /gen_all|union/
       if @container_class.length > 0
         if access_path.length == 0
-          if @type.match(/\*/)
+          if @@C_container_types.include?(@container_class)
             iden = "*#{iden}"
+          else
+            if @type.match(/\*/)
+              iden = "*#{iden}"
+            end
           end
         else
           if (access_path == "first" && 
@@ -780,9 +784,14 @@ class VirtualTable
     when "all"
       if @container_class.length > 0
         if access_path.length == 0
-          if @type.match(/\*/)
+          if @@C_container_types.include?(@container_class)
             idenF = "*#{idenF}"
             idenN = "*#{idenN}"
+          else
+            if @type.match(/\*/)
+              idenF = "*#{idenF}"
+              idenN = "*#{idenN}"
+            end
           end
         else
           if (access_path == "first" && 

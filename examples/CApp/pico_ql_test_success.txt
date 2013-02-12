@@ -261,3 +261,79 @@ union_mode price
 
 Done
 
+Query 26:
+ select number from Number;
+
+Statement prepared.
+number 
+
+1 
+2 
+3 
+4 
+5 
+6 
+7 
+8 
+
+Done
+
+Query 27:
+ select number from Number where number > 5;
+
+Statement prepared.
+number 
+
+6 
+7 
+8 
+
+Done
+
+Query 28:
+ select number from Number where number > 8;
+
+Statement prepared.
+number 
+
+
+Done
+
+Query 29:
+ select number from ENumber;
+
+Statement prepared.
+number 
+
+1 
+2 
+3 
+4 
+5 
+6 
+7 
+8 
+
+Done
+
+Query 30:
+ select number from ENumber where number > 5;
+
+Statement prepared.
+number 
+
+6 
+7 
+8 
+
+Done
+
+Query 31:
+ select number from ENumber where number > 8;
+
+Statement prepared.
+number 
+
+
+Done
+
