@@ -23,6 +23,7 @@
 
 require 'erb'
 
+
 # Models a column of the Virtual Table (VT).
 class Column
   def initialize(ucase)
@@ -41,6 +42,8 @@ class Column
     @saved_results_index = -1 # Required for naming the particular 
                               # saved results instance.
     @access_path = ""         # The access statement for the column value.
+    @tokenized_access_path = Array.new # Access path tokens to check for 
+                                       # NULLs.
     @col_type = "object"      # Record type (pointer or reference) for 
                               # special columns, the ones that refer to 
                               # other VT or UNIONS.
@@ -54,16 +57,19 @@ class Column
                                /varying character/i, /native character/i,
                                /nchar/i]
   end
-  attr_accessor(:name,:line,:data_type,:cpp_data_type,
+  attr_accessor(:name,:line,:data_type,
+                :cpp_data_type,
                 :related_to,:fk_col_type,
 		:fk_method_ret,:saved_results_index,
-		:access_path,:col_type,:case)
+		:access_path,:col_type,:case,
+                :tokenized_access_path)
 
 
 # Used to clone a Column object. Ruby does not support deep copies.
   def construct(name, data_type, cpp_data_type, 
                 related_to, fk_method_ret, 
-      		fk_col_type, saved_results_index,access_path, 
+      		fk_col_type, saved_results_index,
+                access_path, 
 		type, line, ucase)
     @name = name
     @data_type = data_type
@@ -81,7 +87,8 @@ class Column
 
 # Performs case analysis with respect to the column data type (and other)
 # and fills the passed variables with values accordingly.
-  def bind_datatypes(sqlite3_type, column_cast, sqlite3_parameters, 
+  def bind_datatypes(sqlite3_type, column_cast, 
+                     sqlite3_parameters, 
                      column_cast_back, access_path)
     tmp_text_array = Array.new      # Do not process the original array.
     tmp_text_array.replace(@@text_match_data_types)
@@ -90,7 +97,10 @@ class Column
       sqlite3_parameters.replace("int")    # for 32-bit architectures.used in retrieve and search.
       column_cast.replace("(long int)")
       access_path.replace(@access_path)
-      return "fk", @related_to, @col_type, @line, @fk_method_ret, @saved_results_index, @fk_col_type
+      return "fk", @related_to, @col_type, @line, 
+             @fk_method_ret, 
+             @tokenized_access_path.clone,
+             @saved_results_index, @fk_col_type
     elsif @name == "base"              # 'base' column. refactor: elsif perhaps?
       sqlite3_type.replace("int64")
       column_cast.replace("(long int)")
@@ -101,7 +111,8 @@ class Column
       return "rownum", nil, nil, nil
     elsif @cpp_data_type == "union"
       access_path.replace(@access_path)
-      return "union", @name, @col_type, @line
+      return "union", @name, @col_type, @line, nil, 
+             @tokenized_access_path.clone
     else
       dt = @data_type.downcase         # Normal data column.
       if @@int_data_types.include?(dt)
@@ -130,7 +141,8 @@ class Column
         sqlite3_parameters.replace(", -1, SQLITE_STATIC")
       end
       access_path.replace(@access_path)
-      return "gen_all", nil, "", @line
+      return "gen_all", nil, "", @line, nil,
+             @tokenized_access_path.clone
     end
   end
 
@@ -149,6 +161,18 @@ class Column
         end
       end
     }
+  end
+
+# Checks if NULL checks for access path
+# have to be performed 
+  def process_access_path()
+    if @access_path.match(/->/)
+      @tokenized_access_path = @access_path.split(/->/)
+      @tokenized_access_path.pop
+      #if $argD == "DEBUG"
+        @tokenized_access_path.each { |tap| p tap }
+      #end
+    end
   end
 
 
@@ -219,6 +243,7 @@ class Column
                                       coln.col_type.clone,
                                       coln.line,
                                       coln.case)
+          process_access_path() 
         }
         col_type_text = vs.include_text_col
       end
@@ -306,6 +331,7 @@ class Column
     if @access_path.match(/self/)
       @access_path.gsub!(/self/,"")
     end
+    process_access_path()
     if $argD == "DEBUG"
       puts "Column name is: " + @name
       puts "Column data type is: " + @data_type
@@ -348,6 +374,9 @@ class VirtualTable
                           # (linked lists, arrays, etc.)
                           # A uniform abstraction is defined.
                           # generic_clist.
+    @loop_root = ""       # Holds starting address of C array for NULL 
+                          # checking C containers (linked lists, arrays etc)
+                          # A uniform abstraction is defined.
     @object_class = ""    # If an object instance.
     @columns = Array.new  # References to the VT columns.
     @include_text_col = 0 # True if VirtualTable includes column
@@ -357,11 +386,16 @@ class VirtualTable
     @@C_container_types = ["c_container"]
               # Maintained for backward compatibility.
   end
-  attr_accessor(:name,:base_var_line,:signature_line,:base_var,
-                :struct_view,:db,:signature,:signature_pointer,
+  attr_accessor(:name,:base_var_line,
+                :signature_line,:base_var,
+                :struct_view,:db,
+                :signature,:signature_pointer,
                 :container_class,:type,
-                :pointer,:iterator,:object_class,:columns,
-                :include_text_col,:C_container_types)
+                :pointer,:iterator,
+                :object_class,:columns,
+                :include_text_col,
+                :C_container_types, :loop,
+                :loop_root)
 
 # Getter for static member C_container_types at class level
   def self.C_container_types
@@ -382,7 +416,9 @@ class VirtualTable
     fw.puts post_retrieve.result(get_binding)
   end
 
-  def union_retrieve(fw, union_view_name, iden, union_access_path, space)
+  def union_retrieve(fw, union_view_name, iden, 
+                     union_access_path, 
+                     tokenized_access_path, space)
     columns = Array.new
     switch = ""
     $union_views.each { |uv| 
@@ -408,11 +444,14 @@ class VirtualTable
       column_cast_back = ""
       total_access_path = ""
       access_path_col = ""
-      op, fk_col_name, column_type, line, fk_method_ret, 
+      op, fk_col_name, column_type, line, 
+      fk_method_ret, tokenized_access_path_col, 
       saved_results_index, fk_col_type = 
-      columns[col].bind_datatypes(sqlite3_type, column_cast, 
-                                   sqlite3_parameters, column_cast_back, 
-                                   access_path_col)
+      columns[col].bind_datatypes(sqlite3_type, 
+                                  column_cast, 
+                                  sqlite3_parameters, 
+                                  column_cast_back, 
+                                  access_path_col)
       if $argD == "DEBUG"
         puts "sqlite3_type: " + sqlite3_type
         puts "column_cast: " + column_cast
@@ -432,19 +471,26 @@ class VirtualTable
       case op
       when "fk"
         access_path_col.insert(0, union_access_path)
-        fk_retrieve(fw, access_path_col, column_type, fk_method_ret,
+        fk_retrieve(fw, access_path_col, 
+                    tokenized_access_path_col, 
+                    column_type, fk_method_ret,
                     line, iden, saved_results_index, sqlite3_type,
                     column_cast, sqlite3_parameters, fk_col_name, 
                     fk_col_type, col, space)
       when "gen_all"
         access_path_col.insert(0, union_access_path)
-        all_retrieve(fw, iden, access_path_col, sqlite3_type,
-                     column_cast_back, sqlite3_parameters, column_cast,
+        all_retrieve(fw, iden, access_path_col, 
+                     tokenized_access_path_col,
+                     sqlite3_type, column_cast_back, 
+                     sqlite3_parameters, 
+                     column_cast,
                      line, space)
       when "union"
         union_view_embedded = fk_col_name
         iden.concat(union_access_path)
-        union_retrieve(fw, union_view_embedded, iden, access_path_col, 
+        union_retrieve(fw, union_view_embedded, 
+                       iden, access_path_col,
+                       tokenized_access_path_col, 
                        space)
       end
       space.chomp!("  ")
@@ -453,14 +499,22 @@ class VirtualTable
     fw.puts "#{space}    break;"
   end
 
-  def all_retrieve(fw, iden, access_path, sqlite3_type,
-                   column_cast_back, sqlite3_parameters, column_cast,
+  def all_retrieve(fw, iden, access_path, 
+                   tokenized_access_path,
+                   sqlite3_type,
+                   column_cast_back, 
+                   sqlite3_parameters, column_cast,
                    line, space)
     if access_path.match(/this\.|this->/)
       access_path.gsub!(/this\.|this->/, "#{iden}")
     else
       access_path = "#{iden}#{access_path}"
     end
+    null_check_action = "{\n#{space}      sqlite3_result_text(con, \"(null)\", -1, SQLITE_STATIC);\n#{space}      break;\n#{space}      }"
+    display_null_check(tokenized_access_path,
+                       iden,
+                       null_check_action,
+                       fw, "#{space}    ")
     if sqlite3_type == "text"
       if column_cast_back == ".c_str()"
         string_construct_cast = ""
@@ -471,8 +525,8 @@ class VirtualTable
         fw.puts "#ifdef PICO_QL_HANDLE_TEXT_ARRAY"
         fw.puts "#{space}    textVector.push_back(#{string_construct_cast}#{access_path});"
         print_line_directive(fw, line)
-      fw.puts "#{space}    sqlite3_result_text(con, (const char *)textVector.back().c_str()#{sqlite3_parameters});"
-      fw.puts "#else"
+        fw.puts "#{space}    sqlite3_result_text(con, (const char *)textVector.back().c_str()#{sqlite3_parameters});"
+        fw.puts "#else"
       end
     end
     fw.puts "#{space}    sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{access_path}#{column_cast_back}#{sqlite3_parameters});"
@@ -483,9 +537,13 @@ class VirtualTable
     fw.puts "#{space}    break;"
   end
 
-  def fk_retrieve(fw, access_path, column_type, fk_method_ret,
-                  line, iden, saved_results_index, sqlite3_type,
-                  column_cast, sqlite3_parameters, fk_col_name, 
+  def fk_retrieve(fw, access_path, 
+                  tokenized_access_path,
+                  column_type, fk_method_ret,
+                  line, iden, saved_results_index, 
+                  sqlite3_type,
+                  column_cast, sqlite3_parameters, 
+                  fk_col_name, 
                   fk_col_type, col, space)
     record_type = ""
     p_type = ""
@@ -539,7 +597,15 @@ class VirtualTable
         fw.puts "#endif"
       end
       fw.puts "#else"
+    else # if $argLB == "C"
+      fw.puts "#{space}      int j = 0;"
+      fw.puts "#{space}      struct Vtbl *chargeVT#{col};"
     end
+    null_check_action = "{\n#{space}      sqlite3_result_text(con, \"(null)\", -1, SQLITE_STATIC);\n#{space}      break;\n#{space}      }"
+    display_null_check(tokenized_access_path,
+                       iden,
+                       null_check_action,
+                       fw, "#{space}    ")
     if $argM == "MEM_MGT" && fk_method_ret == 1
       fw.puts "#{space}      saved_results_#{saved_results_index}.push_back(#{record_type}#{iden}#{access_path});"
       print_line_directive(fw, line)
@@ -568,13 +634,12 @@ class VirtualTable
         fw.puts "#{space}      (*chargeVT#{col})(cur, 1, map#{@name}#{col});"
       end
     else
-      fw.puts "#{space}      int j = 0;"
       fw.puts "#{space}      while ((j < (int)vtAll.size) && (strcmp(vtAll.instanceNames[j], \"#{fk_col_name}\"))) {j++;}"
       fw.puts "#{space}      if (j == (int)vtAll.size) {"
       fw.puts "#{space}        printf(\"In search: VT %s not registered.\\nExiting now.\\n\", ((picoQLTable *)cur->pVtab)->zName);"
       fw.puts "#{space}        return SQLITE_ERROR;"
       fw.puts "#{space}      }"
-      fw.puts "#{space}      struct Vtbl *chargeVT#{col} = vtAll.instances[j];"
+      fw.puts "#{space}      chargeVT#{col} = vtAll.instances[j];"
       if @base_var.length == 0
         fw.puts "#{space}      chargeVT#{col}->report_charge(cur, 1, &((#{@name}_vt *)vtbl)->charged, &((#{@name}_vt *)vtbl)->chargedSize, chargeVT#{col});"
       else
@@ -663,13 +728,22 @@ class VirtualTable
       sqlite3_parameters = ""
       column_cast_back = ""
       access_path = ""
-      op, fk_col_name, column_type, line, fk_method_ret, 
+      op, fk_col_name, column_type, line, 
+      fk_method_ret, tokenized_access_path,
       saved_results_index, fk_col_type = 
-      @columns[col].bind_datatypes(sqlite3_type, column_cast, 
-                                   sqlite3_parameters, column_cast_back, 
+      @columns[col].bind_datatypes(sqlite3_type, 
+                                   column_cast, 
+                                   sqlite3_parameters, 
+                                   column_cast_back, 
                                    access_path)
       iden = ""
       iden = configure_retrieve(access_path, op)
+      token_ac_p = Array.new
+      if op == "fk" || op == "gen_all" ||
+         op == "union"
+        array_string_copy_deep(tokenized_access_path, token_ac_p)
+        configure_token_access_checks(token_ac_p, "")
+      end
       case op
       when "base"
         fw.puts "#ifdef ENVIRONMENT64"
@@ -684,17 +758,27 @@ class VirtualTable
         fw.puts "    sqlite3_result_#{sqlite3_type}(con, rs->offset);"
         fw.puts "    break;"
       when "fk"
-        fk_retrieve(fw, access_path, column_type, fk_method_ret,
-                    line, iden, saved_results_index, sqlite3_type,
-                    column_cast, sqlite3_parameters, fk_col_name, 
+        fk_retrieve(fw, access_path, 
+                    token_ac_p,
+                    column_type, fk_method_ret,
+                    line, iden, saved_results_index, 
+                    sqlite3_type,
+                    column_cast, sqlite3_parameters, 
+                    fk_col_name, 
                     fk_col_type, col, "")
       when "gen_all"
-        all_retrieve(fw, iden, access_path, sqlite3_type,
-                     column_cast_back, sqlite3_parameters, column_cast,
+        all_retrieve(fw, iden, access_path, 
+                     token_ac_p,
+                     sqlite3_type,
+                     column_cast_back, 
+                     sqlite3_parameters, 
+                     column_cast,
                      line, "")
       when "union"
         union_view_name = fk_col_name
-        union_retrieve(fw, union_view_name, iden, access_path, "")
+        union_retrieve(fw, union_view_name, iden, 
+                       access_path, 
+                       token_ac_p, "")
       end
     }
   end
@@ -741,7 +825,8 @@ class VirtualTable
     return add_to_result_setF, add_to_result_setN
   end
 
-  def configure_search(op, access_path, fk_type)
+  def configure_search(op, access_path, 
+                       fk_type)
     idenF = ""
     idenN = ""
     access_pathF = ""
@@ -882,6 +967,48 @@ class VirtualTable
     return "", ""
   end
 
+# Array of strings deep copy
+  def array_string_copy_deep(array, copyArray)
+    array.each { |el| copyArray.push(el.clone) }
+  end
+
+# Configure tokens to be standalone access paths.
+  def configure_token_access_checks(token_ac_p, iden)
+    token_ac_p.each_index { |tap|
+      if $argD == "DEBUG"
+        puts "tap is #{tap.to_s}, token to check is: #{token_ac_p[tap]}"
+      end
+      if tap > 0
+        token_ac_p[tap].insert(0, "#{token_ac_p[tap-1]}->")
+      else
+        token_ac_p[tap].insert(0, iden)
+      end
+      if $argD == "DEBUG"
+        puts "After tapping token is: #{token_ac_p[tap]}"
+      end
+    }
+    return token_ac_p
+  end
+
+# Display NULL checks
+  def display_null_check(token_ac_p, iden, action, fw, space)
+    token_ac_p.each_index {|tap|
+      if token_ac_p.length == 1
+        fw.print "#{space}if (#{iden}#{token_ac_p[0]} == NULL) "
+      elsif token_ac_p.length > 1 && tap == 0
+        fw.print "#{space}if ((#{iden}#{token_ac_p[0]} == NULL) "
+      elsif token_ac_p.length > 1 && tap > 0 && tap < token_ac_p.length - 1
+        fw.print "|| (#{iden}#{token_ac_p[tap]} == NULL) "
+      elsif token_ac_p.length > 1 && tap == token_ac_p.length - 1
+        fw.print "|| (#{iden}#{token_ac_p[tap]} == NULL)) "
+      end
+    }
+    if token_ac_p.length > 0
+      fw.puts "\n#{space}  #{action}"
+    end
+  end
+
+# Generate code for rownum column
   def gen_rownum(fw)
     fw.puts "      rowNum = sqlite3_value_int(val);"
     if !@@C_container_types.include?(@container_class)
@@ -962,9 +1089,16 @@ class VirtualTable
     fw.puts "      break;"
   end
   
-  def gen_union_col_constr(fw, union_view_name, root_access_path, 
-                           union_access_path, add_to_result_set, 
+  def gen_union_col_constr(fw, union_view_name, 
+                           root_access_path, 
+                           union_access_path, 
+                           tokenized_access_path,
+                           add_to_result_set, 
                            iteration, notC)
+    null_check_action = "break;"
+    if @container_class.length > 0
+      null_check_action = "continue;"
+    end
     columns = Array.new
     switch = ""
     $union_views.each { |uv| 
@@ -978,6 +1112,22 @@ class VirtualTable
     if @container_class.length > 0
       space.concat("  ")
     end
+    display_null_check(tokenized_access_path, "",
+                       null_check_action,
+                       fw, space)
+# Imitating Column::process_access_path(). Not able to access from here. 
+    if switch.match(/->/)
+      tokenized_switch_path = switch.split(/->/)
+      tokenized_switch_path.pop
+      if $argD == "DEBUG"
+        tokenized_switch_path.each { |t| p t}
+      end
+      configure_token_access_checks(tokenized_switch_path, 
+                                    root_access_path)
+      display_null_check(tokenized_switch_path, "",
+                         null_check_action,
+                         fw, space)
+    end
     fw.puts "#{space}switch (#{root_access_path}#{switch}) {"
     columns.each { |col|
       fw.puts "#{space}case #{col.case}:"
@@ -988,11 +1138,14 @@ class VirtualTable
       column_cast_back = ""
       access_path_col = ""
       total_access_path = ""
-      op, union_view_embedded, col_type, line, fk_method_ret, useless3,
-      useless4 = 
+      op, union_view_embedded, col_type, line, 
+      fk_method_ret, tokenized_access_path, 
+      useless3, useless4 = 
       col.bind_datatypes(sqlite3_type, 
-                         column_cast, sqlite3_parameters, 
-                         column_cast_back, access_path_col)
+                         column_cast, 
+                         sqlite3_parameters, 
+                         column_cast_back, 
+                         access_path_col)
       total_access_path.replace(union_access_path).concat(access_path_col)
       if op == "fk" && col_type == "object"
         total_access_path = "&#{total_access_path}"
@@ -1003,6 +1156,9 @@ class VirtualTable
           total_access_path.concat(".")
         end
       end
+      un_col_ac_t = Array.new
+      array_string_copy_deep(tokenized_access_path, un_col_ac_t)
+      configure_token_access_checks(un_col_ac_t, total_access_path)
       if $argD == "DEBUG"
         puts "sqlite3_type: " + sqlite3_type
         puts "column_cast: " + column_cast
@@ -1021,17 +1177,34 @@ class VirtualTable
       end
       case op
       when "fk"
-        gen_fk_col_constr(fw, fk_method_ret, total_access_path, col_type, 
-                          column_cast, column_cast_back, sqlite3_type, 
-                          sqlite3_parameters, line, add_to_result_set, 
+        gen_fk_col_constr(fw, fk_method_ret, 
+                          total_access_path, 
+                          un_col_ac_t,
+                          col_type, 
+                          column_cast, 
+                          column_cast_back, 
+                          sqlite3_type, 
+                          sqlite3_parameters, 
+                          line, add_to_result_set, 
                           space, notC, iteration)
       when "gen_all"
-        gen_all_constr(fw, column_cast, total_access_path, 
-                       column_cast_back, sqlite3_type, notC, 
-                       iteration, add_to_result_set, line, space)
+        gen_all_constr(fw, column_cast, 
+                       total_access_path,
+                       un_col_ac_t, 
+                       column_cast_back, 
+                       sqlite3_type, notC, 
+                       iteration, add_to_result_set, 
+                       line, space)
       when "union"
-        gen_union_col_constr(fw, union_view_embedded, union_access_path, 
-                             total_access_path, add_to_result_set, 
+# Not tested. In fact, it would probably make sense
+# to call gen_union and not gen_union_col_constr in
+# such a case.
+        gen_union_col_constr(fw, 
+                             union_view_embedded, 
+                             union_access_path, 
+                             total_access_path, 
+                             un_col_ac_t,
+                             add_to_result_set, 
                              iteration, notC)
       end
       if @container_class.length > 0
@@ -1043,7 +1216,9 @@ class VirtualTable
     fw.puts "#{space}}"
   end
 
-  def gen_union(fw, union_view_name, union_access_path, col_type)
+  def gen_union(fw, union_view_name, 
+                union_access_path, 
+                union_access_tokens, col_type)
     full_union_access_pathF, full_union_access_pathN, idenF, idenN = configure_search("union", union_access_path, col_type)
     add_to_result_setF, add_to_result_setN = configure_result_set()
     iterationF, iterationN = configure_iteration()
@@ -1057,8 +1232,13 @@ class VirtualTable
     end
     notC = ""
     iteration = ""
+    un_ac_t = Array.new
+    array_string_copy_deep(union_access_tokens, un_ac_t)
+    configure_token_access_checks(un_ac_t, idenF)
     gen_union_col_constr(fw, union_view_name, idenF,
-                         full_union_access_pathF, add_to_result_setF, 
+                         full_union_access_pathF, 
+                         un_ac_t,
+                         add_to_result_setF, 
                          iteration, notC)
     if @container_class.length > 0
       fw.puts "#{$s}}"
@@ -1069,8 +1249,13 @@ class VirtualTable
       fw.puts "      } else if (stcsr->size == 1) {"
     end
     notC = "!"
+    un_ac_t.clear
+    array_string_copy_deep(union_access_tokens, un_ac_t)
+    configure_token_access_checks(un_ac_t, idenN)
     gen_union_col_constr(fw, union_view_name, idenN, 
-                         full_union_access_pathN, add_to_result_setN, 
+                         full_union_access_pathN, 
+                         un_ac_t,
+                         add_to_result_setN, 
                          iteration, notC)
     if @container_class.length > 0
       fw.puts "#{$s}}"
@@ -1079,16 +1264,24 @@ class VirtualTable
     fw.puts "      break;"
   end
 
-  def gen_all_constr(fw, column_cast, access_path, column_cast_back, 
-                     sqlite3_type, notC, iteration, add_to_result_set,
+  def gen_all_constr(fw, column_cast, access_path, 
+                     tokenized_access_path,
+                     column_cast_back, 
+                     sqlite3_type, notC, iteration, 
+                     add_to_result_set,
                      line, space)
+    null_check_action = "break;"
     if @container_class.length > 0
+      null_check_action = "continue;"
       if iteration.length > 0
         fw.puts "#{iteration.gsub(/<space>/, "#{space}")}"
         space.concat("  ")
       end
 # not for union
     end
+    display_null_check(tokenized_access_path, "",
+                       null_check_action,
+                       fw, space)
     fw.puts "#{space}if (#{notC}compare_#{sqlite3_type}(#{column_cast}#{access_path}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val))) {"
     print_line_directive(fw, line)
     if @container_class.length > 0
@@ -1098,6 +1291,7 @@ class VirtualTable
   end
 
   def gen_all(fw, column_cast, access_path, 
+              tokenized_access_path,
               column_cast_back, sqlite3_type, line)
     access_pathF = ""
     access_pathN = ""
@@ -1112,8 +1306,14 @@ class VirtualTable
     iterationF, iterationN = configure_iteration()
     fw.puts "      if (first_constr == 1) {"
     notC = ""
-    gen_all_constr(fw, column_cast, access_pathF, column_cast_back, 
-                   sqlite3_type, notC, iterationF, add_to_result_setF, 
+    token_ac_p = Array.new
+    array_string_copy_deep(tokenized_access_path, token_ac_p)
+    configure_token_access_checks(token_ac_p, idenF)
+    gen_all_constr(fw, column_cast, access_pathF, 
+                   token_ac_p,
+                   column_cast_back, 
+                   sqlite3_type, notC, iterationF, 
+                   add_to_result_setF, 
                    line, space)
     if @container_class.length > 0
       fw.puts "      } else {"
@@ -1121,20 +1321,39 @@ class VirtualTable
       fw.puts "      } else if (stcsr->size == 1) {"
     end
     notC = "!"
-    gen_all_constr(fw, column_cast, access_pathN, column_cast_back, 
-                   sqlite3_type, notC, iterationN, add_to_result_setN, 
+    token_ac_p.clear
+    array_string_copy_deep(tokenized_access_path, token_ac_p)
+    configure_token_access_checks(token_ac_p, idenN)
+    gen_all_constr(fw, column_cast, access_pathN, 
+                   token_ac_p,
+                   column_cast_back, 
+                   sqlite3_type, notC, iterationN, 
+                   add_to_result_setN, 
                    line, space)
     fw.puts "      }"
     fw.puts "      break;"    
   end
   
-  def gen_fk_col_constr(fw, fk_method_ret, access_path, fk_type, 
-                        column_cast, column_cast_back, sqlite3_type, 
-                        sqlite3_parameters, line, add_to_result_set, 
+  def gen_fk_col_constr(fw, fk_method_ret, 
+                        access_path, 
+                        tokenized_access_path,
+                        fk_type, 
+                        column_cast, 
+                        column_cast_back, 
+                        sqlite3_type, 
+                        sqlite3_parameters, line, 
+                        add_to_result_set, 
                         space, notC, iteration)
+    null_check_action = "break;"
+    if @container_class.length > 0
+      null_check_action = "continue;"
+    end
     if $argM == "MEM_MGT" && fk_method_ret == 1
       fw.puts "#{space}{"
       space.concat("  ")
+      display_null_check(tokenized_access_path, "",
+                         null_check_action,
+                         fw, space) 
       fw.puts "#{space}typeof(#{access_path}) t = #{access_path};"
     end
     if @container_class.length > 0
@@ -1147,6 +1366,9 @@ class VirtualTable
     if $argM == "MEM_MGT" && fk_method_ret == 1    # Returning from a method.
       fw.puts "#{space}if (#{notC}compare_#{sqlite3_type}(#{column_cast}t#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_type}(val))) {"
     else
+      display_null_check(tokenized_access_path, "", 
+                         null_check_action,
+                         fw, space)
       fw.puts "#{space}if (#{notC}compare_#{sqlite3_type}(#{column_cast}#{access_path}#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_type}(val))) {"
     end
     print_line_directive(fw, line)
@@ -1176,8 +1398,11 @@ class VirtualTable
     end
   end
 
-  def gen_fk(fw, fk_type, fk_method_ret, column_cast, column_cast_back, 
-             sqlite3_type, sqlite3_parameters, line, access_path)
+  def gen_fk(fw, fk_type, fk_method_ret, 
+             column_cast, column_cast_back, 
+             sqlite3_type, sqlite3_parameters, 
+             line, access_path,
+             tokenized_access_path)
     access_pathF = ""
     access_pathN = ""
     add_to_result_setF = ""
@@ -1191,9 +1416,17 @@ class VirtualTable
     fw.puts "      if (first_constr) {"
     space.replace($s)
     notC = ""
-    gen_fk_col_constr(fw, fk_method_ret, access_pathF, fk_type, 
-                      column_cast, column_cast_back, sqlite3_type, 
-                      sqlite3_parameters, line, add_to_result_setF, 
+    token_ac_p = Array.new
+    array_string_copy_deep(tokenized_access_path, token_ac_p)
+    configure_token_access_checks(token_ac_p, idenF)
+    gen_fk_col_constr(fw, fk_method_ret, 
+                      access_pathF, 
+                      token_ac_p,
+                      fk_type, 
+                      column_cast, column_cast_back, 
+                      sqlite3_type, 
+                      sqlite3_parameters, line, 
+                      add_to_result_setF, 
                       space, notC, iterationF)
     if @container_class.length > 0
       fw.puts "      } else {"
@@ -1202,9 +1435,17 @@ class VirtualTable
     end
     space.concat("  ")
     notC = "!"
-    gen_fk_col_constr(fw, fk_method_ret, access_pathN, fk_type, 
-                      column_cast, column_cast_back, sqlite3_type, 
-                      sqlite3_parameters, line, add_to_result_setN, 
+    token_ac_p.clear
+    array_string_copy_deep(tokenized_access_path, token_ac_p)
+    configure_token_access_checks(token_ac_p, idenN)
+    gen_fk_col_constr(fw, fk_method_ret, 
+                      access_pathN, 
+                      token_ac_p,
+                      fk_type, 
+                      column_cast, column_cast_back, 
+                      sqlite3_type, 
+                      sqlite3_parameters, line, 
+                      add_to_result_setN, 
                       space, notC, iterationN)
     fw.puts "      }"
     fw.puts "      break;"
@@ -1222,11 +1463,14 @@ class VirtualTable
       column_cast_back = ""
       access_path = ""
       space = "      "
-      op, union_view_name, col_type, line, fk_method_ret, useless3,
-      useless4 = 
+      op, union_view_name, col_type, line, 
+      fk_method_ret, tokenized_access_path, 
+      union_access_tokens, useless3 =
       @columns[col].bind_datatypes(sqlite3_type, 
-                                   column_cast, sqlite3_parameters, 
-                                   column_cast_back, access_path)
+                                   column_cast, 
+                                   sqlite3_parameters, 
+                                   column_cast_back, 
+                                   access_path)
       if $argD == "DEBUG"
         puts "sqlite3_type: " + sqlite3_type
         puts "column_cast: " + column_cast
@@ -1244,14 +1488,20 @@ class VirtualTable
       end
       case op
       when "fk"
-        gen_fk(fw, col_type, fk_method_ret, column_cast, 
+        gen_fk(fw, col_type, fk_method_ret, 
+               column_cast, 
                column_cast_back, 
-               sqlite3_type, sqlite3_parameters, line, access_path)
+               sqlite3_type, sqlite3_parameters, 
+               line, access_path,
+               tokenized_access_path)
       when "gen_all"
-        gen_all(fw, column_cast, access_path, 
-                column_cast_back, sqlite3_type, line)
+        gen_all(fw, column_cast, access_path,
+                tokenized_access_path,
+                column_cast_back, sqlite3_type, 
+                line)
       when "union"
-        gen_union(fw, union_view_name, access_path, col_type)
+        gen_union(fw, union_view_name, access_path, 
+                  tokenized_access_path, col_type)
       when "base"
         gen_base(fw)
       when "rownum"
@@ -1366,18 +1616,48 @@ class VirtualTable
     end
   end
 
+# Isolate root address of C container for NULL checking.
   def process_loop()
-    @loop.gsub!(/(\s+)/, "")
-    matchdata = @loop.match(/\((.+)\)/)
-    if matchdata
-      args = matchdata[1].split(/,/)
-      args.each { |rg|
-        @loop.gsub!("#{rg}", "<#{rg}>")
+    if @signature.match(":")
+      matchdata = @loop.split(/,|;/)
+      matchdata.each { |m|
+        if $argD == "DEBUG"
+          puts "Matching #{m}"
+        end
+        case m
+        when /base\.(.+)\./
+          matchdata2 = m.match(/base\.(.+)\./)
+        when /base->(.+)\./
+          matchdata2 = m.match(/base->(.+)\./)
+        when /base\.(.+)->/
+          matchdata2 = m.match(/base(.+)->/)
+        when /base->(.+)->/
+          matchdata2 = m.match(/base->(.+)->/)
+        when /base\.(.+)/
+          matchdata2 = m.match(/base\.(.+)/)
+        when /base->(.+)/
+          matchdata2 = m.match(/base->(.+)/)
+        end
+        if matchdata2
+# We are insterested to catch the C container's start address.
+# Most probably it will be an array. Therefore, we hard-code '&'.
+# For arrays of primitive types, '&' will probably precede base.
+# It is discarded in the patterns and refit here.
+# Otherwise, it will probably not be there (in order to
+# talk abou the array's first element) but we want it there.
+          @loop_root = "&any_dstr->#{matchdata2[1]}"
+          if $argD == "DEBUG"
+            puts "@loop = #{@loop}"
+            puts "@loop_root = #{@loop_root}"
+            puts "matchdata[0] = #{matchdata2[0]}"
+            puts "matchdata[1] = #{matchdata2[1]}"
+          end
+          break
+        end
       }
-    else
-      puts "Invalid loop: #{@loop}."
-      puts "Exiting now."
-      exit(1)
+      if @loop_root.length == 0
+        puts "Attention: not matched 'base' in #{@loop}."
+      end
     end
   end
 
@@ -1400,7 +1680,7 @@ class VirtualTable
       @base_var = matchdata[4]
       @signature = matchdata[5]
       @loop = matchdata[6]
-      #process_loop()
+      process_loop()
     when table_ptn2
       matchdata = table_ptn2.match(table_description)
       @db = matchdata[1]
@@ -1408,7 +1688,7 @@ class VirtualTable
       struct_view_name = matchdata[3]
       @signature = matchdata[4]
       @loop = matchdata[5]
-      #process_loop()
+      process_loop()
     when table_ptn3
       matchdata = table_ptn3.match(table_description)
       @db = matchdata[1]

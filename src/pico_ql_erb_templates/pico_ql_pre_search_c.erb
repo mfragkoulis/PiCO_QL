@@ -90,9 +90,31 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
     return SQLITE_OK;
   }
   any_dstr = (<%= sign_retype %>)stcsr->source;
-<%        if $argD == "DEBUG" %>
+<%      if $argD == "DEBUG" %>
 #line <%= @signature_line + 1 %> "<%= $argF %>" 
+<%      end %>
+<%      if @base_var.length > 0 %>
+<%        if (@signature <=> @type) != 0 %>
+<%          if @loop_root.length > 0 %>
+  if (<%= @loop_root %> == NULL) {
+<%            if @container_class.length == 0 %>
+    stcsr->size = 1;
+<%            else %>
+<%              @pointer.match(/\*/) ? retype = "#{@type}" : retype = "#{@type}*" %>
+    <%= retype %> dummy = NULL;
+    rs->size = 0;
+    rs->actualSize = 0;
+    ((<%= @name %>ResultSetImpl *)rs)->res = (<%= type_retype %>*)sqlite3_realloc(((<%= @name %>ResultSetImpl *)rs)->res, sizeof(<%= type_retype %>)*rs->size);
+    if (((<%= @name %>ResultSetImpl *)rs)->res == NULL)
+      return SQLITE_NOMEM;
+    ((<%= @name %>ResultSetImpl *)rs)->res[rs->size - 1] = dummy;
+    rs->offset = 0;
+<%            end %>
+    return SQLITE_OK;
+  }
+<%          end %>
 <%        end %>
+<%      end %>
   if (first_constr)
     stcsr->first_constr = 0;
   if (val == NULL) {
@@ -146,6 +168,26 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
           }
           stcsr->isInstanceNULL = 0;
           any_dstr = (<%= sign_retype %>)stcsr->source;
+<%        if (@signature <=> @type) != 0 %>
+<%          if @loop_root.length > 0 %>
+          if (<%= @loop_root %> == NULL) {
+<%            if @container_class.length == 0 %>
+    stcsr->size = 1;
+<%            else %>
+<%              @pointer.match(/\*/) ? retype = "#{@type}" : retype = "#{@type}*" %>
+            <%= retype %> dummy = NULL;
+            rs->size = 0;
+            rs->actualSize = 0;
+            ((<%= @name %>ResultSetImpl *)rs)->res = (<%= type_retype %>*)sqlite3_realloc(((<%= @name %>ResultSetImpl *)rs)->res, sizeof(<%= type_retype %>)*rs->size);
+            if (((<%= @name %>ResultSetImpl *)rs)->res == NULL)
+              return SQLITE_NOMEM;
+            ((<%= @name %>ResultSetImpl *)rs)->res[rs->size - 1] = dummy;
+<%            end %>
+            stcsr->isInstanceNULL = 1;
+            return SQLITE_OK;
+          }
+<%          end %>
+<%        end %>
 <%        if @container_class.length > 0 %>
           if ((stcsr->max_size = (int)<%= @name %>_vt_get_datastructure_size(cur, cur->pVtab)) == 0) {
 <%          @pointer.match(/\*/) ? retype = "" : retype = "*" %>

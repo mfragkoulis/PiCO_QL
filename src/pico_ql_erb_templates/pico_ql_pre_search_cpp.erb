@@ -35,6 +35,7 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
 <%        if @@C_container_types.include?(@container_class) %>
   int i = 0;
   bool found = false;
+  <%= @name %>_decl(iter);
 <%        end %>
 <%      end %>
   if (struct_empty_null(cur, val, picoQL->embedded, nCol)) {
@@ -54,9 +55,24 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
     return SQLITE_OK;
   }
   <%= sign_retype %> any_dstr = (<%= sign_retype %>)stcsr->source;
-<%        if $argD == "DEBUG" %>
+<%      if $argD == "DEBUG" %>
 #line <%= @signature_line + 1 %> "<%= $argF %>" 
+<%      end %>
+<%      if @base_var.length > 0 %>
+<%        if (@signature <=> @type) != 0 %>
+<%          if @loop_root.length > 0 %>
+<%# C containers: only then @loop_root %>
+  if (<%= @loop_root %> == NULL) {
+    rs->res.clear();
+    rs->resBts.clear();
+    <%= type_retype %> dummy;
+    rs->res.push_back(dummy);
+    rs->resIter = rs->res.begin();
+    return SQLITE_OK;
+  }
+<%          end %>
 <%        end %>
+<%      end %>
   int first_constr = stcsr->first_constr;
   if (first_constr)
     stcsr->first_constr = 0;
@@ -110,6 +126,19 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
           }
           stcsr->isInstanceNULL = 0;
           any_dstr = (<%= sign_retype %>)stcsr->source;
+<%        if (@signature <=> @type) != 0 %>
+<%          if @loop_root.length > 0 %>
+<%# C containers: only then @loop_root %>
+          if (<%= @loop_root %> == NULL) {
+            rs->res.clear();
+            rs->resBts.clear();
+            <%= type_retype %> dummy;
+            rs->res.push_back(dummy);
+            rs->resIter = rs->res.begin();
+            return SQLITE_OK;
+          }
+<%          end %>
+<%        end %>
 <%        if @container_class.length > 0 %>
           if ((stcsr->max_size = (int)(*this)(cur, cur->pVtab)) == 0) {
             stcsr->isInstanceEmpty = 1;

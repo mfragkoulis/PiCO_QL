@@ -4,9 +4,7 @@
 	    	'USING STRUCT VIEW'  <struct_view_name> 
 		['WITH REGISTERED C NAME' <base_variable>] 
 		'WITH REGISTERED C TYPE' <struct_type>
-		['USING C ITERATOR NAME' <iterator_name>]
-		['USING C TRAVERSE FUNCTION' 
-			<traverse_function>]';'
+		['USING LOOP' <loop_variant>]
 
 <db_name> ::= 'identifier'
 
@@ -18,24 +16,28 @@
 
 <struct_type> ::= <container> | <object> | <struct>
 
-<iterator_name> ::= 'identifier'
+<loop_variant> ::= 'user-defined-loop-variant'
 
-<traverse_function> ::= 'identifier'
-
-<container> ::= <container_class> '<' <type>
+<container> ::= (<container_class> '<' <type>
 <--if associative container-->
-	    [',' <type>] '>' ['*']
+	    [',' <type>] '>' ['*']) | <C_container>
 
 <container_class> ::= <stl_class> | <other_container_class>
  
 <stl_class> ::= 'list' | 'vector' | 'deque' | 'set' | 
 		  'multiset' | 'map' | 'multimap'
 
-<other_container_class> ::= 'SGI_forward_container_concept_compatible' | <C_container_types>
-
-<C_container_types> ::= 'clist' | 'generic_clist'
+<other_container_class> ::= 'SGI_forward_container_concept_compatible'
 
 <type> ::= <struct_type> | <primitive_data_type> ['*']
+
+<C_container> ::= <struct> | <struct>:<struct>
+<--For C linked lists and C arrays respectively.
+   The loop variants for these containers can be 
+   customized by the USING LOOP directive
+   which may include macros. The latter can be
+   defined at the top of the DSL description.
+   See examples/CApp for example use.-->
 
 <object> ::= <class_name> ['*']
 

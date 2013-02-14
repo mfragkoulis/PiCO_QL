@@ -5,11 +5,11 @@
 //.cpp using namespace std;
 #define Money_decl(X) struct Money *X
 #define MoneyList_decl(X) struct Money *X
-#define MoneyArray_decl(X) struct Money *X; int i = 0
+#define MoneyArray_decl(X) struct Money *X; int mar = 0
 #define MoneyArray_advance(X, Y, Z) X = Y[Z]
-#define Number_decl(X) int *X; int i = 0
+#define Number_decl(X) int *X; int num = 0
 #define Number_advance(X, Y, Z) X = &Y[Z]
-#define ENumber_decl(X) int *X; int i = 0
+#define ENumber_decl(X) int *X; int enm = 0
 $
 
 CREATE UNION VIEW price (
@@ -85,7 +85,7 @@ CREATE VIRTUAL TABLE myCApp.MoneyArray
 USING STRUCT VIEW Money
 WITH REGISTERED C NAME money_array
 WITH REGISTERED C TYPE MoneyArray:struct Money *
-USING LOOP for(iter = base->mArray[i]; i < base->mArraySize; MoneyArray_advance(iter, base->mArray, ++i))$
+USING LOOP for(iter = base->mArray[mar]; mar < base->mArraySize; MoneyArray_advance(iter, base->mArray, ++mar))$
 
 CREATE STRUCT VIEW Number (
 	number INT FROM self
@@ -95,11 +95,11 @@ CREATE VIRTUAL TABLE myCApp.Number
 USING STRUCT VIEW Number
 WITH REGISTERED C NAME numbers
 WITH REGISTERED C TYPE int
-USING LOOP for(iter = &base[i]; i < 8; Number_advance(iter, base, ++i))$
+USING LOOP for(iter = &base[num]; num < 8; Number_advance(iter, base, ++num))$
 
 
 CREATE VIRTUAL TABLE myCApp.ENumber
 USING STRUCT VIEW Number
 WITH REGISTERED C NAME int_array
 WITH REGISTERED C TYPE MoneyArray:int
-USING LOOP for(iter = &base->intArray[i]; i < base->iArraySize; Number_advance(iter, base->intArray, ++i))$
+USING LOOP for(iter = &base->intArray[enm]; enm < base->iArraySize; Number_advance(iter, base->intArray, ++enm))$
