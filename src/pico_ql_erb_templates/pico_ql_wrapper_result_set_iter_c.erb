@@ -16,7 +16,7 @@ size_t get_datastructure_size(sqlite3_vtab_cursor *cur, sqlite3_vtab *vtab) {
 /* Use VtblImpl to initialize result set and result set iterator.
  */
 <%# Return INT %>
-void init_result_set(sqlite3_vtab *vtab, sqlite3_vtab_cursor *cur) {
+int init_result_set(sqlite3_vtab *vtab, sqlite3_vtab_cursor *cur) {
   picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
   struct Vtbl *iterVT;
   int j = 0;
@@ -27,7 +27,7 @@ void init_result_set(sqlite3_vtab *vtab, sqlite3_vtab_cursor *cur) {
   }
   iterVT = vtAll.instances[j];
 <%#  return iterVT->init_result_set(vtab, cur); %>
-  iterVT->init_result_set(vtab, cur);
+  return iterVT->init_result_set(vtab, cur, iterVT);
 }
 
 /* Use VtblImpl to advance result set iterator.

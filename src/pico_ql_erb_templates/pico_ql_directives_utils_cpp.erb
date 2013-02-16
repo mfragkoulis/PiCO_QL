@@ -199,9 +199,9 @@ void deinit_temp_structs(void) {
   VtblImpl *discharge<%= vt.name %>VT = selector_vt["<%= vt.name %>"];
   (*discharge<%= vt.name %>VT)("clear_saved_results");
 <%      if vt.base_var.length == 0 %>
-  map<sqlite3_vtab_cursor *, bool> *map<%= vt.name %>;
+  map<Cursor *, bool> *map<%= vt.name %>;
   map<%= vt.name %> = NULL;
-  (*discharge<%= vt.name %>VT)(NULL, 0, map<%= vt.name %>);
+  (*discharge<%= vt.name %>VT)(NULL, 0, map<%= vt.name %>, 0);
 <%      end %>
 <%     } %>
 }
@@ -215,6 +215,7 @@ void deinit_vt_selectors(void) {
   for (it = selector_vt.begin(); it != selector_vt.end(); it++)
     delete it->second;
 }
+
 
 <%     @tables.each { |vt| %>
 class <%= vt.name %>_vt : public VtblImpl {
@@ -263,6 +264,16 @@ list <<%= col.fk_col_type.chomp('*') %> > saved_results_<%= i %>;
     };
     ResultSet() {};
     ~ResultSet() {resBts.clear();};
+<%        if VirtualTable.C_container_types.include?(vt.container_class) %>
+    void set(int res_max_size, int resIterState, int off, vector<<%= vt.type %><%= type_retype %>>::iterator it) {
+<%        else %>
+    void set(int res_max_size, int resIterState, int off, vector<<%= vt.signature.chomp('*') %>::iterator>::iterator it) {
+<%        end %>
+      resBts.resize(res_max_size);
+      resultSetIterState = resIterState;
+      offset = off;
+      resIter = it;
+    };
   };
   map<sqlite3_vtab_cursor *, ResultSet> cursors;
 <%        if VirtualTable.C_container_types.include?(vt.container_class) %>
@@ -276,13 +287,16 @@ list <<%= col.fk_col_type.chomp('*') %> > saved_results_<%= i %>;
 <%      else %>
   set<sqlite3_vtab_cursor *> cursors;
 <%      end %>
+  map<sqlite3_vtab_cursor *, Cursor> c_map;
 <%      if vt.base_var.length == 0 %>
-  map<sqlite3_vtab_cursor *, bool> charged;
+  map<Cursor *, bool> charged;
+  int nTimesCharged;
+  vector<long> earlyRequestsArray;
   int recursive;
 <%      end %>
 public:
   <%= vt.name %>_vt() : VtblImpl() {
-<% if vt.base_var.length == 0 %>    recursive = 0;<% end %>};
+<% if vt.base_var.length == 0 %>    recursive = 0;nTimesCharged = 0;<% end %>};
   virtual int operator() (sqlite3_vtab_cursor *, int,
                     int, sqlite3_value *);
   virtual int operator() (sqlite3_vtab_cursor *,
@@ -290,16 +304,31 @@ public:
   virtual size_t operator() (sqlite3_vtab_cursor *, sqlite3_vtab *);
   virtual int operator() (sqlite3_vtab_cursor *);
   virtual void operator() (sqlite3_vtab_cursor *, void *);
-  virtual void operator() (sqlite3_vtab *, sqlite3_vtab_cursor *);
+  virtual int operator() (sqlite3_vtab *, sqlite3_vtab_cursor *);
 <%      if vt.base_var.length == 0 %>
-  virtual int operator() (sqlite3_vtab_cursor *cur, int current, map<sqlite3_vtab_cursor *, bool> *oCharged) {
-    pair<map<sqlite3_vtab_cursor *, bool>::iterator, bool> operation;
+  virtual int operator() (Cursor *c, int current, map<Cursor *, bool> *oCharged, long base) {
+    pair<map<Cursor *, bool>::iterator, bool> operation;
+    map<sqlite3_vtab_cursor *, Cursor>::iterator c_map_iter;
     if (current) {
-      operation = charged.insert(pair<sqlite3_vtab_cursor *, bool>(cur, false));
+      for (c_map_iter = c_map.begin(); c_map_iter != c_map.end(); c_map_iter++) {
+        if (c_map_iter->second.open) {
+          if (((picoQLTableCursor *)c_map_iter->first)->active_verify)
+            break;
+        }
+      }
+      if ((c_map.size() > 0) && (c_map_iter == c_map.end()))
+        return SQLITE_OK; // Done servicing searches.
+      nTimesCharged++;
+      if (c_map.size() == 0) {
+        earlyRequestsArray.push_back(base);
+        printf("In report charge: recorded base to provide %lx at position %i.\n", earlyRequestsArray.back(), (int)(earlyRequestsArray.size() - 1));
+      }
+      operation = charged.insert(pair<Cursor *, bool>(c, false));
+<%# why operation.second? %>
       if ((operation.second) && (oCharged != NULL)) {
-        map<sqlite3_vtab_cursor *, bool>::iterator iter;
+        map<Cursor *, bool>::iterator iter;
         for (iter = oCharged->begin(); iter != oCharged->end(); iter++) {
-          if (cursors.find(iter->first) != cursors.end()) {
+          if (c_map.find(iter->first->cur) != c_map.end()) {
             if (!iter->second) {
               recursive += 1;
               iter->second = true;
@@ -309,16 +338,20 @@ public:
       }
     } else {
       charged.clear();
+      nTimesCharged = 0;
+      earlyRequestsArray.clear();
       recursive = 0;
     }
-    return SQLITE_INTERNAL;
+    return SQLITE_OK;
   };
 <%      else %>
-  virtual int operator() (sqlite3_vtab_cursor *, int, map<sqlite3_vtab_cursor *, bool> *) {return SQLITE_INTERNAL;};
+  virtual int operator() (Cursor *, int, map<Cursor *, bool> *, long) {return SQLITE_OK;};
 <%      end %>
 
   virtual void operator() (const char *dummy) {
     (void)dummy;
+    cursors.clear();
+    c_map.clear();
 <%      vt.columns.each { |col| %>
 <%       if $argM == "MEM_MGT" && col.related_to.length > 0 && col.fk_method_ret == 1 %>
     saved_results_<%= col.saved_results_index %>.clear();    

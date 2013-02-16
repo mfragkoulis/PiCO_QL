@@ -4,6 +4,7 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
   picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
   cursor **cursors = ((<%= @name %>_vt *)vtbl)->cursors;
   size_t cursorsSize = ((<%= @name %>_vt *)vtbl)->cursorsSize;
+  int checkedSize = 0;
 <%      if @base_var.length == 0 %>
   size_t chargedSize = ((<%= @name %>_vt *)vtbl)->chargedSize;
   int recursive = ((<%= @name %>_vt *)vtbl)->recursive;
@@ -11,12 +12,12 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
 <%      if /\*/.match(@signature_pointer) == nil %>
 <%        sign_retype = "#{@signature}*" %>
 <%      else %>
-<%        sign_retype = @signature %>
+<%        sign_retype = "#{@signature}" %>
 <%      end %>
 <%      if /\*/.match(@pointer) == nil %>
 <%        type_retype = "#{@type}*" %>
 <%      else %>
-<%        type_retype = @type %>
+<%        type_retype = "#{@type}" %>
 <%      end %>
   <%= sign_retype %> any_dstr;  
 <%      if @container_class.length > 0 %>
@@ -28,45 +29,24 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
   int found = 0;
 <%        end %>
 <%      end %>
-  int j = 0;
+  int j = 0, chs = 0;
   int first_constr = stcsr->first_constr;
   (void)picoQL;	// Silence compiler unused variable warning
   while ((j < (int)cursorsSize) && (cursors[j]->cur != cur)) {j++;}
-  if (j == (int)cursorsSize) {
-    cursor *c;
-<%      if @container_class.length > 0 %>
-    <%= @name %>ResultSetImpl *resImpl;
-<%      end %>
-    ((<%= @name %>_vt *)vtbl)->cursorsSize++;
-    cursorsSize = ((<%= @name %>_vt *)vtbl)->cursorsSize;
-    c = sqlite3_malloc(sizeof(cursor));
-    if (c == NULL)
-      return SQLITE_NOMEM;
-    c->cur = cur;
-<%      if @container_class.length > 0 %>
-    resImpl = (<%= @name %>ResultSetImpl *)sqlite3_malloc(sizeof(<%= @name %>ResultSetImpl));
-    if (resImpl == NULL)
-      return SQLITE_NOMEM;
-    resImpl->r.size = 0;
-    resImpl->r.actualSize = 0;
-    resImpl->r.offset = -1;
-    resImpl->r.resultSetIterState = -1;
-    c->res = &resImpl->r;
-    resImpl->res = (<%= @type.chomp('*') %> **)sqlite3_malloc(sizeof(<%= @type.chomp('*') %> *));
-    if (resImpl->res == NULL)
-      return SQLITE_NOMEM;
-<%      else %>
-<%# ResultSet unused for object %>
-    c->res = NULL;
-<%      end %>
-    ((<%= @name %>_vt *)vtbl)->cursors = (cursor **)sqlite3_realloc(((<%= @name %>_vt *)vtbl)->cursors, sizeof(cursor *)*cursorsSize);
-    if (((<%= @name %>_vt *)vtbl)->cursors == NULL)
-      return SQLITE_NOMEM;
-    cursors = ((<%= @name %>_vt *)vtbl)->cursors;
-    ((<%= @name %>_vt *)vtbl)->cursors[cursorsSize-1] = c;
+  if (j == cursorsSize) {
+    printf("Cursor %lx not registered. Exiting now.\n", (long)cur);
+    return SQLITE_ERROR;
+  } else if (!((picoQLTableCursor *)cur)->active_checked) {
+    ((picoQLTableCursor *)cur)->active_checked = 1;
+    ((picoQLTableCursor *)cur)->active_verify = 0;
 #ifdef PICO_QL_DEBUG
-    printf("Table %s, Cursor: %li inserted, max size %i\n", picoQL->zName, (long int)cur, stcsr->max_size);
+    printf("Table %s, Checked cursor: %lx.\n", picoQL->zName, (long)cur);
 #endif
+  }
+  while (chs < (int)cursorsSize) {
+    if (cursors[chs]->open)
+      checkedSize += ((picoQLTableCursor *)cursors[chs]->cur)->active_checked;
+    chs++;
   }
 <%      if @container_class.length > 0 %>
   rs = cursors[j]->res;
@@ -142,8 +122,47 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
     if (first_constr) {
       if (equals(picoQL->azColumn[nCol], "base")) {
         int chSize = chargedSize;
+        int cuchkSize = checkedSize;
         int cuSize = cursorsSize;
-        if ((cuSize == chSize) || (cuSize == chSize - recursive)) {
+        int nEarlyRequests = ((<%= @name %>_vt *)vtbl)->nEarlyRequests;
+        long *earlyRequestsArray = ((<%= @name %>_vt *)vtbl)->earlyRequestsArray;
+        int nTimesCharged = ((<%= @name %>_vt *)vtbl)->nTimesCharged;
+        int passClosed = 0;
+        int ner = 0;
+        long to_base = 0;
+<%#       if @base_var.length == 0 %>
+#ifdef PICO_QL_DEBUG
+  printf("Table %s, cursorsSize %i, chargedSize %i, earlyRequests %i, cursorsChecked %i, nTimesCharged %i.\n", picoQL->zName, cuSize, chSize, nEarlyRequests, cuchkSize, nTimesCharged); 
+#endif
+#ifdef ENVIRONMENT64
+        to_base = (long)sqlite3_value_int64(val);
+#else
+        to_base = (long)sqlite3_value_int(val);
+#endif
+        if (nEarlyRequests) {
+          for (ner = 0; ner < nEarlyRequests; ner++) {
+#ifdef PICO_QL_DEBUG
+            printf("base provided by report charged early is %lx, to_base is %lx, ner is %i, nEarlyRequests is %i.\n", earlyRequestsArray[ner], to_base, ner, nEarlyRequests);
+#endif
+            if (earlyRequestsArray[ner] == to_base) {
+#ifdef PICO_QL_DEBUG
+              printf("base sent %lx matched base provided %lx.\n", earlyRequestsArray[ner], to_base);
+#endif
+              //earlyRequestsArray[ner] = -1;
+              break;
+            }
+          }
+          if (ner == nEarlyRequests) {
+#ifdef PICO_QL_DEBUG
+            printf("Early service requests but unmatched closed cursors (%i<>%i) respectively.\n", nEarlyRequests);
+#endif
+            return SQLITE_MISUSE;
+          } else
+            passClosed = 1;
+        }  
+        if ((cuchkSize == chSize) || 
+            (cuSize == nTimesCharged) || 
+            (passClosed)) {
 #ifdef ENVIRONMENT64
           stcsr->source = (void *)sqlite3_value_int64(val);
 #else
@@ -208,7 +227,7 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
 <%        end %>
           stcsr->isInstanceEmpty = 0;
         } else {
-          printf("Searching embedded VT <%= @name %> with invalid BASE constraint (%i<>%i), recursive is %i.\n", cuSize, chSize, recursive);
+          printf("Searching embedded VT <%= @name %> with invalid BASE constraint cursorsSize %i, chargedCursors %i, recursive is %i, checkedCursors %i, nTimesCharged %i.\n", (int)cursorsSize, chSize, recursive, cuchkSize, nTimesCharged);
           return SQLITE_MISUSE;
         }
       } else { 

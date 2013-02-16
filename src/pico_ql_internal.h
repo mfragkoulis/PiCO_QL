@@ -48,6 +48,20 @@
 #ifdef __cplusplus
 #include <map>
 namespace picoQL {
+
+  class Cursor {
+  public:
+    sqlite3_vtab_cursor *cur;
+    int open;
+    int counter;
+
+    Cursor(sqlite3_vtab_cursor *cu, int o, int cnt){cur = cu; 
+                                                    open = o;
+                                                    counter = cnt;};
+    Cursor(){};
+    ~Cursor(){};
+  };
+
   class VtblImpl {
   public:
     VtblImpl() {};
@@ -64,14 +78,14 @@ namespace picoQL {
 
     virtual size_t operator() (sqlite3_vtab_cursor *, sqlite3_vtab *) {return SQLITE_ERROR;};
 
-    virtual void operator() (sqlite3_vtab *, sqlite3_vtab_cursor *) {};
+    virtual int operator() (sqlite3_vtab *, sqlite3_vtab_cursor *) {return SQLITE_ERROR;};
 
     virtual int operator() (sqlite3_vtab_cursor *)
     {return SQLITE_ERROR;};
 
     virtual void operator() (sqlite3_vtab_cursor *, void *) {};
 
-    virtual int operator() (sqlite3_vtab_cursor *, int, std::map<sqlite3_vtab_cursor *, bool> *) {return SQLITE_INTERNAL;};
+    virtual int operator() (Cursor *, int, std::map<Cursor *, bool> *, long) {return SQLITE_ERROR;};
 
     virtual void operator() (const char *) {};
   };
@@ -97,6 +111,8 @@ namespace picoQL {
       sqlite3_vtab_cursor pCsr;
       int isInstanceNULL;
       int isInstanceEmpty;
+      int active_verify;
+      int active_checked;
       int max_size;        // 
       int size;            // For objects only.
       int offset;         // For objects only.
@@ -112,7 +128,7 @@ namespace picoQL {
     void set_selectors(void); // internal but inconvenient to position
     void deinit_temp_structs(void);
     void deinit_vt_selectors(void);
-    void init_result_set(sqlite3_vtab *vtab, sqlite3_vtab_cursor *stc);
+    int init_result_set(sqlite3_vtab *vtab, sqlite3_vtab_cursor *stc);
     int advance_result_set_iter(sqlite3_vtab_cursor *cur);
     void deinit_result_set(sqlite3_vtab_cursor *cur, void *);
     size_t get_datastructure_size(sqlite3_vtab_cursor *cur, sqlite3_vtab *vtab);

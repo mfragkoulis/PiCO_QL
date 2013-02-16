@@ -169,9 +169,9 @@ class Column
     if @access_path.match(/->/)
       @tokenized_access_path = @access_path.split(/->/)
       @tokenized_access_path.pop
-      #if $argD == "DEBUG"
+      if $argD == "DEBUG"
         @tokenized_access_path.each { |tap| p tap }
-      #end
+      end
     end
   end
 
@@ -565,6 +565,7 @@ class VirtualTable
       end
     end
     fw.puts "#{space}    {"
+    fw.puts "#{space}      long base_prov = 0;"
     if $argLB == "CPP"
       fw.puts "#ifdef PICO_QL_HANDLE_POLYMORPHISM"
       def_nop = "*"
@@ -572,6 +573,7 @@ class VirtualTable
         def_nop = ""
       end
       fw.puts "#{space}      #{fk_col_type}#{def_nop} cast = dynamic_cast<#{fk_col_type}#{def_nop}>(#{p_type}#{iden}#{access_path});"
+      fw.puts "#{space}      base_prov = (long)cast;"
       if $argM == "MEM_MGT" && fk_method_ret == 1
         fw.puts "#{space}      if (cast != NULL) {"
         fw.puts "#{space}        saved_results_#{saved_results_index}.push_back(*cast);"
@@ -610,28 +612,32 @@ class VirtualTable
       fw.puts "#{space}      saved_results_#{saved_results_index}.push_back(#{record_type}#{iden}#{access_path});"
       print_line_directive(fw, line)
       fw.puts "#ifdef ENVIRONMENT64"
-      fw.puts "#{space}      sqlite3_result_#{sqlite3_type}(con, #{column_cast}&(saved_results_#{saved_results_index}.back()));"
+      fw.puts "#{space}      sqlite3_result_#{sqlite3_type}(con, (base_prov = #{column_cast}&(saved_results_#{saved_results_index}.back())));"
       fw.puts "#else"
-      fw.puts "#{space}      sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}&(saved_results_#{saved_results_index}.back()));"
+      fw.puts "#{space}      sqlite3_result_#{sqlite3_parameters}(con, (base_prov = #{column_cast}&(saved_results_#{saved_results_index}.back())));"
       fw.puts "#endif"
     else
       fw.puts "#ifdef ENVIRONMENT64"
       fw.puts "#{space}      sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{p_type}#{iden}#{access_path});"
+      fw.puts "#{space}      base_prov = #{column_cast}#{p_type}#{iden}#{access_path};"
       print_line_directive(fw, line)
       fw.puts "#else"
       fw.puts "#{space}      sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}#{p_type}#{iden}#{access_path});"
+      fw.puts "#{space}      base_prov = #{column_cast}#{p_type}#{iden}#{access_path};"
       print_line_directive(fw, line)
       fw.puts "#endif"
+#ifdef PICO_QL_DEBUG
+      fw.puts "printf(\"Sending base_prov %lx.\\n\", base_prov);"
     end
     if $argLB == "CPP"
       fw.puts "#endif"
       fw.puts "#{space}      VtblImpl *chargeVT#{col} = selector_vt[\"#{fk_col_name}\"];"
       if @base_var.length == 0
-        fw.puts "#{space}      (*chargeVT#{col})(cur, 1, &charged);"
+        fw.puts "#{space}      return (*chargeVT#{col})(&c_map[cur], 1, &charged, base_prov);"
       else
-        fw.puts "#{space}      map<sqlite3_vtab_cursor *, bool> *map#{@name}#{col};"
+        fw.puts "#{space}      map<Cursor *, bool> *map#{@name}#{col};"
         fw.puts "#{space}      map#{@name}#{col} = NULL;"
-        fw.puts "#{space}      (*chargeVT#{col})(cur, 1, map#{@name}#{col});"
+        fw.puts "#{space}      return (*chargeVT#{col})(&c_map[cur], 1, map#{@name}#{col}, base_prov);"
       end
     else
       fw.puts "#{space}      while ((j < (int)vtAll.size) && (strcmp(vtAll.instanceNames[j], \"#{fk_col_name}\"))) {j++;}"
@@ -641,11 +647,9 @@ class VirtualTable
       fw.puts "#{space}      }"
       fw.puts "#{space}      chargeVT#{col} = vtAll.instances[j];"
       if @base_var.length == 0
-        fw.puts "#{space}      chargeVT#{col}->report_charge(cur, 1, &((#{@name}_vt *)vtbl)->charged, &((#{@name}_vt *)vtbl)->chargedSize, chargeVT#{col});"
+        fw.puts "#{space}      return chargeVT#{col}->report_charge(cursors[cr], 1, &((#{@name}_vt *)vtbl)->charged, &((#{@name}_vt *)vtbl)->chargedSize, base_prov, chargeVT#{col});"
       else
-        #      fw.puts "#{space}      map<sqlite3_vtab_cursor *, bool> *map#{@name}#{col};"
-        #      fw.puts "#{space}      map#{@name}#{col} = NULL;"
-        fw.puts "#{space}      chargeVT#{col}->report_charge(cur, 1, NULL, NULL, chargeVT#{col});"
+        fw.puts "#{space}      return chargeVT#{col}->report_charge(cursors[cr], 1, NULL, NULL, base_prov, chargeVT#{col});"
       end
     end
     fw.puts "#{space}      break;"

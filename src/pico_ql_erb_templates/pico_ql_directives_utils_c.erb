@@ -112,6 +112,7 @@ typedef struct ResultSet {
 typedef struct cursor {
 
   sqlite3_vtab_cursor *cur;
+  int open;
 <%# deviated from C++ where object does not have ResultSet %>
   ResultSet *res;
 
@@ -119,7 +120,7 @@ typedef struct cursor {
 
 typedef struct cursorCharged {
 
-  sqlite3_vtab_cursor *cur;
+  cursor *c;
   int flag;
 
 } cursorCharged;
@@ -130,10 +131,10 @@ struct Vtbl {
   int (*retrieve)(sqlite3_vtab_cursor *, int, sqlite3_context *, struct Vtbl*);
   size_t (*get_datastructure_size)(sqlite3_vtab_cursor *, sqlite3_vtab *);
 <%# perhaps init ResultSet for real? %>
-  void (*init_result_set)(sqlite3_vtab *, sqlite3_vtab_cursor *);
+  int (*init_result_set)(sqlite3_vtab *, sqlite3_vtab_cursor *, struct Vtbl*);
   int (*advance_result_set_iter)(sqlite3_vtab_cursor *, struct Vtbl*);
   void (*deinit_result_set)(sqlite3_vtab_cursor *, struct Vtbl*);
-  int (*report_charge)(sqlite3_vtab_cursor *, int, cursorCharged ***, size_t *, struct Vtbl*);
+  int (*report_charge)(cursor *, int, cursorCharged ***, size_t *, long, struct Vtbl*);
   void (*discharge_saved_results)(struct Vtbl*);
 
 };
@@ -183,6 +184,9 @@ typedef struct <%= vt.name %>VtblImpl {
 <%      if vt.base_var.length == 0 %>
   cursorCharged **charged;
   size_t chargedSize; // how many malloced
+  int nTimesCharged;
+  long *earlyRequestsArray;
+  int nEarlyRequests;
   int recursive;
 <%      end %>
 
@@ -199,7 +203,7 @@ void deinit_temp_structs(void) {
   for (i = 0; i < (int)vtAll.size; i++) {
     vtAll.instances[i]->discharge_saved_results(vtAll.instances[i]);
     if (vtAll.instances[i]->report_charge)
-      vtAll.instances[i]->report_charge(NULL, 0, NULL, 0, vtAll.instances[i]);
+      vtAll.instances[i]->report_charge(NULL, 0, NULL, 0, 0, vtAll.instances[i]);
   }
 <%#     @tables.each { |vt| %>
 <%#      if vt.base_var.length == 0 %>

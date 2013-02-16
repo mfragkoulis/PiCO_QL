@@ -390,7 +390,7 @@ int filter_vtable(sqlite3_vtab_cursor *cur,
    * constr encountered is the first (value 1) 
    * or not (value 0).
    */
-  stc->first_constr = 1;  
+  stc->first_constr = 1;
   if (argc == 0) {        /* Empty where clause. */
     if ((re = search(cur, 0, 0, NULL)) != 0)
       return re;
@@ -426,6 +426,7 @@ int next_vtable(sqlite3_vtab_cursor *cur) {
  */
 int open_vtable(sqlite3_vtab *pVtab, 
 		sqlite3_vtab_cursor **ppCsr) {
+  int re = SQLITE_OK;
   picoQLTable *st = (picoQLTable *)pVtab;
   picoQLTableCursor *stc;
   sqlite3_vtab_cursor *pCsr;    /* Allocated cursor */
@@ -446,6 +447,13 @@ int open_vtable(sqlite3_vtab *pVtab,
    */
   stc->source = st->data;
   st->locked = 0;
+  /* active_verify denotes that we are ready to
+   * service join requests (=1) or that we are
+   * done with them (=0).
+   */
+  stc->active_checked = 0;
+  stc->active_verify = 1;
+
   /* To allocate space for the resultset.
    * Will need space at most equal to the data structure 
    * size. This is fixed for autonomous structs, variable 
@@ -478,13 +486,13 @@ int open_vtable(sqlite3_vtab *pVtab,
     get_datastructure_size(c, pVtab);
     stc->max_size = 1;
   }
-  init_result_set(pVtab, pCsr);
+  re = init_result_set(pVtab, pCsr);
 #ifdef PICO_QL_DEBUG
   printf("ppCsr = %lx, pCsr = %lx \n", 
 	 (long unsigned int)ppCsr, 
 	 (long unsigned int)pCsr);
 #endif 
-  return SQLITE_OK;
+  return re;
 }
 
 /* xColumn. Calls the retrieve family of functions at 

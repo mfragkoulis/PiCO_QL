@@ -3,27 +3,27 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
   picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
   (void)picoQL;	// Silence compiler unused variable warning
   picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
+  int checkedSize = 0;
+  int cuSize = 0;
+  map<sqlite3_vtab_cursor *, Cursor>::iterator c_map_iter;
   if (cursors.find(cur) == cursors.end()) {
-<%      @signature_pointer.match(/\*/) ? sign_retype = "#{@signature}" : sign_retype = "#{@signature}*" %>
-<%      @pointer.match(/\*/) ? type_retype = "#{@type}" : type_retype = "#{@type}*" %>
-<%      if @container_class.length > 0 %>
-<%        if @@C_container_types.include?(@container_class) %>
-    vector<<%= type_retype %>> res;
-<%        else %>
-    vector<<%= @signature.chomp('*') %>::iterator> res;
-<%        end %>
-    ResultSet r(stcsr->max_size, -1, -1, res.begin());
-    pair<map<sqlite3_vtab_cursor *, ResultSet>::iterator, bool> inserted = cursors.insert(pair<sqlite3_vtab_cursor *, ResultSet>(cur, r));
+    printf("Cursor %lx not registered. Exiting now.\n", (long)cur);
+    return SQLITE_ERROR;
+  } else if (!((picoQLTableCursor *)cur)->active_checked) {
+    ((picoQLTableCursor *)cur)->active_checked = 1;
+    ((picoQLTableCursor *)cur)->active_verify = 0;
 #ifdef PICO_QL_DEBUG
-    printf("Table %s, Cursor: inserted %i, max size %i, resBts size %i\n", picoQL->zName, (int)inserted.second, stcsr->max_size, (int)cursors[cur].resBts.size());
+    printf("Table %s, Checked cursor: %lx.\n", picoQL->zName, (long)cur);
 #endif
-<%      else %>
-    pair<set<sqlite3_vtab_cursor *>::iterator, bool> inserted = cursors.insert(cur);
-#ifdef PICO_QL_DEBUG
-    printf("Table %s, Cursor: inserted %i\n", picoQL->zName, (int)inserted.second);
-#endif
-<%      end %>
   }
+  for (c_map_iter = c_map.begin(); c_map_iter != c_map.end(); c_map_iter++) {
+    cuSize += c_map_iter->second.counter;
+    if (c_map_iter->second.open)
+      checkedSize += ((picoQLTableCursor *)c_map_iter->first)->active_checked;
+  }
+#ifdef PICO_QL_DEBUG
+  printf("Checked cursor size is %i.\n" , checkedSize);
+#endif
 <%      if @container_class.length > 0 %>
   int index = 0;
   ResultSet *rs = &cursors[cur];
@@ -37,6 +37,11 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
   bool found = false;
   <%= @name %>_decl(iter);
 <%        end %>
+<%      end %>
+<%      if /\*/.match(@pointer) == nil %>
+<%        type_retype = "#{@type}*" %>
+<%      else %>
+<%        type_retype = "#{@type}" %>
 <%      end %>
   if (struct_empty_null(cur, val, picoQL->embedded, nCol)) {
 <%      if @container_class.length == 0 %>
@@ -54,6 +59,11 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
 <%      end %>
     return SQLITE_OK;
   }
+<%      if /\*/.match(@signature_pointer) == nil %>
+<%        sign_retype = "#{@signature}*" %>
+<%      else %>
+<%        sign_retype = @signature %>
+<%      end %>
   <%= sign_retype %> any_dstr = (<%= sign_retype %>)stcsr->source;
 <%      if $argD == "DEBUG" %>
 #line <%= @signature_line + 1 %> "<%= $argF %>" 
@@ -102,8 +112,35 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
     if (first_constr) {
       if (equals(picoQL->azColumn[nCol], "base")) {
         int chSize = charged.size();
-        int cuSize = cursors.size();
-        if ((cuSize == chSize) || (cuSize == chSize - recursive)) {
+        int cuchkSize = checkedSize;
+//        int cuSize = cursors.size();
+        int nEarlyRequests = (int)earlyRequestsArray.size();
+        int closedChargedCursors = 0;
+        int passClosed = 0;
+        long to_base = 0;
+        vector<long>::iterator ner_iter;
+<%#       if @base_var.length == 0 %>
+#ifdef PICO_QL_DEBUG
+  printf("Table %s, cursorsSize %i, chargedSize %i, earlyRequests %i, cursorsChecked %i, nTimesCharged %i.\n", picoQL->zName, cuSize, chSize, nEarlyRequests, cuchkSize, nTimesCharged);
+#endif
+#ifdef ENVIRONMENT64
+        to_base = (long)sqlite3_value_int64(val);
+#else
+        to_base = (long)sqlite3_value_int(val);
+#endif
+        if (nEarlyRequests) {
+          if ((ner_iter = find(earlyRequestsArray.begin(), earlyRequestsArray.end(), to_base)) != earlyRequestsArray.end()) {
+            printf("base sent %lx matched base provided %lx.\n", *ner_iter, to_base);
+            //earlyRequestsArray[ner] = -1;
+            passClosed = 1;
+          } else {
+            printf("Early service requests but unmatched closed cursors (%i<>%i) respectively.\n", nEarlyRequests, closedChargedCursors);
+            return SQLITE_MISUSE;
+          } 
+        }  
+        if ((cuchkSize == chSize) || 
+            (cuSize == nTimesCharged) || 
+            (passClosed)) {
 #ifdef ENVIRONMENT64
           stcsr->source = (void *)sqlite3_value_int64(val);
 #else
@@ -158,7 +195,7 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
 <%        end %>
           stcsr->isInstanceEmpty = 0;
         } else {
-          printf("Searching embedded VT <%= @name %> with invalid BASE constraint (%i<>%i)\n", cuSize, chSize);
+          printf("Searching embedded VT <%= @name %> with invalid BASE constraint cursorsSize %i, chargedCursors %i, recursive is %i, checkedCursors %i, nTimesCharged %i.\n", cuSize, chSize, recursive, cuchkSize, nTimesCharged);
           return SQLITE_MISUSE;
         }
       } else { 

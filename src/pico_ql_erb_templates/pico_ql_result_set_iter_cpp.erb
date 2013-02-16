@@ -24,7 +24,7 @@ size_t <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, sqlite3_vtab *vtab
 }
 
 
-void <%= @name %>_vt::operator() (sqlite3_vtab *vtab, sqlite3_vtab_cursor *cur) {
+int <%= @name %>_vt::operator() (sqlite3_vtab *vtab, sqlite3_vtab_cursor *cur) {
 <%      if $lock.active == 1 && @container_class.length > 0 %>
   picoQLTable *picoQL = (picoQLTable *)vtab;
   if (!picoQL->locked)
@@ -33,7 +33,46 @@ void <%= @name %>_vt::operator() (sqlite3_vtab *vtab, sqlite3_vtab_cursor *cur) 
 <%      else %>
   (void)vtab;
 <%      end %>
-  (void)cur;
+  picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
+  if (cursors.find(cur) == cursors.end()) {
+<%      if @container_class.length > 0 %>
+<%        if @@C_container_types.include?(@container_class) %>
+<%          @pointer.match(/\*/) ? retype = "#{@type}" : retype = "#{@type}*" %>
+    vector<<%= retype %>> res;
+<%        else %>
+    vector<<%= @signature.chomp('*') %>::iterator> res;
+<%        end %>
+    ResultSet r(stcsr->max_size, -1, -1, res.begin());
+    pair<map<sqlite3_vtab_cursor *, ResultSet>::iterator, bool> inserted = cursors.insert(pair<sqlite3_vtab_cursor *, ResultSet>(cur, r));
+#ifdef PICO_QL_DEBUG
+    printf("Table %s, Cursor: inserted %i, max size %i, resBts size %i\n", ((picoQLTable *)cur->pVtab)->zName, (int)inserted.second, stcsr->max_size, (int)cursors[cur].resBts.size());
+#endif
+  } else {
+    ResultSet *rs = &cursors[cur];
+    rs->set(stcsr->max_size, -1, -1, rs->res.begin());
+  }
+<%      else %>
+    (void)stcsr;
+    pair<set<sqlite3_vtab_cursor *>::iterator, bool> inserted = cursors.insert(cur);
+#ifdef PICO_QL_DEBUG
+    printf("Table %s, sqlite3_cursor %lx: inserted %i\n", ((picoQLTable *)cur->pVtab)->zName, (long)cur, (int)inserted.second);
+#endif
+  }  
+<%      end %>
+  map<sqlite3_vtab_cursor *, Cursor>::iterator c_map_iter;
+  if ((c_map_iter = c_map.find(cur)) != c_map.end()) {
+    c_map_iter->second.open = 1;
+    c_map_iter->second.counter++;
+  } else {
+    c_map.insert(pair<sqlite3_vtab_cursor *, Cursor>(cur, Cursor(cur, 1, 1)));
+#ifdef PICO_QL_DEBUG
+    printf("Table %s, sqlite3 cursor: %lx inserted, max size %i.\n", ((picoQLTable *)cur->pVtab)->zName, (long int)cur, ((picoQLTableCursor *)cur)->max_size);
+#endif
+  }
+#ifdef PICO_QL_DEBUG
+  printf("Table %s_vt_init_result_set search is active on Cursor %lx, sqlite3 cursor %lx, cursors size %i.\n", ((picoQLTable *)cur->pVtab)->zName, (long)&c_map[cur], (long)cur, (int)c_map.size());
+#endif
+  return SQLITE_OK;
 }
 
 int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur) {
@@ -87,13 +126,10 @@ void <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, void *shadowRes) {
     rs->res.clear();
     rs->resBts.clear();
 <%      end %>
-    cursors.erase(cur);
+    Cursor *c = &c_map[cur];
+    c->open = 0;
   } else
     printf("No such cursor %li inserted\n", (long int)cur);
-<%      if @base_var.length == 0 %>
-  charged.clear();
-  recursive = 0;
-<%      end %>
 <%      if $lock.active == 1 && @container_class.length > 0 %>
   picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
   if (picoQL->locked == 1)

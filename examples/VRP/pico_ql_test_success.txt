@@ -561,31 +561,87 @@ rownum cost delcapacity delcapacity_root rownum code demand x_coord y_coord
 Done
 
 Query 33:
- select truck.rownum, cost, delcapacity, delcapacity_root, c.rownum, c.code, c.demand, c.x_coord, c.y_coord from truck,customer c, customer s where (cost <100 or delcapacity>0) and c.base=truck.customers_id and s.base=truck.customers_id and (s.x_coord>170 or c.y_coord<10);
+ select truck.rownum, cost, delcapacity, delcapacity_root, c.rownum, c.code, c.demand, c.x_coord, c.y_coord, s.rownum, s.code, s.demand, s.x_coord, s.y_coord from truck,customer c, customer s where (cost <100 or delcapacity>0) and c.base=truck.customers_id and s.base=truck.customers_id and (s.x_coord>170 or c.y_coord<10);
 
 Statement prepared.
-rownum cost delcapacity delcapacity_root rownum code demand x_coord y_coord 
+rownum cost delcapacity delcapacity_root rownum code demand x_coord y_coord rownum code demand x_coord y_coord 
 
+4 339.716572 10 3.162278 9 032 10 129 9 0 158 20 30 31 
+4 339.716572 10 3.162278 9 032 10 129 9 1 095 10 29 28 
+4 339.716572 10 3.162278 9 032 10 129 9 2 193 20 21 26 
+4 339.716572 10 3.162278 9 032 10 129 9 3 033 30 18 38 
+4 339.716572 10 3.162278 9 032 10 129 9 4 036 30 17 37 
+4 339.716572 10 3.162278 9 032 10 129 9 5 178 10 91 78 
+4 339.716572 10 3.162278 9 032 10 129 9 6 064 10 94 73 
+4 339.716572 10 3.162278 9 032 10 129 9 7 061 20 94 70 
+4 339.716572 10 3.162278 9 032 10 129 9 8 148 20 127 29 
+4 339.716572 10 3.162278 9 032 10 129 9 9 032 10 129 9 
+4 339.716572 10 3.162278 9 032 10 129 9 10 124 10 132 24 
 
-Library used incorrectly
+Done
 
 Query 34:
- select truck.rownum, cost, delcapacity, delcapacity_root, c.rownum, c.code, c.demand, c.x_coord, c.y_coord from truck,customer c, customer s where (cost <100 or delcapacity>0) and c.base=truck.customers_id and c.code<50 and s.base=truck.customers_id and (s.x_coord>170 or s.y_coord<10);
+ select truck.rownum, cost, delcapacity, delcapacity_root, c.rownum, c.code, c.demand, c.x_coord, c.y_coord, s.rownum, s.code, s.demand, s.x_coord, s.y_coord from truck,customer c, customer s where (cost <100 or delcapacity>0) and c.base=truck.customers_id and c.code<50 and s.base=truck.customers_id and (s.x_coord>170 or s.y_coord<10);
 
 Statement prepared.
-rownum cost delcapacity delcapacity_root rownum code demand x_coord y_coord 
+rownum cost delcapacity delcapacity_root rownum code demand x_coord y_coord rownum code demand x_coord y_coord 
 
+4 339.716572 10 3.162278 0 158 20 30 31 9 032 10 129 9 
+4 339.716572 10 3.162278 1 095 10 29 28 9 032 10 129 9 
+4 339.716572 10 3.162278 2 193 20 21 26 9 032 10 129 9 
+4 339.716572 10 3.162278 3 033 30 18 38 9 032 10 129 9 
+4 339.716572 10 3.162278 4 036 30 17 37 9 032 10 129 9 
+4 339.716572 10 3.162278 5 178 10 91 78 9 032 10 129 9 
+4 339.716572 10 3.162278 6 064 10 94 73 9 032 10 129 9 
+4 339.716572 10 3.162278 7 061 20 94 70 9 032 10 129 9 
+4 339.716572 10 3.162278 8 148 20 127 29 9 032 10 129 9 
+4 339.716572 10 3.162278 9 032 10 129 9 9 032 10 129 9 
+4 339.716572 10 3.162278 10 124 10 132 24 9 032 10 129 9 
 
-Library used incorrectly
+Done
 
 Query 35:
- select truck.rownum, cost, delcapacity, delcapacity_root, c.rownum, c.code, c.demand,c.x_coord,c.y_coord from truck,customer c, customer s where (cost <100 or delcapacity>0) and c.base=truck.customers_id and s.base=truck.customers_id and (c.code>170 or c.demand<10) and (s.x_coord>40 or c.y_coord<20);
+ select truck.rownum, cost, delcapacity, delcapacity_root, c.rownum, c.code, c.demand, c.x_coord, c.y_coord, s.rownum, s.code, s.demand, s.x_coord, s.y_coord from truck,customer c, customer s where (cost <100 or delcapacity>0) and c.base=truck.customers_id and s.base=truck.customers_id and (c.code>170 or c.demand<10) and (s.x_coord>40 or c.y_coord<20);
 
 Statement prepared.
-rownum cost delcapacity delcapacity_root rownum code demand x_coord y_coord 
+rownum cost delcapacity delcapacity_root rownum code demand x_coord y_coord rownum code demand x_coord y_coord 
 
+3 280.375322 20 4.472136 1 199 10 34 108 6 022 10 43 140 
+3 280.375322 20 4.472136 1 199 10 34 108 7 150 10 42 136 
+3 280.375322 20 4.472136 1 199 10 34 108 11 017 10 57 59 
+4 339.716572 10 3.162278 2 193 20 21 26 5 178 10 91 78 
+4 339.716572 10 3.162278 2 193 20 21 26 6 064 10 94 73 
+4 339.716572 10 3.162278 2 193 20 21 26 7 061 20 94 70 
+4 339.716572 10 3.162278 2 193 20 21 26 8 148 20 127 29 
+4 339.716572 10 3.162278 2 193 20 21 26 9 032 10 129 9 
+4 339.716572 10 3.162278 2 193 20 21 26 10 124 10 132 24 
+4 339.716572 10 3.162278 5 178 10 91 78 5 178 10 91 78 
+4 339.716572 10 3.162278 5 178 10 91 78 6 064 10 94 73 
+4 339.716572 10 3.162278 5 178 10 91 78 7 061 20 94 70 
+4 339.716572 10 3.162278 5 178 10 91 78 8 148 20 127 29 
+4 339.716572 10 3.162278 5 178 10 91 78 9 032 10 129 9 
+4 339.716572 10 3.162278 5 178 10 91 78 10 124 10 132 24 
+11 270.269111 10 3.162278 1 172 20 111 66 0 070 30 103 34 
+11 270.269111 10 3.162278 1 172 20 111 66 1 172 20 111 66 
+11 270.269111 10 3.162278 1 172 20 111 66 2 041 20 109 71 
+11 270.269111 10 3.162278 1 172 20 111 66 3 085 20 112 71 
+11 270.269111 10 3.162278 1 172 20 111 66 4 080 10 113 71 
+11 270.269111 10 3.162278 1 172 20 111 66 5 133 10 99 96 
+11 270.269111 10 3.162278 10 183 20 35 99 0 070 30 103 34 
+11 270.269111 10 3.162278 10 183 20 35 99 1 172 20 111 66 
+11 270.269111 10 3.162278 10 183 20 35 99 2 041 20 109 71 
+11 270.269111 10 3.162278 10 183 20 35 99 3 085 20 112 71 
+11 270.269111 10 3.162278 10 183 20 35 99 4 080 10 113 71 
+11 270.269111 10 3.162278 10 183 20 35 99 5 133 10 99 96 
+17 220.882914 10 3.162278 6 196 10 91 108 0 027 30 93 75 
+17 220.882914 10 3.162278 6 196 10 91 108 1 131 30 74 96 
+17 220.882914 10 3.162278 6 196 10 91 108 4 076 30 78 92 
+17 220.882914 10 3.162278 6 196 10 91 108 5 097 30 92 107 
+17 220.882914 10 3.162278 6 196 10 91 108 6 196 10 91 108 
+17 220.882914 10 3.162278 6 196 10 91 108 7 130 10 94 104 
+17 220.882914 10 3.162278 6 196 10 91 108 8 096 10 94 105 
 
-Library used incorrectly
+Done
 
 Query 36:
  select u.rownum, u.cost, u.delcapacity, u.delcapacity_root, c.rownum, c.code, c.demand, c.x_coord, c.y_coord,k.rownum, k.cost, k.delcapacity, k.delcapacity_root, s.rownum, s.code, s.demand,s.x_coord,s.y_coord from truck u, truck k,customer c, customer s where (u.cost <100 or u.delcapacity>0) and c.base=u.customers_id and s.base=k.customers_id and (c.code>170 or c.demand<10) and (s.x_coord>40 or s.y_coord<20) LIMIT 20;
