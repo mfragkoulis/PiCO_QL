@@ -220,6 +220,7 @@ void deinit_vt_selectors(void) {
 <%     @tables.each { |vt| %>
 class <%= vt.name %>_vt : public VtblImpl {
 private:
+  picoQLTable *picoQL;
 <%      i = 0 %>
 <%      vt.columns.each { |col| %>
 <%       if col.related_to.length > 0 %>
@@ -296,11 +297,13 @@ list <<%= col.fk_col_type.chomp('*') %> > saved_results_<%= i %>;
 <%      end %>
 public:
   <%= vt.name %>_vt() : VtblImpl() {
+    picoQL = NULL;
 <% if vt.base_var.length == 0 %>    recursive = 0;nTimesCharged = 0;<% end %>};
   virtual int operator() (sqlite3_vtab_cursor *, int,
                     int, sqlite3_value *);
   virtual int operator() (sqlite3_vtab_cursor *,
                     int, sqlite3_context *);
+  virtual void operator() (sqlite3_vtab *);
   virtual size_t operator() (sqlite3_vtab_cursor *, sqlite3_vtab *);
   virtual int operator() (sqlite3_vtab_cursor *);
   virtual void operator() (sqlite3_vtab_cursor *, void *);
@@ -319,7 +322,7 @@ public:
       if ((c_map.size() > 0) && (c_map_iter == c_map.end()))
         return SQLITE_OK; // Done servicing searches.
       nTimesCharged++;
-      if (c_map.size() == 0) {
+      if ((c_map.size() == 0) && (picoQL) && (picoQL->toOpen)) {
         earlyRequestsArray.push_back(base);
         printf("In report charge: recorded base to provide %lx at position %i.\n", earlyRequestsArray.back(), (int)(earlyRequestsArray.size() - 1));
       }

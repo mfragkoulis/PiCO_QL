@@ -1,3 +1,14 @@
+/* Inform the appropriate VtblImpl that it will
+ * open in the query being planned.
+ */
+int toOpen(sqlite3_vtab *vtab) {
+  picoQLTable *picoQL = (picoQLTable *)vtab;
+  VtblImpl *toOpenVT = selector_vt[picoQL->zName];
+<%# If not found? %>
+  (*toOpenVT)(vtab);
+  return SQLITE_OK;
+}
+
 /* Use VtblImpl to get data structure size.
  */
 size_t get_datastructure_size(sqlite3_vtab_cursor *cur, sqlite3_vtab *vtab) {

@@ -1,3 +1,20 @@
+/* Inform the appropriate VtblImpl that the virtual table
+ * will be opened in the query being planned.
+ */
+int toOpen(sqlite3_vtab *vtab) {
+  picoQLTable *picoQL = (picoQLTable *)vtab;
+  struct Vtbl *toOpenVT;
+  int j = 0;
+  while ((j < (int)vtAll.size) && (strcmp(vtAll.instanceNames[j], picoQL->zName))) {j++;}
+  if (j == (int)vtAll.size) {
+    printf("In get_datastructure_size: VT %s not registered.\nExiting now.\n", picoQL->zName);
+    return SQLITE_ERROR;
+  }
+  toOpenVT = vtAll.instances[j];
+  toOpenVT->toOpen(vtab, toOpenVT);
+  return SQLITE_OK;
+}
+
 /* Use VtblImpl to get data structure size.
  */
 size_t get_datastructure_size(sqlite3_vtab_cursor *cur, sqlite3_vtab *vtab) {

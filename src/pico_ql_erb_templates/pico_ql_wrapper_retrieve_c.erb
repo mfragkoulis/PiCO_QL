@@ -17,6 +17,7 @@ struct Vtbl <%= vt.name %>_vtbl = {
 
   <%= vt.name %>_vt_search,
   <%= vt.name %>_vt_retrieve,
+  <%= vt.name %>_vt_to_open,
   <%= vt.name %>_vt_get_datastructure_size,
   <%= vt.name %>_vt_init_result_set,
   <%= vt.name %>_vt_advance_result_set_iter,
@@ -71,6 +72,7 @@ int set_VtblImpl(void) {
   <%= @tables[vt].name %>VT->charged = (cursorCharged **)sqlite3_malloc(sizeof(cursorCharged *));
   if (<%= @tables[vt].name %>VT->charged == NULL)
     return SQLITE_NOMEM;
+  <%= @tables[vt].name %>VT->picoQL = NULL;
   <%= @tables[vt].name %>VT->chargedSize = 0;
   <%= @tables[vt].name %>VT->recursive = 0;
 <%      end %>

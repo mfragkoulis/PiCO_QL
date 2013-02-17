@@ -1,3 +1,11 @@
+/* Inform this virtual table that it will be used in the
+ * query being planned (otherwise picoQL field is NULL).
+ */
+void <%= @name %>_vt_to_open (sqlite3_vtab *vtab, struct Vtbl *vtbl) {
+  picoQLTable *picoQL = (picoQLTable *)vtab;
+  ((<%= @name %>_vt *)vtbl)->picoQL = picoQL;
+}
+
 // Returns the size (records) for each virtual table.
 size_t <%= @name %>_vt_get_datastructure_size (sqlite3_vtab_cursor *cur, sqlite3_vtab *vtab) {
   picoQLTable *picoQL = (picoQLTable *)vtab;
@@ -148,6 +156,7 @@ void <%= @name %>_vt_deinit_result_set (sqlite3_vtab_cursor *cur, struct Vtbl *v
 <%    if @base_var.length == 0 %>
 
 int <%= @name %>_report_charge (cursor *c, int current, cursorCharged ***oCharged, size_t *oChargedSize, long base, struct Vtbl *vtbl) {
+  picoQLTable *picoQL = ((<%= @name %>_vt *)vtbl)->picoQL;
   const char *name = ((<%= @name %>_vt *)vtbl)->name;
   cursor **cursors = ((<%= @name %>_vt *)vtbl)->cursors;
   size_t cursorsSize = ((<%= @name %>_vt *)vtbl)->cursorsSize;
@@ -169,7 +178,7 @@ int <%= @name %>_report_charge (cursor *c, int current, cursorCharged ***oCharge
     j = 0;
     while ((j < (int)chargedSize) && (charged[j]->c != c)) {j++;}
     ((<%= @name %>_vt *)vtbl)->nTimesCharged++;
-    if (cursorsSize == 0) {
+    if ((cursorsSize == 0) && (picoQL) && (picoQL->toOpen)) {
       ((<%= @name %>_vt *)vtbl)->nEarlyRequests++;
       ((<%= @name %>_vt *)vtbl)->earlyRequestsArray = (long *)sqlite3_realloc(((<%= @name %>_vt *)vtbl)->earlyRequestsArray, sizeof(long) * ((<%= @name %>_vt *)vtbl)->nEarlyRequests);
       ((<%= @name %>_vt *)vtbl)->earlyRequestsArray[((<%= @name %>_vt *)vtbl)->nEarlyRequests - 1] = base;

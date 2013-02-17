@@ -123,6 +123,7 @@ int init_vtable(int iscreate,
   memset(picoQL, 0, nByte);
   picoQL->zErr = NULL;
   picoQL->db = db;
+  picoQL->toOpen = 0;
   picoQL->nColumn = nCol;
   picoQL->azColumn = (char **)&picoQL[1];
   temp = (char *)&picoQL->azColumn[nCol];
@@ -314,6 +315,11 @@ void order_constraints(int score, int *j, int *counter,
 int best_index_vtable(sqlite3_vtab *pVtab, 
 		     sqlite3_index_info *pInfo) {
   picoQLTable *st=(picoQLTable *)pVtab;
+  int re;
+  st->toOpen = 1;
+  re = toOpen(pVtab);
+  if (re)
+    return re;
   /* No constraint no setting up. */
   if (pInfo->nConstraint > 0) {
     int nCol;
@@ -510,12 +516,13 @@ int column_vtable(sqlite3_vtab_cursor *cur,
  */
 int close_vtable(sqlite3_vtab_cursor *cur) {
   picoQLTableCursor *stc = (picoQLTableCursor *)cur;
-#ifdef PICO_QL_DEBUG
   picoQLTable *st = (picoQLTable *)cur->pVtab;
+#ifdef PICO_QL_DEBUG
   printf("Closing vtable %s \n\n", st->zName);
 #endif
   // Second argument dummy
   // (part of polymorphized arsenal of methods).
+  st->toOpen = 0;
   deinit_result_set(cur, stc);
   sqlite3_free(stc);
   assert(((picoQLTable *)cur->pVtab)->locked == 0);

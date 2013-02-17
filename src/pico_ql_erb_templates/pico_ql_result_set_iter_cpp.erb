@@ -1,3 +1,11 @@
+/* Inform the virtual table that it will be used in the
+ * query being planned.
+ */
+void <%= @name %>_vt::operator() (sqlite3_vtab *vtab) {
+  picoQLTable *pico = (picoQLTable *)vtab;
+  picoQL = pico;
+}
+
 // Returns the size (records) for each virtual table.
 size_t <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, sqlite3_vtab *vtab) {
   picoQLTable *picoQL = (picoQLTable *)vtab;

@@ -129,6 +129,7 @@ struct Vtbl {
 
   int (*search)(sqlite3_vtab_cursor *, int, int, sqlite3_value *, struct Vtbl*);
   int (*retrieve)(sqlite3_vtab_cursor *, int, sqlite3_context *, struct Vtbl*);
+  void (*toOpen)(sqlite3_vtab *, struct Vtbl *);
   size_t (*get_datastructure_size)(sqlite3_vtab_cursor *, sqlite3_vtab *);
 <%# perhaps init ResultSet for real? %>
   int (*init_result_set)(sqlite3_vtab *, sqlite3_vtab_cursor *, struct Vtbl*);
@@ -160,6 +161,7 @@ typedef struct <%= vt.name %>ResultSetImpl {
 typedef struct <%= vt.name %>VtblImpl {
 
   struct Vtbl impl;
+  picoQLTable *picoQL;
   const char *name;
 
 <%      i = 0 %>
