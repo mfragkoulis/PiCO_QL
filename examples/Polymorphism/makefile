@@ -93,4 +93,3 @@ prep:
 .PHONY= clean
 clean: 
 	rm *.o
-	rm Poly_Bank
