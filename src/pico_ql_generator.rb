@@ -48,9 +48,11 @@ class Column
                               # special columns, the ones that refer to 
                               # other VT or UNIONS.
     @case = ucase             # switch case for union view fields
-    @@int_data_types = ["int", "integer", "tinyint", "smallint", 
-                        "mediumint", "bigint", "unsigned bigint", "int2",
-                        "bool", "boolean", "int8", "numeric"]
+    @@int_data_types = ["int", "integer", "tinyint", 
+                        "smallint", "mediumint", "int2",
+                        "bool", "boolean", "numeric"]
+    @@bigint_data_types = ["bigint", "unsigned big int",
+                           "int8"]
     @@double_data_types = ["float", "double", "double precision", "real"]
     @@text_data_types = ["text", "date", "datetime", "clob", "string"]
     @@text_match_data_types = [/character/i, /varchar/i, /nvarchar/i, 
@@ -115,7 +117,9 @@ class Column
              @tokenized_access_path.clone
     else
       dt = @data_type.downcase         # Normal data column.
-      if @@int_data_types.include?(dt)
+      if @@bigint_data_types.include?(dt)
+        sqlite3_type.replace("int64")
+      elsif @@int_data_types.include?(dt)
         sqlite3_type.replace("int")
       elsif (dt == "blob")
         sqlite3_type.replace("blob")
@@ -190,8 +194,9 @@ class Column
       elsif @@text_data_types.include?(dt) || 
           tmp_text_array.reject! { |rgx| rgx.match(dt) != nil } != nil
         return 1
-      elsif @@int_data_types.include?(dt) || 
-          @@double_data_types.include?(dt) || 
+      elsif @@bigint_data_types.include?(dt) || 
+            @@int_data_types.include?(dt) || 
+            @@double_data_types.include?(dt) || 
           /decimal/i.match(dt) != nil
         return 0
       elsif dt == "union"
@@ -268,8 +273,8 @@ class Column
     column_ptn1b = /inherits struct view (\w+) from (.+)/im
     column_ptn2 = /inherits struct view (\w+)/im
     column_ptn3 = /foreign key(\s*)\((\s*)(\w+)(\s*)\) from (.+) references (\w+)(\s*)(\w*)/im
-    column_ptn4 = /(\w+) (\w+) from (.+) pointer/im # for UNION column
-    column_ptn5 = /(\w+) (\w+) from (.+)/im
+    column_ptn4 = /(\w+) (.+) from (.+) pointer/im # for UNION column
+    column_ptn5 = /(\w+) (.+) from (.+)/im
     case column
     when column_ptn1a
       matchdata = column_ptn1a.match(column)
@@ -279,8 +284,8 @@ class Column
       matchdata = column_ptn1b.match(column)
       col_type_text = manage_inclusion(matchdata, ".")
       return col_type_text
-    when column_ptn2                      # Include a struct_view 
-                                          # definition without adapting.
+    when column_ptn2         # Include a struct_view 
+                             # definition without adapting.
       matchdata = column_ptn2.match(column)
       $struct_views.each { |vs| 
         if vs.name == matchdata[1]
@@ -295,7 +300,7 @@ class Column
     when column_ptn3
       matchdata = column_ptn3.match(column)
       @name = matchdata[3]
-      @data_type = "INT"
+      @data_type = "UNSIGNED BIG INT"
       @related_to = matchdata[6]
       @access_path = matchdata[5]
       begin
@@ -331,6 +336,9 @@ class Column
     if @access_path.match(/self/)
       @access_path.gsub!(/self/,"")
     end
+    if @access_path.match(/;/)
+      @access_path.gsub!(/;/,",")
+    end
     process_access_path()
     if $argD == "DEBUG"
       puts "Column name is: " + @name
@@ -360,7 +368,6 @@ class VirtualTable
     @base_var = ""        # Name of the base variable alive at C++ app.
     @struct_view          # Reference to the respective 
                           # struct_view definition.
-    @db = ""              # Database name to be created/connected against.
     @signature = ""       # The C/C++ signature of the (base) struct.
     @signature_pointer = "" # Signature is of type pointer? ("*")
     @container_class = "" # If a container instance as per 
@@ -388,7 +395,7 @@ class VirtualTable
   end
   attr_accessor(:name,:base_var_line,
                 :signature_line,:base_var,
-                :struct_view,:db,
+                :struct_view,
                 :signature,:signature_pointer,
                 :container_class,:type,
                 :pointer,:iterator,
@@ -1667,10 +1674,10 @@ class VirtualTable
 
 # Matches VT definitions against prototype patterns.
   def match_table(table_description)
-    table_ptn1 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c name (.+) with registered c type (.+) using loop (.+)/im
-    table_ptn2 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c type (.+) using loop (.+)/im
-    table_ptn3 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c name (.+) with registered c type (.+)/im
-    table_ptn4 = /^create virtual table (\w+)\.(\w+) using struct view (\w+) with registered c type (.+)/im
+    table_ptn1 = /^create virtual table (\w+) using struct view (\w+) with registered c name (.+) with registered c type (.+) using loop (.+)/im
+    table_ptn2 = /^create virtual table (\w+) using struct view (\w+) with registered c type (.+) using loop (.+)/im
+    table_ptn3 = /^create virtual table (\w+) using struct view (\w+) with registered c name (.+) with registered c type (.+)/im
+    table_ptn4 = /^create virtual table (\w+) using struct view (\w+) with registered c type (.+)/im
     if $argD == "DEBUG"
       puts "Table description is: #{table_description}"
     end
@@ -1678,34 +1685,30 @@ class VirtualTable
     case table_description
     when table_ptn1
       matchdata = table_ptn1.match(table_description)
-      @db = matchdata[1]
-      @name = matchdata[2]
-      struct_view_name = matchdata[3]
-      @base_var = matchdata[4]
-      @signature = matchdata[5]
-      @loop = matchdata[6]
-      process_loop()
-    when table_ptn2
-      matchdata = table_ptn2.match(table_description)
-      @db = matchdata[1]
-      @name = matchdata[2]
-      struct_view_name = matchdata[3]
+      @name = matchdata[1]
+      struct_view_name = matchdata[2]
+      @base_var = matchdata[3]
       @signature = matchdata[4]
       @loop = matchdata[5]
       process_loop()
+    when table_ptn2
+      matchdata = table_ptn2.match(table_description)
+      @name = matchdata[1]
+      struct_view_name = matchdata[2]
+      @signature = matchdata[3]
+      @loop = matchdata[4]
+      process_loop()
     when table_ptn3
       matchdata = table_ptn3.match(table_description)
-      @db = matchdata[1]
-      @name = matchdata[2]
-      struct_view_name = matchdata[3]
-      @base_var = matchdata[4]
-      @signature = matchdata[5]
+      @name = matchdata[1]
+      struct_view_name = matchdata[2]
+      @base_var = matchdata[3]
+      @signature = matchdata[4]
     when table_ptn4
       matchdata = table_ptn4.match(table_description)
-      @db = matchdata[1]
-      @name = matchdata[2]
-      struct_view_name = matchdata[3]
-      @signature = matchdata[4]
+      @name = matchdata[1]
+      struct_view_name = matchdata[2]
+      @signature = matchdata[3]
     end
     verify_signature()
     $struct_views.each { |sv| if sv.name == struct_view_name : @struct_view = sv end }
@@ -1736,7 +1739,6 @@ class VirtualTable
       puts "Table name is: " + @name
       puts "Table's C NAME defined at line #{@base_var_line + 1} of #{$argF}"
       puts "Table's C TYPE defined at line #{@signature_line + 1} of #{$argF}"
-      puts "Table lives in database named: " + @db
       puts "Table base variable name is: " + @base_var
       puts "Table signature name is: " + @signature
       puts "Table follows struct_view: " + @struct_view.name
@@ -2056,17 +2058,19 @@ class InputDescription
         puts "Directives: #{@directives}"
       end
     end
-    x = 0
-    while x < token_d.length            # Cleaning white space.
-      if /\n|\t|\r|\f/.match(token_d[x])
-        token_d[x].gsub!(/\n|\t|\r|\f/, " ") 
+    token_d.each { |x|            # Cleaning white space.
+      if x.match(/^CREATE STRUCT/) &&
+         x.match(/,(?!\n)/)
+         x.gsub!(/,(?!\n)/, ";")  # Protect ','
       end
-      token_d[x].lstrip!
-      token_d[x].rstrip!
-      token_d[x].squeeze!(" ")
-      if / ,|, /.match(token_d[x]) : token_d[x].gsub!(/ ,|, /, ",") end
-      x += 1
-    end
+      if /\n|\t|\r|\f/.match(x)
+        x.gsub!(/\n|\t|\r|\f/, " ") 
+      end
+      x.lstrip!
+      x.rstrip!
+      x.squeeze!(" ")
+      if / ,|, /.match(x) : x.gsub!(/ ,|, /, ",") end
+    }
     @description = token_d.select{ |x| x =~ /(\S+)/ }
     if $argD == "DEBUG"
       puts "Description after whitespace cleanup: "

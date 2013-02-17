@@ -13,7 +13,7 @@ CREATE STRUCT VIEW Truck (
       delcapacity_root DOUBLE FROM get_delcapacity_math_root(this.get_delcapacity())
 )$
 
-CREATE VIRTUAL TABLE mydb.Truck
+CREATE VIRTUAL TABLE Truck
 USING STRUCT VIEW Truck
 WITH REGISTERED C NAME vehicles 
 WITH REGISTERED C TYPE vector<Truck*>*$
@@ -27,7 +27,7 @@ CREATE STRUCT VIEW Customer (
 )$
 
 // Customer description
-CREATE VIRTUAL TABLE mydb.Customer
+CREATE VIRTUAL TABLE Customer
 USING STRUCT VIEW Customer
 WITH REGISTERED C TYPE vector<Customer*>$
 
@@ -36,7 +36,7 @@ CREATE STRUCT VIEW MapIndex (
       INHERITS STRUCT VIEW Customer FROM second POINTER
 )$
 
-CREATE VIRTUAL TABLE mydb.MapIndex 
+CREATE VIRTUAL TABLE MapIndex 
 USING STRUCT VIEW MapIndex
 WITH REGISTERED C NAME test 
 WITH REGISTERED C TYPE map<int, Customer*>$

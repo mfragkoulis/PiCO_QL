@@ -49,8 +49,8 @@ int step_query(FILE *f, sqlite3_stmt *stmt) {
     for (col = 0; col < sqlite3_column_count(stmt); col++) {
       switch (sqlite3_column_type(stmt, col)) {
       case 1:
-	swill_fprintf(f, "<td><b>%i</b></td>", 
-		      sqlite3_column_int(stmt, col));
+	swill_fprintf(f, "<td><b>%li</b></td>", 
+		      (long)sqlite3_column_int64(stmt, col));
 	break;
       case 2:
 	swill_fprintf(f, "<td><b>%f</b></td>", 
@@ -286,8 +286,7 @@ void call_swill(sqlite3 *db, int port_number) {
  * database connection and calls swill or pico_ql_test 
  * depending on the compile flag TEST.
  */
-int register_table(const char *nDb, 
-		   int argc,
+int register_table(int argc,
 		   int view_index, 
 		   const char **q, 
 		   const char **sqlite_names, 
@@ -298,7 +297,9 @@ int register_table(const char *nDb,
   char sqlite_query[200];
   int re, i=0;
   sqlite3 *db;
-  re = sqlite3_open(nDb, &db);
+/* Virtual table schema will be in-memory and will not
+   persist. Views can be included in the DSL */
+  re = sqlite3_open(":memory:", &db); 
   if (re) {
     printf("can't open database\n");
     sqlite3_close(db);
@@ -307,7 +308,7 @@ int register_table(const char *nDb,
 
 #ifdef PICO_QL_DEBUG
   for (i = 0; i < argc; i++) {
-    printf("\nquery to be executed: %s\n in database: %s\n\n", q[i], nDb);
+    printf("\nquery to be executed: %s.\n", q[i]);
   }
 #endif
   sqlite3_module *mod;

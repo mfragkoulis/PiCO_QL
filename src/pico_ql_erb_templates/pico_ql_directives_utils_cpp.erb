@@ -114,10 +114,10 @@ void * thread_sqlite(void *data) {
   if (sqlite_names == NULL)
     return (void *)SQLITE_NOMEM;
   int failure = 0;
-<%# <db>.<table> does not work for some reason. test. %>
+<%# <database_name>.<table> does not work for some reason. test. %>
 <%# counter %>
 <%    @tables.each_index { |vt| %>
-<%#     query =  "CREATE VIRTUAL TABLE #{@tables[vt].db}.#{@tables[vt].name} USING PicoQL(" %>
+<%#     query =  "CREATE VIRTUAL TABLE sth_like_:memory:_.#{@tables[vt].name} USING PicoQL(" %>
 <%      query =  "CREATE VIRTUAL TABLE #{@tables[vt].name} USING PicoQL(" %>
 <%      @tables[vt].columns.each { |c| %>
 <%        query += "#{c.name} #{c.data_type}, " %>
@@ -135,7 +135,7 @@ void * thread_sqlite(void *data) {
   set_selectors();
   int port_number = *(int *)data;
   delete (int *)data;
-  failure = register_table( "<%= @tables[0].db %>" , <%= (@tables.length + views_length).to_s %>, <%= @tables.length.to_s %>, queries, sqlite_names, port_number);
+  failure = register_table(<%= (@tables.length + views_length).to_s %>, <%= @tables.length.to_s %>, queries, sqlite_names, port_number);
   printf("Thread sqlite returns %i\n", failure);
   sqlite3_free(queries);
   sqlite3_free(sqlite_names);

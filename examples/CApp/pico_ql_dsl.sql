@@ -24,7 +24,7 @@ CREATE STRUCT VIEW Price (
        price union FROM p
 )$
 
-CREATE VIRTUAL TABLE myCApp.Price
+CREATE VIRTUAL TABLE Price
 USING STRUCT VIEW Price
 WITH REGISTERED C NAME price
 WITH REGISTERED C TYPE price$
@@ -36,7 +36,7 @@ CREATE STRUCT VIEW GoldEquivalent (
        exchange_rate DOUBLE FROM exchange_rate
 )$
 
-CREATE VIRTUAL TABLE myCApp.GoldEquivalent
+CREATE VIRTUAL TABLE GoldEquivalent
 USING STRUCT VIEW GoldEquivalent
 WITH REGISTERED C TYPE goldEquivalent$
 
@@ -57,14 +57,14 @@ CREATE STRUCT VIEW Money (
        weight UNION FROM wgt
 )$
 
-CREATE VIRTUAL TABLE myCApp.Money
+CREATE VIRTUAL TABLE Money
 USING STRUCT VIEW Money
 //WITH REGISTERED C NAME money
 WITH REGISTERED C TYPE struct Money*
 USING LOOP for(iter = base; iter != NULL; iter = iter->next)$
 //.cpp C TYPE vector<Money>;
 
-CREATE VIRTUAL TABLE myCApp.MoneyList
+CREATE VIRTUAL TABLE MoneyList
 USING STRUCT VIEW Money
 WITH REGISTERED C NAME money
 WITH REGISTERED C TYPE struct Money*
@@ -76,12 +76,12 @@ CREATE STRUCT VIEW MonetarySystem (
        FOREIGN KEY(currency) FROM root REFERENCES Money POINTER
 )$
 
-CREATE VIRTUAL TABLE myCApp.MonetarySystem
+CREATE VIRTUAL TABLE MonetarySystem
 USING STRUCT VIEW MonetarySystem
 WITH REGISTERED C NAME monetary_system
 WITH REGISTERED C TYPE Monetary_System$
 
-CREATE VIRTUAL TABLE myCApp.MoneyArray
+CREATE VIRTUAL TABLE MoneyArray
 USING STRUCT VIEW Money
 WITH REGISTERED C NAME money_array
 WITH REGISTERED C TYPE MoneyArray:struct Money *
@@ -91,14 +91,14 @@ CREATE STRUCT VIEW Number (
 	number INT FROM self
 )$
 
-CREATE VIRTUAL TABLE myCApp.Number
+CREATE VIRTUAL TABLE Number
 USING STRUCT VIEW Number
 WITH REGISTERED C NAME numbers
 WITH REGISTERED C TYPE int
 USING LOOP for(iter = &base[num]; num < 8; Number_advance(iter, base, ++num))$
 
 
-CREATE VIRTUAL TABLE myCApp.ENumber
+CREATE VIRTUAL TABLE ENumber
 USING STRUCT VIEW Number
 WITH REGISTERED C NAME int_array
 WITH REGISTERED C TYPE MoneyArray:int

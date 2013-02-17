@@ -29,8 +29,7 @@
 extern "C" {
 #endif
 
-int register_table(const char *nDb, 
-		   int argc,
+int register_table(int argc,
 		   int view_index,
 		   const char **queries, 
 		   const char **table_names, 
