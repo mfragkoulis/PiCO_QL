@@ -703,8 +703,9 @@ class VirtualTable
                @type.gsub(/ /,"").match(/(.+)\*/))
             iden = "*#{iden}"
           elsif !access_path.match(/first/) &&
-              !access_path.match(/second/) &&
-              @type.gsub(/ /,"").match(/(.+)\*/)
+                 !access_path.match(/second/) &&
+                 @type.gsub(/ /,"").match(/(.+)\*/) &&
+                 iden.end_with?(".")
             iden.chomp!(".")
             iden.concat("->")
           end
@@ -712,12 +713,15 @@ class VirtualTable
       end
     when "fk"
       # is object after transformations
-      if access_path.length > 0 &&
-        !access_path.match(/first/) &&
-          !access_path.match(/second/) &&
-          @type.gsub(/ /,"").match(/(.+)\*/)
-        iden.chomp!(".")
-        iden.concat("->")
+      if @container_class.length > 0
+        if access_path.length > 0 &&
+           !access_path.match(/first/) &&
+           !access_path.match(/second/) &&
+           @type.gsub(/ /,"").match(/(.+)\*/) &&
+           iden.end_with?(".")
+          iden.chomp!(".")
+          iden.concat("->")
+        end
       end
     end
     return iden
@@ -870,10 +874,14 @@ class VirtualTable
             (@type.gsub(/ /,"").match(/,(\w+)\*/) &&
             access_path.match(/second/)) ||
             @type.gsub(/ /,"").match(/(\w+)\*/)
-          idenF.chomp!(".")
-          idenF.concat("->")
-          idenN.chomp!(".")
-          idenN.concat("->")
+          if idenF.end_with?(".")
+            idenF.chomp!(".")
+            idenF.concat("->")
+          end
+          if idenN.end_with?(".")
+            idenN.chomp!(".")
+            idenN.concat("->")
+          end
         end
       end
       if fk_type == "pointer"
@@ -903,23 +911,33 @@ class VirtualTable
           elsif !access_path.match(/first/) &&
               !access_path.match(/second/) &&
               @type.gsub(/ /,"").match(/(.+)\*/)
-            idenF.chomp!(".")
-            idenF.concat("->")
-            idenN.chomp!(".")
-            idenN.concat("->")
+            if idenF.end_with?(".")
+              idenF.chomp!(".")
+              idenF.concat("->")
+            end
+            if idenN.end_with?(".")
+              idenN.chomp!(".")
+              idenN.concat("->")
+            end
           end
         end
       end
     when "fk"
 # is object after transformations
-      if access_path.length > 0 &&
-        !access_path.match(/first/) &&
-          !access_path.match(/second/) &&
-          @type.gsub(/ /,"").match(/(.+)\*/)
-        idenF.chomp!(".")
-        idenF.concat("->")
-        idenN.chomp!(".")
-        idenN.concat("->")
+      if @container_class.length > 0
+        if access_path.length > 0 &&
+            !access_path.match(/first/) &&
+            !access_path.match(/second/) &&
+            @type.gsub(/ /,"").match(/(.+)\*/)
+          if idenF.end_with?(".")
+            idenF.chomp!(".")
+            idenF.concat("->")
+          end
+          if idenN.end_with?(".")
+            idenN.chomp!(".")
+            idenN.concat("->")
+          end
+        end
       end
       if (access_path.length == 0 && 
           !@type.gsub(/ /,"").match(/(.+)\*/)) ||
@@ -1588,7 +1606,10 @@ class VirtualTable
       case @signature
       when /(\w+)<(.+)>(\**)/m
         matchdata = /(\w+)<(.+)>(\**)/m.match(@signature)
-        @signature_pointer = matchdata[3]
+        if matchdata[3].length == 0
+          @signature.concat("*")
+        end
+        @signature_pointer = "*"
         @container_class = matchdata[1]
         @type = matchdata[2]
         if @type.match(/,/)
@@ -1615,17 +1636,19 @@ class VirtualTable
           @type = matchdata[2]
           @signature.rstrip!
           @type.rstrip!
-          if @signature.match(/\*/)
-            @signature_pointer = "*"
+          if !@signature.match(/\*/)
+            @signature.concat("*")
           end
+          @signature_pointer = "*"
           if @type.match(/\*/)
             @pointer = "*"
           end
         else
-          @type = @signature
-          if @signature.match(/\*/)
-            @signature_pointer = "*"
+          if !@signature.match(/\*/)
+            @signature.concat("*")
           end
+          @signature_pointer = "*"
+          @type = @signature
           @pointer = @signature_pointer
         end
         if @loop.length > 0
