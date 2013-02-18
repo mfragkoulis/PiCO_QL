@@ -38,7 +38,7 @@ int struct_empty_null(sqlite3_vtab_cursor *cur, sqlite3_value *val, int structEm
    * (always nCol = 0) their state has not been 
    * initialised yet.
    */
-  if (((stcsr->isInstanceNULL) && ((!structEmbedded) || (nCol > 0))) || ((val != NULL) && (!strcmp((const char *)sqlite3_value_text(val), "(null)")))) {
+  if (((stcsr->isInstanceNULL) && ((!structEmbedded) || (nCol > 0))) || ((val != NULL) && (sqlite3_value_type(val) == SQLITE_NULL))) {
     stcsr->isInstanceNULL = 1;
     return 1;
   }
@@ -55,7 +55,7 @@ int struct_empty_null(sqlite3_vtab_cursor *cur, sqlite3_value *val, int structEm
 int struct_is_empty_null(sqlite3_vtab_cursor *cur, sqlite3_context *con) {
   picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
   if (stcsr->isInstanceNULL) {
-    sqlite3_result_text(con, "(null)", -1, SQLITE_STATIC);
+    sqlite3_result_null(con);
     return 1;
   }
   if (stcsr->isInstanceEmpty) {

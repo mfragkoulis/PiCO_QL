@@ -521,7 +521,7 @@ class VirtualTable
     else
       access_path = "#{iden}#{access_path}"
     end
-    null_check_action = "{\n#{space}      sqlite3_result_text(con, \"(null)\", -1, SQLITE_STATIC);\n#{space}      break;\n#{space}      }"
+    null_check_action = "{\n#{space}      sqlite3_result_null(con);\n#{space}      break;\n#{space}      }"
     display_null_check(tokenized_access_path,
                        iden,
                        null_check_action,
@@ -614,7 +614,7 @@ class VirtualTable
       fw.puts "#{space}      int j = 0;"
       fw.puts "#{space}      struct Vtbl *chargeVT#{col};"
     end
-    null_check_action = "{\n#{space}      sqlite3_result_text(con, \"(null)\", -1, SQLITE_STATIC);\n#{space}      break;\n#{space}      }"
+    null_check_action = "{\n#{space}      sqlite3_result_null(con);\n#{space}      break;\n#{space}      }"
     display_null_check(tokenized_access_path,
                        iden,
                        null_check_action,
