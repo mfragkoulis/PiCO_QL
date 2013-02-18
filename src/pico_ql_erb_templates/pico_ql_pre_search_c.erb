@@ -101,6 +101,7 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
 <%        if @container_class.length > 0 %>
 <%          if @@C_container_types.include?(@container_class) %>
     <%= display_loop("any_dstr") %> {
+      if (iter == NULL) continue;
 <%          end %>
       rs->size++;
       rs->actualSize++;

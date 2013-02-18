@@ -81,6 +81,7 @@ class Column
     @fk_col_type = fk_col_type
     @saved_results_index = saved_results_index
     @access_path = access_path
+    process_access_path() 
     @col_type = type
     @line = line
     @case = ucase
@@ -170,10 +171,14 @@ class Column
 # Checks if NULL checks for access path
 # have to be performed 
   def process_access_path()
+    if $argD == "DEBUG"
+      puts "Access path to process is #{@access_path}."
+    end
     if @access_path.match(/->/)
       @tokenized_access_path = @access_path.split(/->/)
       @tokenized_access_path.pop
       if $argD == "DEBUG"
+        puts "Access path: #{@access_path}, processed tokens for NULL checking:"
         @tokenized_access_path.each { |tap| p tap }
       end
     end
@@ -248,7 +253,6 @@ class Column
                                       coln.col_type.clone,
                                       coln.line,
                                       coln.case)
-          process_access_path() 
         }
         col_type_text = vs.include_text_col
       end
@@ -950,7 +954,7 @@ class VirtualTable
     return loop
   end
 
-  def configure_iteration()
+  def configure_iteration(access_path)
     if @container_class.length > 0
       if @@C_container_types.include?(@container_class)
 # for C containers resBts has size 1 to differ from error conditions.
@@ -965,8 +969,17 @@ class VirtualTable
         else
           iterationF = "<space>#{loop} {"
         end
+        #Hard-coded NULL check for container elements.
+        iterationF.concat("\n<space>  if (iter == NULL) continue;")
       else
         iterationF = "<space>for (iter = any_dstr->begin(); iter != any_dstr->end(); iter++) {"
+        if @pointer.length > 0 && !@pointer.match(/,/)
+          #Hard-coded NULL check for container elements.
+          #If '.' matches accessors [first,second] will
+          #checked as part of the access path. Nothing
+          #to do here.
+          iterationF.concat("\n<space>  if (*iter == NULL) continue;")
+        end
       end
       if $argLB == "CPP"
         iterationN = "<space>index = rs->resBts.find_first();\n<space>resIterC = rs->res.begin();\n<space>while (resIterC != rs->res.end()) {"
@@ -1070,7 +1083,7 @@ class VirtualTable
 
   def gen_base(fw)
     fw.puts "      if (first_constr == 1) {"
-    iterationF, useless = configure_iteration()
+    iterationF, useless = configure_iteration("")
     add_to_result_setF, useless = configure_result_set
     if @container_class.length > 0
       fw.puts "#{iterationF.gsub(/<space>/, "#{$s}")}"
@@ -1232,7 +1245,7 @@ class VirtualTable
                 union_access_tokens, col_type)
     full_union_access_pathF, full_union_access_pathN, idenF, idenN = configure_search("union", union_access_path, col_type)
     add_to_result_setF, add_to_result_setN = configure_result_set()
-    iterationF, iterationN = configure_iteration()
+    iterationF, iterationN = configure_iteration("")
     fw.puts "      if (first_constr == 1) {"
     space = "#{$s}"
     if @container_class.length > 0
@@ -1314,7 +1327,7 @@ class VirtualTable
     space.replace($s)
     access_pathF, access_pathN, idenF, idenN = configure_search("all", access_path, "")
     add_to_result_setF, add_to_result_setN = configure_result_set()
-    iterationF, iterationN = configure_iteration()
+    iterationF, iterationN = configure_iteration(access_path)
     fw.puts "      if (first_constr == 1) {"
     notC = ""
     token_ac_p = Array.new
@@ -1423,7 +1436,7 @@ class VirtualTable
     space = ""
     access_pathF, access_pathN, idenF, idenN = configure_search("fk", access_path, fk_type)
     add_to_result_setF, add_to_result_setN = configure_result_set()
-    iterationF, iterationN = configure_iteration()
+    iterationF, iterationN = configure_iteration(access_path)
     fw.puts "      if (first_constr) {"
     space.replace($s)
     notC = ""
@@ -1578,7 +1591,17 @@ class VirtualTable
         @signature_pointer = matchdata[3]
         @container_class = matchdata[1]
         @type = matchdata[2]
-        if @type.match(/\*/)
+        if @type.match(/,/)
+          type_array = @type.split(",")
+          if type_array[0].match(/\*/)
+            @pointer.concat("*,")
+          else
+            @pointer.concat(",")
+          end
+          if type_array[1].match(/\*/)
+            @pointer.concat("*")
+          end
+        elsif @type.match(/\*/)
           @pointer = "*"
         end
         if $argD == "DEBUG"

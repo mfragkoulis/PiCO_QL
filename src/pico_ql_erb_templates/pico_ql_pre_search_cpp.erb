@@ -91,12 +91,17 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
 <%          if @@C_container_types.include?(@container_class) %>
     rs->resBts.clear();
     <%= display_loop("any_dstr") %> {
+      if (iter == NULL) continue;
       rs->res.push_back(iter);
       rs->resBts.push_back(1);
     }
 <%          else %>
-    for (iter = any_dstr->begin(); iter != any_dstr->end(); iter++)
+    for (iter = any_dstr->begin(); iter != any_dstr->end(); iter++) {
+<%            if !@pointer.match(/,/) && @pointer.match(/\*/) %>
+      if (*iter == NULL) continue;
+<%            end %>
       rs->res.push_back(<%= @signature.chomp('*') %>::iterator(iter));
+    }
     rs->resBts.set();
 <%          end %>
 <%        else %>
