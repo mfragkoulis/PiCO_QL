@@ -315,8 +315,10 @@ public:
     if (current) {
       for (c_map_iter = c_map.begin(); c_map_iter != c_map.end(); c_map_iter++) {
         if (c_map_iter->second.open) {
-          if (((picoQLTableCursor *)c_map_iter->first)->active_verify)
+          if (((picoQLTableCursor *)c_map_iter->first)->active_verify) {
+            ((picoQLTableCursor *)c_map_iter->first)->active_verify = 0;
             break;
+          }
         }
       }
       if ((c_map.size() > 0) && (c_map_iter == c_map.end()))

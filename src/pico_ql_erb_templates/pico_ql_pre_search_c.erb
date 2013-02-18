@@ -38,7 +38,6 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
     return SQLITE_ERROR;
   } else if (!((picoQLTableCursor *)cur)->active_checked) {
     ((picoQLTableCursor *)cur)->active_checked = 1;
-    ((picoQLTableCursor *)cur)->active_verify = 0;
 #ifdef PICO_QL_DEBUG
     printf("Table %s, Checked cursor: %lx.\n", picoQL->zName, (long)cur);
 #endif

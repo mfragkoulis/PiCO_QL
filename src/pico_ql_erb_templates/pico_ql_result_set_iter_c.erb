@@ -168,8 +168,10 @@ int <%= @name %>_report_charge (cursor *c, int current, cursorCharged ***oCharge
     printf("Table %s, report_charge: cursor size: %i, charged size %i, cursor to charge %lx.\n", name, (int)cursorsSize, (int)chargedSize, (long)c);
     while (j < (int)cursorsSize) {
       if (cursors[j]->open) {
-        if (((picoQLTableCursor *)cursors[j]->cur)->active_verify)
+        if (((picoQLTableCursor *)cursors[j]->cur)->active_verify) {
+          ((picoQLTableCursor *)cursors[j]->cur)->active_verify = 0;
           break;
+        }
       }
       j++;
     }
