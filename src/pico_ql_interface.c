@@ -83,8 +83,7 @@ int step_query(FILE *f, sqlite3_stmt *stmt) {
  * Collects and acts on the result status of a query 
  * execution.
  */
-int file_prep_exec(FILE *f, sqlite3_stmt *stmt, 
-		   const char *q) {
+int file_prep_exec(FILE *f, sqlite3_stmt *stmt) {
   int result = 0;
   result = step_query(f, stmt);
   switch (result) {
@@ -114,7 +113,7 @@ int prep_exec(FILE *f, sqlite3 *db, const char *q){
   int result, prepare;
   if ((prepare = sqlite3_prepare_v2(db, q, -1, &stmt, 0)) == SQLITE_OK) {
     if (f) {
-      result = file_prep_exec(f, stmt, q);
+      result = file_prep_exec(f, stmt);
       fprintf(f, "\n");
     } else
       /* Step only: queries with no resultset (check if 
