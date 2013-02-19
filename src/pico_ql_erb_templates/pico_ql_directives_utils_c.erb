@@ -102,6 +102,7 @@ int equals(const char *zCol, const char *key) {
 
 typedef struct ResultSet {
 
+  size_t malloced;
   size_t size;
   size_t actualSize;
   int offset;

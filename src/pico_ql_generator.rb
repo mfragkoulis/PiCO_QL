@@ -851,7 +851,7 @@ class VirtualTable
         if $argLB == "CPP"
           add_to_result_setF = "<space>    rs->res.push_back(iter);\n<space>    rs->resBts.push_back(1);\n<space>  } else {\n<space>    rs->resBts.push_back(0);\n<space>  }\n<space>}"            
         else
-          add_to_result_setF = "<space>    rs->size++;\n<space>    rs->actualSize++;\n<space>    ((#{@name}ResultSetImpl *)rs)->res = (#{@type}#{retype}*)sqlite3_realloc(((#{@name}ResultSetImpl *)rs)->res, sizeof(#{@type}#{retype})*rs->size);\n<space>    if (((#{@name}ResultSetImpl *)rs)->res == NULL)\n<space>      return SQLITE_NOMEM;\n<space>    ((#{@name}ResultSetImpl *)rs)->res[rs->size - 1] = iter;\n<space>  }\n<space>}"
+          add_to_result_setF = "<space>    rs->size++;\n<space>    rs->actualSize++;\n<space>    if (rs->size == rs->malloced) {\n<space>      rs->malloced *= 2;\n<space>      ((#{@name}ResultSetImpl *)rs)->res = (#{@type}#{retype}*)sqlite3_realloc(((#{@name}ResultSetImpl *)rs)->res, sizeof(#{@type}#{retype}) * rs->malloced);\n<space>      if (((#{@name}ResultSetImpl *)rs)->res == NULL)\n<space>        return SQLITE_NOMEM;\n<space>    }\n<space>    ((#{@name}ResultSetImpl *)rs)->res[rs->size - 1] = iter;\n<space>  }\n<space>}"
         end
       else
         add_to_result_setF = "<space>    rs->res.push_back(iter);\n<space>    rs->resBts.set(index, 1);\n<space>  }\n<space>  index++;\n<space>}"

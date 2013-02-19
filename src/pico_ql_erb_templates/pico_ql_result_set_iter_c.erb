@@ -2,10 +2,9 @@
  * query being planned (otherwise picoQL field is NULL).
  */
 void <%= @name %>_vt_to_open (sqlite3_vtab *vtab, struct Vtbl *vtbl) {
-  picoQLTable *picoQL = (picoQLTable *)vtab;
-  ((<%= @name %>_vt *)vtbl)->picoQL = picoQL;
+  ((<%= @name %>_vt *)vtbl)->picoQL = (picoQLTable *)vtab;
 #ifdef PICO_QL_DEBUG
-  printf("Table %s set to open in this query.\n", picoQL->zName);
+  printf("Table %s set to open in this query.\n", ((<%= @name %>_vt *)vtbl)->name);
 #endif
 }
 
@@ -54,12 +53,13 @@ int <%= @name %>_vt_init_result_set (sqlite3_vtab *vtab, sqlite3_vtab_cursor *cu
 %>ResultSetImpl));
     if (resImpl == NULL)
       return SQLITE_NOMEM;
+    resImpl->r.malloced = 10;
     resImpl->r.size = 0;
     resImpl->r.actualSize = 0;
     resImpl->r.offset = -1;
     resImpl->r.resultSetIterState = -1;
     c->res = &resImpl->r;
-    resImpl->res = (<%= @type.chomp('*') %> **)sqlite3_malloc(sizeof(<%= @type.chomp('*') %> *));
+    resImpl->res = (<%= @type.chomp('*') %> **)sqlite3_malloc(sizeof(<%= @type.chomp('*') %> *) * resImpl->r.malloced);
     if (resImpl->res == NULL)
       return SQLITE_NOMEM;
 <%      else %>
@@ -144,6 +144,7 @@ void <%= @name %>_vt_deinit_result_set (sqlite3_vtab_cursor *cur, struct Vtbl *v
 <%      if @container_class.length > 0 %>
     ResultSet *res = cursors[j]->res;
     sqlite3_free(((<%= @name %>ResultSetImpl *)res)->res);
+    ((<%= @name %>ResultSetImpl *)res)->r.malloced = 0;
     sqlite3_free((<%= @name %>ResultSetImpl *)res);
 <%      end %>
     cursors[j]->cur = NULL;
