@@ -64,6 +64,7 @@ int set_VtblImpl(void) {
 <%        end %>
 <%       end %>
 <%      } %>
+  <%= @tables[vt].name %>VT->picoQL = NULL;
   <%= @tables[vt].name %>VT->cursors = (cursor **)sqlite3_malloc(sizeof(cursor *));
   if (<%= @tables[vt].name %>VT->cursors == NULL)
     return SQLITE_NOMEM;
@@ -73,7 +74,6 @@ int set_VtblImpl(void) {
   <%= @tables[vt].name %>VT->charged = (cursorCharged **)sqlite3_malloc(sizeof(cursorCharged *));
   if (<%= @tables[vt].name %>VT->charged == NULL)
     return SQLITE_NOMEM;
-  <%= @tables[vt].name %>VT->picoQL = NULL;
   <%= @tables[vt].name %>VT->chargedSize = 0;
   <%= @tables[vt].name %>VT->nTimesCharged = 0;
   <%= @tables[vt].name %>VT->earlyRequestsArray = NULL;
