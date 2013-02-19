@@ -175,8 +175,32 @@ class Column
       puts "Access path to process is #{@access_path}."
     end
     if @access_path.match(/->/)
-      @tokenized_access_path = @access_path.split(/->/)
-      @tokenized_access_path.pop
+      if @access_path.match(/this->/)
+        case @access_path
+        when /this->(.+)\)/
+          matchdata = @access_path.match(/this->(.+)\)/)
+          if $argD == "DEBUG"
+            puts "Access path with 'this' included, path for checking is #{matchdata[1]}."
+          end
+          if matchdata[1].match(/->/)
+            @tokenized_access_path = matchdata[1].split(/->/)
+            @tokenized_access_path.pop
+          end
+        when /this->(.+),/
+          matchdata = @access_path.match(/this->(.+),/)
+          if $argD == "DEBUG"
+            puts "Access path with 'this' included, path for checking is #{matchdata[1]}."
+          end
+          if matchdata[1].match(/->/)
+            @tokenized_access_path = matchdata[1].split(/->/)
+            @tokenized_access_path.insert(0, "this");
+            @tokenized_access_path.pop
+          end
+        end
+      else
+        @tokenized_access_path = @access_path.split(/->/)
+        @tokenized_access_path.pop
+      end
       if $argD == "DEBUG"
         puts "Access path: #{@access_path}, processed tokens for NULL checking:"
         @tokenized_access_path.each { |tap| p tap }
