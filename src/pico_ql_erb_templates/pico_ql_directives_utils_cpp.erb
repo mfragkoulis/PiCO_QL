@@ -293,12 +293,14 @@ list <<%= col.fk_col_type.chomp('*') %> > saved_results_<%= i %>;
   map<Cursor *, bool> charged;
   int nTimesCharged;
   vector<long> earlyRequestsArray;
+  int lateMatches;
+  int passNoVerify;
   int recursive;
 <%      end %>
 public:
   <%= vt.name %>_vt() : VtblImpl() {
     picoQL = NULL;
-<% if vt.base_var.length == 0 %>    recursive = 0;nTimesCharged = 0;<% end %>};
+<% if vt.base_var.length == 0 %>    recursive = 0; nTimesCharged = 0; lateMatches = 0; passNoVerify = 0;<% end %>};
   virtual int operator() (sqlite3_vtab_cursor *, int,
                     int, sqlite3_value *);
   virtual int operator() (sqlite3_vtab_cursor *,
@@ -317,7 +319,10 @@ public:
         if (c_map_iter->second.open) {
           if (((picoQLTableCursor *)c_map_iter->first)->active_verify) {
             ((picoQLTableCursor *)c_map_iter->first)->active_verify = 0;
-            break;
+            if (passNoVerify)
+              passNoVerify--;
+            else
+              break;
           }
         }
       }
@@ -329,14 +334,16 @@ public:
         printf("In report charge: recorded base to provide %lx at position %i.\n", earlyRequestsArray.back(), (int)(earlyRequestsArray.size() - 1));
       }
       operation = charged.insert(pair<Cursor *, bool>(c, false));
-<%# why operation.second? %>
-      if ((operation.second) && (oCharged != NULL)) {
-        map<Cursor *, bool>::iterator iter;
-        for (iter = oCharged->begin(); iter != oCharged->end(); iter++) {
-          if (c_map.find(iter->first->cur) != c_map.end()) {
-            if (!iter->second) {
-              recursive += 1;
-              iter->second = true;
+      if (operation.second) {
+        if (c_map.size() == 0) passNoVerify++;
+        if (oCharged != NULL) {
+          map<Cursor *, bool>::iterator iter;
+          for (iter = oCharged->begin(); iter != oCharged->end(); iter++) {
+            if (c_map.find(iter->first->cur) != c_map.end()) {
+              if (!iter->second) {
+                recursive += 1;
+                iter->second = true;
+              }
             }
           }
         }
@@ -345,7 +352,12 @@ public:
       charged.clear();
       nTimesCharged = 0;
       earlyRequestsArray.clear();
+      lateMatches = 0;
+      passNoVerify = 0;
       recursive = 0;
+#ifdef PICO_QL_DEBUG
+      printf("Table , freed temp structs for VT representing embedded data structure.\n");
+#endif
     }
     return SQLITE_OK;
   };

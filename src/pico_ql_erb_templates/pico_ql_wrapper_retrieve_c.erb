@@ -75,6 +75,11 @@ int set_VtblImpl(void) {
     return SQLITE_NOMEM;
   <%= @tables[vt].name %>VT->picoQL = NULL;
   <%= @tables[vt].name %>VT->chargedSize = 0;
+  <%= @tables[vt].name %>VT->nTimesCharged = 0;
+  <%= @tables[vt].name %>VT->earlyRequestsArray = NULL;
+  <%= @tables[vt].name %>VT->nEarlyRequests = 0;
+  <%= @tables[vt].name %>VT->lateMatches = 0;
+  <%= @tables[vt].name %>VT->passNoVerify = 0;
   <%= @tables[vt].name %>VT->recursive = 0;
 <%      end %>
 

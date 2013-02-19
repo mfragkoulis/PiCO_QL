@@ -139,7 +139,7 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
 #else
         to_base = (long)sqlite3_value_int(val);
 #endif
-        if (nEarlyRequests) {
+        if (nEarlyRequests - ((<%= @name %>_vt *)vtbl)->lateMatches > 0) {
           for (ner = 0; ner < nEarlyRequests; ner++) {
 #ifdef PICO_QL_DEBUG
             printf("base provided by report charged early is %lx, to_base is %lx, ner is %i, nEarlyRequests is %i.\n", earlyRequestsArray[ner], to_base, ner, nEarlyRequests);
@@ -149,12 +149,13 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
               printf("base sent %lx matched base provided %lx.\n", earlyRequestsArray[ner], to_base);
 #endif
               //earlyRequestsArray[ner] = -1;
+              ((<%= @name %>_vt *)vtbl)->lateMatches++;
               break;
             }
           }
           if (ner == nEarlyRequests) {
 #ifdef PICO_QL_DEBUG
-            printf("Early service requests but unmatched closed cursors (%i<>%i) respectively.\n", nEarlyRequests);
+            printf("%i early service requests but to_base %lx not matched.\n", nEarlyRequests, to_base);
 #endif
             return SQLITE_MISUSE;
           } else

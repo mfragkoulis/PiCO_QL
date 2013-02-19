@@ -119,7 +119,6 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
         int cuchkSize = checkedSize;
 //        int cuSize = cursors.size();
         int nEarlyRequests = (int)earlyRequestsArray.size();
-        int closedChargedCursors = 0;
         int passClosed = 0;
         long to_base = 0;
         vector<long>::iterator ner_iter;
@@ -132,13 +131,13 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
 #else
         to_base = (long)sqlite3_value_int(val);
 #endif
-        if (nEarlyRequests) {
+        if (nEarlyRequests - lateMatches > 0) {
           if ((ner_iter = find(earlyRequestsArray.begin(), earlyRequestsArray.end(), to_base)) != earlyRequestsArray.end()) {
             printf("base sent %lx matched base provided %lx.\n", *ner_iter, to_base);
             //earlyRequestsArray[ner] = -1;
             passClosed = 1;
           } else {
-            printf("Early service requests but unmatched closed cursors (%i<>%i) respectively.\n", nEarlyRequests, closedChargedCursors);
+            printf("%i early service requests but to_base %lx not matched.\n", nEarlyRequests, to_base);
             return SQLITE_MISUSE;
           } 
         }  
