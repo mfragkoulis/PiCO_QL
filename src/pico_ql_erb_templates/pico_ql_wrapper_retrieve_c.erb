@@ -27,7 +27,8 @@ struct Vtbl <%= vt.name %>_vtbl = {
 <%      else %>
   0,
 <%      end %>
-  <%= vt.name %>_vt_discharge_saved_results
+  <%= vt.name %>_vt_discharge_saved_results,
+  <%= vt.name %>_vt_deinit_cursors
 
 };
  

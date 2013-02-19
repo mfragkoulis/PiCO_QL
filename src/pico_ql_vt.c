@@ -516,13 +516,12 @@ int column_vtable(sqlite3_vtab_cursor *cur,
  */
 int close_vtable(sqlite3_vtab_cursor *cur) {
   picoQLTableCursor *stc = (picoQLTableCursor *)cur;
-  picoQLTable *st = (picoQLTable *)cur->pVtab;
 #ifdef PICO_QL_DEBUG
+  picoQLTable *st = (picoQLTable *)cur->pVtab;
   printf("Closing vtable %s \n\n", st->zName);
 #endif
   // Second argument dummy
   // (part of polymorphized arsenal of methods).
-  st->toOpen = 0;
   deinit_result_set(cur, stc);
   sqlite3_free(stc);
   assert(((picoQLTable *)cur->pVtab)->locked == 0);

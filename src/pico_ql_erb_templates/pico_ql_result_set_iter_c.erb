@@ -105,7 +105,7 @@ int <%= @name %>_vt_advance_result_set_iter (sqlite3_vtab_cursor *cur,
     if (res->offset < res->size) {
 #ifdef PICO_QL_DEBUG
       picoQLTable *st = (picoQLTable *)cur->pVtab;
-      printf("Table %s, now res->offset: %i \nstc->isEof: %i\n\n", st->zName, res->offset, stc->isEof);
+      printf("Table %s, now res->offset: %i, res->size %i, stc->isEof: %i\n\n", st->zName, res->offset, (int)res->size, stc->isEof);
 #endif
       return SQLITE_OK;
     }
@@ -162,7 +162,7 @@ int <%= @name %>_report_charge (cursor *c, int current, cursorCharged ***oCharge
   size_t cursorsSize = ((<%= @name %>_vt *)vtbl)->cursorsSize;
   cursorCharged **charged = ((<%= @name %>_vt *)vtbl)->charged;
   size_t chargedSize = ((<%= @name %>_vt *)vtbl)->chargedSize;
-  int i = 0, cr = 0;
+  int i = 0;
   if (current) {
     int j = 0;
     printf("Table %s, report_charge: cursor size: %i, charged size %i, cursor to charge %lx.\n", name, (int)cursorsSize, (int)chargedSize, (long)c);
@@ -182,7 +182,10 @@ int <%= @name %>_report_charge (cursor *c, int current, cursorCharged ***oCharge
     ((<%= @name %>_vt *)vtbl)->nTimesCharged++;
     if ((cursorsSize == 0) && (picoQL) && (picoQL->toOpen)) {
       ((<%= @name %>_vt *)vtbl)->nEarlyRequests++;
-      ((<%= @name %>_vt *)vtbl)->earlyRequestsArray = (long *)sqlite3_realloc(((<%= @name %>_vt *)vtbl)->earlyRequestsArray, sizeof(long) * ((<%= @name %>_vt *)vtbl)->nEarlyRequests);
+      if (((<%= @name %>_vt *)vtbl)->nEarlyRequests == 1)
+        ((<%= @name %>_vt *)vtbl)->earlyRequestsArray = (long *)sqlite3_malloc(sizeof(long) * ((<%= @name %>_vt *)vtbl)->nEarlyRequests);
+      else
+        ((<%= @name %>_vt *)vtbl)->earlyRequestsArray = (long *)sqlite3_realloc(((<%= @name %>_vt *)vtbl)->earlyRequestsArray, sizeof(long) * ((<%= @name %>_vt *)vtbl)->nEarlyRequests);
       ((<%= @name %>_vt *)vtbl)->earlyRequestsArray[((<%= @name %>_vt *)vtbl)->nEarlyRequests - 1] = base;
       printf("Recorded base to provide %lx at position %i, that is recorded %lx.\n", base, ((<%= @name %>_vt *)vtbl)->nEarlyRequests - 1, ((<%= @name %>_vt *)vtbl)->earlyRequestsArray[((<%= @name %>_vt *)vtbl)->nEarlyRequests - 1]);
     }  
@@ -218,9 +221,6 @@ int <%= @name %>_report_charge (cursor *c, int current, cursorCharged ***oCharge
       }
     }
   } else {
-    for (cr = 0; cr < (int)cursorsSize; cr++)
-      sqlite3_free(cursors[cr]);
-    ((<%= @name %>_vt *)vtbl)->cursorsSize = 0;
     for (i = 0; i < (int)chargedSize; i++)
       sqlite3_free(charged[i]);
     ((<%= @name %>_vt *)vtbl)->chargedSize = 0;
@@ -242,3 +242,13 @@ void <%= @name %>_vt_discharge_saved_results (struct Vtbl *vtbl) {
 <%      } %>
 }
 
+void <%= @name %>_vt_deinit_cursors (struct Vtbl *vtbl) {
+  cursor **cursors = ((<%= @name %>_vt *)vtbl)->cursors;
+  size_t cursorsSize = ((<%= @name %>_vt *)vtbl)->cursorsSize;
+  int cr;
+  for (cr = 0; cr < (int)cursorsSize; cr++)
+    sqlite3_free(cursors[cr]);
+  ((<%= @name %>_vt *)vtbl)->cursorsSize = 0;
+  if (((<%= @name %>_vt *)vtbl)->picoQL)
+    ((<%= @name %>_vt *)vtbl)->picoQL->toOpen = 0;
+}
