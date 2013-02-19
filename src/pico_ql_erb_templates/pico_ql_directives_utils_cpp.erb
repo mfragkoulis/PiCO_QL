@@ -197,12 +197,12 @@ int equals(const char *zCol, const char *key) {
 void deinit_temp_structs(void) {
 <%     @tables.each { |vt| %>
   VtblImpl *discharge<%= vt.name %>VT = selector_vt["<%= vt.name %>"];
-  (*discharge<%= vt.name %>VT)("clear_saved_results");
 <%      if vt.base_var.length == 0 %>
   map<Cursor *, bool> *map<%= vt.name %>;
   map<%= vt.name %> = NULL;
   (*discharge<%= vt.name %>VT)(NULL, 0, map<%= vt.name %>, 0);
 <%      end %>
+  (*discharge<%= vt.name %>VT)("clear_saved_results");
 <%     } %>
 }
 
@@ -314,6 +314,7 @@ public:
   virtual int operator() (Cursor *c, int current, map<Cursor *, bool> *oCharged, long base) {
     pair<map<Cursor *, bool>::iterator, bool> operation;
     map<sqlite3_vtab_cursor *, Cursor>::iterator c_map_iter;
+    if (!picoQL) return SQLITE_OK; // VT not participating in this query.
     if (current) {
       for (c_map_iter = c_map.begin(); c_map_iter != c_map.end(); c_map_iter++) {
         if (c_map_iter->second.open) {
@@ -349,15 +350,17 @@ public:
         }
       }
     } else {
-      charged.clear();
-      nTimesCharged = 0;
-      earlyRequestsArray.clear();
-      lateMatches = 0;
-      passNoVerify = 0;
-      recursive = 0;
+      if (picoQL) {
+        charged.clear();
+        nTimesCharged = 0;
+        earlyRequestsArray.clear();
+        lateMatches = 0;
+        passNoVerify = 0;
+        recursive = 0;
 #ifdef PICO_QL_DEBUG
-      printf("Table , freed temp structs for VT representing embedded data structure.\n");
+        printf("Table %s, freed temp structs for VT representing embedded data structure.\n", picoQL->zName);
 #endif
+      }
     }
     return SQLITE_OK;
   };
@@ -367,15 +370,20 @@ public:
 
   virtual void operator() (const char *dummy) {
     (void)dummy;
-    cursors.clear();
-    c_map.clear();
-    if (picoQL)
+    if (picoQL) {
+      cursors.clear();
+      c_map.clear();
       picoQL->toOpen = 0;
+#ifdef PICO_QL_DEBUG
+      printf("Table %s picoQL is %lx; freeing query structs.\n", picoQL->zName, (long)picoQL);
+#endif
+      picoQL = NULL;
 <%      vt.columns.each { |col| %>
 <%       if $argM == "MEM_MGT" && col.related_to.length > 0 && col.fk_method_ret == 1 %>
-    saved_results_<%= col.saved_results_index %>.clear();    
+      saved_results_<%= col.saved_results_index %>.clear();    
 <%       end %>
 <%      } %>
+    }
   };
 };
  

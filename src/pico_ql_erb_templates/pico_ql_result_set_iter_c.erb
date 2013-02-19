@@ -4,6 +4,9 @@
 void <%= @name %>_vt_to_open (sqlite3_vtab *vtab, struct Vtbl *vtbl) {
   picoQLTable *picoQL = (picoQLTable *)vtab;
   ((<%= @name %>_vt *)vtbl)->picoQL = picoQL;
+#ifdef PICO_QL_DEBUG
+  printf("Table %s set to open in this query.\n", picoQL->zName);
+#endif
 }
 
 // Returns the size (records) for each virtual table.
@@ -163,6 +166,7 @@ int <%= @name %>_report_charge (cursor *c, int current, cursorCharged ***oCharge
   cursorCharged **charged = ((<%= @name %>_vt *)vtbl)->charged;
   size_t chargedSize = ((<%= @name %>_vt *)vtbl)->chargedSize;
   int i = 0;
+  if (!picoQL) return SQLITE_OK;
   if (current) {
     int j = 0;
     printf("Table %s, report_charge: cursor size: %i, charged size %i, cursor to charge %lx.\n", name, (int)cursorsSize, (int)chargedSize, (long)c);
@@ -251,13 +255,21 @@ void <%= @name %>_vt_discharge_saved_results (struct Vtbl *vtbl) {
 <%      } %>
 }
 
-void <%= @name %>_vt_deinit_cursors (struct Vtbl *vtbl) {
-  cursor **cursors = ((<%= @name %>_vt *)vtbl)->cursors;
-  size_t cursorsSize = ((<%= @name %>_vt *)vtbl)->cursorsSize;
-  int cr;
-  for (cr = 0; cr < (int)cursorsSize; cr++)
-    sqlite3_free(cursors[cr]);
-  ((<%= @name %>_vt *)vtbl)->cursorsSize = 0;
-  if (((<%= @name %>_vt *)vtbl)->picoQL)
+void <%= @name %>_vt_deinit_query_structs (struct Vtbl *vtbl) {
+  if (((<%= @name %>_vt *)vtbl)->picoQL) {
+    cursor **cursors = ((<%= @name %>_vt *)vtbl)->cursors;
+    size_t cursorsSize = ((<%= @name %>_vt *)vtbl)->cursorsSize;
+    int cr;
+    vtbl->discharge_saved_results(vtbl);
+    if (vtbl->report_charge)
+      vtbl->report_charge(NULL, 0, NULL, 0, 0, vtbl);
+    for (cr = 0; cr < (int)cursorsSize; cr++)
+      sqlite3_free(cursors[cr]);
+    ((<%= @name %>_vt *)vtbl)->cursorsSize = 0;
+#ifdef PICO_QL_DEBUG
+    printf("Table %s picoQL is %lx; freeing query structs.\n", ((<%= @name %>_vt *)vtbl)->name, (long)((<%= @name %>_vt *)vtbl)->picoQL);
+#endif
     ((<%= @name %>_vt *)vtbl)->picoQL->toOpen = 0;
+    ((<%= @name %>_vt *)vtbl)->picoQL = NULL;
+  }
 }

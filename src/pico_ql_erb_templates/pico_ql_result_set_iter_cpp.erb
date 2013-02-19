@@ -4,6 +4,9 @@
 void <%= @name %>_vt::operator() (sqlite3_vtab *vtab) {
   picoQLTable *pico = (picoQLTable *)vtab;
   picoQL = pico;
+#ifdef PICO_QL_DEBUG
+  printf("Table %s, picoQL %lx set to open in this query.\n", picoQL->zName, (long)picoQL);
+#endif
 }
 
 // Returns the size (records) for each virtual table.

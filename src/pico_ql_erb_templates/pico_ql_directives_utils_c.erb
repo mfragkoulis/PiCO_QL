@@ -137,7 +137,7 @@ struct Vtbl {
   void (*deinit_result_set)(sqlite3_vtab_cursor *, struct Vtbl*);
   int (*report_charge)(cursor *, int, cursorCharged ***, size_t *, long, struct Vtbl*);
   void (*discharge_saved_results)(struct Vtbl*);
-  void (*deinit_cursors)(struct Vtbl*);
+  void (*deinit_query_structs)(struct Vtbl*);
 };
 
 typedef struct VtblAll {
@@ -205,18 +205,8 @@ typedef struct <%= vt.name %>VtblImpl {
 void deinit_temp_structs(void) {
   int i = 0;
   for (i = 0; i < (int)vtAll.size; i++) {
-    vtAll.instances[i]->discharge_saved_results(vtAll.instances[i]);
-    if (vtAll.instances[i]->report_charge)
-      vtAll.instances[i]->report_charge(NULL, 0, NULL, 0, 0, vtAll.instances[i]);
-      vtAll.instances[i]->deinit_cursors(vtAll.instances[i]);
+    vtAll.instances[i]->deinit_query_structs(vtAll.instances[i]);
   }
-<%#     @tables.each { |vt| %>
-<%#      if vt.base_var.length == 0 %>
-<%#  map<sqlite3_vtab_cursor *, bool> *map<%= vt.name ; %>
-<%#  map<%= vt.name  = NULL; %>
-<%#  (*discharge<%= vt.name VT)(NULL, 0, map<%= vt.name ); %>
-<%#      end %>
-<%#     } %>
 }
 
 /* Deinitiates map which stores pairs of
