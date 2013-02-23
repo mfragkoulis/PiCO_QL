@@ -1417,10 +1417,6 @@ class VirtualTable
     if $argM == "MEM_MGT" && fk_method_ret == 1
       fw.puts "#{space}{"
       space.concat("  ")
-      display_null_check(tokenized_access_path, "",
-                         null_check_action,
-                         fw, space) 
-      fw.puts "#{space}typeof(#{access_path}) t = #{access_path};"
     end
     if @container_class.length > 0
       if iteration.length > 0
@@ -1429,17 +1425,22 @@ class VirtualTable
       end
     end
     fw.puts "#ifdef ENVIRONMENT64"
+    display_null_check(tokenized_access_path, "",
+                       null_check_action,
+                       fw, space) 
     if $argM == "MEM_MGT" && fk_method_ret == 1    # Returning from a method.
+      fw.puts "#{space}typeof(#{access_path}) t = #{access_path};"
       fw.puts "#{space}if (#{notC}compare_#{sqlite3_type}(#{column_cast}t#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_type}(val))) {"
     else
-      display_null_check(tokenized_access_path, "", 
-                         null_check_action,
-                         fw, space)
       fw.puts "#{space}if (#{notC}compare_#{sqlite3_type}(#{column_cast}#{access_path}#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_type}(val))) {"
     end
     print_line_directive(fw, line)
     fw.puts "#else"
+    display_null_check(tokenized_access_path, "",
+                       null_check_action,
+                       fw, space) 
     if $argM == "MEM_MGT" && fk_method_ret == 1
+      fw.puts "#{space}typeof(#{access_path}) t = #{access_path};"
       fw.puts "#{space}if (#{notC}compare_#{sqlite3_parameters}(#{column_cast}t#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_parameters}(val))) {"
     else
       fw.puts "#{space}if (#{notC}compare_#{sqlite3_parameters}(#{column_cast}#{access_path}#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_parameters}(val))) {"
@@ -1655,7 +1656,8 @@ class VirtualTable
           puts "Virtual table type is of type pointer: " + @pointer
         end
       when /(\w+)\*|(\w+)/
-        if matchdata = /(.+):(.+)/.match(@signature)
+        if @signature.match(/(.+):(.+)/) && !@signature.match(/::/)
+          matchdata = @signature.match(/(.+):(.+)/)
           @signature = matchdata[1]
           @type = matchdata[2]
           @signature.rstrip!
