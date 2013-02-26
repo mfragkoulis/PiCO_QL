@@ -757,6 +757,18 @@ cost delcapacity_root rownum code demand
 Done
 
 Query 42:
+ select t.cost, t.delcapacity_root, rownum, code,demand from (select DISTINCT customers_id,cost, delcapacity_root from Truck where cost < 400) t left join Customer on customer.base=t.customers_id where demand>30;
+
+Statement prepared.
+cost delcapacity_root rownum code demand 
+
+280.375322 4.472136 10 055 40 
+219.628909 0.000000 8 008 40 
+184.833567 3.162278 5 160 40 
+
+Done
+
+Query 43:
  select t.cost, t.delcapacity_root, rownum, code, demand from (select distinct customers_id,cost, delcapacity_root from Truck) t, Customer where customer.base=t.customers_id and t.cost and t.delcapacity_root=0 and code>180;
 
 Statement prepared.
@@ -780,7 +792,7 @@ cost delcapacity_root rownum code demand
 
 Done
 
-Query 43:
+Query 44:
  select t.rownum, t.cost,t.delcapacity,customer.rownum from (select distinct rownum, cost,delcapacity,customers_id from Truck) t left join customer on customer.base=t.customers_id where customer.rownum=7;
 
 Statement prepared.
@@ -807,7 +819,7 @@ rownum cost delcapacity rownum
 
 Done
 
-Query 44:
+Query 45:
  select t.rownum, t.cost,t.delcapacity,customer.rownum from (select distinct rownum, cost, delcapacity,customers_id from Truck) t,Customer where customer.base=t.customers_id and customer.rownum=7;
 
 Statement prepared.
@@ -834,7 +846,7 @@ rownum cost delcapacity rownum
 
 Done
 
-Query 45:
+Query 46:
  select t.cost, t.delcapacity,t.delcapacity_root, rownum from (select distinct customers_id,cost, delcapacity,delcapacity_root from Truck) t left join customer on customer.base=t.customers_id where t.cost<500 and (t.delcapacity>50 or t.delcapacity_root>4) and customer.rownum=3;
 
 Statement prepared.
@@ -845,7 +857,7 @@ cost delcapacity delcapacity_root rownum
 
 Done
 
-Query 46:
+Query 47:
  select t.rownum,t.cost,t.delcapacity,t.delcapacity_root, customer.rownum from (select distinct customers_id,rownum,cost,delcapacity,delcapacity_root from Truck) t left join Customer on customer.base=t.customers_id where customer.rownum=7 and t.rownum=12;
 
 Statement prepared.
@@ -855,7 +867,7 @@ rownum cost delcapacity delcapacity_root rownum
 
 Done
 
-Query 47:
+Query 48:
  select t.rownum,t.cost,t.delcapacity,t.delcapacity_root, customer.rownum from (select distinct customers_id,rownum,cost,delcapacity,delcapacity_root from Truck) t left join Customer on customer.base=t.customers_id where customer.rownum=7 and t.rownum=12 and t.cost<500 and (t.delcapacity=0 or t.delcapacity_root=0);
 
 Statement prepared.
@@ -864,7 +876,7 @@ rownum cost delcapacity delcapacity_root rownum
 
 Done
 
-Query 48:
+Query 49:
  select t.rownum,t.cost,t.delcapacity,t.delcapacity_root, customer.rownum from (select distinct customers_id,rownum,cost,delcapacity,delcapacity_root from Truck) t left join Customer on customer.base=t.customers_id where customer.rownum=7 and t.rownum=12 and t.cost<500 and t.delcapacity>0 and t.delcapacity_root>0;
 
 Statement prepared.
@@ -877,7 +889,7 @@ Done
 COMPOUND QUERIES
 
 
-Query 49:
+Query 50:
  select code, demand, x_coord, y_coord from truck, customer where customer.base=truck.customers_id and code like '%99' UNION select Customercode, Customerdemand, Customerx_coord,Customery_coord from mapindex where Customerx_coord>133;
 
 Statement prepared.
@@ -897,7 +909,7 @@ code demand x_coord y_coord
 
 Done
 
-Query 50:
+Query 51:
  select code, demand, x_coord, y_coord from truck, customer where customer.base=truck.customers_id and code like '%99' UNION ALL select Customercode, Customerdemand, Customerx_coord,Customery_coord from mapindex where Customerx_coord>133;
 
 Statement prepared.
@@ -917,7 +929,7 @@ code demand x_coord y_coord
 
 Done
 
-Query 51:
+Query 52:
  select code, demand, x_coord, y_coord from truck, customer where customer.base=truck.customers_id and code like '%99' INTERSECT select Customercode, Customerdemand, Customerx_coord,Customery_coord from mapindex where Customerx_coord>133;
 
 Statement prepared.
@@ -926,7 +938,7 @@ code demand x_coord y_coord
 
 Done
 
-Query 52:
+Query 53:
  select code, demand, x_coord, y_coord from truck, customer where customer.base=truck.customers_id and code like '%99' EXCEPT select Customercode, Customerdemand, Customerx_coord,Customery_coord from mapindex where Customerx_coord>133;
 
 Statement prepared.
@@ -940,7 +952,7 @@ Done
 AGGREGATIONS
 
 
-Query 53:
+Query 54:
  select sum(m.map_index), m.Customerdemand from (select * from mapindex where map_index<187) as m GROUP BY m.Customerdemand
 
 Statement prepared.
@@ -954,7 +966,7 @@ sum(m.map_index) m.Customerdemand
 
 Done
 
-Query 54:
+Query 55:
  select sum(m.map_index), m.Customerdemand from (select * from mapindex where map_index<187) as m GROUP BY m.Customerdemand HAVING sum(m.map_index)>200;
 
 Statement prepared.
@@ -969,7 +981,7 @@ Done
 ORDERING
 
 
-Query 55:
+Query 56:
  select truck.rownum, cost, delcapacity, delcapacity_root, customer.rownum, code, demand from truck,customer where cost <800 and delcapacity>0 and customer.base=truck.customers_id and code>100 and demand>10 ORDER BY code;
 
 Statement prepared.
@@ -996,7 +1008,7 @@ rownum cost delcapacity delcapacity_root rownum code demand
 
 Done
 
-Query 56:
+Query 57:
  select truck.rownum, cost, delcapacity, delcapacity_root, customer.rownum, code, demand from truck,customer where cost <800 and delcapacity>0 and customer.base=truck.customers_id and code>100 and demand>10 ORDER BY code DESC;
 
 Statement prepared.
@@ -1026,7 +1038,7 @@ Done
 ARITHMETIC OPERATORS
 
 
-Query 57:
+Query 58:
  select u.rownum, u.cost, u.delcapacity, u.delcapacity_root, c.rownum, c.code, c.demand, s.code,s.demand from truck u, customer c,truck k, customer s where (u.cost <100 or u.delcapacity>0) and c.base=u.customers_id and s.base=k.customers_id and (c.code>s.code or c.demand - s.demand >20) LIMIT 10;
 
 Statement prepared.
@@ -1045,7 +1057,7 @@ rownum cost delcapacity delcapacity_root rownum code demand code demand
 
 Done
 
-Query 58:
+Query 59:
  select u.rownum, u.cost, u.delcapacity, u.delcapacity_root, c.rownum, c.code>>1, c.demand, s.code,s.demand from truck u, customer c,truck k, customer s where (u.cost <100 or u.delcapacity>0) and c.base=u.customers_id and s.base=k.customers_id and (c.code>>1>s.code or c.demand - s.demand >20) LIMIT 10 OFFSET 10;
 
 Statement prepared.
@@ -1064,7 +1076,7 @@ rownum cost delcapacity delcapacity_root rownum c.code>>1 demand code demand
 
 Done
 
-Query 59:
+Query 60:
  select u.rownum, u.cost, u.delcapacity, u.delcapacity_root, c.rownum, c.code>>1, c.demand, LENGTH(s.code),s.demand from truck u, customer c,truck k, customer s where (u.cost <100 or u.delcapacity>0) and c.base=u.customers_id and s.base=k.customers_id and (c.code>>1>s.code or c.demand - s.demand >20) LIMIT 10 OFFSET 5;
 
 Statement prepared.
@@ -1083,7 +1095,7 @@ rownum cost delcapacity delcapacity_root rownum c.code>>1 demand LENGTH(s.code) 
 
 Done
 
-Query 60:
+Query 61:
  select u.rownum, u.cost, u.delcapacity, u.delcapacity_root, c.rownum, c.code>>1, c.demand, LENGTH(s.code),~s.demand from truck u, customer c,truck k, customer s where (u.cost <100 or u.delcapacity>0) and c.base=u.customers_id and s.base=k.customers_id and (c.code>>1>s.code or c.demand - ~s.demand >20) LIMIT 15;
 
 Statement prepared.
@@ -1110,7 +1122,7 @@ Done
 EXISTS
 
 
-Query 61:
+Query 62:
  select rownum from truck where exists (select * from truck);
 
 Statement prepared.
@@ -1138,7 +1150,7 @@ rownum
 
 Done
 
-Query 62:
+Query 63:
  select truck.rownum, cost, delcapacity,customer.rownum, customer.code, customer.demand from truck join customer on customer.base=truck.customers_id where exists (select * from Mapindex where mapindex.Customercode='159' and mapindex.Customerdemand>customer.demand) LIMIT 10;
 
 Statement prepared.
@@ -1160,7 +1172,7 @@ Done
 FUNCTIONS
 
 
-Query 63:
+Query 64:
  select truck.rownum, cost, delcapacity,c.rownum, c.code, c.demand from truck join customer c on c.base=truck.customers_id where c.code glob '*59';
 
 Statement prepared.
@@ -1171,7 +1183,7 @@ rownum cost delcapacity rownum code demand
 
 Done
 
-Query 64:
+Query 65:
  select code, demand, x_coord, y_coord from truck, customer where customer.base=truck.customers_id and code LIKE '%69' ESCAPE '%' INTERSECT select Customercode, Customerdemand, Customerx_coord,Customery_coord from mapindex where Customerx_coord>133;
 
 Statement prepared.
@@ -1184,7 +1196,7 @@ Done
 CASE
 
 
-Query 65:
+Query 66:
  select summed, (select case when Customerdemand>30 then 'high' when Customerdemand between 25 and 30 then 'moderate' when Customerdemand between 20 and 24 then 'towards moderate' when Customerdemand between 10 and 19 then 'low' when Customerdemand<10 then 'tiny' end) tag from (select sum(map_index) summed, Customerdemand from (select * from mapindex where map_index<187) as m group by Customerdemand) grouped;
 
 Statement prepared.
@@ -1198,7 +1210,7 @@ summed tag
 
 Done
 
-Query 66:
+Query 67:
  select c.code, c.x_coord, c.y_coord, mapindex.Customercode, mapindex.Customerx_coord, mapindex.Customery_coord, (select case when (c.x_coord*c.x_coord-mapindex.Customerx_coord*mapindex.Customerx_coord) + (c.y_coord*c.y_coord-mapindex.Customery_coord*mapindex.Customery_coord)<=100 then c.code||'-'||mapindex.Customercode||' are close' when(c.x_coord*c.x_coord-mapindex.Customerx_coord*mapindex.Customerx_coord) + (c.y_coord*c.y_coord-mapindex.Customery_coord*mapindex.Customery_coord)>100 then c.code||'-'||mapindex.Customercode||' are far' end) distanceP2 from truck, customer c, mapindex where c.base=truck.customers_id and c.code like '%99' and mapindex.Customercode like '_50';
 
 Statement prepared.
@@ -1211,7 +1223,7 @@ code x_coord y_coord Customercode Customerx_coord Customery_coord distanceP2
 
 Done
 
-Query 67:
+Query 68:
  select c.code, c.x_coord, c.y_coord, mapindex.Customercode, mapindex.Customerx_coord, mapindex.Customery_coord, (select case when (c.x_coord*c.x_coord-mapindex.Customerx_coord*mapindex.Customerx_coord) + (c.y_coord*c.y_coord-mapindex.Customery_coord*mapindex.Customery_coord)<=100 then c.code||'-'||mapindex.Customercode||' are close' when(c.x_coord*c.x_coord-mapindex.Customerx_coord*mapindex.Customerx_coord) + (c.y_coord*c.y_coord-mapindex.Customery_coord*mapindex.Customery_coord)>100 then c.code||'-'||mapindex.Customercode||' are far' end) distanceP2 from truck, customer c, mapindex where c.base=truck.customers_id and c.code like '%99' and mapindex.Customercode in ('050','011');
 
 Statement prepared.
@@ -1224,7 +1236,7 @@ code x_coord y_coord Customercode Customerx_coord Customery_coord distanceP2
 
 Done
 
-Query 68:
+Query 69:
  select * from MyTrucks;
 
 Statement prepared.
