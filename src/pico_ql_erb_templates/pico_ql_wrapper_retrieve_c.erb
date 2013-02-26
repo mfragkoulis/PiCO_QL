@@ -37,7 +37,7 @@ struct Vtbl <%= vt.name %>_vtbl = {
 
 int set_VtblImpl(void) {
 <%     @tables.each_index { |vt| %>
-  <%= @tables[vt].name %>_vt *<%= @tables[vt].name %>VT = (<%= @tables[vt].name %>_vt *)sqlite3_malloc(sizeof(<%= @tables[vt].name %>_vt));
+  <%= @tables[vt].name %>_vt *<%= @tables[vt].name %>VT;
 <%     } %>
   vtAll.instances = (struct Vtbl **)sqlite3_malloc(sizeof(struct Vtbl *)*<%= @tables.length %>);
   if (vtAll.instances == NULL)

@@ -114,5 +114,6 @@ int main() {
   free(M);
   free(N);
   free(O);
+  free(ma.mArray);
   return 0;
 }

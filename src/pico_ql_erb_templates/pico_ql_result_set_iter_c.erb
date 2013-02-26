@@ -240,7 +240,7 @@ int <%= @name %>_report_charge (cursor *c, int current, cursorCharged ***oCharge
     ((<%= @name %>_vt *)vtbl)->passNoVerify = 0;
     ((<%= @name %>_vt *)vtbl)->recursive = 0;
 #ifdef PICO_QL_DEBUG
-    printf("Table %s, freed temp structs for VTs representing embedded data structures.\n", ((%= @name %>_vt *)vtbl)->name);
+    printf("Table %s, freed temp structs for VTs representing embedded data structures.\n", ((<%= @name %>_vt *)vtbl)->name);
 #endif
   }
   return SQLITE_OK;

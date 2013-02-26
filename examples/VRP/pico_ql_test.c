@@ -402,6 +402,13 @@ int call_test(sqlite3 *db) {
 #endif
   result = test_prep_exec(f, db, q);
 
+  q = "select t.cost, t.delcapacity_root, rownum, code,demand from (select DISTINCT customers_id,cost, delcapacity_root from Truck where cost < 400) t left join Customer on customer.base=t.customers_id where demand>30;";
+  fprintf(f, "Query %i:\n %s\n\n", i++, q);
+#ifdef PICO_QL_DEBUG
+  printf("Query %i:\n %s\n\n", i, q);
+#endif
+  result = test_prep_exec(f, db, q);
+
   q = "select t.cost, t.delcapacity_root, rownum, code, demand from (select distinct customers_id,cost, delcapacity_root from Truck) t, Customer where customer.base=t.customers_id and t.cost and t.delcapacity_root=0 and code>180;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
 #ifdef PICO_QL_DEBUG

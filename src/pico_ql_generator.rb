@@ -859,7 +859,7 @@ class VirtualTable
       if $argLB == "CPP"
         add_to_result_setN = "<space>    resIterC = rs->res.erase(resIterC);\n<space>    rs->resBts.reset(index);\n<space>  } else\n<space>    resIterC++;\n<space>  index = rs->resBts.find_next(index);\n<space>}"
       else
-        add_to_result_setN = "<space>    rs->actualSize--;\n<space>    ((#{@name}ResultSetImpl *)rs)->res[index] = NULL;\n<space>  }\n<space>  index++;\n<space>  while (((#{@name}ResultSetImpl *)rs)->res[index] == NULL) {index++;}\n<space>}"
+        add_to_result_setN = "<space>    rs->actualSize--;\n<space>    ((#{@name}ResultSetImpl *)rs)->res[index] = NULL;\n<space>  }\n<space>  index++;\n<space>  while ((index < rs->size) && (((#{@name}ResultSetImpl *)rs)->res[index] == NULL)) {index++;}\n<space>}"
       end
     else
       add_to_result_setF = "<space>  stcsr->size = 1;\n<space>}"

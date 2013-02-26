@@ -31,6 +31,6 @@ int <%= @name %>_vt_retrieve (sqlite3_vtab_cursor *cur, int nCol, sqlite3_contex
 <%    if @container_class.length > 0 %>
   printf("Retrieving column %i of VT %s element %i\n", nCol, ((picoQLTable *)cur->pVtab)->zName, rs->offset);
 <%    else %>
-  printf("Retrieving column %i of VT %s\n", nCol, picoQL->zName);
+  printf("Retrieving column %i of VT %s\n", nCol, ((picoQLTable *)cur->pVtab)->zName);
 <%    end %>
 #endif

@@ -523,8 +523,8 @@ int close_vtable(sqlite3_vtab_cursor *cur) {
   // Second argument dummy
   // (part of polymorphized arsenal of methods).
   deinit_result_set(cur, stc);
-  sqlite3_free(stc);
   assert(((picoQLTable *)cur->pVtab)->locked == 0);
+  sqlite3_free(stc);
   return SQLITE_OK;
 }
 
