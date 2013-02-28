@@ -13,28 +13,28 @@
 #include "IOverlay.h"
 #include "CDiaryDB.h"
 #include "CDiary.h"
-;
+$
 
 CREATE STRUCT VIEW IItem (
        name STRING FROM getName().toStdString(),
        description STRING FROM getDescription().toStdString(),
        comment STRING FROM getComment().toStdString(),
        timestamp INT FROM getTimestamp()
-);
+)$
 
 
 CREATE STRUCT VIEW MapTracks (
        key STRING FROM first.toStdString(),
        FOREIGN KEY(track_id) FROM second REFERENCES Track POINTER
-);
+)$
 
-CREATE VIRTUAL TABLE LandKarte.MapTracks 
+CREATE VIRTUAL TABLE MapTracks 
 USING STRUCT VIEW MapTracks
 WITH REGISTERED C NAME tracks 
-WITH REGISTERED C TYPE map<QString, CTrack*>;
+WITH REGISTERED C TYPE map<QString, CTrack*>$
 
 CREATE STRUCT VIEW Track (
-       INHERITS STRUCT VIEW IItem,
+       INCLUDES STRUCT VIEW IItem,
        descend DOUBLE FROM getDescend(),
        ascend DOUBLE FROM getAscend(),
        distance DOUBLE FROM getTotalDistance(),
@@ -42,11 +42,11 @@ CREATE STRUCT VIEW Track (
        totalTimeMoving INT FROM getTotalTimeMoving(),
        FOREIGN KEY(trackWaypoints_id) FROM getStdTrackPoints() REFERENCES TrackWaypoints POINTER,
        FOREIGN KEY(stageWaypoints_id) FROM getStdStagePoints() REFERENCES StageWaypoints POINTER
-);
+)$
 
-CREATE VIRTUAL TABLE LandKarte.Track 
+CREATE VIRTUAL TABLE Track 
 USING STRUCT VIEW Track
-WITH REGISTERED C TYPE CTrack;
+WITH REGISTERED C TYPE CTrack$
 
 CREATE STRUCT VIEW TrackWaypoints (
        lon FLOAT FROM lon,
@@ -75,11 +75,11 @@ CREATE STRUCT VIEW TrackWaypoints (
        vy FLOAT FROM vy,
        vz FLOAT FROM vz,
        dem FLOAT FROM dem
-);
+)$
 
-CREATE VIRTUAL TABLE LandKarte.TrackWaypoints 
+CREATE VIRTUAL TABLE TrackWaypoints 
 USING STRUCT VIEW TrackWaypoints
-WITH REGISTERED C TYPE list<CTrack::pt_t>;
+WITH REGISTERED C TYPE list<CTrack::pt_t>$
 
 CREATE STRUCT VIEW StageWaypoints (
        FOREIGN KEY(wpt_id) FROM wpt REFERENCES Waypoint POINTER,
@@ -87,24 +87,24 @@ CREATE STRUCT VIEW StageWaypoints (
        y DOUBLE FROM y,
        d DOUBLE FROM d,
        FOREIGN KEY(pt_t_id) FROM trkpt REFERENCES TrackWaypoint
-);
+)$
 
-CREATE VIRTUAL TABLE LandKarte.StageWaypoints 
+CREATE VIRTUAL TABLE StageWaypoints 
 USING STRUCT VIEW StageWaypoints
-WITH REGISTERED C TYPE list<CTrack::wpt_t>;
+WITH REGISTERED C TYPE list<CTrack::wpt_t>$
 
 CREATE STRUCT VIEW Waypoints (
        key STRING FROM first.toStdString(),
        FOREIGN KEY(wpt_id) FROM second REFERENCES Waypoint POINTER
-);
+)$
 
-CREATE VIRTUAL TABLE LandKarte.Waypoints 
+CREATE VIRTUAL TABLE Waypoints 
 USING STRUCT VIEW Waypoints
 WITH REGISTERED C NAME wpts 
-WITH REGISTERED C TYPE map<QString, CWpt*>;
+WITH REGISTERED C TYPE map<QString, CWpt*>$
 
 CREATE STRUCT VIEW Waypoint (
-       INHERITS STRUCT VIEW IItem,
+       INCLUDES STRUCT VIEW IItem,
        lon FLOAT FROM lon,
        lat FLOAT FROM lat,
        ele FLOAT FROM ele,
@@ -113,11 +113,11 @@ CREATE STRUCT VIEW Waypoint (
        urlName STRING FROM urlname.toStdString(),
        type STRING FROM type.toStdString(),
        FOREIGN KEY(geoData) FROM getGeocacheData() REFERENCES GeoData   // should not be separated according to design rules, however promotes modularity and encapsulation
-);
+)$
 
-CREATE VIRTUAL TABLE LandKarte.Waypoint 
+CREATE VIRTUAL TABLE Waypoint 
 USING STRUCT VIEW Waypoint
-WITH REGISTERED C TYPE CWpt;
+WITH REGISTERED C TYPE CWpt$
 
 CREATE STRUCT VIEW GeoData (
        difficulty FLOAT FROM difficulty,
@@ -133,47 +133,47 @@ CREATE STRUCT VIEW GeoData (
        country STRING FROM country.toStdString(),
        state STRING FROM state.toStdString(),
        locale STRING FROM locale.toStdString()
-);
+)$
 
-CREATE VIRTUAL TABLE LandKarte.GeoData 
+CREATE VIRTUAL TABLE GeoData 
 USING STRUCT VIEW GeoData
-WITH REGISTERED C TYPE CWpt::geocache_t;
+WITH REGISTERED C TYPE CWpt::geocache_t$
 
 CREATE STRUCT VIEW Routes (
        key STRING FROM first.toStdString(),
        FOREIGN KEY(route_id) FROM second REFERENCES Route POINTER
-);
+)$
 
-CREATE VIRTUAL TABLE LandKarte.Routes 
+CREATE VIRTUAL TABLE Routes 
 USING STRUCT VIEW Routes
 WITH REGISTERED C NAME routes 
-WITH REGISTERED C TYPE map<QString, CRoute*>;
+WITH REGISTERED C TYPE map<QString, CRoute*>$
 
 CREATE STRUCT VIEW Route (
-       INHERITS STRUCT VIEW IItem,
+       INCLUDES STRUCT VIEW IItem,
        distance DOUBLE FROM getDistance(),
        time INT FROM getTime()
-);
+)$
 
-CREATE VIRTUAL TABLE LandKarte.Route 
+CREATE VIRTUAL TABLE Route 
 USING STRUCT VIEW Route
-WITH REGISTERED C TYPE CRoute;
+WITH REGISTERED C TYPE CRoute$
 
 CREATE STRUCT VIEW Diaries (
        key STRING FROM first.toStdString(),
        FOREIGN KEY(diary_id) FROM second REFERENCES Diary POINTER
-);
+)$
 
-//CREATE VIRTUAL TABLE LandKarte.Diaries 
+//CREATE VIRTUAL TABLE Diaries 
 //USING STRUCT VIEW Diaries
 //WITH REGISTERED C NAME diaries 
-//WITH REGISTERED C TYPE map<QString, CDiary*>;
+//WITH REGISTERED C TYPE map<QString, CDiary*>$
 
 //CREATE STRUCT VIEW Diary (
-//       INHERITS STRUCT VIEW IItem,
+//       INCLUDES STRUCT VIEW IItem,
 //       modified BOOL FROM isModified()
-//);
+//)$
 
-//CREATE VIRTUAL TABLE LandKarte.Diary 
+//CREATE VIRTUAL TABLE Diary 
 //USING STRUCT VIEW Diary
-//WITH REGISTERED C TYPE CDiary;
+//WITH REGISTERED C TYPE CDiary$

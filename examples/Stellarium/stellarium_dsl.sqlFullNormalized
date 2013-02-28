@@ -4,18 +4,18 @@
 #include "Meteor.hpp"
 #include "Constellation.hpp"
 #include "StelObject.hpp"
-#include "SolarSystem.hpp"
+#include "hpp"
 #include "Planet.hpp"
-;
+$
 
 CREATE STRUCT VIEW AllMeteors (
        FOREIGN KEY(meteor_id) FROM self references Meteor POINTER
-);
+)$
 
-CREATE VIRTUAL TABLE SolarSystem.AllMeteors 
+CREATE VIRTUAL TABLE AllMeteors 
        USING STRUCT VIEW AllMeteors
        WITH REGISTERED C NAME active
-       WITH REGISTERED C TYPE vector<Meteor*>;
+       WITH REGISTERED C TYPE vector<Meteor*>$
 
 CREATE STRUCT VIEW Meteor (
        alive BOOL FROM isAlive(),
@@ -25,20 +25,20 @@ CREATE STRUCT VIEW Meteor (
        magnitude FLOAT FROM mag,
        observDistance DOUBLE FROM xydistance,
        scaleMagnitude DOUBLE FROM distMultiplier
-);
+)$
 
-CREATE VIRTUAL TABLE SolarSystem.Meteor 
+CREATE VIRTUAL TABLE Meteor 
        USING STRUCT VIEW Meteor
-       WITH REGISTERED C TYPE Meteor;
+       WITH REGISTERED C TYPE Meteor$
 
 CREATE STRUCT VIEW AllPlanets (
        FOREIGN KEY(planet_id) FROM data() REFERENCES Planet POINTER
-);
+)$
 
-CREATE VIRTUAL TABLE SolarSystem.AllPlanets 
+CREATE VIRTUAL TABLE AllPlanets 
        USING STRUCT VIEW AllPlanets
        WITH REGISTERED C NAME allPlanets
-       WITH REGISTERED C TYPE list<PlanetP>;
+       WITH REGISTERED C TYPE list<PlanetP>$
 
 CREATE STRUCT VIEW Planet (
        name STRING FROM getNameI18n().toStdString(),       
@@ -54,45 +54,45 @@ CREATE STRUCT VIEW Planet (
        axisRotation FLOAT FROM axisRotation,
 //       FOREIGN KEY(parentPlanet_id) FROM parent.data() REFERENCES Planet POINTER,
        FOREIGN KEY(satellites_id) FROM getStdSatellites() REFERENCES SatellitePlanets POINTER
-);
+)$
 
-CREATE VIRTUAL TABLE SolarSystem.Planet 
+CREATE VIRTUAL TABLE Planet 
        USING STRUCT VIEW Planet
-       WITH REGISTERED C TYPE Planet;
+       WITH REGISTERED C TYPE Planet$
 
 CREATE STRUCT VIEW SatellitePlanets (
        FOREIGN KEY(satellite_id) FROM data() REFERENCES Planet POINTER
-);
+)$
 
-CREATE VIRTUAL TABLE SolarSystem.SatellitePlanets 
+CREATE VIRTUAL TABLE SatellitePlanets 
        USING STRUCT VIEW SatellitePlanets
-       WITH REGISTERED C TYPE list<QSharedPointer<Planet> >*;
+       WITH REGISTERED C TYPE list<QSharedPointer<Planet> >*$
 
 CREATE STRUCT VIEW AllConstellations (
        FOREIGN KEY(constellation_id) FROM self REFERENCES Constellation POINTER
-);
+)$
 
-CREATE VIRTUAL TABLE SolarSystem.AllConstellations 
+CREATE VIRTUAL TABLE AllConstellations 
        USING STRUCT VIEW AllConstellations
        WITH REGISTERED C NAME asterisms
-       WITH REGISTERED C TYPE vector<Constellation*>;
+       WITH REGISTERED C TYPE vector<Constellation*>$
 
 CREATE STRUCT VIEW Constellation (
        constelName STRING FROM getNameI18n().toStdString(),
 //       FOREIGN KEY(brightestStar_id) FROM getBrightestStarInConstellation().data() REFERENCES StelObject POINTER,
 //       FOREIGN KEY(starList_id) FROM asterism->data() REFERENCES StelObject POINTER
-);
+)$
 
-CREATE VIRTUAL TABLE SolarSystem.Constellation 
+CREATE VIRTUAL TABLE Constellation 
        USING STRUCT VIEW Constellation
-       WITH REGISTERED C TYPE Constellation;
+       WITH REGISTERED C TYPE Constellation$
 
 CREATE STRUCT VIEW StelObject (
        starName STRING FROM getNameI18n().toStdString(),
        starSciName STRING FROM getEnglishName().toStdString(),
        starType STRING FROM getType().toStdString()
-);
+)$
 
-CREATE VIRTUAL TABLE SolarSystem.StelObject 
+CREATE VIRTUAL TABLE StelObject 
        USING STRUCT VIEW StelObject
-       WITH REGISTERED C TYPE StelObject;
+       WITH REGISTERED C TYPE StelObject$

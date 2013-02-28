@@ -34,7 +34,7 @@
 #include "filemetrics.h"
 #include "idquery.h"
 #include "call.h"
-;
+$
 
 CREATE STRUCT VIEW File (
 	path STRING FROM get_path(),
@@ -53,13 +53,13 @@ CREATE STRUCT VIEW File (
 	NEMEMBER INTEGER FROM metrics().get_int_metric(FileMetrics::em_nemember),
 	NINCFILE INTEGER FROM metrics().get_int_metric(FileMetrics::em_nincfile),
 	readonly INTEGER FROM get_readonly()
-);
+)$
 
 // File details gathered during parsing for GUI operation
-CREATE VIRTUAL TABLE cscout.File
+CREATE VIRTUAL TABLE File
 USING STRUCT VIEW File
 WITH REGISTERED C NAME files
-WITH REGISTERED C TYPE vector<Fileid>;
+WITH REGISTERED C TYPE vector<Fileid>$
 
 
 CREATE STRUCT VIEW Eclass (
@@ -89,42 +89,42 @@ CREATE STRUCT VIEW Eclass (
 	isYacc BOOLEAN FROM get_attribute(is_yacc),				// Yacc identifier
 	isFunction BOOLEAN FROM get_attribute(is_function),			// Function
         FOREIGN KEY(members) FROM get_members() REFERENCES Tokid
-);
+)$
 
 CREATE STRUCT VIEW Identifier (
 	id STRING FROM get_id(),
 	xfile BOOLEAN FROM get_xfile()
-);
+)$
 
 CREATE STRUCT VIEW IdentifierProperties (
-      INHERITS STRUCT VIEW Eclass FROM first->,
-      INHERITS STRUCT VIEW Identifier FROM second.
-);
+      INCLUDES STRUCT VIEW Eclass FROM first POINTER,
+      INCLUDES STRUCT VIEW Identifier FROM second
+)$
 
-CREATE VIRTUAL TABLE cscout.IdentifierProperties
+CREATE VIRTUAL TABLE IdentifierProperties
 USING STRUCT VIEW IdentifierProperties
 WITH REGISTERED C NAME ids
-WITH REGISTERED C TYPE map<Eclass *, Identifier>;
+WITH REGISTERED C TYPE map<Eclass *, Identifier>$
 
 CREATE STRUCT VIEW Tokid (
 	// Make it an integer on all systems
 	offset INTEGER FROM (int)boost::iostreams::position_to_offset(this.get_streampos()),
-        INHERITS STRUCT VIEW File FROM get_fileid().
-);
+        INCLUDES STRUCT VIEW File FROM get_fileid()
+)$
 
-CREATE VIRTUAL TABLE cscout.Tokid
+CREATE VIRTUAL TABLE Tokid
 USING STRUCT VIEW Tokid
-WITH REGISTERED C TYPE set<Tokid>;
+WITH REGISTERED C TYPE set<Tokid>$
 
 CREATE STRUCT VIEW TokidEquivalenceClasses (
-      INHERITS STRUCT VIEW Tokid FROM first.,
-      INHERITS STRUCT VIEW Eclass FROM second->
-);
+      INCLUDES STRUCT VIEW Tokid FROM first,
+      INCLUDES STRUCT VIEW Eclass FROM second POINTER
+)$
 
-CREATE VIRTUAL TABLE cscout.TokidEquivalenceClasses
+CREATE VIRTUAL TABLE TokidEquivalenceClasses
 USING STRUCT VIEW TokidEquivalenceClasses
 WITH REGISTERED C NAME tm
-WITH REGISTERED C TYPE map<Tokid, Eclass *>;
+WITH REGISTERED C TYPE map<Tokid, Eclass *>$
 
 CREATE STRUCT VIEW Call (
 	name STRING FROM get_name(),
@@ -171,16 +171,16 @@ CREATE STRUCT VIEW Call (
 	CHAL DOUBLE FROM metrics().get_metric(FunMetrics::em_chal),
 	IFLOW DOUBLE FROM metrics().get_metric(FunMetrics::em_iflow),
 	entityTypeName STRING FROM entity_type_name(),
-	INHERITS STRUCT VIEW Tokid FROM get_tokid().,
-        INHERITS STRUCT VIEW File FROM get_fileid().
-);
+	INCLUDES STRUCT VIEW Tokid FROM get_tokid(),
+        INCLUDES STRUCT VIEW File FROM get_fileid()
+)$
 
 CREATE STRUCT VIEW FunctionMap (
-      INHERITS STRUCT VIEW Tokid FROM first.,
-      INHERITS STRUCT VIEW Call FROM second->
-);
+      INCLUDES STRUCT VIEW Tokid FROM first,
+      INCLUDES STRUCT VIEW Call FROM second POINTER
+)$
 
-CREATE VIRTUAL TABLE cscout.FunctionMap
+CREATE VIRTUAL TABLE FunctionMap
 USING STRUCT VIEW FunctionMap
 WITH REGISTERED C NAME fun_map
-WITH REGISTERED C TYPE map<Tokid, Call *>;
+WITH REGISTERED C TYPE map<Tokid, Call *>$

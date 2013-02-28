@@ -34,7 +34,7 @@
 #include "filemetrics.h"
 #include "idquery.h"
 #include "call.h"
-;
+$
 
 CREATE STRUCT VIEW File (
 	path STRING FROM get_path(),
@@ -53,17 +53,17 @@ CREATE STRUCT VIEW File (
 	NEMEMBER INTEGER FROM metrics().get_int_metric(FileMetrics::em_nemember),
 	NINCFILE INTEGER FROM metrics().get_int_metric(FileMetrics::em_nincfile),
 	readonly INTEGER FROM get_readonly()
-);
+)$
 
 // File details gathered during parsing for GUI operation
-CREATE VIRTUAL TABLE cscout.File
+CREATE VIRTUAL TABLE File
 USING STRUCT VIEW File
 WITH REGISTERED C NAME files
-WITH REGISTERED C TYPE vector<Fileid>;
+WITH REGISTERED C TYPE vector<Fileid>$
 
-CREATE VIRTUAL TABLE cscout.FileId
+CREATE VIRTUAL TABLE FileId
 USING STRUCT VIEW File
-WITH REGISTERED C TYPE Fileid;
+WITH REGISTERED C TYPE Fileid$
 
 
 CREATE STRUCT VIEW Eclass (
@@ -93,64 +93,64 @@ CREATE STRUCT VIEW Eclass (
 	isYacc BOOLEAN FROM get_attribute(is_yacc),				// Yacc identifier
 	isFunction BOOLEAN FROM get_attribute(is_function),			// Function
         FOREIGN KEY(members) FROM get_members() REFERENCES Tokids
-);
+)$
 
-CREATE VIRTUAL TABLE cscout.Eclass
+CREATE VIRTUAL TABLE Eclass
 USING STRUCT VIEW Eclass
-WITH REGISTERED C TYPE Eclass;
+WITH REGISTERED C TYPE Eclass$
 
 CREATE STRUCT VIEW Identifier (
 	id STRING FROM get_id(),
 	xfile BOOLEAN FROM get_xfile()
-);
+)$
 
-CREATE VIRTUAL TABLE cscout.Identifier
+CREATE VIRTUAL TABLE Identifier
 USING STRUCT VIEW Identifier
-WITH REGISTERED C TYPE Identifier;
+WITH REGISTERED C TYPE Identifier$
 
 CREATE STRUCT VIEW IdentifierProperties (
       FOREIGN KEY(eclass) FROM first REFERENCES Eclass POINTER,
       FOREIGN KEY(id) FROM second REFERENCES Identifier
-);
+)$
 
-CREATE VIRTUAL TABLE cscout.IdentifierProperties
+CREATE VIRTUAL TABLE IdentifierProperties
 USING STRUCT VIEW IdentifierProperties
 WITH REGISTERED C NAME ids
-WITH REGISTERED C TYPE map<Eclass *, Identifier>;
+WITH REGISTERED C TYPE map<Eclass *, Identifier>$
 
 CREATE STRUCT VIEW Tokid (
 	// Make it an integer on all systems
 	offset INTEGER FROM (int)boost::iostreams::position_to_offset(this.get_streampos()),
         FOREIGN KEY(fileid) FROM get_fileid() REFERENCES FileId
-);
+)$
 
-CREATE VIRTUAL TABLE cscout.Tokids
+CREATE VIRTUAL TABLE Tokids
 USING STRUCT VIEW Tokid
-WITH REGISTERED C TYPE set<Tokid>;
+WITH REGISTERED C TYPE set<Tokid>$
 
-CREATE VIRTUAL TABLE cscout.Tokid
+CREATE VIRTUAL TABLE Tokid
 USING STRUCT VIEW Tokid
-WITH REGISTERED C TYPE Tokid;
+WITH REGISTERED C TYPE Tokid$
 
 CREATE STRUCT VIEW TokidEquivalenceClasses (
       FOREIGN KEY(tokid) FROM first REFERENCES Tokid,
       FOREIGN KEY(eclass) FROM second REFERENCES Eclass POINTER
-);
+)$
 
-CREATE VIRTUAL TABLE cscout.TokidEquivalenceClasses
+CREATE VIRTUAL TABLE TokidEquivalenceClasses
 USING STRUCT VIEW TokidEquivalenceClasses
 WITH REGISTERED C NAME tm
-WITH REGISTERED C TYPE map<Tokid, Eclass *>;
+WITH REGISTERED C TYPE map<Tokid, Eclass *>$
 
 CREATE STRUCT VIEW FunctionMap (
       FOREIGN KEY(tokid) FROM first REFERENCES Tokid,
       FOREIGN KEY(call) FROM second REFERENCES Call POINTER
-);
+)$
 
-CREATE VIRTUAL TABLE cscout.FunctionMap
+CREATE VIRTUAL TABLE FunctionMap
 USING STRUCT VIEW FunctionMap
 WITH REGISTERED C NAME fun_map
-WITH REGISTERED C TYPE map<Tokid, Call *>;
+WITH REGISTERED C TYPE map<Tokid, Call *>$
 
 
 CREATE STRUCT VIEW Call (
@@ -200,8 +200,8 @@ CREATE STRUCT VIEW Call (
 	entityTypeName STRING FROM entity_type_name(),
 	FOREIGN KEY(atokid) FROM get_tokid() REFERENCES Tokid,
         FOREIGN KEY(fileid) FROM get_fileid() REFERENCES FileId
-);
+)$
 
-CREATE VIRTUAL TABLE cscout.Call
+CREATE VIRTUAL TABLE Call
 USING STRUCT VIEW Call
-WITH REGISTERED C TYPE Call;
+WITH REGISTERED C TYPE Call$

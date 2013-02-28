@@ -1,37 +1,26 @@
 <--VIRTUAL TABLE DEFINITION-->
 
-<table_def> ::= 'CREATE VIRTUAL TABLE' <db_name>'.'<virtual_table_name> 
-	    	'USING STRUCT VIEW'  <struct_view_name> 
-		['WITH REGISTERED C NAME' <base_variable>] 
+<table_def> ::= 'CREATE VIRTUAL TABLE' <virtual table name> 
+	    	'USING STRUCT VIEW'  <struct view name> 
+		['WITH REGISTERED C NAME' <base variable>] 
 		'WITH REGISTERED C TYPE' <struct_type>
-		['USING LOOP' <loop_variant>]
+		['USING LOOP' <loop_variant>] '$'
 
-<db_name> ::= 'identifier'
+<struct_type> ::= <container> | <object> | <struct> |
+		  <primitive_data_type' ['*']
 
-<virtual_table_name> ::= 'identifier'
-
-<struct_view_name> ::= 'identifier'
-
-<base_variable> ::= 'identifier'
-
-<struct_type> ::= <container> | <object> | <struct>
-
-<loop_variant> ::= 'user-defined-loop-variant'
-
-<container> ::= (<container_class> '<' <type>
+<container> ::= (<container_class> '<' <struct_type>
 <--if associative container-->
-	    [',' <type>] '>' ['*']) | <C_container>
+	    [',' <struct_type>] '>' ['*']) | <C_container>
 
 <container_class> ::= <stl_class> | <other_container_class>
  
 <stl_class> ::= 'list' | 'vector' | 'deque' | 'set' | 
 		  'multiset' | 'map' | 'multimap'
 
-<other_container_class> ::= 'SGI_forward_container_concept_compatible'
+<other_container_class> ::= <SGI forward container concept compatible>
 
-<type> ::= <struct_type> | <primitive_data_type> ['*']
-
-<C_container> ::= <struct> | <struct>:<struct>
+<C_container> ::= <d_type> | <struct>':'<d_type>
 <--For C linked lists and C arrays respectively.
    The loop variants for these containers can be 
    customized by the USING LOOP directive
@@ -39,63 +28,65 @@
    defined at the top of the DSL description.
    See examples/CApp for example use.-->
 
-<object> ::= <class_name> ['*']
+<d_type> ::= <struct> | <primitive_data_type> ['*']
 
-<class_name> ::= 'identifier'
+<struct> ::= ['struct'] <struct name> ['*']
 
-<struct> ::= ['struct'] <struct_name> ['*']
+<primitive_data_type> ::= 'int' | 'string' | 'double' | 
+		      	  'char' | 'float' | 'real' | 
+			  'bool' | 'bigint' | 'union'
 
-<struct_name> ::= 'identifier'
+<object> ::= <class name> ['*']
+
+<loop_variant> ::= <user defined loop variant>
 
 <--STRUCT VIEW DEFINITION-->
 
-<struct_view_def> ::= 'CREATE STRUCT VIEW' <struct_view_name> '(' <column_def> {',' <column_def>} ');'
-
-<struct_view_name> ::= 'identifier'
+<struct_view_def> ::= 'CREATE STRUCT VIEW' 
+			<struct view name> '(' 
+			<column_def> {',' <column_def>} ')$'
 
 <column_def> ::=  <primitive_column_def> | 
 	     	  <struct_column_def> | 
 		  <struct_view_inheritance
 
-<primitive_column_def> ::= <column_name> <primitive_data_type> 'FROM' (<access_statement> | 'self')
+<primitive_column_def> ::= <column_name> 
+			   <primitive_data_type> 
+			   'FROM' <access_statement>
 
-<column_name> ::= 'identifier'
+<struct_column_def> ::= 'FOREIGN KEY(<column name>) FROM' 
+		    	<access_statement> 
+			[REFERENCES <virtual table name>] 
+						[POINTER]
 
-<primitive_data_type> ::= 'int' | 'string' | 'double' | 
-		      	  'char' | 'float' | 'real' | 
-			  'bool' | 'union'
-
-<struct_column_def> ::= 'FOREIGN KEY(<column_name>) FROM' 
-		    	(<access_statement> | 'self') 
-			[REFERENCES <virtual_table_name>] [POINTER]
-
-<access_statement> ::= 'how_access:eg_function_name()'
+<access_statement> ::= <valid C/C++ expression> | 'self'
 
 <--Instruct the parser to fill a current struct view from one defined
 previously by referencing the struct view's name
-<struct_view_inheritance> ::= 'INHERITS STRUCT VIEW' <struct_view_name> 
-			      ['FROM' <access_statement>]
-
+<struct_view_inheritance> ::= 'INCLUDES STRUCT VIEW' 
+				<struct view name> 
+			        ['FROM' <access_statement>]
 
 <--UNION VIEW DEFINITION-->
-
 
 <union_view_definition> ::= 'CREATE UNION VIEW' <u_name> '('
 			    'CASE' <access_stetement>
 			    'WHEN' <case> THEN <column_def>
 			    {'WHEN' <case> THEN  <column_def>}
-			    ');'
+			    ')$'
+
+<case> ::= <valid C/C++ constant>
 
 <--STANDARD RELATIONAL VIEW DEFINITION-->
 
-<rel_view_def> ::= 'as_per_ansi_92_sql_standard'
+<rel_view_def> ::= <ANSI 92 SQL standard> '$'
 
 <--LOCK DEFINITION-->
 
 <lock_def> ::= 'USE C LOCK' <lock_function> 'UNLOCK'
-	       	      	    <unlock_function>';'
+	       	      	    <unlock_function>'$'
 
-<lock_function> ::= 'identifier'
+<lock_function> ::= <valid C/C++ function>
 
-<unlock_function> ::= 'identifier'
+<unlock_function> ::= <valid C/C++ function>
 

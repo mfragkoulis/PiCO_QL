@@ -8,7 +8,7 @@
 #include "Planet.hpp"
 
 using namespace std;
-;
+$
 
 CREATE STRUCT VIEW Meteor (
        alive BOOL FROM isAlive(),
@@ -18,12 +18,12 @@ CREATE STRUCT VIEW Meteor (
        magnitude FLOAT FROM mag,
        observDistance DOUBLE FROM xydistance,
        scaleMagnitude DOUBLE FROM distMultiplier
-);
+)$
 
-CREATE VIRTUAL TABLE SolarSystem.Meteor 
+CREATE VIRTUAL TABLE Meteor 
        USING STRUCT VIEW Meteor
        WITH REGISTERED C NAME active
-       WITH REGISTERED C TYPE vector<Meteor*>;
+       WITH REGISTERED C TYPE vector<Meteor*>$
 
 CREATE STRUCT VIEW Planet (
        name STRING FROM data()->getNameI18n().toStdString(),       
@@ -39,34 +39,34 @@ CREATE STRUCT VIEW Planet (
        axisRotation FLOAT FROM data()->axisRotation,
 //       FOREIGN KEY(parentPlanet_id) FROM parent.data() REFERENCES Planet POINTER,
        FOREIGN KEY(satellites_id) FROM data()->getStdSatellites() REFERENCES SatellitePlanet POINTER
-);
+)$
 
-CREATE VIRTUAL TABLE SolarSystem.Planet
+CREATE VIRTUAL TABLE Planet
        USING STRUCT VIEW Planet
        WITH REGISTERED C NAME allPlanets
-       WITH REGISTERED C TYPE list<PlanetP>;
+       WITH REGISTERED C TYPE list<PlanetP>$
 
-CREATE VIRTUAL TABLE SolarSystem.SatellitePlanet
+CREATE VIRTUAL TABLE SatellitePlanet
        USING STRUCT VIEW Planet
-       WITH REGISTERED C TYPE list<QSharedPointer<Planet> >*;
+       WITH REGISTERED C TYPE list<QSharedPointer<Planet> >*$
 
 CREATE STRUCT VIEW Constellation (
        constelName STRING FROM getNameI18n().toStdString(),
 //       FOREIGN KEY(brightestStar_id) FROM getBrightestStarInConstellation().data() REFERENCES StelObject POINTER,
 //       FOREIGN KEY(starList_id) FROM asterism->data() REFERENCES StelObject POINTER
-);
+)$
 
-CREATE VIRTUAL TABLE SolarSystem.Constellation 
+CREATE VIRTUAL TABLE Constellation 
        USING STRUCT VIEW Constellation
        WITH REGISTERED C NAME asterisms
-       WITH REGISTERED C TYPE vector<Constellation*>;
+       WITH REGISTERED C TYPE vector<Constellation*>$
 
 CREATE STRUCT VIEW StelObject (
        starName STRING FROM getNameI18n().toStdString(),
        starSciName STRING FROM getEnglishName().toStdString(),
        starType STRING FROM getType().toStdString()
-);
+)$
 
-CREATE VIRTUAL TABLE SolarSystem.StelObject 
+CREATE VIRTUAL TABLE StelObject 
        USING STRUCT VIEW StelObject
-       WITH REGISTERED C TYPE StelObject;
+       WITH REGISTERED C TYPE StelObject$
