@@ -159,6 +159,14 @@ int call_test(sqlite3 *db) {
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);
 
+  q = "select name, price_mode, price, weight_mode, weight from (select DISTINCT name, price_mode, price, weight_mode, weight from Moneylist where price like '%pr%') m join GoldEquivalent on GoldEquivalent.base = m.weight where ounce > 10;";
+  fprintf(f, "Query %i:\n %s\n\n", i++, q);
+  result = test_prep_exec(f, db, q);
+
+  q = "select name, price_mode, price, weight_mode, weight from (select DISTINCT name, price_mode, price, weight_mode, weight from MoneyArray where price like '%pr%') m join GoldEquivalent on GoldEquivalent.base = m.weight where ounce > 10;";
+  fprintf(f, "Query %i:\n %s\n\n", i++, q);
+  result = test_prep_exec(f, db, q);
+
   q = "select nCurrency, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency join GoldEquivalent on GoldEquivalent.base = Money.weight where ounce > 10;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);

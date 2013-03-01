@@ -4,9 +4,9 @@ Query 0:
 Statement prepared.
 nCurrency name price_mode price weight_mode weight 
 
-3 Euro 1 Euro_price 0 euro_wgt 
-3 Pound 1 pnd_price 0 pound_wgt 
-3 Dollar 1 dlr_price 0 dlr_wgt 
+3 Euro 1 Euro_price 3 1048816 
+3 Pound 1 pnd_price 3 1048944 
+3 Dollar 1 dlr_price 3 1049072 
 
 Done
 
@@ -16,9 +16,9 @@ Query 1:
 Statement prepared.
 name price_mode price weight_mode weight 
 
-Euro 1 Euro_price 0 euro_wgt 
-Pound 1 pnd_price 0 pound_wgt 
-Dollar 1 dlr_price 0 dlr_wgt 
+Euro 1 Euro_price 3 1048816 
+Pound 1 pnd_price 3 1048944 
+Dollar 1 dlr_price 3 1049072 
 
 Done
 
@@ -28,9 +28,9 @@ Query 2:
 Statement prepared.
 name price_mode price weight_mode weight 
 
-Euro 1 Euro_price 0 euro_wgt 
-Pound 1 pnd_price 0 pound_wgt 
-Dollar 1 dlr_price 0 dlr_wgt 
+Euro 1 Euro_price 3 1048816 
+Pound 1 pnd_price 3 1048944 
+Dollar 1 dlr_price 3 1049072 
 
 Done
 
@@ -67,9 +67,9 @@ Query 6:
 Statement prepared.
 nCurrency name price_mode price weight_mode weight 
 
-3 Euro 1 Euro_price 0 euro_wgt 
-3 Pound 1 pnd_price 0 pound_wgt 
-3 Dollar 1 dlr_price 0 dlr_wgt 
+3 Euro 1 Euro_price 3 1048816 
+3 Pound 1 pnd_price 3 1048944 
+3 Dollar 1 dlr_price 3 1049072 
 
 Done
 
@@ -79,9 +79,9 @@ Query 7:
 Statement prepared.
 name price_mode price weight_mode weight 
 
-Euro 1 Euro_price 0 euro_wgt 
-Pound 1 pnd_price 0 pound_wgt 
-Dollar 1 dlr_price 0 dlr_wgt 
+Euro 1 Euro_price 3 1048816 
+Pound 1 pnd_price 3 1048944 
+Dollar 1 dlr_price 3 1049072 
 
 Done
 
@@ -91,9 +91,9 @@ Query 8:
 Statement prepared.
 name price_mode price weight_mode weight 
 
-Euro 1 Euro_price 0 euro_wgt 
-Pound 1 pnd_price 0 pound_wgt 
-Dollar 1 dlr_price 0 dlr_wgt 
+Euro 1 Euro_price 3 1048816 
+Pound 1 pnd_price 3 1048944 
+Dollar 1 dlr_price 3 1049072 
 
 Done
 
@@ -130,7 +130,7 @@ Query 12:
 Statement prepared.
 nCurrency name price_mode price weight_mode weight 
 
-3 Dollar 1 dlr_price 0 dlr_wgt 
+3 Dollar 1 dlr_price 3 1049072 
 
 Done
 
@@ -140,7 +140,7 @@ Query 13:
 Statement prepared.
 name price_mode price weight_mode weight 
 
-Dollar 1 dlr_price 0 dlr_wgt 
+Dollar 1 dlr_price 3 1049072 
 
 Done
 
@@ -150,38 +150,71 @@ Query 14:
 Statement prepared.
 name price_mode price weight_mode weight 
 
-Dollar 1 dlr_price 0 dlr_wgt 
+Dollar 1 dlr_price 3 1049072 
 
 Done
 
 Query 15:
+ select name, price_mode, price, weight_mode, weight from (select DISTINCT name, price_mode, price, weight_mode, weight from Moneylist where price like '%pr%') m join GoldEquivalent on GoldEquivalent.base = m.weight where ounce > 10;
+
+Statement prepared.
+name price_mode price weight_mode weight 
+
+Dollar 1 dlr_price 3 1049072 
+Euro 1 Euro_price 3 1048816 
+Pound 1 pnd_price 3 1048944 
+
+Done
+
+Query 16:
+ select name, price_mode, price, weight_mode, weight from (select DISTINCT name, price_mode, price, weight_mode, weight from MoneyArray where price like '%pr%') m join GoldEquivalent on GoldEquivalent.base = m.weight where ounce > 10;
+
+Statement prepared.
+name price_mode price weight_mode weight 
+
+Dollar 1 dlr_price 3 1049072 
+Euro 1 Euro_price 3 1048816 
+Pound 1 pnd_price 3 1048944 
+
+Done
+
+Query 17:
  select nCurrency, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency join GoldEquivalent on GoldEquivalent.base = Money.weight where ounce > 10;
 
 Statement prepared.
 nCurrency name price_mode price weight_mode weight 
 
+3 Euro 1 Euro_price 3 1048816 
+3 Pound 1 pnd_price 3 1048944 
+3 Dollar 1 dlr_price 3 1049072 
 
-Library used incorrectly
+Done
 
-Query 16:
+Query 18:
  select name, price_mode, price, weight_mode, weight from Moneylist join GoldEquivalent on GoldEquivalent.base = Moneylist.weight where ounce > 10;
 
 Statement prepared.
 name price_mode price weight_mode weight 
 
+Euro 1 Euro_price 3 1048816 
+Pound 1 pnd_price 3 1048944 
+Dollar 1 dlr_price 3 1049072 
 
-Library used incorrectly
+Done
 
-Query 17:
+Query 19:
  select name, price_mode, price, weight_mode, weight from MoneyArray join GoldEquivalent on GoldEquivalent.base = MoneyArray.weight where ounce > 10;
 
 Statement prepared.
 name price_mode price weight_mode weight 
 
+Euro 1 Euro_price 3 1048816 
+Pound 1 pnd_price 3 1048944 
+Dollar 1 dlr_price 3 1049072 
 
-Library used incorrectly
+Done
 
-Query 18:
+Query 20:
  select nCurrency, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where weight like 'a%';
 
 Statement prepared.
@@ -190,7 +223,7 @@ nCurrency name price_mode price weight_mode weight
 
 Done
 
-Query 19:
+Query 21:
  select name, price_mode, price, weight_mode, weight from Moneylist where weight like 'a%';
 
 Statement prepared.
@@ -199,7 +232,7 @@ name price_mode price weight_mode weight
 
 Done
 
-Query 20:
+Query 22:
  select name, price_mode, price, weight_mode, weight from MoneyArray where weight like 'a%';
 
 Statement prepared.
@@ -208,40 +241,34 @@ name price_mode price weight_mode weight
 
 Done
 
-Query 21:
+Query 23:
  select nCurrency, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where weight like '%o%';
 
 Statement prepared.
 nCurrency name price_mode price weight_mode weight 
 
-3 Euro 1 Euro_price 0 euro_wgt 
-3 Pound 1 pnd_price 0 pound_wgt 
 
 Done
 
-Query 22:
+Query 24:
  select name, price_mode, price, weight_mode, weight from Moneylist where weight like '%o%';
 
 Statement prepared.
 name price_mode price weight_mode weight 
 
-Euro 1 Euro_price 0 euro_wgt 
-Pound 1 pnd_price 0 pound_wgt 
 
 Done
 
-Query 23:
+Query 25:
  select name, price_mode, price, weight_mode, weight from MoneyArray where weight like '%o%';
 
 Statement prepared.
 name price_mode price weight_mode weight 
 
-Euro 1 Euro_price 0 euro_wgt 
-Pound 1 pnd_price 0 pound_wgt 
 
 Done
 
-Query 24:
+Query 26:
  select * from Price;
 
 Statement prepared.
@@ -251,7 +278,7 @@ union_mode price
 
 Done
 
-Query 25:
+Query 27:
  select * from Price where price > 10;
 
 Statement prepared.
@@ -261,7 +288,7 @@ union_mode price
 
 Done
 
-Query 26:
+Query 28:
  select number from Number;
 
 Statement prepared.
@@ -278,7 +305,7 @@ number
 
 Done
 
-Query 27:
+Query 29:
  select number from Number where number > 5;
 
 Statement prepared.
@@ -290,7 +317,7 @@ number
 
 Done
 
-Query 28:
+Query 30:
  select number from Number where number > 8;
 
 Statement prepared.
@@ -299,7 +326,7 @@ number
 
 Done
 
-Query 29:
+Query 31:
  select number from ENumber;
 
 Statement prepared.
@@ -316,7 +343,7 @@ number
 
 Done
 
-Query 30:
+Query 32:
  select number from ENumber where number > 5;
 
 Statement prepared.
@@ -328,7 +355,7 @@ number
 
 Done
 
-Query 31:
+Query 33:
  select number from ENumber where number > 8;
 
 Statement prepared.

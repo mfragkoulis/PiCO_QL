@@ -234,7 +234,8 @@ int <%= @name %>_report_charge (cursor *c, int current, cursorCharged ***oCharge
       sqlite3_free(charged[i]);
     ((<%= @name %>_vt *)vtbl)->chargedSize = 0;
     ((<%= @name %>_vt *)vtbl)->nTimesCharged = 0;
-    sqlite3_free(((<%= @name %>_vt *)vtbl)->earlyRequestsArray);
+    if (((<%= @name %>_vt *)vtbl)->nEarlyRequests > 0)
+      sqlite3_free(((<%= @name %>_vt *)vtbl)->earlyRequestsArray);
     ((<%= @name %>_vt *)vtbl)->nEarlyRequests = 0;
     ((<%= @name %>_vt *)vtbl)->lateMatches = 0;
     ((<%= @name %>_vt *)vtbl)->passNoVerify = 0;

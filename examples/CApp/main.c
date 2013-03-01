@@ -41,17 +41,17 @@ int main() {
   prc.price_mode = 0;
   pico_ql_register(&prc, "price");
 
-  M->wgt.g_weight.pound = 9.8;
-  M->wgt.g_weight.ounce = 25.8;
-  M->wgt.g_weight.grain = 5013.1;
-  M->wgt.g_weight.exchange_rate = 1.36;
-  M->weight_mode = 3;
   M->wgt.gr = 612;
   M->weight_mode = 2;
   M->wgt.kg = 23.6;
   M->weight_mode = 1;
   strcpy(M->wgt.name, "euro_wgt");
   M->weight_mode = 0;
+  M->wgt.g_weight.pound = 9.8;
+  M->wgt.g_weight.ounce = 25.8;
+  M->wgt.g_weight.grain = 5013.1;
+  M->wgt.g_weight.exchange_rate = 1.36;
+  M->weight_mode = 3;
   struct Money* N = (struct Money *)malloc(sizeof(struct Money));
   M->next = N;
   ma.mArray[1] = N;
@@ -65,17 +65,17 @@ int main() {
   strcpy(N->prc.name, "pnd_price");
   N->price_mode = 1;
 
-  N->wgt.g_weight.pound = 11.3;
-  N->wgt.g_weight.ounce = 53.5;
-  N->wgt.g_weight.grain = 9045.2;
-  N->wgt.g_weight.exchange_rate = 0.49;
-  N->weight_mode = 3;
   N->wgt.gr = 432;
   N->weight_mode = 2;
   N->wgt.kg = 12.3;
   N->weight_mode = 1;
   strcpy(N->wgt.name, "pound_wgt");
   N->weight_mode = 0;
+  N->wgt.g_weight.pound = 11.3;
+  N->wgt.g_weight.ounce = 53.5;
+  N->wgt.g_weight.grain = 9045.2;
+  N->wgt.g_weight.exchange_rate = 0.49;
+  N->weight_mode = 3;
   N->next = NULL;
   struct Money* O = (struct Money *)malloc(sizeof(struct Money));
   N->next = O;
@@ -90,17 +90,17 @@ int main() {
   strcpy(O->prc.name, "dlr_price");
   O->price_mode = 1;
 
-  O->wgt.g_weight.pound = 5.4;
-  O->wgt.g_weight.ounce = 43.9;
-  O->wgt.g_weight.grain = 5021.4;
-  O->wgt.g_weight.exchange_rate = 0.32;
-  O->weight_mode = 3;
   O->wgt.gr = 321;
   O->weight_mode = 2;
   O->wgt.kg = 6.7;
   O->weight_mode = 1;
   strcpy(O->wgt.name, "dlr_wgt");
   O->weight_mode = 0;
+  O->wgt.g_weight.pound = 5.4;
+  O->wgt.g_weight.ounce = 43.9;
+  O->wgt.g_weight.grain = 5021.4;
+  O->wgt.g_weight.exchange_rate = 0.32;
+  O->weight_mode = 3;
   O->next = NULL;
   //.cpp:  mon.push_back(O);
   pico_ql_register(M, "money");
