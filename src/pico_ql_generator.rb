@@ -297,9 +297,9 @@ class Column
     if column.match(/\n/)
       column.gsub!(/\n/, "")
     end
-    column_ptn1a = /inherits struct view (\w+) from (.+) pointer/im
-    column_ptn1b = /inherits struct view (\w+) from (.+)/im
-    column_ptn2 = /inherits struct view (\w+)/im
+    column_ptn1a = /includes struct view (\w+) from (.+) pointer/im
+    column_ptn1b = /includes struct view (\w+) from (.+)/im
+    column_ptn2 = /includes struct view (\w+)/im
     column_ptn3 = /foreign key(\s*)\((\s*)(\w+)(\s*)\) from (.+) references (\w+)(\s*)(\w*)/im
     column_ptn4 = /(\w+) (.+) from (.+) pointer/im # for UNION column
     column_ptn5 = /(\w+) (.+) from (.+)/im

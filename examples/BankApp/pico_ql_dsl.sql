@@ -19,7 +19,7 @@ CREATE STRUCT VIEW SuperAccount (
 
 CREATE STRUCT VIEW SuperAccounts (
        id STRING FROM first,
-       INHERITS STRUCT VIEW SuperAccount FROM second)$
+       INCLUDES STRUCT VIEW SuperAccount FROM second)$
 
 CREATE VIRTUAL TABLE SuperAccounts 
 USING STRUCT VIEW SuperAccounts
@@ -27,7 +27,7 @@ WITH REGISTERED C NAME superaccounts
 WITH REGISTERED C TYPE map<string,SuperAccount>$
 
 CREATE STRUCT VIEW Account (
-       INHERITS STRUCT VIEW SuperAccount,
+       INCLUDES STRUCT VIEW SuperAccount,
        type TEXT FROM type)$
 
 CREATE VIRTUAL TABLE Accounts 
@@ -36,7 +36,7 @@ WITH REGISTERED C NAME accounts
 WITH REGISTERED C TYPE vector<Account>$
 
 CREATE STRUCT VIEW SpecialAccount (
-       INHERITS STRUCT VIEW SuperAccount,
+       INCLUDES STRUCT VIEW SuperAccount,
        bonus DOUBLE FROM bonus)$
 
 CREATE VIRTUAL TABLE Specialaccounts 

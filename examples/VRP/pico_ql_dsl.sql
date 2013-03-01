@@ -33,7 +33,7 @@ WITH REGISTERED C TYPE vector<Customer*>$
 
 CREATE STRUCT VIEW MapIndex (
       map_index INT FROM first,
-      INHERITS STRUCT VIEW Customer FROM second POINTER
+      INCLUDES STRUCT VIEW Customer FROM second POINTER
 )$
 
 CREATE VIRTUAL TABLE MapIndex 
