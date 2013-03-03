@@ -75,7 +75,9 @@ int <%= @name %>_vt_init_result_set (sqlite3_vtab *vtab, sqlite3_vtab_cursor *cu
     printf("Table %s, Cursor: %lx inserted, max_size %i.\n", ((picoQLTable *)cur->pVtab)->zName, (long)cur, ((picoQLTableCursor *)cur)->max_size);
 #endif
   }
+#ifdef PICO_QL_DEBUG
   printf("Table %s_vt_init_result_set search is active on cursor %lx, member %i of cursors.\n", ((picoQLTable *)cur->pVtab)->zName, (long)cur, j);
+#endif
   return SQLITE_OK;
 }
 
@@ -159,18 +161,20 @@ void <%= @name %>_vt_deinit_result_set (sqlite3_vtab_cursor *cur, struct Vtbl *v
 
 <%    if @base_var.length == 0 %>
 
-int <%= @name %>_report_charge (cursor *c, int current, cursorCharged ***oCharged, size_t *oChargedSize, long base, struct Vtbl *vtbl) {
+int <%= @name %>_report_charge (cursor *c, int offset, cursorCharged ***oCharged, size_t *oChargedSize, long base, struct Vtbl *vtbl) {
   picoQLTable *picoQL = ((<%= @name %>_vt *)vtbl)->picoQL;
-  const char *name = ((<%= @name %>_vt *)vtbl)->name;
   cursor **cursors = ((<%= @name %>_vt *)vtbl)->cursors;
   size_t cursorsSize = ((<%= @name %>_vt *)vtbl)->cursorsSize;
   cursorCharged **charged = ((<%= @name %>_vt *)vtbl)->charged;
   size_t chargedSize = ((<%= @name %>_vt *)vtbl)->chargedSize;
   int i = 0;
   if (!picoQL) return SQLITE_OK;
-  if (current) {
+  if (offset) {
     int j = 0;
+#ifdef PICO_QL_DEBUG
+    const char *name = ((<%= @name %>_vt *)vtbl)->name;
     printf("Table %s, report_charge: cursor size: %i, charged size %i, cursor to charge %lx.\n", name, (int)cursorsSize, (int)chargedSize, (long)c);
+#endif
     while (j < (int)cursorsSize) {
       if (cursors[j]->open) {
         if (((picoQLTableCursor *)cursors[j]->cur)->active_verify) {
@@ -198,9 +202,9 @@ int <%= @name %>_report_charge (cursor *c, int current, cursorCharged ***oCharge
       printf("Recorded base to provide %lx at position %i, that is recorded %lx.\n", base, ((<%= @name %>_vt *)vtbl)->nEarlyRequests - 1, ((<%= @name %>_vt *)vtbl)->earlyRequestsArray[((<%= @name %>_vt *)vtbl)->nEarlyRequests - 1]);
     }  
     if (j == (int)chargedSize) {
+      cursorCharged *ch = sqlite3_malloc(sizeof(cursorCharged));
       ((<%= @name %>_vt *)vtbl)->chargedSize++;
       chargedSize = ((<%= @name %>_vt *)vtbl)->chargedSize;
-      cursorCharged *ch = sqlite3_malloc(sizeof(cursorCharged));
       if (ch == NULL)
         return SQLITE_NOMEM;
       ch->c = c;

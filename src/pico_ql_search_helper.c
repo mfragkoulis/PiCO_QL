@@ -20,9 +20,6 @@
  *   permissions and limitations under the License.
  */
 
-#include <assert.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 #include "pico_ql_search_helper.h"
 #include "pico_ql_internal.h"

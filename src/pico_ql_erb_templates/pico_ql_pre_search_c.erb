@@ -84,6 +84,8 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
     <%= retype %> dummy = NULL;
     rs->size = 0;
     rs->actualSize = 0;
+    rs->size++;
+    rs->actualSize++;
     ((<%= @name %>ResultSetImpl *)rs)->res = (<%= type_retype %>*)sqlite3_realloc(((<%= @name %>ResultSetImpl *)rs)->res, sizeof(<%= type_retype %>)*rs->size);
     if (((<%= @name %>ResultSetImpl *)rs)->res == NULL)
       return SQLITE_NOMEM;
@@ -202,8 +204,8 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
 <%            else %>
 <%              @pointer.match(/\*/) ? retype = "#{@type}" : retype = "#{@type}*" %>
             <%= retype %> dummy = NULL;
-            rs->size = 0;
-            rs->actualSize = 0;
+            rs->size++;
+            rs->actualSize++;
             ((<%= @name %>ResultSetImpl *)rs)->res = (<%= type_retype %>*)sqlite3_realloc(((<%= @name %>ResultSetImpl *)rs)->res, sizeof(<%= type_retype %>)*rs->size);
             if (((<%= @name %>ResultSetImpl *)rs)->res == NULL)
               return SQLITE_NOMEM;

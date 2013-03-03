@@ -25,7 +25,6 @@
 #include <string.h>
 #include <assert.h>
 #include <stdlib.h>
-#include <math.h>
 #include "pico_ql_vt.h"
 #include "pico_ql_internal.h"
 
@@ -402,20 +401,22 @@ int filter_vtable(sqlite3_vtab_cursor *cur,
       return re;
   } else {
     int i = 0, op[argc], nCol[argc];
-    char *token, where[(int)strlen(idxStr)+1];
+    char *token;
+    char *where = (char *)sqlite3_malloc(sizeof(char) * (strlen(idxStr)+1));
     strcpy(where, idxStr);
-    token = strtok((char *)where, "{-}"); 
-    while (token != NULL) {     // constr: {<op>-<nCol>}
-      op[i] = atoi(token);
-      token = strtok(NULL, "{-}");
-      nCol[i] = atoi(token);
-      token = strtok(NULL, "{-}");
+    token = strsep(&where, "{-}"); 
+    while ((token != NULL) && ((token = strsep(&where, "{-}")) != NULL)) {     // constr: {<op>-<nCol>}
+      op[i] = (int)strtol(token, NULL, 10);
+      token = strsep(&where, "{-}"); // Matched '}', token is <nCol>
+      nCol[i] = (int)strtol(token, NULL, 10);
+      token = strsep(&where, "{-}"); /* Near eo string or new constraint, token is empty. */
       i++;
     }
     for (i = 0; i < argc; i++) {
       if ((re = search(cur, op[i], nCol[i], argv[i])) != 0)
 	return re;
     }
+    sqlite3_free(where);
   }
   return next_vtable(cur);
 }

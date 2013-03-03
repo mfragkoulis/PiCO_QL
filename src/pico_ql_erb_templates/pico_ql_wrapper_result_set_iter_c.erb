@@ -7,7 +7,7 @@ int toOpen(sqlite3_vtab *vtab) {
   int j = 0;
   while ((j < (int)vtAll.size) && (strcmp(vtAll.instanceNames[j], picoQL->zName))) {j++;}
   if (j == (int)vtAll.size) {
-    printf("In get_datastructure_size: VT %s not registered.\nExiting now.\n", picoQL->zName);
+    printf("In toOpen: VT %s not registered.\nExiting now.\n", picoQL->zName);
     return SQLITE_ERROR;
   }
   toOpenVT = vtAll.instances[j];
@@ -77,5 +77,4 @@ void deinit_result_set(sqlite3_vtab_cursor *cur, void *res) {
 <%#  return iterVT->deinit_result_set(cur, iterVT); %>
   iterVT->deinit_result_set(cur, iterVT);
 }
- 
  

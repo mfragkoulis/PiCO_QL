@@ -26,8 +26,9 @@
 #define PICO_QL_INTERNAL_H
 
 // Check windows
-#if _WIN32 || _WIN64
-#if _WIN64
+// Works with KERNEL?
+#ifdef _WIN32 || _WIN64
+#ifdef _WIN64
 #define ENVIRONMENT64
 #else
 #define ENVIRONMENT32

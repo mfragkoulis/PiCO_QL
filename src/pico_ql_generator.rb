@@ -2075,16 +2075,28 @@ class InputDescription
   end
 
 # Generates the LICENSE copyright notice and application interface 
-# functions in pico_ql_search.cpp
+# functions in pico_ql_search.{c, cpp}
   def print_register_serve(fw)
     file = File.open("pico_ql_erb_templates/pico_ql_register_serve_#{$argLB.downcase}.erb").read
     app_interface = ERB.new(file, 0, '>')
     fw.puts app_interface.result(get_binding)
   end
 
-# Generates application-specific code to complement the SQTL library.
+# Generates the LICENSE copyright notice and application interface 
+# functions in pico_ql_search.h
+  def print_search_h(fw)
+    file = File.open("pico_ql_erb_templates/pico_ql_search_h.erb").read
+    app_interface = ERB.new(file, 0, '>')
+    fw.puts app_interface.result(get_binding)
+  end
+
+# Generates application-specific code to complement the PiCO QL library.
 # There is a call to each of the above generative functions.
   def generate()
+    myfile = File.open("pico_ql_search.h", "w") do |fw|
+      print_search_h(fw)
+    end
+    puts "Created/updated pico_ql_search.h"
     myfile = File.open("pico_ql_search.#{$argLB.downcase}", "w") do |fw|
       print_register_serve(fw)
     end
@@ -2189,8 +2201,10 @@ def take_cases(argv)
     $argD = "DEBUG"
   when /no_mem_mgt/i
     $argM = "NO_MEM_MGT"
-  when "C"
+  when /C/i
     $argLB = "C"
+  when /kernel/i
+    $argK = "KERNEL"
   end
 end
 
@@ -2200,6 +2214,7 @@ if __FILE__ == $0
   $argF = ARGV[0]
   $argM = "MEM_MGT"
   $argLB = "CPP"
+  $argK = ""
   ARGV.each_index { |arg| if arg > 0 : take_cases(ARGV[arg]) end }
   begin
     $lined_description = File.open($argF, "r") { |fw| 
