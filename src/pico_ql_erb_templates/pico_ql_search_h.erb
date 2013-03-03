@@ -22,12 +22,20 @@
 #ifndef PICO_QL_SEARCH_H
 #define PICO_QL_SEARCH_H
 
+<%    if $argK == "KERNEL" %>
+#include <sqlite3.h>
+<%    end %>
+
 #ifdef __cplusplus
 namespace picoQL {
   extern "C" {
 #endif
 
+<%    if $argK == "KERNEL" %>
+  int pico_ql_serve(sqlite3 *db);
+<%    else %>
   int pico_ql_serve(int port_number);
+<%    end %>
   void pico_ql_register(const void *collection, const char * col_name);
 
 #ifdef __cplusplus
