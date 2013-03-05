@@ -661,8 +661,9 @@ class VirtualTable
       fw.puts "#{space}      base_prov = #{column_cast}#{p_type}#{iden}#{access_path};"
       print_line_directive(fw, line)
       fw.puts "#endif"
-#ifdef PICO_QL_DEBUG
-      fw.puts "printf(\"Sending base_prov %lx.\\n\", base_prov);"
+      fw.puts "#ifdef PICO_QL_DEBUG"
+      fw.puts "#{space}      printf(\"Sending base_prov %lx.\\n\", base_prov);"
+      fw.puts "#endif"
     end
     if $argLB == "CPP"
       fw.puts "#endif"

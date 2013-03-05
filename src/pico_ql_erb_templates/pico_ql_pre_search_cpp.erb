@@ -133,7 +133,9 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
 #endif
         if (nEarlyRequests - lateMatches > 0) {
           if ((ner_iter = find(earlyRequestsArray.begin(), earlyRequestsArray.end(), to_base)) != earlyRequestsArray.end()) {
+#ifdef PICO_QL_DEBUG
             printf("base sent %lx matched base provided %lx.\n", *ner_iter, to_base);
+#endif
             //earlyRequestsArray[ner] = -1;
             passClosed = 1;
           } else {

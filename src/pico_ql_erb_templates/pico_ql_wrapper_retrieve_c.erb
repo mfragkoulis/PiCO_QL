@@ -143,6 +143,7 @@ void * thread_sqlite(void *data) {
     re = (void *)(long)failure;
     goto exit;
   }
+  re = (void *)(long)failure;
 
   exit:
     for (i = 0; i < <%= (@tables.length + views.length).to_s %>; i++)

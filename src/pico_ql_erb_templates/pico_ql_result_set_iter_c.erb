@@ -199,7 +199,9 @@ int <%= @name %>_report_charge (cursor *c, int offset, cursorCharged ***oCharged
       else
         ((<%= @name %>_vt *)vtbl)->earlyRequestsArray = (long *)sqlite3_realloc(((<%= @name %>_vt *)vtbl)->earlyRequestsArray, sizeof(long) * ((<%= @name %>_vt *)vtbl)->nEarlyRequests);
       ((<%= @name %>_vt *)vtbl)->earlyRequestsArray[((<%= @name %>_vt *)vtbl)->nEarlyRequests - 1] = base;
+#ifdef PICO_QL_DEBUG
       printf("Recorded base to provide %lx at position %i, that is recorded %lx.\n", base, ((<%= @name %>_vt *)vtbl)->nEarlyRequests - 1, ((<%= @name %>_vt *)vtbl)->earlyRequestsArray[((<%= @name %>_vt *)vtbl)->nEarlyRequests - 1]);
+#endif
     }  
     if (j == (int)chargedSize) {
       cursorCharged *ch = sqlite3_malloc(sizeof(cursorCharged));

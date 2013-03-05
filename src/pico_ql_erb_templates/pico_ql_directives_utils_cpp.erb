@@ -332,7 +332,9 @@ public:
       nTimesCharged++;
       if ((c_map.size() == 0) && (picoQL) && (picoQL->toOpen)) {
         earlyRequestsArray.push_back(base);
+#ifdef PICO_QL_DEBUG
         printf("In report charge: recorded base to provide %lx at position %i.\n", earlyRequestsArray.back(), (int)(earlyRequestsArray.size() - 1));
+#endif
       }
       operation = charged.insert(pair<Cursor *, bool>(c, false));
       if (operation.second) {
