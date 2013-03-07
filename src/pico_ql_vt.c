@@ -33,8 +33,8 @@ void create(sqlite3 *db,
 	    int argc, 
 	    const char * const * as, 
 	    char *q) { 
-  (void)db;
   int i;
+  (void)db;
   q[0] = '\0';
   strcat(q, "CREATE TABLE ");
   strcat(q, as[2]);
@@ -376,9 +376,9 @@ int filter_vtable(sqlite3_vtab_cursor *cur,
 		  const char *idxStr,
 		  int argc, 
 		  sqlite3_value **argv) {
+  int re = 0;
   (void)idxNum;
   picoQLTableCursor *stc=(picoQLTableCursor *)cur;
-  int re = 0;
   /* Initialize size of resultset data structure for objects. */
   /* Unused in containers. */
   stc->size = 0;
@@ -471,8 +471,9 @@ int open_vtable(sqlite3_vtab *pVtab,
       stc->isInstanceNULL = 1;
       stc->size = 1;
     } else {
+      int arraySize;
       stc->isInstanceNULL = 0;
-      int arraySize = (int)get_datastructure_size(pCsr, pVtab);
+      arraySize = (int)get_datastructure_size(pCsr, pVtab);
       if (arraySize == 0) {
 	stc->isInstanceEmpty = 1;
 	stc->size = 1;

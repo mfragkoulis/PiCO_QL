@@ -3,6 +3,8 @@
 
 #include <linux/string.h>
 
+#define strtol(X,Y,Z) simple_strtol(X,Y,Z)
+
 char *strerror(int errnum);
 
 #endif
