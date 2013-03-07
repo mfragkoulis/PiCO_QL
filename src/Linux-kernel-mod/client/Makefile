@@ -46,7 +46,7 @@ pico_ql_logo.o: pico_ql_logo.c pico_ql_swill_access_func.h
 pico_ql_error_page.o: pico_ql_error_page.c pico_ql_swill_access_func.h
 
 prep:
-	cp ../../pico_ql_swill_access_func.h ../../pico_ql_logo.c pico_ql_error_page.c .
+	cp ../../pico_ql_swill_access_func.h ../../pico_ql_logo.c ../../pico_ql_error_page.c .
 
 .PHONY= clean
 clean:
