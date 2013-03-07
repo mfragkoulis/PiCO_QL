@@ -89,11 +89,10 @@ int set_VtblImpl(void) {
 
 // Thread. Creates the queries and passes them on to PiCO_QL.
 void * thread_sqlite(void *data) {
-<%    if $argLB == "C" %>
-  int port_number = *(int *)data;
-  sqlite3_free(data);
-<%    elsif $argLB == "KERNEL" %>
+<%    if $argK == "KERNEL" %>
   sqlite3 *db = (sqlite3 *)data;
+<%    else %>
+  int port_number = *(int *)data;
 <%    end %>
   char **queries, **sqlite_names;
   int failure = 0, i;
@@ -102,6 +101,9 @@ void * thread_sqlite(void *data) {
 <% @views == nil ? views_length = 0 : views_length = @views.length %>
   queries = (char **)sqlite3_malloc(sizeof(char *) * <%= (@tables.length + views_length).to_s %>);
   sqlite_names = (char **)sqlite3_malloc(sizeof(char *) * <%= (@tables.length + views_length).to_s %>);
+<%    if $argK != "KERNEL" %>
+  sqlite3_free(data);
+<%    end %>
   if (queries == NULL) {
     re = (void *)SQLITE_NOMEM;
     goto exit;
@@ -134,10 +136,10 @@ void * thread_sqlite(void *data) {
     re = (void *)(long)failure;
     goto exit;
   }
-<%    if $argLB == "C" %>
-  if ((failure = register_table(<%= (@tables.length + views_length).to_s %>, <%= @tables.length.to_s %>, (const char **)queries, (const char **)sqlite_names, port_number)) > 0) {
-<%    elsif $argLB == "KERNEL" %>
+<%    if $argK == "KERNEL" %>
   if ((failure = register_table(db, <%= (@tables.length + views_length).to_s %>, <%= @tables.length.to_s %>, (const char **)queries, (const char **)sqlite_names)) > 0) {
+<%    else %>
+  if ((failure = register_table(<%= (@tables.length + views_length).to_s %>, <%= @tables.length.to_s %>, (const char **)queries, (const char **)sqlite_names, port_number)) > 0) {
 <%    end %>
     printf("Register table returns with error code %i.\n", failure);
     re = (void *)(long)failure;
