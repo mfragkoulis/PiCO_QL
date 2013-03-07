@@ -86,7 +86,7 @@ seed:
 
 prep:
 	mv pico_ql_test.c test.c
-	cp -r ../../src/ .
+	cp -r ../../src/* .
 	mv test.c pico_ql_test.c
 
 
