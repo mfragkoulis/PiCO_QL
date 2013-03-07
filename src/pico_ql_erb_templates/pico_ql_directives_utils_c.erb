@@ -91,19 +91,20 @@ int register_vt(picoQLTable *picoQL) {
 int equals(const char *zCol, const char *key) {
   int length = (int)strlen(zCol) + 1;
   char *copy = (char *)sqlite3_malloc(sizeof(char) * length);
-  char *token;
+  char *token, *copy_root;
   memcpy(copy, zCol, length);
+  copy_root = copy;
   token = strsep((char **)&copy, " ");
   if (token != NULL) {
     if (!strcmp(token, key)) {
-      sqlite3_free(copy);
+      sqlite3_free(copy_root);
       return 1;
     } else {
-      sqlite3_free(copy);
+      sqlite3_free(copy_root);
       return 0;
     }
   } else {
-      sqlite3_free(copy);
+      sqlite3_free(copy_root);
       return SQLITE_NOMEM;
   }
 }
