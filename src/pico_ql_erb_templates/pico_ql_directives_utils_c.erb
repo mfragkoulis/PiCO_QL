@@ -93,7 +93,7 @@ int equals(const char *zCol, const char *key) {
   char *copy = (char *)sqlite3_malloc(sizeof(char) * length);
   char *token;
   memcpy(copy, zCol, length);
-  token = strtok(copy, " ");
+  token = strsep((char **)&copy, " ");
   if (token != NULL) {
     if (!strcmp(token, key)) {
       sqlite3_free(copy);
