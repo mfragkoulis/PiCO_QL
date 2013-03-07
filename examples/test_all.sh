@@ -35,7 +35,7 @@ echo "-> Building."
 make clean > /dev/null
 make PICO_QL_JOIN_THREADS=1 > /dev/null
 echo "-> Executing tests."
-./schedule cvrp/solomon.txt 2 > /dev/null
+./schedule solomon.txt 2 > /dev/null
 cat pico_ql_test_output.txt
 
 cd ../CApp
