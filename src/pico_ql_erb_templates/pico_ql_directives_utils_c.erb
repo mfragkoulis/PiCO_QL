@@ -39,8 +39,9 @@
 #include <sqlite3.h>
 #include "pico_ql_internal.h"
 #include "pico_ql_search_helper.h"
+<%     if $argK != "KERNEL" %>
 #include "pico_ql_interface.h"
-
+<%     end %>
 
 <%     @tables.each { |vt| %>
 <%      if vt.base_var.length > 0 %>
