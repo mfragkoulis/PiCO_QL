@@ -27,7 +27,7 @@ picoQL-objs := sqlite3.o pico_ql_procfs.o pico_ql_search.o pico_ql_exec.o pico_q
 all:
 	cp ../../pico_ql_generator.rb ../../pico_ql_internal.h ../../pico_ql_search_helper.c ../../pico_ql_search_helper.h ../../pico_ql_vt.c ../../pico_ql_vt.h .
 	cp -r ../../pico_ql_erb_templates .
-	ruby pico_ql_generator.rb pico_ql_dsl.sql C no_mem_mgt
+	ruby pico_ql_generator.rb pico_ql_dsl.sql kernel no_mem_mgt
 	make -C /lib/modules/$(shell uname -r)/build M=$(shell pwd) modules
 
 clean:

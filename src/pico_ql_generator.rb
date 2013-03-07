@@ -2206,6 +2206,7 @@ def take_cases(argv)
     $argLB = "C"
   when /kernel/i
     $argK = "KERNEL"
+    $argLB = "C"
   end
 end
 
