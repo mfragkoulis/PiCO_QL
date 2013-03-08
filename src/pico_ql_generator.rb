@@ -608,15 +608,14 @@ class VirtualTable
         def_nop = ""
       end
       fw.puts "#{space}      #{fk_col_type}#{def_nop} cast = dynamic_cast<#{fk_col_type}#{def_nop}>(#{p_type}#{iden}#{access_path});"
-      fw.puts "#{space}      base_prov = (long)cast;"
       if $argM == "MEM_MGT" && fk_method_ret == 1
         fw.puts "#{space}      if (cast != NULL) {"
         fw.puts "#{space}        saved_results_#{saved_results_index}.push_back(*cast);"
         print_line_directive(fw, line)
         fw.puts "#ifdef ENVIRONMENT64"
-        fw.puts "#{space}        sqlite3_result_#{sqlite3_type}(con, #{column_cast}&(saved_results_#{saved_results_index}.back()));"
+        fw.puts "#{space}        sqlite3_result_#{sqlite3_type}(con, (base_prov = #{column_cast}&(saved_results_#{saved_results_index}.back())));"
         fw.puts "#else"
-        fw.puts "#{space}        sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}&(saved_results_#{saved_results_index}.back()));"
+        fw.puts "#{space}        sqlite3_result_#{sqlite3_parameters}(con, (base_prov = #{column_cast}&(saved_results_#{saved_results_index}.back())));"
         fw.puts "#endif"
         fw.puts "#{space}      } else {"
         fw.puts "#ifdef ENVIRONMENT64"
@@ -624,12 +623,13 @@ class VirtualTable
         fw.puts "#else"
         fw.puts "#{space}        sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}(0));"
         fw.puts "#endif"
+        fw.puts "#{space}      }"
       else
         fw.puts "#ifdef ENVIRONMENT64"
-        fw.puts "#{space}      sqlite3_result_#{sqlite3_type}(con, #{column_cast}cast);"
+        fw.puts "#{space}      sqlite3_result_#{sqlite3_type}(con, (base_prov = #{column_cast}cast));"
         print_line_directive(fw, line)
         fw.puts "#else"
-        fw.puts "#{space}      sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}cast);"
+        fw.puts "#{space}      sqlite3_result_#{sqlite3_parameters}(con, (base_prov = #{column_cast}cast));"
         print_line_directive(fw, line)
         fw.puts "#endif"
       end
