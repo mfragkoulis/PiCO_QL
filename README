@@ -1,34 +1,52 @@
-PiCO QL is a C/C++ plug-in library that sets up an SQL SELECT
-interface over containers compatible with the C++ SGI 
-forward container (http://www.sgi.com/tech/stl/ForwardContainer.html) and forward iterator concept (http://www.sgi.com/tech/stl/ForwardIterator.html). 
+PiCO QL is a C/C++ plug-in library that sets up an 
+SQL SELECT interface over C/C++ data structures. 
+
+For C++ applications, PiCO QL supports querying of 
+containers compatible with the C++ SGI 
+forward container (http://www.sgi.com/tech/stl/ForwardContainer.html) 
+and forward iterator concept (http://www.sgi.com/tech/stl/ForwardIterator.html). 
 The container classes of the STL consist a prime 
-example of such.
+example of such. It also supports querying of mere objects.
+
+For C applications, PiCO QL supports querying of data structures
+like arrays and linked lists (see examples/CApp) but also any other
+data structure for which users will provide a loop variant
+(using the USING LOOP directive - see the Wiki pages). 
+It also supports querying of mere structs.
+
+PiCO QL is also configurable as a loadable Linux kernel module
+(see Wiki pages for details). It provides both a /proc and a
+high-level web interface to be able to issue SQL queries
+against kernel data structures like the list of processes
+and the array of open files for each process.
 
 PLATFORMS
 
-   Tested under Mac OS X 10.6.8.
+   Tested under Mac OS X 10.6.8, Linux 2.6 
+   and Linux 3.2 (kernel module).
 
 
 DEPENDENCIES
 
 -Ruby (http://www.ruby-lang.org/en)
-   Part of the library's source code (the description
+   Part of the library's source code (the
    parser/code generator) is written in Ruby.
 
 -Sqlite3 (http://www.sqlite.org)
    While PiCO QL does not use a database or other store 
    to copy and/or store data, it uses the virtual 
-   table (VT) mechanism of Sqlite3 to fake the 
-   underlying data model.
+   table (VT) mechanism of Sqlite3 to provide a relational
+   representation of the underlying data model.
 
 -SWILL (http://swill.sourceforge.net)
    Once plugged in an application, PiCO QL opens a 
    separate thread and uses the SWILL library to 
    present a local server with a web-like, user 
-   friendly query interface.
+   friendly query interface. In case of the kernel
+   configuration this interface wraps the /proc interface.
 
 -Boost (http://www.boost.org)
-   The library accepts any container modelled by the 
+   For C++ the library accepts any container modelled by the 
    ForwardContainer and ForwardIterator concepts. 
    To ensure this is the case,
    the library carries out a concept-check (compile-time 
@@ -37,28 +55,22 @@ DEPENDENCIES
 PiCO QL PACKAGE STRUCTURE
 
    At the EXAMPLES directory, users can browse:
-      - Examples.ods, which contains description 
-      	examples and the matchings 
-      	at different levels (C++, description, SQL 
-	CREATE, SQL SELECT). The first three example 
-	scenarios have been implemented and can be 
-	executed effortlessly (provided the 
+        Three implemented example  scenarios which
+	can be executed effortlessly (provided the 
 	dependencies are installed in one's system)
 	by executing test_all.sh located in examples/ or
 	from within the worked example directories 
-	(Bank_App, Chess, VRP):
-	1. "ruby generator.rb input.txt" ["typesafe"] 
-	   	 	      		 ["debug"]
-	2. "make" ["RELEASE=1"] | ["TYPESAFE=1"]
+	(Bank_App, Chess, VRP) by executing the test.sh:
+	1. "ruby generator.rb "pico_ql_dsl.sql" ["debug"] 
+	   	 	       ["kernel"] ["C"] ["no_mem_mgt"]
+	2. "make" with various options listed in the Wiki pages
 	3. "./<executable>"
 
-   At the bin directory reside binary files that 
+   At the bin directory reside image files that 
    PiCO QL uses.
 
    At the doc directory there is the BNF of the DSL 
-   that grounds the user description syntax and the user
-   manual, which contains installation and usage 
-   instructions. The latter can be found in the wiki too.
+   that grounds the user description syntax and the wiki pages.
 
    At src directory, the library's source code is 
    found.
