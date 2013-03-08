@@ -414,8 +414,10 @@ int filter_vtable(sqlite3_vtab_cursor *cur,
       i++;
     }
     for (i = 0; i < argc; i++) {
-      if ((re = search(cur, op[i], nCol[i], argv[i])) != 0)
+      if ((re = search(cur, op[i], nCol[i], argv[i])) != 0) {
+        sqlite3_free(where_root);
 	return re;
+      }
     }
     sqlite3_free(where_root);
   }
