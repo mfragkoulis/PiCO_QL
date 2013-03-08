@@ -401,7 +401,7 @@ int filter_vtable(sqlite3_vtab_cursor *cur,
       return re;
   } else {
     int i = 0, op[argc], nCol[argc];
-    char *token;
+    char *token, *where_root;
     char *where = (char *)sqlite3_malloc(sizeof(char) * (strlen(idxStr)+1));
     strcpy(where, idxStr);
     token = strsep(&where, "{-}"); 
@@ -416,7 +416,7 @@ int filter_vtable(sqlite3_vtab_cursor *cur,
       if ((re = search(cur, op[i], nCol[i], argv[i])) != 0)
 	return re;
     }
-    sqlite3_free(where);
+    sqlite3_free(where_root);
   }
   return next_vtable(cur);
 }
