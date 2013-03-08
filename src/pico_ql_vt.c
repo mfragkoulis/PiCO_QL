@@ -404,6 +404,7 @@ int filter_vtable(sqlite3_vtab_cursor *cur,
     char *token, *where_root;
     char *where = (char *)sqlite3_malloc(sizeof(char) * (strlen(idxStr)+1));
     strcpy(where, idxStr);
+    where_root = where;
     token = strsep(&where, "{-}"); 
     while ((token != NULL) && ((token = strsep(&where, "{-}")) != NULL)) {     // constr: {<op>-<nCol>}
       op[i] = (int)strtol(token, NULL, 10);
