@@ -33,7 +33,7 @@ Query 2:
  select * from customer;
 
 Statement prepared.
-base rownum demand code serviced x_coord y_coord 
+base rownum demand code serviced x_coord x_coord_root y_coord y_coord_root 
 
 
 Library used incorrectly
@@ -64,7 +64,7 @@ Query 5:
  select * from customer where rownum=20;
 
 Statement prepared.
-base rownum demand code serviced x_coord y_coord 
+base rownum demand code serviced x_coord x_coord_root y_coord y_coord_root 
 
 
 Library used incorrectly
@@ -201,7 +201,7 @@ Query 11:
  select * from truck JOIN customer;
 
 Statement prepared.
-rownum customers_id cost delcapacity delcapacity_root base rownum demand code serviced x_coord y_coord 
+rownum customers_id cost delcapacity delcapacity_root base rownum demand code serviced x_coord x_coord_root y_coord y_coord_root 
 
 
 Library used incorrectly
@@ -242,7 +242,7 @@ Query 13:
  select * from truck, customer;
 
 Statement prepared.
-rownum customers_id cost delcapacity delcapacity_root base rownum demand code serviced x_coord y_coord 
+rownum customers_id cost delcapacity delcapacity_root base rownum demand code serviced x_coord x_coord_root y_coord y_coord_root 
 
 
 Library used incorrectly
@@ -398,32 +398,32 @@ rownum cost delcapacity delcapacity_root rownum code demand
 Done
 
 Query 23:
- select truck.rownum, cost, delcapacity, delcapacity_root, customer.rownum, x_coord, y_coord from truck left join customer on customer.base=truck.customers_id where (cost <100 or delcapacity>0) and (x_coord>170 or y_coord<10);
+ select truck.rownum, cost, delcapacity, delcapacity_root, customer.rownum, x_coord, x_coord_root, y_coord, y_coord_root from truck left join customer on customer.base=truck.customers_id where (cost <100 or delcapacity>0) and (x_coord>170 or y_coord<10);
 
 Statement prepared.
-rownum cost delcapacity delcapacity_root rownum x_coord y_coord 
+rownum cost delcapacity delcapacity_root rownum x_coord x_coord_root y_coord y_coord_root 
 
-4 339.716572 10 3.162278 9 129 9 
+4 339.716572 10 3.162278 9 129 11 9 3 
 
 Done
 
 Query 24:
- select truck.rownum, cost, delcapacity, delcapacity_root, s.rownum, x_coord, y_coord from truck left join customer s on s.base=truck.customers_id where (cost <100 or delcapacity>0) and (x_coord>170 or y_coord<10);
+ select truck.rownum, cost, delcapacity, delcapacity_root, s.rownum, x_coord, x_coord_root, y_coord, y_coord_root from truck left join customer s on s.base=truck.customers_id where (cost <100 or delcapacity>0) and (x_coord>170 or y_coord<10);
 
 Statement prepared.
-rownum cost delcapacity delcapacity_root rownum x_coord y_coord 
+rownum cost delcapacity delcapacity_root rownum x_coord x_coord_root y_coord y_coord_root 
 
-4 339.716572 10 3.162278 9 129 9 
+4 339.716572 10 3.162278 9 129 11 9 3 
 
 Done
 
 Query 25:
- select truck.rownum, cost, delcapacity, delcapacity_root, s.rownum, code, x_coord, y_coord from truck left join customer s on s.base=truck.customers_id where (cost <100 or delcapacity>0) and code<'050' and (x_coord>170 or y_coord<10);
+ select truck.rownum, cost, delcapacity, delcapacity_root, s.rownum, code, x_coord, x_coord_root, y_coord, y_coord_root from truck left join customer s on s.base=truck.customers_id where (cost <100 or delcapacity>0) and code<'050' and (x_coord>170 or y_coord<10);
 
 Statement prepared.
-rownum cost delcapacity delcapacity_root rownum code x_coord y_coord 
+rownum cost delcapacity delcapacity_root rownum code x_coord x_coord_root y_coord y_coord_root 
 
-4 339.716572 10 3.162278 9 032 129 9 
+4 339.716572 10 3.162278 9 032 129 11 9 3 
 
 Done
 
@@ -561,143 +561,143 @@ rownum cost delcapacity delcapacity_root rownum code demand x_coord y_coord
 Done
 
 Query 33:
- select truck.rownum, cost, delcapacity, delcapacity_root, c.rownum, c.code, c.demand, c.x_coord, c.y_coord, s.rownum, s.code, s.demand, s.x_coord, s.y_coord from truck,customer c, customer s where (cost <100 or delcapacity>0) and c.base=truck.customers_id and s.base=truck.customers_id and (s.x_coord>170 or c.y_coord<10);
+ select truck.rownum, cost, delcapacity, delcapacity_root, c.rownum, c.code, c.demand, c.x_coord, c.x_coord_root, c.y_coord, c.y_coord_root, s.rownum, s.code, s.demand, s.x_coord, s.x_coord_root, s.y_coord, s.y_coord_root from truck,customer c, customer s where (cost <100 or delcapacity>0) and c.base=truck.customers_id and s.base=truck.customers_id and (s.x_coord>170 or c.y_coord<10);
 
 Statement prepared.
-rownum cost delcapacity delcapacity_root rownum code demand x_coord y_coord rownum code demand x_coord y_coord 
+rownum cost delcapacity delcapacity_root rownum code demand x_coord x_coord_root y_coord y_coord_root rownum code demand x_coord x_coord_root y_coord y_coord_root 
 
-4 339.716572 10 3.162278 9 032 10 129 9 0 158 20 30 31 
-4 339.716572 10 3.162278 9 032 10 129 9 1 095 10 29 28 
-4 339.716572 10 3.162278 9 032 10 129 9 2 193 20 21 26 
-4 339.716572 10 3.162278 9 032 10 129 9 3 033 30 18 38 
-4 339.716572 10 3.162278 9 032 10 129 9 4 036 30 17 37 
-4 339.716572 10 3.162278 9 032 10 129 9 5 178 10 91 78 
-4 339.716572 10 3.162278 9 032 10 129 9 6 064 10 94 73 
-4 339.716572 10 3.162278 9 032 10 129 9 7 061 20 94 70 
-4 339.716572 10 3.162278 9 032 10 129 9 8 148 20 127 29 
-4 339.716572 10 3.162278 9 032 10 129 9 9 032 10 129 9 
-4 339.716572 10 3.162278 9 032 10 129 9 10 124 10 132 24 
+4 339.716572 10 3.162278 9 032 10 129 11 9 3 0 158 20 30 5 31 5 
+4 339.716572 10 3.162278 9 032 10 129 11 9 3 1 095 10 29 5 28 5 
+4 339.716572 10 3.162278 9 032 10 129 11 9 3 2 193 20 21 4 26 5 
+4 339.716572 10 3.162278 9 032 10 129 11 9 3 3 033 30 18 4 38 6 
+4 339.716572 10 3.162278 9 032 10 129 11 9 3 4 036 30 17 4 37 6 
+4 339.716572 10 3.162278 9 032 10 129 11 9 3 5 178 10 91 9 78 8 
+4 339.716572 10 3.162278 9 032 10 129 11 9 3 6 064 10 94 9 73 8 
+4 339.716572 10 3.162278 9 032 10 129 11 9 3 7 061 20 94 9 70 8 
+4 339.716572 10 3.162278 9 032 10 129 11 9 3 8 148 20 127 11 29 5 
+4 339.716572 10 3.162278 9 032 10 129 11 9 3 9 032 10 129 11 9 3 
+4 339.716572 10 3.162278 9 032 10 129 11 9 3 10 124 10 132 11 24 4 
 
 Done
 
 Query 34:
- select truck.rownum, cost, delcapacity, delcapacity_root, c.rownum, c.code, c.demand, c.x_coord, c.y_coord, s.rownum, s.code, s.demand, s.x_coord, s.y_coord from truck,customer c, customer s where (cost <100 or delcapacity>0) and c.base=truck.customers_id and c.code<50 and s.base=truck.customers_id and (s.x_coord>170 or s.y_coord<10);
+ select truck.rownum, cost, delcapacity, delcapacity_root, c.rownum, c.code, c.demand, c.x_coord, c.x_coord_root, c.y_coord, c.y_coord_root, s.rownum, s.code, s.demand, s.x_coord, s.x_coord_root, s.y_coord, s.y_coord_root from truck,customer c, customer s where (cost <100 or delcapacity>0) and c.base=truck.customers_id and c.code<50 and s.base=truck.customers_id and (s.x_coord>170 or s.y_coord<10);
 
 Statement prepared.
-rownum cost delcapacity delcapacity_root rownum code demand x_coord y_coord rownum code demand x_coord y_coord 
+rownum cost delcapacity delcapacity_root rownum code demand x_coord x_coord_root y_coord y_coord_root rownum code demand x_coord x_coord_root y_coord y_coord_root 
 
-4 339.716572 10 3.162278 0 158 20 30 31 9 032 10 129 9 
-4 339.716572 10 3.162278 1 095 10 29 28 9 032 10 129 9 
-4 339.716572 10 3.162278 2 193 20 21 26 9 032 10 129 9 
-4 339.716572 10 3.162278 3 033 30 18 38 9 032 10 129 9 
-4 339.716572 10 3.162278 4 036 30 17 37 9 032 10 129 9 
-4 339.716572 10 3.162278 5 178 10 91 78 9 032 10 129 9 
-4 339.716572 10 3.162278 6 064 10 94 73 9 032 10 129 9 
-4 339.716572 10 3.162278 7 061 20 94 70 9 032 10 129 9 
-4 339.716572 10 3.162278 8 148 20 127 29 9 032 10 129 9 
-4 339.716572 10 3.162278 9 032 10 129 9 9 032 10 129 9 
-4 339.716572 10 3.162278 10 124 10 132 24 9 032 10 129 9 
+4 339.716572 10 3.162278 0 158 20 30 5 31 5 9 032 10 129 11 9 3 
+4 339.716572 10 3.162278 1 095 10 29 5 28 5 9 032 10 129 11 9 3 
+4 339.716572 10 3.162278 2 193 20 21 4 26 5 9 032 10 129 11 9 3 
+4 339.716572 10 3.162278 3 033 30 18 4 38 6 9 032 10 129 11 9 3 
+4 339.716572 10 3.162278 4 036 30 17 4 37 6 9 032 10 129 11 9 3 
+4 339.716572 10 3.162278 5 178 10 91 9 78 8 9 032 10 129 11 9 3 
+4 339.716572 10 3.162278 6 064 10 94 9 73 8 9 032 10 129 11 9 3 
+4 339.716572 10 3.162278 7 061 20 94 9 70 8 9 032 10 129 11 9 3 
+4 339.716572 10 3.162278 8 148 20 127 11 29 5 9 032 10 129 11 9 3 
+4 339.716572 10 3.162278 9 032 10 129 11 9 3 9 032 10 129 11 9 3 
+4 339.716572 10 3.162278 10 124 10 132 11 24 4 9 032 10 129 11 9 3 
 
 Done
 
 Query 35:
- select truck.rownum, cost, delcapacity, delcapacity_root, c.rownum, c.code, c.demand, c.x_coord, c.y_coord, s.rownum, s.code, s.demand, s.x_coord, s.y_coord from truck,customer c, customer s where (cost <100 or delcapacity>0) and c.base=truck.customers_id and s.base=truck.customers_id and (c.code>170 or c.demand<10) and (s.x_coord>40 or c.y_coord<20);
+ select truck.rownum, cost, delcapacity, delcapacity_root, c.rownum, c.code, c.demand, c.x_coord, c.x_coord_root, c.y_coord, c.y_coord_root, s.rownum, s.code, s.demand, s.x_coord, s.x_coord_root, s.y_coord, s.y_coord_root from truck,customer c, customer s where (cost <100 or delcapacity>0) and c.base=truck.customers_id and s.base=truck.customers_id and (c.code>170 or c.demand<10) and (s.x_coord>40 or c.y_coord<20);
 
 Statement prepared.
-rownum cost delcapacity delcapacity_root rownum code demand x_coord y_coord rownum code demand x_coord y_coord 
+rownum cost delcapacity delcapacity_root rownum code demand x_coord x_coord_root y_coord y_coord_root rownum code demand x_coord x_coord_root y_coord y_coord_root 
 
-3 280.375322 20 4.472136 1 199 10 34 108 6 022 10 43 140 
-3 280.375322 20 4.472136 1 199 10 34 108 7 150 10 42 136 
-3 280.375322 20 4.472136 1 199 10 34 108 11 017 10 57 59 
-4 339.716572 10 3.162278 2 193 20 21 26 5 178 10 91 78 
-4 339.716572 10 3.162278 2 193 20 21 26 6 064 10 94 73 
-4 339.716572 10 3.162278 2 193 20 21 26 7 061 20 94 70 
-4 339.716572 10 3.162278 2 193 20 21 26 8 148 20 127 29 
-4 339.716572 10 3.162278 2 193 20 21 26 9 032 10 129 9 
-4 339.716572 10 3.162278 2 193 20 21 26 10 124 10 132 24 
-4 339.716572 10 3.162278 5 178 10 91 78 5 178 10 91 78 
-4 339.716572 10 3.162278 5 178 10 91 78 6 064 10 94 73 
-4 339.716572 10 3.162278 5 178 10 91 78 7 061 20 94 70 
-4 339.716572 10 3.162278 5 178 10 91 78 8 148 20 127 29 
-4 339.716572 10 3.162278 5 178 10 91 78 9 032 10 129 9 
-4 339.716572 10 3.162278 5 178 10 91 78 10 124 10 132 24 
-11 270.269111 10 3.162278 1 172 20 111 66 0 070 30 103 34 
-11 270.269111 10 3.162278 1 172 20 111 66 1 172 20 111 66 
-11 270.269111 10 3.162278 1 172 20 111 66 2 041 20 109 71 
-11 270.269111 10 3.162278 1 172 20 111 66 3 085 20 112 71 
-11 270.269111 10 3.162278 1 172 20 111 66 4 080 10 113 71 
-11 270.269111 10 3.162278 1 172 20 111 66 5 133 10 99 96 
-11 270.269111 10 3.162278 10 183 20 35 99 0 070 30 103 34 
-11 270.269111 10 3.162278 10 183 20 35 99 1 172 20 111 66 
-11 270.269111 10 3.162278 10 183 20 35 99 2 041 20 109 71 
-11 270.269111 10 3.162278 10 183 20 35 99 3 085 20 112 71 
-11 270.269111 10 3.162278 10 183 20 35 99 4 080 10 113 71 
-11 270.269111 10 3.162278 10 183 20 35 99 5 133 10 99 96 
-17 220.882914 10 3.162278 6 196 10 91 108 0 027 30 93 75 
-17 220.882914 10 3.162278 6 196 10 91 108 1 131 30 74 96 
-17 220.882914 10 3.162278 6 196 10 91 108 4 076 30 78 92 
-17 220.882914 10 3.162278 6 196 10 91 108 5 097 30 92 107 
-17 220.882914 10 3.162278 6 196 10 91 108 6 196 10 91 108 
-17 220.882914 10 3.162278 6 196 10 91 108 7 130 10 94 104 
-17 220.882914 10 3.162278 6 196 10 91 108 8 096 10 94 105 
+3 280.375322 20 4.472136 1 199 10 34 5 108 10 6 022 10 43 6 140 11 
+3 280.375322 20 4.472136 1 199 10 34 5 108 10 7 150 10 42 6 136 11 
+3 280.375322 20 4.472136 1 199 10 34 5 108 10 11 017 10 57 7 59 7 
+4 339.716572 10 3.162278 2 193 20 21 4 26 5 5 178 10 91 9 78 8 
+4 339.716572 10 3.162278 2 193 20 21 4 26 5 6 064 10 94 9 73 8 
+4 339.716572 10 3.162278 2 193 20 21 4 26 5 7 061 20 94 9 70 8 
+4 339.716572 10 3.162278 2 193 20 21 4 26 5 8 148 20 127 11 29 5 
+4 339.716572 10 3.162278 2 193 20 21 4 26 5 9 032 10 129 11 9 3 
+4 339.716572 10 3.162278 2 193 20 21 4 26 5 10 124 10 132 11 24 4 
+4 339.716572 10 3.162278 5 178 10 91 9 78 8 5 178 10 91 9 78 8 
+4 339.716572 10 3.162278 5 178 10 91 9 78 8 6 064 10 94 9 73 8 
+4 339.716572 10 3.162278 5 178 10 91 9 78 8 7 061 20 94 9 70 8 
+4 339.716572 10 3.162278 5 178 10 91 9 78 8 8 148 20 127 11 29 5 
+4 339.716572 10 3.162278 5 178 10 91 9 78 8 9 032 10 129 11 9 3 
+4 339.716572 10 3.162278 5 178 10 91 9 78 8 10 124 10 132 11 24 4 
+11 270.269111 10 3.162278 1 172 20 111 10 66 8 0 070 30 103 10 34 5 
+11 270.269111 10 3.162278 1 172 20 111 10 66 8 1 172 20 111 10 66 8 
+11 270.269111 10 3.162278 1 172 20 111 10 66 8 2 041 20 109 10 71 8 
+11 270.269111 10 3.162278 1 172 20 111 10 66 8 3 085 20 112 10 71 8 
+11 270.269111 10 3.162278 1 172 20 111 10 66 8 4 080 10 113 10 71 8 
+11 270.269111 10 3.162278 1 172 20 111 10 66 8 5 133 10 99 9 96 9 
+11 270.269111 10 3.162278 10 183 20 35 5 99 9 0 070 30 103 10 34 5 
+11 270.269111 10 3.162278 10 183 20 35 5 99 9 1 172 20 111 10 66 8 
+11 270.269111 10 3.162278 10 183 20 35 5 99 9 2 041 20 109 10 71 8 
+11 270.269111 10 3.162278 10 183 20 35 5 99 9 3 085 20 112 10 71 8 
+11 270.269111 10 3.162278 10 183 20 35 5 99 9 4 080 10 113 10 71 8 
+11 270.269111 10 3.162278 10 183 20 35 5 99 9 5 133 10 99 9 96 9 
+17 220.882914 10 3.162278 6 196 10 91 9 108 10 0 027 30 93 9 75 8 
+17 220.882914 10 3.162278 6 196 10 91 9 108 10 1 131 30 74 8 96 9 
+17 220.882914 10 3.162278 6 196 10 91 9 108 10 4 076 30 78 8 92 9 
+17 220.882914 10 3.162278 6 196 10 91 9 108 10 5 097 30 92 9 107 10 
+17 220.882914 10 3.162278 6 196 10 91 9 108 10 6 196 10 91 9 108 10 
+17 220.882914 10 3.162278 6 196 10 91 9 108 10 7 130 10 94 9 104 10 
+17 220.882914 10 3.162278 6 196 10 91 9 108 10 8 096 10 94 9 105 10 
 
 Done
 
 Query 36:
- select u.rownum, u.cost, u.delcapacity, u.delcapacity_root, c.rownum, c.code, c.demand, c.x_coord, c.y_coord,k.rownum, k.cost, k.delcapacity, k.delcapacity_root, s.rownum, s.code, s.demand,s.x_coord,s.y_coord from truck u, truck k,customer c, customer s where (u.cost <100 or u.delcapacity>0) and c.base=u.customers_id and s.base=k.customers_id and (c.code>170 or c.demand<10) and (s.x_coord>40 or s.y_coord<20) LIMIT 20;
+ select u.rownum, u.cost, u.delcapacity, u.delcapacity_root, c.rownum, c.code, c.demand, c.x_coord, c.x_coord_root, c.y_coord, c.y_coord_root, k.rownum, k.cost, k.delcapacity, k.delcapacity_root, s.rownum, s.code, s.demand,s.x_coord, s.x_coord_root, s.y_coord, s.y_coord_root from truck u, truck k,customer c, customer s where (u.cost <100 or u.delcapacity>0) and c.base=u.customers_id and s.base=k.customers_id and (c.code>170 or c.demand<10) and (s.x_coord>40 or s.y_coord<20) LIMIT 20;
 
 Statement prepared.
-rownum cost delcapacity delcapacity_root rownum code demand x_coord y_coord rownum cost delcapacity delcapacity_root rownum code demand x_coord y_coord 
+rownum cost delcapacity delcapacity_root rownum code demand x_coord x_coord_root y_coord y_coord_root rownum cost delcapacity delcapacity_root rownum code demand x_coord x_coord_root y_coord y_coord_root 
 
-3 280.375322 20 4.472136 1 199 10 34 108 0 147.495530 0 0.000000 0 149 20 91 95 
-3 280.375322 20 4.472136 1 199 10 34 108 0 147.495530 0 0.000000 1 120 10 86 102 
-3 280.375322 20 4.472136 1 199 10 34 108 0 147.495530 0 0.000000 2 028 20 90 104 
-3 280.375322 20 4.472136 1 199 10 34 108 0 147.495530 0 0.000000 3 014 10 100 106 
-3 280.375322 20 4.472136 1 199 10 34 108 0 147.495530 0 0.000000 4 152 30 103 106 
-3 280.375322 20 4.472136 1 199 10 34 108 0 147.495530 0 0.000000 5 040 20 104 106 
-3 280.375322 20 4.472136 1 199 10 34 108 0 147.495530 0 0.000000 6 153 10 107 105 
-3 280.375322 20 4.472136 1 199 10 34 108 0 147.495530 0 0.000000 7 110 30 107 63 
-3 280.375322 20 4.472136 1 199 10 34 108 0 147.495530 0 0.000000 8 162 30 102 60 
-3 280.375322 20 4.472136 1 199 10 34 108 0 147.495530 0 0.000000 9 179 20 91 71 
-3 280.375322 20 4.472136 1 199 10 34 108 1 225.946633 0 0.000000 0 129 20 88 35 
-3 280.375322 20 4.472136 1 199 10 34 108 1 225.946633 0 0.000000 1 012 10 95 35 
-3 280.375322 20 4.472136 1 199 10 34 108 1 225.946633 0 0.000000 2 006 10 86 37 
-3 280.375322 20 4.472136 1 199 10 34 108 1 225.946633 0 0.000000 3 122 10 84 36 
-3 280.375322 20 4.472136 1 199 10 34 108 1 225.946633 0 0.000000 4 011 20 86 36 
-3 280.375322 20 4.472136 1 199 10 34 108 1 225.946633 0 0.000000 5 066 20 97 28 
-3 280.375322 20 4.472136 1 199 10 34 108 1 225.946633 0 0.000000 6 086 10 135 0 
-3 280.375322 20 4.472136 1 199 10 34 108 1 225.946633 0 0.000000 7 115 30 136 0 
-3 280.375322 20 4.472136 1 199 10 34 108 1 225.946633 0 0.000000 8 094 20 137 3 
-3 280.375322 20 4.472136 1 199 10 34 108 1 225.946633 0 0.000000 9 174 30 139 10 
+3 280.375322 20 4.472136 1 199 10 34 5 108 10 0 147.495530 0 0.000000 0 149 20 91 9 95 9 
+3 280.375322 20 4.472136 1 199 10 34 5 108 10 0 147.495530 0 0.000000 1 120 10 86 9 102 10 
+3 280.375322 20 4.472136 1 199 10 34 5 108 10 0 147.495530 0 0.000000 2 028 20 90 9 104 10 
+3 280.375322 20 4.472136 1 199 10 34 5 108 10 0 147.495530 0 0.000000 3 014 10 100 10 106 10 
+3 280.375322 20 4.472136 1 199 10 34 5 108 10 0 147.495530 0 0.000000 4 152 30 103 10 106 10 
+3 280.375322 20 4.472136 1 199 10 34 5 108 10 0 147.495530 0 0.000000 5 040 20 104 10 106 10 
+3 280.375322 20 4.472136 1 199 10 34 5 108 10 0 147.495530 0 0.000000 6 153 10 107 10 105 10 
+3 280.375322 20 4.472136 1 199 10 34 5 108 10 0 147.495530 0 0.000000 7 110 30 107 10 63 7 
+3 280.375322 20 4.472136 1 199 10 34 5 108 10 0 147.495530 0 0.000000 8 162 30 102 10 60 7 
+3 280.375322 20 4.472136 1 199 10 34 5 108 10 0 147.495530 0 0.000000 9 179 20 91 9 71 8 
+3 280.375322 20 4.472136 1 199 10 34 5 108 10 1 225.946633 0 0.000000 0 129 20 88 9 35 5 
+3 280.375322 20 4.472136 1 199 10 34 5 108 10 1 225.946633 0 0.000000 1 012 10 95 9 35 5 
+3 280.375322 20 4.472136 1 199 10 34 5 108 10 1 225.946633 0 0.000000 2 006 10 86 9 37 6 
+3 280.375322 20 4.472136 1 199 10 34 5 108 10 1 225.946633 0 0.000000 3 122 10 84 9 36 6 
+3 280.375322 20 4.472136 1 199 10 34 5 108 10 1 225.946633 0 0.000000 4 011 20 86 9 36 6 
+3 280.375322 20 4.472136 1 199 10 34 5 108 10 1 225.946633 0 0.000000 5 066 20 97 9 28 5 
+3 280.375322 20 4.472136 1 199 10 34 5 108 10 1 225.946633 0 0.000000 6 086 10 135 11 0 0 
+3 280.375322 20 4.472136 1 199 10 34 5 108 10 1 225.946633 0 0.000000 7 115 30 136 11 0 0 
+3 280.375322 20 4.472136 1 199 10 34 5 108 10 1 225.946633 0 0.000000 8 094 20 137 11 3 1 
+3 280.375322 20 4.472136 1 199 10 34 5 108 10 1 225.946633 0 0.000000 9 174 30 139 11 10 3 
 
 Done
 
 Query 37:
- select u.rownum, u.cost, u.delcapacity, u.delcapacity_root, c.rownum, c.code, c.demand,k.rownum, k.cost, k.delcapacity, k.delcapacity_root, s.rownum, s.code, s.demand,s.x_coord,s.y_coord from truck u, customer c,truck k, customer s where (u.cost <100 or u.delcapacity>0) and c.base=u.customers_id and s.base=k.customers_id and (c.code>170 or c.demand<10) and (s.x_coord>40 or s.y_coord<20) LIMIT 20;
+ select u.rownum, u.cost, u.delcapacity, u.delcapacity_root, c.rownum, c.code, c.demand,k.rownum, k.cost, k.delcapacity, k.delcapacity_root, s.rownum, s.code, s.demand,s.x_coord, s.x_coord_root, s.y_coord, s.y_coord_root from truck u, customer c,truck k, customer s where (u.cost <100 or u.delcapacity>0) and c.base=u.customers_id and s.base=k.customers_id and (c.code>170 or c.demand<10) and (s.x_coord>40 or s.y_coord<20) LIMIT 20;
 
 Statement prepared.
-rownum cost delcapacity delcapacity_root rownum code demand rownum cost delcapacity delcapacity_root rownum code demand x_coord y_coord 
+rownum cost delcapacity delcapacity_root rownum code demand rownum cost delcapacity delcapacity_root rownum code demand x_coord x_coord_root y_coord y_coord_root 
 
-3 280.375322 20 4.472136 1 199 10 0 147.495530 0 0.000000 0 149 20 91 95 
-3 280.375322 20 4.472136 1 199 10 0 147.495530 0 0.000000 1 120 10 86 102 
-3 280.375322 20 4.472136 1 199 10 0 147.495530 0 0.000000 2 028 20 90 104 
-3 280.375322 20 4.472136 1 199 10 0 147.495530 0 0.000000 3 014 10 100 106 
-3 280.375322 20 4.472136 1 199 10 0 147.495530 0 0.000000 4 152 30 103 106 
-3 280.375322 20 4.472136 1 199 10 0 147.495530 0 0.000000 5 040 20 104 106 
-3 280.375322 20 4.472136 1 199 10 0 147.495530 0 0.000000 6 153 10 107 105 
-3 280.375322 20 4.472136 1 199 10 0 147.495530 0 0.000000 7 110 30 107 63 
-3 280.375322 20 4.472136 1 199 10 0 147.495530 0 0.000000 8 162 30 102 60 
-3 280.375322 20 4.472136 1 199 10 0 147.495530 0 0.000000 9 179 20 91 71 
-3 280.375322 20 4.472136 1 199 10 1 225.946633 0 0.000000 0 129 20 88 35 
-3 280.375322 20 4.472136 1 199 10 1 225.946633 0 0.000000 1 012 10 95 35 
-3 280.375322 20 4.472136 1 199 10 1 225.946633 0 0.000000 2 006 10 86 37 
-3 280.375322 20 4.472136 1 199 10 1 225.946633 0 0.000000 3 122 10 84 36 
-3 280.375322 20 4.472136 1 199 10 1 225.946633 0 0.000000 4 011 20 86 36 
-3 280.375322 20 4.472136 1 199 10 1 225.946633 0 0.000000 5 066 20 97 28 
-3 280.375322 20 4.472136 1 199 10 1 225.946633 0 0.000000 6 086 10 135 0 
-3 280.375322 20 4.472136 1 199 10 1 225.946633 0 0.000000 7 115 30 136 0 
-3 280.375322 20 4.472136 1 199 10 1 225.946633 0 0.000000 8 094 20 137 3 
-3 280.375322 20 4.472136 1 199 10 1 225.946633 0 0.000000 9 174 30 139 10 
+3 280.375322 20 4.472136 1 199 10 0 147.495530 0 0.000000 0 149 20 91 9 95 9 
+3 280.375322 20 4.472136 1 199 10 0 147.495530 0 0.000000 1 120 10 86 9 102 10 
+3 280.375322 20 4.472136 1 199 10 0 147.495530 0 0.000000 2 028 20 90 9 104 10 
+3 280.375322 20 4.472136 1 199 10 0 147.495530 0 0.000000 3 014 10 100 10 106 10 
+3 280.375322 20 4.472136 1 199 10 0 147.495530 0 0.000000 4 152 30 103 10 106 10 
+3 280.375322 20 4.472136 1 199 10 0 147.495530 0 0.000000 5 040 20 104 10 106 10 
+3 280.375322 20 4.472136 1 199 10 0 147.495530 0 0.000000 6 153 10 107 10 105 10 
+3 280.375322 20 4.472136 1 199 10 0 147.495530 0 0.000000 7 110 30 107 10 63 7 
+3 280.375322 20 4.472136 1 199 10 0 147.495530 0 0.000000 8 162 30 102 10 60 7 
+3 280.375322 20 4.472136 1 199 10 0 147.495530 0 0.000000 9 179 20 91 9 71 8 
+3 280.375322 20 4.472136 1 199 10 1 225.946633 0 0.000000 0 129 20 88 9 35 5 
+3 280.375322 20 4.472136 1 199 10 1 225.946633 0 0.000000 1 012 10 95 9 35 5 
+3 280.375322 20 4.472136 1 199 10 1 225.946633 0 0.000000 2 006 10 86 9 37 6 
+3 280.375322 20 4.472136 1 199 10 1 225.946633 0 0.000000 3 122 10 84 9 36 6 
+3 280.375322 20 4.472136 1 199 10 1 225.946633 0 0.000000 4 011 20 86 9 36 6 
+3 280.375322 20 4.472136 1 199 10 1 225.946633 0 0.000000 5 066 20 97 9 28 5 
+3 280.375322 20 4.472136 1 199 10 1 225.946633 0 0.000000 6 086 10 135 11 0 0 
+3 280.375322 20 4.472136 1 199 10 1 225.946633 0 0.000000 7 115 30 136 11 0 0 
+3 280.375322 20 4.472136 1 199 10 1 225.946633 0 0.000000 8 094 20 137 11 3 1 
+3 280.375322 20 4.472136 1 199 10 1 225.946633 0 0.000000 9 174 30 139 11 10 3 
 
 Done
 
@@ -721,10 +721,10 @@ rownum cost delcapacity delcapacity_root rownum code demand code demand
 Done
 
 Query 39:
- select c.code, c.demand, c.x_coord, c.y_coord, c.code, c.demand, c.x_coord, c.y_coord from truck, customer c, mapindex where c.base=truck.customers_id and c.code like '%99' and mapindex.Customerx_coord>133 and c.y_coord=mapindex.Customery_coord;
+ select c.code, c.demand, c.x_coord, c.x_coord_root, c.y_coord, c.y_coord_root, mapindex.customercode, mapindex.customerdemand, mapindex.customerx_coord, mapindex.customerx_coord_root, mapindex.customery_coord_root from truck, customer c, mapindex where c.base=truck.customers_id and c.code like '%99' and mapindex.Customerx_coord>133 and c.y_coord=mapindex.Customery_coord;
 
 Statement prepared.
-code demand x_coord y_coord code demand x_coord y_coord 
+code demand x_coord x_coord_root y_coord y_coord_root Customercode Customerdemand Customerx_coord Customerx_coord_root Customery_coord_root 
 
 
 Done
@@ -762,9 +762,9 @@ Query 42:
 Statement prepared.
 cost delcapacity_root rownum code demand 
 
+184.833567 3.162278 5 160 40 
 280.375322 4.472136 10 055 40 
 219.628909 0.000000 8 008 40 
-184.833567 3.162278 5 160 40 
 
 Done
 
@@ -890,62 +890,62 @@ COMPOUND QUERIES
 
 
 Query 50:
- select code, demand, x_coord, y_coord from truck, customer where customer.base=truck.customers_id and code like '%99' UNION select Customercode, Customerdemand, Customerx_coord,Customery_coord from mapindex where Customerx_coord>133;
+ select code, demand, x_coord, x_coord_root, y_coord, y_coord_root from truck, customer where customer.base=truck.customers_id and code like '%99' UNION select Customercode, Customerdemand, Customerx_coord, Customerx_coord_root, Customery_coord, Customery_coord_root from mapindex where Customerx_coord>133;
 
 Statement prepared.
-code demand x_coord y_coord 
+code demand x_coord x_coord_root y_coord y_coord_root 
 
-051 10 137 6 
-065 20 135 3 
-069 20 134 31 
-086 10 135 0 
-094 20 137 3 
-099 10 34 79 
-115 30 136 0 
-141 10 136 29 
-171 30 135 6 
-174 30 139 10 
-199 10 34 108 
+051 10 137 11 6 2 
+065 20 135 11 3 1 
+069 20 134 11 31 5 
+086 10 135 11 0 0 
+094 20 137 11 3 1 
+099 10 34 5 79 8 
+115 30 136 11 0 0 
+141 10 136 11 29 5 
+171 30 135 11 6 2 
+174 30 139 11 10 3 
+199 10 34 5 108 10 
 
 Done
 
 Query 51:
- select code, demand, x_coord, y_coord from truck, customer where customer.base=truck.customers_id and code like '%99' UNION ALL select Customercode, Customerdemand, Customerx_coord,Customery_coord from mapindex where Customerx_coord>133;
+ select code, demand, x_coord, x_coord_root, y_coord, y_coord_root from truck, customer where customer.base=truck.customers_id and code like '%99' UNION ALL select Customercode, Customerdemand, Customerx_coord, Customerx_coord_root, Customery_coord, Customery_coord_root from mapindex where Customerx_coord>133;
 
 Statement prepared.
-code demand x_coord y_coord 
+code demand x_coord x_coord_root y_coord y_coord_root 
 
-199 10 34 108 
-099 10 34 79 
-051 10 137 6 
-065 20 135 3 
-069 20 134 31 
-086 10 135 0 
-094 20 137 3 
-115 30 136 0 
-141 10 136 29 
-171 30 135 6 
-174 30 139 10 
+199 10 34 5 108 10 
+099 10 34 5 79 8 
+051 10 137 11 6 2 
+065 20 135 11 3 1 
+069 20 134 11 31 5 
+086 10 135 11 0 0 
+094 20 137 11 3 1 
+115 30 136 11 0 0 
+141 10 136 11 29 5 
+171 30 135 11 6 2 
+174 30 139 11 10 3 
 
 Done
 
 Query 52:
- select code, demand, x_coord, y_coord from truck, customer where customer.base=truck.customers_id and code like '%99' INTERSECT select Customercode, Customerdemand, Customerx_coord,Customery_coord from mapindex where Customerx_coord>133;
+ select code, demand, x_coord, x_coord_root, y_coord, y_coord_root from truck, customer where customer.base=truck.customers_id and code like '%99' INTERSECT select Customercode, Customerdemand, Customerx_coord, Customerx_coord_root,Customery_coord, Customery_coord_root from mapindex where Customerx_coord>133;
 
 Statement prepared.
-code demand x_coord y_coord 
+code demand x_coord x_coord_root y_coord y_coord_root 
 
 
 Done
 
 Query 53:
- select code, demand, x_coord, y_coord from truck, customer where customer.base=truck.customers_id and code like '%99' EXCEPT select Customercode, Customerdemand, Customerx_coord,Customery_coord from mapindex where Customerx_coord>133;
+ select code, demand, x_coord, x_coord_root, y_coord, y_coord_root from truck, customer where customer.base=truck.customers_id and code like '%99' EXCEPT select Customercode, Customerdemand, Customerx_coord,Customerx_coord_root,Customery_coord,Customery_coord_root from mapindex where Customerx_coord>133;
 
 Statement prepared.
-code demand x_coord y_coord 
+code demand x_coord x_coord_root y_coord y_coord_root 
 
-099 10 34 79 
-199 10 34 108 
+099 10 34 5 79 8 
+199 10 34 5 108 10 
 
 Done
 
@@ -1184,12 +1184,12 @@ rownum cost delcapacity rownum code demand
 Done
 
 Query 65:
- select code, demand, x_coord, y_coord from truck, customer where customer.base=truck.customers_id and code LIKE '%69' ESCAPE '%' INTERSECT select Customercode, Customerdemand, Customerx_coord,Customery_coord from mapindex where Customerx_coord>133;
+ select code, demand, x_coord, x_coord_root, y_coord, y_coord_root from truck, customer where customer.base=truck.customers_id and code LIKE '%69' ESCAPE '%' INTERSECT select Customercode, Customerdemand, Customerx_coord, Customerx_coord_root, Customery_coord, Customery_coord_root from mapindex where Customerx_coord>133;
 
 Statement prepared.
-code demand x_coord y_coord 
+code demand x_coord x_coord_root y_coord y_coord_root 
 
-069 20 134 31 
+069 20 134 11 31 5 
 
 Done
 
