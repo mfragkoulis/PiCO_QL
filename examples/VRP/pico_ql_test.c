@@ -256,21 +256,21 @@ int call_test(sqlite3 *db) {
 #endif
   result = test_prep_exec(f, db, q);
 
-  q = "select truck.rownum, cost, delcapacity, delcapacity_root, customer.rownum, x_coord, y_coord from truck left join customer on customer.base=truck.customers_id where (cost <100 or delcapacity>0) and (x_coord>170 or y_coord<10);";
+  q = "select truck.rownum, cost, delcapacity, delcapacity_root, customer.rownum, x_coord, x_coord_root, y_coord, y_coord_root from truck left join customer on customer.base=truck.customers_id where (cost <100 or delcapacity>0) and (x_coord>170 or y_coord<10);";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
 #ifdef PICO_QL_DEBUG
   printf("Query %i:\n %s\n\n", i, q);
 #endif
   result = test_prep_exec(f, db, q);
 
-  q = "select truck.rownum, cost, delcapacity, delcapacity_root, s.rownum, x_coord, y_coord from truck left join customer s on s.base=truck.customers_id where (cost <100 or delcapacity>0) and (x_coord>170 or y_coord<10);";
+  q = "select truck.rownum, cost, delcapacity, delcapacity_root, s.rownum, x_coord, x_coord_root, y_coord, y_coord_root from truck left join customer s on s.base=truck.customers_id where (cost <100 or delcapacity>0) and (x_coord>170 or y_coord<10);";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
 #ifdef PICO_QL_DEBUG
   printf("Query %i:\n %s\n\n", i, q);
 #endif
   result = test_prep_exec(f, db, q);
 
-  q = "select truck.rownum, cost, delcapacity, delcapacity_root, s.rownum, code, x_coord, y_coord from truck left join customer s on s.base=truck.customers_id where (cost <100 or delcapacity>0) and code<'050' and (x_coord>170 or y_coord<10);";
+  q = "select truck.rownum, cost, delcapacity, delcapacity_root, s.rownum, code, x_coord, x_coord_root, y_coord, y_coord_root from truck left join customer s on s.base=truck.customers_id where (cost <100 or delcapacity>0) and code<'050' and (x_coord>170 or y_coord<10);";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
 #ifdef PICO_QL_DEBUG
   printf("Query %i:\n %s\n\n", i, q);
@@ -330,35 +330,35 @@ int call_test(sqlite3 *db) {
 #endif
   result = test_prep_exec(f, db, q);
 
-  q = "select truck.rownum, cost, delcapacity, delcapacity_root, c.rownum, c.code, c.demand, c.x_coord, c.y_coord, s.rownum, s.code, s.demand, s.x_coord, s.y_coord from truck,customer c, customer s where (cost <100 or delcapacity>0) and c.base=truck.customers_id and s.base=truck.customers_id and (s.x_coord>170 or c.y_coord<10);";
+  q = "select truck.rownum, cost, delcapacity, delcapacity_root, c.rownum, c.code, c.demand, c.x_coord, c.x_coord_root, c.y_coord, c.y_coord_root, s.rownum, s.code, s.demand, s.x_coord, s.x_coord_root, s.y_coord, s.y_coord_root from truck,customer c, customer s where (cost <100 or delcapacity>0) and c.base=truck.customers_id and s.base=truck.customers_id and (s.x_coord>170 or c.y_coord<10);";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
 #ifdef PICO_QL_DEBUG
   printf("Query %i:\n %s\n\n", i, q);
 #endif
   result = test_prep_exec(f, db, q);
 
-  q = "select truck.rownum, cost, delcapacity, delcapacity_root, c.rownum, c.code, c.demand, c.x_coord, c.y_coord, s.rownum, s.code, s.demand, s.x_coord, s.y_coord from truck,customer c, customer s where (cost <100 or delcapacity>0) and c.base=truck.customers_id and c.code<50 and s.base=truck.customers_id and (s.x_coord>170 or s.y_coord<10);";
+  q = "select truck.rownum, cost, delcapacity, delcapacity_root, c.rownum, c.code, c.demand, c.x_coord, c.x_coord_root, c.y_coord, c.y_coord_root, s.rownum, s.code, s.demand, s.x_coord, s.x_coord_root, s.y_coord, s.y_coord_root from truck,customer c, customer s where (cost <100 or delcapacity>0) and c.base=truck.customers_id and c.code<50 and s.base=truck.customers_id and (s.x_coord>170 or s.y_coord<10);";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
 #ifdef PICO_QL_DEBUG
   printf("Query %i:\n %s\n\n", i, q);
 #endif
   result = test_prep_exec(f, db, q);
 
-  q = "select truck.rownum, cost, delcapacity, delcapacity_root, c.rownum, c.code, c.demand, c.x_coord, c.y_coord, s.rownum, s.code, s.demand, s.x_coord, s.y_coord from truck,customer c, customer s where (cost <100 or delcapacity>0) and c.base=truck.customers_id and s.base=truck.customers_id and (c.code>170 or c.demand<10) and (s.x_coord>40 or c.y_coord<20);";
+  q = "select truck.rownum, cost, delcapacity, delcapacity_root, c.rownum, c.code, c.demand, c.x_coord, c.x_coord_root, c.y_coord, c.y_coord_root, s.rownum, s.code, s.demand, s.x_coord, s.x_coord_root, s.y_coord, s.y_coord_root from truck,customer c, customer s where (cost <100 or delcapacity>0) and c.base=truck.customers_id and s.base=truck.customers_id and (c.code>170 or c.demand<10) and (s.x_coord>40 or c.y_coord<20);";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
 #ifdef PICO_QL_DEBUG
   printf("Query %i:\n %s\n\n", i, q);
 #endif
   result = test_prep_exec(f, db, q);
 
-  q = "select u.rownum, u.cost, u.delcapacity, u.delcapacity_root, c.rownum, c.code, c.demand, c.x_coord, c.y_coord,k.rownum, k.cost, k.delcapacity, k.delcapacity_root, s.rownum, s.code, s.demand,s.x_coord,s.y_coord from truck u, truck k,customer c, customer s where (u.cost <100 or u.delcapacity>0) and c.base=u.customers_id and s.base=k.customers_id and (c.code>170 or c.demand<10) and (s.x_coord>40 or s.y_coord<20) LIMIT 20;";
+  q = "select u.rownum, u.cost, u.delcapacity, u.delcapacity_root, c.rownum, c.code, c.demand, c.x_coord, c.x_coord_root, c.y_coord, c.y_coord_root, k.rownum, k.cost, k.delcapacity, k.delcapacity_root, s.rownum, s.code, s.demand,s.x_coord, s.x_coord_root, s.y_coord, s.y_coord_root from truck u, truck k,customer c, customer s where (u.cost <100 or u.delcapacity>0) and c.base=u.customers_id and s.base=k.customers_id and (c.code>170 or c.demand<10) and (s.x_coord>40 or s.y_coord<20) LIMIT 20;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
 #ifdef PICO_QL_DEBUG
   printf("Query %i:\n %s\n\n", i, q);
 #endif
   result = test_prep_exec(f, db, q);
 
-  q = "select u.rownum, u.cost, u.delcapacity, u.delcapacity_root, c.rownum, c.code, c.demand,k.rownum, k.cost, k.delcapacity, k.delcapacity_root, s.rownum, s.code, s.demand,s.x_coord,s.y_coord from truck u, customer c,truck k, customer s where (u.cost <100 or u.delcapacity>0) and c.base=u.customers_id and s.base=k.customers_id and (c.code>170 or c.demand<10) and (s.x_coord>40 or s.y_coord<20) LIMIT 20;";
+  q = "select u.rownum, u.cost, u.delcapacity, u.delcapacity_root, c.rownum, c.code, c.demand,k.rownum, k.cost, k.delcapacity, k.delcapacity_root, s.rownum, s.code, s.demand,s.x_coord, s.x_coord_root, s.y_coord, s.y_coord_root from truck u, customer c,truck k, customer s where (u.cost <100 or u.delcapacity>0) and c.base=u.customers_id and s.base=k.customers_id and (c.code>170 or c.demand<10) and (s.x_coord>40 or s.y_coord<20) LIMIT 20;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
 #ifdef PICO_QL_DEBUG
   printf("Query %i:\n %s\n\n", i, q);
@@ -372,7 +372,7 @@ int call_test(sqlite3 *db) {
 #endif
   result = test_prep_exec(f, db, q);
 
-  q = "select c.code, c.demand, c.x_coord, c.y_coord, c.code, c.demand, c.x_coord, c.y_coord from truck, customer c, mapindex where c.base=truck.customers_id and c.code like '%99' and mapindex.Customerx_coord>133 and c.y_coord=mapindex.Customery_coord;";
+  q = "select c.code, c.demand, c.x_coord, c.x_coord_root, c.y_coord, c.y_coord_root, mapindex.customercode, mapindex.customerdemand, mapindex.customerx_coord, mapindex.customerx_coord_root, mapindex.customery_coord_root from truck, customer c, mapindex where c.base=truck.customers_id and c.code like '%99' and mapindex.Customerx_coord>133 and c.y_coord=mapindex.Customery_coord;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
 #ifdef PICO_QL_DEBUG
   printf("Query %i:\n %s\n\n", i, q);
@@ -461,29 +461,28 @@ int call_test(sqlite3 *db) {
 
   fprintf(f, "COMPOUND QUERIES\n\n\n");
 
-
-  q = "select code, demand, x_coord, y_coord from truck, customer where customer.base=truck.customers_id and code like '%99' UNION select Customercode, Customerdemand, Customerx_coord,Customery_coord from mapindex where Customerx_coord>133;";
+  q = "select code, demand, x_coord, x_coord_root, y_coord, y_coord_root from truck, customer where customer.base=truck.customers_id and code like '%99' UNION select Customercode, Customerdemand, Customerx_coord, Customerx_coord_root, Customery_coord, Customery_coord_root from mapindex where Customerx_coord>133;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
 #ifdef PICO_QL_DEBUG
   printf("Query %i:\n %s\n\n", i, q);
 #endif
   result = test_prep_exec(f, db, q);
 
-  q = "select code, demand, x_coord, y_coord from truck, customer where customer.base=truck.customers_id and code like '%99' UNION ALL select Customercode, Customerdemand, Customerx_coord,Customery_coord from mapindex where Customerx_coord>133;";
+  q = "select code, demand, x_coord, x_coord_root, y_coord, y_coord_root from truck, customer where customer.base=truck.customers_id and code like '%99' UNION ALL select Customercode, Customerdemand, Customerx_coord, Customerx_coord_root, Customery_coord, Customery_coord_root from mapindex where Customerx_coord>133;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
 #ifdef PICO_QL_DEBUG
   printf("Query %i:\n %s\n\n", i, q);
 #endif
   result = test_prep_exec(f, db, q);
 
-  q = "select code, demand, x_coord, y_coord from truck, customer where customer.base=truck.customers_id and code like '%99' INTERSECT select Customercode, Customerdemand, Customerx_coord,Customery_coord from mapindex where Customerx_coord>133;";
+  q = "select code, demand, x_coord, x_coord_root, y_coord, y_coord_root from truck, customer where customer.base=truck.customers_id and code like '%99' INTERSECT select Customercode, Customerdemand, Customerx_coord, Customerx_coord_root,Customery_coord, Customery_coord_root from mapindex where Customerx_coord>133;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
 #ifdef PICO_QL_DEBUG
   printf("Query %i:\n %s\n\n", i, q);
 #endif
   result = test_prep_exec(f, db, q);
 
-  q = "select code, demand, x_coord, y_coord from truck, customer where customer.base=truck.customers_id and code like '%99' EXCEPT select Customercode, Customerdemand, Customerx_coord,Customery_coord from mapindex where Customerx_coord>133;";
+  q = "select code, demand, x_coord, x_coord_root, y_coord, y_coord_root from truck, customer where customer.base=truck.customers_id and code like '%99' EXCEPT select Customercode, Customerdemand, Customerx_coord,Customerx_coord_root,Customery_coord,Customery_coord_root from mapindex where Customerx_coord>133;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
 #ifdef PICO_QL_DEBUG
   printf("Query %i:\n %s\n\n", i, q);
@@ -585,7 +584,7 @@ int call_test(sqlite3 *db) {
 #endif
   result = test_prep_exec(f, db, q);
 
-  q = "select code, demand, x_coord, y_coord from truck, customer where customer.base=truck.customers_id and code LIKE '%69' ESCAPE '%' INTERSECT select Customercode, Customerdemand, Customerx_coord,Customery_coord from mapindex where Customerx_coord>133;";
+  q = "select code, demand, x_coord, x_coord_root, y_coord, y_coord_root from truck, customer where customer.base=truck.customers_id and code LIKE '%69' ESCAPE '%' INTERSECT select Customercode, Customerdemand, Customerx_coord, Customerx_coord_root, Customery_coord, Customery_coord_root from mapindex where Customerx_coord>133;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
 #ifdef PICO_QL_DEBUG
   printf("Query %i:\n %s\n\n", i, q);

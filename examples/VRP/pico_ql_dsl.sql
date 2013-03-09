@@ -1,6 +1,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <cmath>
 
 #include "Truck.h"
 #include "Customer.h"
@@ -23,7 +24,9 @@ CREATE STRUCT VIEW Customer (
       code STRING FROM get_code(),
       serviced INT FROM get_serviced(),
       x_coord INT FROM get_pos()->get_x(),
-      y_coord INT FROM get_pos()->get_y()
+      x_coord_root INT FROM sqrt((double)this.get_pos()->get_x()),
+      y_coord INT FROM get_pos()->get_y(),
+      y_coord_root INT FROM sqrt((double)this->get_pos()->get_y())
 )$
 
 // Customer description
