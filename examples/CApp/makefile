@@ -23,8 +23,10 @@
 
 ifdef G_CXX
 GC=$(CXX)
+CEXT=cpp
 else
 GC=$(CC)
+CEXT=c
 endif
 
 ifdef RELEASE
@@ -64,9 +66,9 @@ capp: $(OBJ)
 
 main.o: main.c Money.h Monetary_System.h MoneyArray.h pico_ql_search.h
 
-pico_ql_search.o: pico_ql_search.cpp pico_ql_search.h pico_ql_internal.h
+pico_ql_search.o: pico_ql_search.$(CEXT) pico_ql_search.h pico_ql_internal.h
 
-pico_ql_internal.o: pico_ql_internal.cpp pico_ql_internal.h pico_ql_interface.h pico_ql_search_helper.h
+pico_ql_internal.o: pico_ql_internal.$(CEXT) pico_ql_internal.h pico_ql_interface.h pico_ql_search_helper.h
 
 pico_ql_vt.o: pico_ql_vt.c pico_ql_vt.h pico_ql_internal.h
 
@@ -76,7 +78,7 @@ pico_ql_error_page.o: pico_ql_error_page.c pico_ql_swill_access_func.h
 
 pico_ql_interface.o: pico_ql_interface.c pico_ql_interface.h pico_ql_vt.h pico_ql_test.h
 
-pico_ql_search_helper.o: pico_ql_search_helper.cpp pico_ql_search_helper.h pico_ql_internal.h
+pico_ql_search_helper.o: pico_ql_search_helper.c pico_ql_search_helper.h pico_ql_internal.h
 
 pico_ql_test.o: pico_ql_test.c pico_ql_test.h pico_ql_internal.h
 
