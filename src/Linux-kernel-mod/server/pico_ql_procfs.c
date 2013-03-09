@@ -94,7 +94,6 @@ ssize_t picoQL_read(         struct file *f,
   if (current_partition < query_result_set_partitions) {
     len = sprintf(page, "%s", query_result_set);
     current_partition++;
-    printk(KERN_DEBUG "Consumed query partition %i. Another %i to go. PICO_QL_RS_ACTIVE is %i, PICO_QL_READY is %i.\n", current_partition, query_result_set_partitions, PICO_QL_RS_ACTIVE, PICO_QL_READY);
     query_result_set = root_query_result_set[current_partition];
     if (current_partition == query_result_set_partitions) {
       for(current_partition = 0; current_partition < query_result_set_partitions; current_partition++)
