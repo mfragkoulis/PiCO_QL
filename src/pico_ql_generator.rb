@@ -171,7 +171,6 @@ class Column
 # Checks if NULL checks for access path
 # have to be performed 
   def process_access_path()
-#    iden_holder = ""
     if $argD == "DEBUG"
       puts "Access path to process is #{@access_path}."
     end
@@ -185,24 +184,18 @@ class Column
           case @access_path
           when /this->(.+)\)/
             matchdata = @access_path.match(/this->(.+)\)/)
- #           iden_holder = "this->"
           when /this->(.+),/
             matchdata = @access_path.match(/this->(.+),/)
-  #          iden_holder = "this->"
           when /this\.(.+)->(.+),/
             matchdata = @access_path.match(/this\.(.+),/)
-   #         iden_holder = "this."
           when /this\.(.+)->(.+)\)/
             matchdata = @access_path.match(/this\.(.+)\)/)
-    #        iden_holder = "this."
           end
           if $argD == "DEBUG"
             puts "Access path with 'this' included, path for checking is #{matchdata[1]}."
           end
           if matchdata[1].match(/->/)
             @tokenized_access_path = matchdata[1].split(/->/)
-            # Is the following correct?
-     #       @tokenized_access_path.insert(0, "#{iden_holder}");
             @tokenized_access_path.pop
           end
         else
@@ -1059,13 +1052,7 @@ class VirtualTable
       if tap > 0
         token_ac_p[tap].insert(0, "#{token_ac_p[tap-1]}->")
       else
- #       if token_ac_p[0].match(/this->|this\./)
- #         if iden.length > 0
- #           token_ac_p[0].replace(iden)
- #         end
- #       else
-          token_ac_p[0].insert(0, iden)
- #       end
+        token_ac_p[0].insert(0, iden)
       end
       if $argD == "DEBUG"
         puts "After tapping token is: #{token_ac_p[tap]}"
@@ -1076,11 +1063,6 @@ class VirtualTable
 
 # Display NULL checks
   def display_null_check(token_ac_p, iden, action, fw, space)
-#    if token_ac_p.length > 0 && 
-#       token_ac_p[0].match(/this->|this\./) &&
-#       iden.length > 0
-#      token_ac_p.delete_at(0)
-#    end
     token_ac_p.each_index {|tap|
       if token_ac_p.length == 1
         fw.print "#{space}if (#{iden}#{token_ac_p[0]} == NULL) "

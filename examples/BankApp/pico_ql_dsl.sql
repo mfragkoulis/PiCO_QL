@@ -13,7 +13,8 @@ CREATE STRUCT VIEW SuperAccount (
        balance DOUBLE FROM get_balance(),
        account_no TEXT FROM get_account_no(),
        rate DOUBLE FROM get_rate(),
-       isbn BIGINT FROM get_isbn(),   // this is isbn
+       isbn BIGINT FROM get_isbn(),
+       // Column delimeter is",\n". Comments should occupy a separate line
        isbn_root DOUBLE FROM get_math_root(this.get_isbn())
 )$
 

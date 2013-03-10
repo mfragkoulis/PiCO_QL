@@ -51,7 +51,8 @@ CREATE STRUCT VIEW Waypoint (
        link STRING FROM link.toStdString(),
        urlName STRING FROM urlname.toStdString(),
        type STRING FROM type.toStdString(),
-       FOREIGN KEY(geoData) FROM getGeocacheData() REFERENCES GeoData   // should not be separated according to design rules, however promotes modularity and encapsulation
+       FOREIGN KEY(geoData) FROM getGeocacheData() REFERENCES GeoData   
+       // should not be separated according to design rules, however promotes modularity and encapsulation
 )$
 
 CREATE STRUCT VIEW MapWaypoint (
@@ -141,22 +142,3 @@ USING STRUCT VIEW Route
 WITH REGISTERED C NAME routes 
 WITH REGISTERED C TYPE map<QString, CRoute*>$
 
-//not updated to relaxed rules
-//CREATE STRUCT VIEW Diaries (
-//       key STRING FROM first.toStdString(),
-//       FOREIGN KEY(diary_id) FROM second REFERENCES Diary POINTER
-//)$
-
-//CREATE VIRTUAL TABLE Diaries 
-//USING STRUCT VIEW Diaries
-//WITH REGISTERED C NAME diaries 
-//WITH REGISTERED C TYPE map<QString, CDiary*>$
-
-//CREATE STRUCT VIEW Diary (
-//       INCLUDES STRUCT VIEW IItem,
-//       modified BOOL FROM isModified()
-//)$
-
-//CREATE VIRTUAL TABLE Diary 
-//USING STRUCT VIEW Diary
-//WITH REGISTERED C TYPE CDiary$

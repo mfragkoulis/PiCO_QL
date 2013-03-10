@@ -65,29 +65,46 @@ WITH REGISTERED C TYPE vector<Fileid>$
 CREATE STRUCT VIEW Eclass (
 	len INTEGER FROM get_len(),
 	size INTEGER FROM get_size(),
-	unused BOOLEAN FROM is_unused(),					// True if this equivalence class is unintentionally unused
-	isDeclaredUnused BOOLEAN FROM get_attribute(is_declared_unused),	// Declared with __unused__ attribute
-	isMacroToken BOOLEAN FROM get_attribute(is_macro_token),		// Identifier stored in a macro
+	unused BOOLEAN FROM is_unused(),
+        // True if this equivalence class is unintentionally unused
+	isDeclaredUnused BOOLEAN FROM get_attribute(is_declared_unused),
+        // Declared with __unused__ attribute
+	isMacroToken BOOLEAN FROM get_attribute(is_macro_token),
+        // Identifier stored in a macro
 
-	isReadonly BOOLEAN FROM get_attribute(is_readonly),			// Read-only; true if any member
+	isReadonly BOOLEAN FROM get_attribute(is_readonly),
+        // Read-only; true if any member
 										// comes from an ro file
 	// The four C namespaces
-	isSuetag BOOLEAN FROM get_attribute(is_suetag),			// Struct/union/enum tag
-	isSumember BOOLEAN FROM get_attribute(is_sumember),			// Struct/union member
-	isLabel BOOLEAN FROM get_attribute(is_label),				// Goto label
-	isOrdinary BOOLEAN FROM get_attribute(is_ordinary),			// Ordinary identifier
+	isSuetag BOOLEAN FROM get_attribute(is_suetag),
+        // Struct/union/enum tag
+	isSumember BOOLEAN FROM get_attribute(is_sumember),
+        // Struct/union member
+	isLabel BOOLEAN FROM get_attribute(is_label),
+        // Goto label
+	isOrdinary BOOLEAN FROM get_attribute(is_ordinary),
+        // Ordinary identifier
 
-	isMacro BOOLEAN FROM get_attribute(is_macro),				// Name of an object or function-like macro
-	isUndefined_macro BOOLEAN FROM get_attribute(is_undefined_macro),	// Macro (heuristic: ifdef, defined)
-	isMacro_arg BOOLEAN FROM get_attribute(is_macro_arg),			// Macro argument
+	isMacro BOOLEAN FROM get_attribute(is_macro),
+        // Name of an object or function-like macro
+	isUndefined_macro BOOLEAN FROM get_attribute(is_undefined_macro),
+        // Macro (heuristic: ifdef, defined)
+	isMacro_arg BOOLEAN FROM get_attribute(is_macro_arg),
+        // Macro argument
 	// The following are valid if isOrdinary is true:
-	isCscope BOOLEAN FROM get_attribute(is_cscope),			// Compilation-unit (file) scoped
+	isCscope BOOLEAN FROM get_attribute(is_cscope),
+        // Compilation-unit (file) scoped
 				// identifier  (static)
-	isLscope BOOLEAN FROM get_attribute(is_lscope),			// Linkage-unit scoped identifier
-	isTypedef BOOLEAN FROM get_attribute(is_typedef),			// Typedef
-	isEnum BOOLEAN FROM get_attribute(is_enum),				// Enumeration member
-	isYacc BOOLEAN FROM get_attribute(is_yacc),				// Yacc identifier
-	isFunction BOOLEAN FROM get_attribute(is_function),			// Function
+	isLscope BOOLEAN FROM get_attribute(is_lscope),
+        // Linkage-unit scoped identifier
+	isTypedef BOOLEAN FROM get_attribute(is_typedef),
+        // Typedef
+	isEnum BOOLEAN FROM get_attribute(is_enum),
+        // Enumeration member
+	isYacc BOOLEAN FROM get_attribute(is_yacc),
+        // Yacc identifier
+	isFunction BOOLEAN FROM get_attribute(is_function),
+        // Function
         FOREIGN KEY(members) FROM get_members() REFERENCES Tokid
 )$
 
