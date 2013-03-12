@@ -106,7 +106,7 @@ int init_vtable(int iscreate,
   (void)paux;
   nDb = (int)strlen(argv[1]) + 1;
   nName = (int)strlen(argv[2]) + 1;
-  nString=0;
+  nString = 0;
   // explore fts3 way
   for (i = 3; i < argc; i++){
     nString += (int)strlen(argv[i]) + 1;
@@ -122,6 +122,7 @@ int init_vtable(int iscreate,
   memset(picoQL, 0, nByte);
   picoQL->zErr = NULL;
   picoQL->db = db;
+  picoQL->locked = 0;
   picoQL->toOpen = 0;
   picoQL->nColumn = nCol;
   picoQL->azColumn = (char **)&picoQL[1];
@@ -456,7 +457,6 @@ int open_vtable(sqlite3_vtab *pVtab,
    * Useful when multiple instances of the VT are open.
    */
   stc->source = st->data;
-  st->locked = 0;
   /* active_verify denotes that we are ready to
    * service join requests (=1) or that we are
    * done with them (=0).
@@ -528,7 +528,6 @@ int close_vtable(sqlite3_vtab_cursor *cur) {
   // Second argument dummy
   // (part of polymorphized arsenal of methods).
   deinit_result_set(cur, stc);
-  assert(((picoQLTable *)cur->pVtab)->locked == 0);
   sqlite3_free(stc);
   return SQLITE_OK;
 }

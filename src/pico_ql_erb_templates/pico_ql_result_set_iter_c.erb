@@ -278,6 +278,8 @@ void <%= @name %>_vt_deinit_query_structs (struct Vtbl *vtbl) {
     printf("Table %s picoQL is %lx; freeing query structs.\n", ((<%= @name %>_vt *)vtbl)->name, (long)((<%= @name %>_vt *)vtbl)->picoQL);
 #endif
     ((<%= @name %>_vt *)vtbl)->picoQL->toOpen = 0;
+    assert(((<%= @name %>_vt *)vtbl)->picoQL->locked == 0);
+    ((<%= @name %>_vt *)vtbl)->picoQL->locked = 0;
     ((<%= @name %>_vt *)vtbl)->picoQL = NULL;
   }
 }
