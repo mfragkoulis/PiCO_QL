@@ -25,6 +25,12 @@ PLATFORMS
    Tested under Mac OS X 10.6.8, Linux 2.6 
    and Linux 3.2 (kernel module).
 
+TESTING
+
+   Commits are verified against test cases 
+   (see examples/) and Valgrind (installed in 
+   Linux 2.6).
+
 
 DEPENDENCIES
 
@@ -55,7 +61,7 @@ DEPENDENCIES
 PiCO QL PACKAGE STRUCTURE
 
    At the EXAMPLES directory, users can browse:
-        Three implemented example  scenarios which
+        Three implemented example scenarios which
 	can be executed effortlessly (provided the 
 	dependencies are installed in one's system)
 	by executing test_all.sh located in examples/ or
