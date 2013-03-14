@@ -376,6 +376,8 @@ public:
       cursors.clear();
       c_map.clear();
       picoQL->toOpen = 0;
+      assert(picoQL->locked == 0);
+      picoQL->locked = 0;
 #ifdef PICO_QL_DEBUG
       printf("Table %s picoQL is %lx; freeing query structs.\n", picoQL->zName, (long)picoQL);
 #endif
