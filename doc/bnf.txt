@@ -1,32 +1,32 @@
-<--VIRTUAL TABLE DEFINITION-->
+; VIRTUAL TABLE DEFINITION
 
-<table_def> ::= 'CREATE VIRTUAL TABLE' <virtual table name> 
-	    	'USING STRUCT VIEW'  <struct view name> 
-		['WITH REGISTERED C NAME' <base variable>] 
-		'WITH REGISTERED C TYPE' <struct_type>
-		['USING LOOP' <loop_variant>] '$'
+<vitrual_table_def> ::= 'CREATE VIRTUAL TABLE' <virtual table name> 
+	    	        'USING STRUCT VIEW'  <struct view name> 
+		        ['WITH REGISTERED C NAME' <base variable>] 
+		        'WITH REGISTERED C TYPE' <struct_type>
+		        ['USING LOOP' <loop_variant>] '$'
 
 <struct_type> ::= <container> | <object> | <struct> |
 		  <primitive_data_type' ['*']
 
 <container> ::= (<container_class> '<' <struct_type>
-<--if associative container-->
-	    [',' <struct_type>] '>' ['*']) | <C_container>
+                ; if associative container
+	        [',' <struct_type>] '>' ['*']) | <C_container>
 
-<container_class> ::= <stl_class> | <other_container_class>
+<container_class> ::= <stl_class> | <other_class>
  
 <stl_class> ::= 'list' | 'vector' | 'deque' | 'set' | 
 		  'multiset' | 'map' | 'multimap'
 
-<other_container_class> ::= <SGI forward container concept compatible>
+<other_class> ::= <SGI forward container concept compatible>
 
 <C_container> ::= <d_type> | <struct>':'<d_type>
-<--For C linked lists and C arrays respectively.
-   The loop variants for these containers can be 
-   customized by the USING LOOP directive
-   which may include macros. The latter can be
-   defined at the top of the DSL description.
-   See examples/CApp for example use.-->
+; For C linked lists and C arrays respectively.
+; The loop variants for these containers can be 
+; customized by the USING LOOP directive
+; which may include macros. The latter can be
+; defined at the top of the DSL description.
+; See examples/CApp for example use.
 
 <d_type> ::= <struct> | <primitive_data_type> ['*']
 
@@ -40,51 +40,49 @@
 
 <loop_variant> ::= <user defined loop variant>
 
-<--STRUCT VIEW DEFINITION-->
+; STRUCT VIEW DEFINITION
 
 <struct_view_def> ::= 'CREATE STRUCT VIEW' 
 			<struct view name> '(' 
-			<column_def> {',' <column_def>} ')$'
+			<column_def> {',\n' <column_def>} ')$'
 
 <column_def> ::=  <primitive_column_def> | 
 	     	  <struct_column_def> | 
-		  <struct_view_inheritance
+		  <struct_view_inclusion>
 
 <primitive_column_def> ::= <column_name> 
 			   <primitive_data_type> 
 			   'FROM' <access_statement>
 
-<struct_column_def> ::= 'FOREIGN KEY(<column name>) FROM' 
-		    	<access_statement> 
-			[REFERENCES <virtual table name>] 
-						[POINTER]
+<struct_column_def> ::= 'FOREIGN KEY(' <column name> ') FROM' 
+		    	<access_statement> 'REFERENCES'
+			<virtual table name> ['POINTER']
 
 <access_statement> ::= <valid C/C++ expression> | 'self'
 
-<--Instruct the parser to fill a current struct view from one defined
-previously by referencing the struct view's name
-<struct_view_inheritance> ::= 'INCLUDES STRUCT VIEW' 
-				<struct view name> 
-			        ['FROM' <access_statement>]
+; Instruct the parser to fill a current struct view from one defined
+; previously by referencing the struct view's name
+<struct_view_inclusion> ::= 'INCLUDES STRUCT VIEW' <struct view name> 
+			      ['FROM' <access_statement> ['POINTER']]
 
-<--UNION VIEW DEFINITION-->
+; UNION VIEW DEFINITION
 
 <union_view_definition> ::= 'CREATE UNION VIEW' <u_name> '('
 			    'CASE' <access_stetement>
-			    'WHEN' <case> THEN <column_def>
-			    {'WHEN' <case> THEN  <column_def>}
+			    'WHEN' <case> 'THEN' <column_def>
+			    {'WHEN' <case> 'THEN' <column_def>}
 			    ')$'
 
 <case> ::= <valid C/C++ constant>
 
-<--STANDARD RELATIONAL VIEW DEFINITION-->
+; STANDARD RELATIONAL VIEW DEFINITION
 
 <rel_view_def> ::= <ANSI 92 SQL standard> '$'
 
-<--LOCK DEFINITION-->
+; LOCK DEFINITION
 
 <lock_def> ::= 'USE C LOCK' <lock_function> 'UNLOCK'
-	       	      	    <unlock_function>'$'
+	       	      	    <unlock_function> '$'
 
 <lock_function> ::= <valid C/C++ function>
 
