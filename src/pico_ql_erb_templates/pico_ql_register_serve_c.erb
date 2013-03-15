@@ -89,9 +89,9 @@ int pico_ql_serve(sqlite3 *db) {
   exit_status = thread_sqlite(db);
 #endif
   if (((int)(long)exit_status) != SQLITE_DONE)
-    printf("PiCO QL library terminating abnormally with error code %i\n.", (int)(long)exit_status);
+    printf("PiCO QL module terminating abnormally with error code %i\n.", (int)(long)exit_status);
   else
-    printf("PiCO QL initiated normally.\n");
+    printf("PiCO QL module initiated normally.\n");
   return (int)(long)exit_status;
 }
 <%      else %>
@@ -112,7 +112,7 @@ int pico_ql_serve(int port) {
   if (((int)(long)exit_status) != SQLITE_DONE)
     printf("PiCO QL library terminating abnormally with error code %i\n.", (int)(long)exit_status);
   else
-    printf("PiCO QL thread terminating normally.\n");
+    printf("PiCO QL library terminating normally.\n");
   return (int)(long)exit_status;
 }
 <%      end %>

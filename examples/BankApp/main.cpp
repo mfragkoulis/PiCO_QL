@@ -105,7 +105,7 @@ int main() {
     pico_ql_register((const void *)&accounts, "accounts");
     pico_ql_register((const void *)&superaccounts, "superaccounts");
     pico_ql_register((const void *)&specialaccounts, "specialaccounts");
-    while (pico_ql_serve(8081)) {};
+    pico_ql_serve(8081);
     
     for (it = superaccounts.begin(); it != superaccounts.end(); it++) {
 	printf("%i\n", it->second.get_isbn());

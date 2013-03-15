@@ -304,7 +304,7 @@ int main(int argc, const char *argv[]) {
     // description e.g. (WITH BASE = vehicles").
     pico_ql_register((const void *)best_fl.get_fleet(), "vehicles");
     pico_ql_register((const void *)&test, "test");
-    while (pico_ql_serve(8083)) {};
+    pico_ql_serve(8083);
     
     cout << endl << "Optimised solution after " << 
         restarts << 
