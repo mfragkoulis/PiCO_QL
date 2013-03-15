@@ -115,5 +115,5 @@ int call_test(sqlite3 *db) {
     printf("Invoking pico_ql_diff_test script failed.\n");
     exit(1);
   }
-  return SQLITE_OK;
+  return SQLITE_DONE;
 }

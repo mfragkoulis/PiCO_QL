@@ -29,6 +29,7 @@
 #include <pthread.h>
 #endif
 <%= directives %>
+#include <stdio.h>
 #include <string.h>
 #include <sqlite3.h>
 #include "pico_ql_search.h"
@@ -87,9 +88,10 @@ int pico_ql_serve(sqlite3 *db) {
 #else
   exit_status = thread_sqlite(db);
 #endif
-#ifdef PICO_QL_DEBUG
-  printf("SQLite thread returned %i in serve.\n", (int)(long)exit_status);
-#endif
+  if (((int)(long)exit_status) != SQLITE_DONE)
+    printf("PiCO QL library terminating abnormally with error code %i\n.", (int)(long)exit_status);
+  else
+    printf("PiCO QL initiated normally.\n");
   return (int)(long)exit_status;
 }
 <%      else %>
@@ -107,9 +109,10 @@ int pico_ql_serve(int port) {
 #else
   exit_status = thread_sqlite((void *)portN);
 #endif
-#ifdef PICO_QL_DEBUG
-  printf("SQLite thread returned %i in serve.\n", (int)(long)exit_status);
-#endif
+  if (((int)(long)exit_status) != SQLITE_DONE)
+    printf("PiCO QL library terminating abnormally with error code %i\n.", (int)(long)exit_status);
+  else
+    printf("PiCO QL thread terminating normally.\n");
   return (int)(long)exit_status;
 }
 <%      end %>

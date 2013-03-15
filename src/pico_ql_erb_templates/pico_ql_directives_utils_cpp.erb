@@ -105,6 +105,7 @@ extern <%= vt.signature %> <%= retype %>pico_ql_table_<%= vt.base_var %>_<%= typ
 // Thread. Creates the queries and passes them on to PiCO_QL.
 void * thread_sqlite(void *data) {
   const char **queries, **sqlite_names;
+  void *re = (void *)(long)SQLITE_DONE;
 <% view_length = 0 %>
 <% @views == nil ? views_length = 0 : views_length = @views.length %>
   queries = (const char **)sqlite3_malloc(sizeof(char *) * <%= (@tables.length + views_length).to_s %>);
@@ -135,11 +136,14 @@ void * thread_sqlite(void *data) {
   set_selectors();
   int port_number = *(int *)data;
   delete (int *)data;
-  failure = register_table(<%= (@tables.length + views_length).to_s %>, <%= @tables.length.to_s %>, queries, sqlite_names, port_number);
+  if ((failure = register_table(<%= (@tables.length + views_length).to_s %>, <%= @tables.length.to_s %>, queries, sqlite_names, port_number)) != SQLITE_DONE) {
+    printf("Register table returns with error code %i.\n    ", failure);
+    re = (void *)(long)failure;
+  }
   printf("Thread sqlite returns %i\n", failure);
   sqlite3_free(queries);
   sqlite3_free(sqlite_names);
-  return NULL;
+  return re;
 }
 
 

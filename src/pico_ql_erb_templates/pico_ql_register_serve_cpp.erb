@@ -91,6 +91,10 @@ int pico_ql_serve(int port) {
 #else
   exit_status = thread_sqlite((void *)portN);
 #endif
+  if (((int)(long)exit_status) != SQLITE_DONE)
+    printf("PiCO QL library terminating abnormally with error code %i\n.", (int)(long)exit_status);
+  else
+    printf("PiCO QL thread terminating normally.\n");
   return (int)(long)exit_status;
 }
 
