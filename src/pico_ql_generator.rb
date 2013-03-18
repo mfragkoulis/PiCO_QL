@@ -1045,6 +1045,8 @@ class VirtualTable
 
 # Configure tokens to be standalone access paths.
   def configure_token_access_checks(token_ac_p, iden)
+    root = String.new(iden)
+    root.gsub!(/^&/, "")
     token_ac_p.each_index { |tap|
       if $argD == "DEBUG"
         puts "tap is #{tap.to_s}, token to check is: #{token_ac_p[tap]}"
@@ -1052,7 +1054,7 @@ class VirtualTable
       if tap > 0
         token_ac_p[tap].insert(0, "#{token_ac_p[tap-1]}->")
       else
-        token_ac_p[0].insert(0, iden)
+        token_ac_p[0].insert(0, root)
       end
       if $argD == "DEBUG"
         puts "After tapping token is: #{token_ac_p[tap]}"
@@ -1063,15 +1065,17 @@ class VirtualTable
 
 # Display NULL checks
   def display_null_check(token_ac_p, iden, action, fw, space)
+    root = String.new(iden)
+    root.gsub!(/^&/, "")
     token_ac_p.each_index {|tap|
       if token_ac_p.length == 1
-        fw.print "#{space}if (#{iden}#{token_ac_p[0]} == NULL) "
+        fw.print "#{space}if (#{root}#{token_ac_p[0]} == NULL) "
       elsif token_ac_p.length > 1 && tap == 0
-        fw.print "#{space}if ((#{iden}#{token_ac_p[0]} == NULL) "
+        fw.print "#{space}if ((#{root}#{token_ac_p[0]} == NULL) "
       elsif token_ac_p.length > 1 && tap > 0 && tap < token_ac_p.length - 1
-        fw.print "|| (#{iden}#{token_ac_p[tap]} == NULL) "
+        fw.print "|| (#{root}#{token_ac_p[tap]} == NULL) "
       elsif token_ac_p.length > 1 && tap == token_ac_p.length - 1
-        fw.print "|| (#{iden}#{token_ac_p[tap]} == NULL)) "
+        fw.print "|| (#{root}#{token_ac_p[tap]} == NULL)) "
       end
     }
     if token_ac_p.length > 0
@@ -1404,6 +1408,14 @@ class VirtualTable
     fw.puts "      }"
     fw.puts "      break;"    
   end
+
+  def temp_support(access_path)
+    if access_path.match(/^&/)
+      access_path.gsub!(/^&/ , "")
+    else
+      access_path = "*#{access_path}"
+    end
+  end
   
   def gen_fk_col_constr(fw, fk_method_ret, 
                         access_path, 
@@ -1434,8 +1446,9 @@ class VirtualTable
                        null_check_action,
                        fw, space) 
     if $argM == "MEM_MGT" && fk_method_ret == 1    # Returning from a method.
+      temp_support(access_path) # Called once; it suffices.
       fw.puts "#{space}typeof(#{access_path}) t = #{access_path};"
-      fw.puts "#{space}if (#{notC}compare_#{sqlite3_type}(#{column_cast}t#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_type}(val))) {"
+      fw.puts "#{space}if (#{notC}compare_#{sqlite3_type}(#{column_cast}&t#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_type}(val))) {"
     else
       fw.puts "#{space}if (#{notC}compare_#{sqlite3_type}(#{column_cast}#{access_path}#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_type}(val))) {"
     end
@@ -1446,7 +1459,7 @@ class VirtualTable
                        fw, space) 
     if $argM == "MEM_MGT" && fk_method_ret == 1
       fw.puts "#{space}typeof(#{access_path}) t = #{access_path};"
-      fw.puts "#{space}if (#{notC}compare_#{sqlite3_parameters}(#{column_cast}t#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_parameters}(val))) {"
+      fw.puts "#{space}if (#{notC}compare_#{sqlite3_parameters}(#{column_cast}&t#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_parameters}(val))) {"
     else
       fw.puts "#{space}if (#{notC}compare_#{sqlite3_parameters}(#{column_cast}#{access_path}#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_parameters}(val))) {"
     end
