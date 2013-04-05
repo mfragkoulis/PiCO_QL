@@ -1,0 +1,198 @@
+== Representing object associations ==
+PiCO QL provides a relational representation of object-oriented data structures in the form of virtual tables supported by SQLite, an embeddable database engine. This includes [[Relational-representation-and-querying-of-data-structures#wiki-Mapping_hasa_associations|has-a associations between objects]], [[Relational-representation-and-querying-of-data-structures#wiki-Mapping_manytomany_associations|many-to-many associations between objects]] and [[Relational-representation-and-querying-of-data-structures#wiki-Mapping_isa_associations|is-a associations and subtype polymorphism]].
+
+=== Mapping has-a associations ===
+''Has-a'' associations are of two types: ''has-one'' and ''has-many''. Here we
+describe how these are represented. Let the containing object be an object with some contents and the contained be those contents. ''Has-one'' associations include built-in primitive values, references to primitives, objects and references to objects. These are represented as columns in a virtual table that stands for the containing object. ''Has-many'' associations include collections of contained objects and references to collections of contained objects. These are represented by an associated table that stands for the collection of contained objects. Although the associated table’s schema is static, the contents of the associated table are specific to the containing object instance: each instance of the containing instance has distinct contents.
+
+[https://github.com/mfragkoulis/PiCO_QL/blob/master/doc/figure2a.pdf Figure 2(a)] shows the class diagram of a trivial object-oriented data model. [https://github.com/mfragkoulis/PiCO_QL/blob/master/doc/figure2b.pdf Figure 2(b)] shows the respective virtual table schema. On the schema, each record in the customer table (Customer_VT) represents a customer. A customer’s associated medical plan has been included in the customer’s representation: each attribute of the MedicalPlan class occupies a column in Customer_VT. In the same table, foreign key column accounts set id identifies the set of accounts that a customer owns. A customer’s account information may be retrieved by specifying in a query a join with the account table (Account_VT). By specifying a join with the account table, an instantiation happens. The instantiation of the account table is customer specific; it contains the accounts of the current customer only. For another customer another instantiation would be created. Thus, multiple instances of Account_VT implicitly exist in the background as [https://github.com/mfragkoulis/PiCO_QL/blob/master/doc/figure2b.pdf Figure 2(b)] shows.
+
+In PiCO QL we provide each virtual table representing a nested data structure with a column named base, which takes part in ''has-a'' associations. The one side of the association is rendered by a foreign key column, which identifies the contents of an associated table as shown in the previous example, and the other side is rendered by the associated table’s base column, which fulfills an appropriate instantiation. The base column is instrumental both for mapping associations to a relational representation and for [[Relational-representation-and-querying-of-data-structures#wiki-Mapping_a_relational_query_evaluation_to_the_underlying_objectoriented_environment|mapping a relational query evaluation to the underlying object-oriented environment]].
+
+=== Mapping many-to-many associations ===
+''Many-to-many'' associations require no special treatment; they are treated similarly to ''has-many'' associations. Continuing with the bank application example, suppose that, in addition to the above specification, an account can have many owners (Figures [https://github.com/mfragkoulis/PiCO_QL/blob/master/doc/figure3a.pdf 3(a)], [https://github.com/mfragkoulis/PiCO_QL/blob/master/doc/figure3b.pdf 3(b)]). The relationship can be described as a ''has-many'' association from both sides, that is, account to bank customer and vice versa. The effect in the virtual table schema is multiple instantiations for Customer_VT as well, since it is now possible to identify the bank customers that own a specific account.
+
+In the relational model, a ''many-to-many'' relationship requires an intermediate table for the mapping.
+
+In PiCO QL virtual tables provide a relational representation to an application’s data structures, but are only views on the data. For each instance of a Customer (say John Doe) a distinct Account_VT (say John_Doe_Account_VT) virtual table is instantiated. Similarly, for each instance of an Account (say Saving_Account) a distinct Customer_VT (say Saving_Account_Customer_VT) is instantiated.
+
+=== Mapping is-a associations ===
+The support of ''is-a'' associations in the object-oriented paradigm provides
+powerful features, namely inheritance and subtype polymorphism. PiCO QL offers two ways to incorporate oo inheritance and subtype polymorphism addressable at a relational representation of data structures; see [https://github.com/mfragkoulis/PiCO_QL/blob/master/doc/figure4a.pdf Figure 4(a)] for an example inheritance hierarchy. These ways correspond to ones supported by RDBMSs.
+
+First, it is possible to represent each class in the inheritance hierarchy as a separate virtual table and use a relationship to link them – see [https://github.com/mfragkoulis/PiCO_QL/blob/master/doc/figure4b.pdf Figure 4(b)], following the '''table to class mapping''' approach. Second, it is possible to include inherited members as columns in each of the subclasses represented as virtual tables – see [https://github.com/mfragkoulis/PiCO_QL/blob/master/doc/figure4c.pdf Figure 4(c)], following the '''table to concrete class mapping''' approach.
+
+For polymorphic containers care must be taken in representing their contents that involve subtypes of the container element type. Suppose we represented a polymorphic container of accounts, that is each element could be a reference to a savings account or premium account, as in [https://github.com/mfragkoulis/PiCO_QL/blob/master/doc/figure5a.pdf Figure 5(a)]. Virtual table Account_VT — see [https://github.com/mfragkoulis/PiCO_QL/blob/master/doc/figure5b.pdf Figure 5(b)], which represents the container of accounts, includes columns that map to members of Account type. This way, basic account information can be retrieved directly from Account_VT. Virtual table PremiumAccount_VT includes columns that map to members of type PremiumAccount. Similarly virtual table SavingsAccount_VT includes columns that map to members of type SavingsAccount. A relationship instance links the virtual table representing the base class with the virtual table representing a derived class. Consequently premium, savings account information can be retrieved from the virtual tables representing the derived classes through the relationship instances.
+
+During a query ([[Relational-representation-and-querying-of-data-structures#wiki-Listing8|Listing 8]]), columns that map to derived type members may be accessed by issuing joins to link the relational representation of the base class to the relational representations of the derived classes. Joins between sqlite virtual tables take the form of left outer joins; hence join operations trigger checks in the background to match a container element’s derived type against the type represented by a derived class’ relational representation. In the case, say, of an account container element which is a reference to a PremiumAccount object instance, the type check as a result of joining with PremiumAccount_VT will succeed, since PremiumAccount vt represents type PremiumAccount, while the type check resulting from joining with SavingsAccount_VT will fail and the query will terminate with a misuse error message. Type checks ensure type consistency for each container element. In the result set, the columns of the relational representations of other derived classes than the one the element belongs are populated with null values.
+
+== DSL syntax ==
+PiCO QL provides a DSL for describing the mapping of the OO data into a relational model. The mapping is performed in two steps: a) ''struct view definitions'' describe a virtual table’s columns and b) ''virtual table definitions'' link a struct view definition to a program’s data structure type. Together they compose a relational representation definition. The DSL’s syntax is formally described in [https://github.com/mfragkoulis/PiCO_QL/blob/master/doc/bnf.txt bnf.txt] using '''Backus-Naur Form (BNF)''' notation.
+
+=== Struct view definitions ===
+Struct view definitions (Listings 1 – 4) describe the columns of a virtual table. They resemble relational table definitions. Struct view definitions include the struct view’s name and its attributes. Each attribute description contains the essential information for defining a virtual table column.
+Column definitions are of two types, data column definitions and special column definitions for representing ''has-a'', ''many-many'' and ''is-a'' object associations. Data column definitions include the column’s:
+
+* name, 
+* data type, and
+* access path, that is, a C++ expression that retrieves the column value from the object. 
+
+Special column definitions include the column’s:
+
+* name, 
+* access path, and 
+* associated virtual table. 
+
+Two kinds of special column definitions are supported, ''foreign key definitions'' (Listings [[Relational-representation-and-querying-of-data-structures#wiki-Listing1|1]], [[Relational-representation-and-querying-of-data-structures#wiki-Listing2|2]]) and ''struct view inclusion definitions'' (Listings [[Relational-representation-and-querying-of-data-structures#wiki-Listing3|3]], [[Relational-representation-and-querying-of-data-structures#wiki-Listing4|4]]).
+
+<center><div id="Listing1">Listing 1: Struct view definition - ''has-a'' relationship (Figures [https://github.com/mfragkoulis/PiCO_QL/blob/master/doc/figure3a.pdf 3(a)], [https://github.com/mfragkoulis/PiCO_QL/blob/master/doc/figure3b.pdf 3(b)])</div></center>
+```sql
+            CREATE STRUCT VIEW Account_SV ( 
+                description TEXT FROM description, 
+                balance INTEGER FROM get_balance(), 
+                available_amount INTEGER FROM available_amount, 
+                reserved_amount INTEGER FROM reserved_amount, 
+                FOREIGN KEY(customers_set_id) FROM get_owners() REFERENCES Customer_VT
+            )
+```
+
+The foreign key column definition (Listings [[Relational-representation-and-querying-of-data-structures#wiki-Listing1|1]], [[Relational-representation-and-querying-of-data-structures#wiki-Listing2|2]]) supports relationships between virtual tables which in turn represent a ''has-a'' ([[Relational-representation-and-querying-of-data-structures#wiki-Listing1|Listing 1]]) or an ''is-a'' ([[Relational-representation-and-querying-of-data-structures#wiki-Listing2|Listing 2]]) association between the underlying OO data structures. A foreign key specification resembles its relational counterpart except that no matching column of the referenced table is specified. This is because the foreign key column matches against a standard column of the referenced virtual table, the '''base''' column. The '''base''' column though of fundamental importance it is not present in relational representation definitions. This is only because the DSL parser-compiler can understand when the column is required and auto-generates the appropriate code for it.
+
+<center><div id="Listing2">Listing 2: Struct view definition - ''is-a'' normalization ([https://github.com/mfragkoulis/PiCO_QL/blob/master/doc/figure4b.pdf Figure 4(b)])</div></center>
+```sql
+            CREATE STRUCT VIEW PremiumAccount_SV (
+                overdraft INTEGER FROM overdraft, 
+                FOREIGN KEY(account id) FROM self REFERENCES Account_VT
+            )
+```
+
+Listings [[Relational-representation-and-querying-of-data-structures#wiki-Listing2|2]] and [[Relational-representation-and-querying-of-data-structures#wiki-Listing3|3]] illustrate the supported inheritance mapping options in terms of the DSL. [[Relational-representation-and-querying-of-data-structures#wiki-Listing2|Listing 2]] presents the support for representing each class in the inheritance hierarchy as a separate virtual table (table per class mapping) and using a relationship to link them. ''self'' is a language keyword that denotes an empty access path. It functions as a placeholder and is used to support an inheritance mapping through a relationship instance. The base object’s identity is adequate information for the mapping in these cases. On the other hand, [[Relational-representation-and-querying-of-data-structures#wiki-Listing3|Listing 3]] shows support for including inherited members as columns in each of the subclasses represented as virtual tables (table per concrete class mapping).
+
+<center><div id="Listing3">Listing 3: Struct view definition - ''is-a'' inclusion ([https://github.com/mfragkoulis/PiCO_QL/blob/master/doc/figure4c.pdf Figure 4(c)])</div></center>
+```sql
+            CREATE STRUCT VIEW PremiumAccount_SV ( 
+                overdraft INTEGER FROM overdraft, 
+                INCLUDES STRUCT VIEW Account_SV) % Struct view inclusion
+            )
+```
+
+Including relational representations into others is useful for representing not only ''is-a'' but also ''has-a'' associations inline ([[Relational-representation-and-querying-of-data-structures#wiki-Listing4|Listing 4]]). Such is the case with a medical plan included in a customer’s relational representation in Figures [https://github.com/mfragkoulis/PiCO_QL/blob/master/doc/figure3a.pdf 3(a)], [https://github.com/mfragkoulis/PiCO_QL/blob/master/doc/figure3b.pdf 3(b)].
+
+<center><div id="Listing4">Listing 4: Struct view definition - ''has-a'' inclusion ([https://github.com/mfragkoulis/PiCO_QL/blob/master/doc/figure3b.pdf Figure 3(b)])</div></center>
+```sql
+            CREATE STRUCT VIEW Customer_SV ( 
+                firstName TEXT FROM first name, 
+                surname TEXT FROM surname, 
+                FOREIGN KEY(accounts_set_id) FROM get_accounts() REFERENCES Account_VT, 
+                INCLUDES STRUCT VIEW MedicalPlan_SV FROM get_mplan()) % Struct view inclusion
+            )
+```
+
+==== Datatypes ====
+Although PiCO_QL does not use SQLIte3 for storing data, the VT create statements and the data manipulation in the query process has to be done in datatypes that SQLite3 understands.
+
+Generally, SQLite3 uses a dynamic type system. This means that a value type is associated with the value itself. Except for an INTEGER PRIMARY KEY, any other column can be used to store a value of any storage class.
+
+Hence, SQLite3 uses storage classes to categorise types of data and storage classes are slightly more general than datatypes. For instance, the INTEGER storage class includes six different integer datatypes of different lengths. For the most part the terms _storage class_ and _datatype_ can be used interchangeably.
+
+SQLite3's storage classes include:
+* NULL. The value is a NULL value.
+* INTEGER. The value is a signed integer, stored in 1, 2, 3, 4, 6, or 8 bytes depending on the magnitude of the value.
+* REAL. The value is a floating point value, stored as an 8-byte IEEE floating point number.
+* TEXT. The value is a text string, stored using the database encoding (UTF-8, UTF-16BE or UTF-16LE).
+* BLOB. The value is a blob of data, stored exactly as it was input.
+The above information is taken from http://sqlite.org/datatype3.html where more information about SQLite3's datatypes can be retrieved.
+
+Concerning character arrays declare ''char'' arrays and pointers as ''TEXT'' and those that belong to the ''std::string'' class as ''STRING''.
+
+===== Unions =====
+PiCO QL also supports ''unions'' as defined in C, that is they can contain anything not just scalars. Users define in the DSL a column representing a union using the ''UNION'' datatype and provide a separate definition to describe the union contents. 
+
+<center><div id="Listing5">Listing 5: Union view definition</div></center>
+```sql
+            CREATE UNION VIEW weight (
+                   CASE weight_mode
+                   WHEN 0 THEN name TEXT FROM name
+                   WHEN 1 THEN kg DOUBLE FROM kg
+                   WHEN 2 THEN gr INT FROM gr
+                   WHEN 3 THEN FOREIGN KEY(goldEquivalent_id) 
+                   	    FROM g_weight REFERENCES GoldEquivalent
+            )$
+
+            CREATE STRUCT VIEW Money (
+                   name TEXT FROM name,
+                   price_mode INT FROM price_mode,
+                   weight_mode INT FROM weight_mode,
+                   weight UNION FROM wgt
+            )$
+```
+
+The [https://github.com/mfragkoulis/PiCO_QL/blob/master/examples/CApp/pico_ql_dsl.sql DSL description] of the CApp example case study contains a number of union view definitions like [[Relational-representation-and-querying-of-data-structures#wiki-Listing5|Listing 5]].
+SQL queries on unions are also available at the example's [https://github.com/mfragkoulis/PiCO_QL/blob/master/examples/CApp/pico_ql_test.c#L102 test query file].
+
+=== Virtual table definitions ===
+Virtual table definitions ([[Relational-representation-and-querying-of-data-structures#wiki-Listing6|Listing 6]]) link an object-oriented data structure to its relational representation. They carry the virtual table’s name and information about the data structure it represents. Data structure information includes an identifier (''C NAME'') and a type (''C TYPE''); the identifier maps the application code data structure to its virtual table representation; the type must agree with the data structure’s programming language type. A virtual table definition always links to a struct view definition through the using struct view syntax.
+
+<center><div id="Listing6">Listing 6: Virtual table definition</div></center>
+```sql
+            CREATE VIRTUAL TABLE Account_VT 
+            USING STRUCT VIEW Account_SV 
+            WITH REGISTERED C NAME accounts 
+            WITH REGISTERED C TYPE set<Account ∗>;
+```
+
+If ''C TYPE'' is a C++ collection it has to follow the ''SGI ForwardContainer'' and ''ForwardIterator'' concept. If it is a C data structure, its traversal is user-driven as explained in [[Fast-track-roll-your-own-probes#wiki-Loop_variants|Loop variants]].
+
+== Mapping a relational query evaluation to the underlying object-oriented environment ==
+In PiCO QL, the relational representation of an object-oriented data structure (OODS) comprises one or more virtual tables. Each virtual table in the representation enables access to some part of OODS using path expressions (see [[Relational-representation-and-querying-of-data-structures#wiki-Listing7|Listing 7]]) for an example of the underlying auto-generated routines).
+
+<center><div id="Listing7">Listing 7: Software structure of relational representation (auto-generated code)</div></center>
+```cpp
+             int Account_VT_search(...) { 
+               ...
+               switch(col) { 
+               case 0:
+                 for (int i = 0; i < accounts.size (); i++) { 
+                   if (compare(accounts[i].description, operator, rhs)
+                     add to result set ();
+                 }
+                 break; 
+               case ...
+               ...
+```
+
+For example, a container of PremiumAccount objects could be represented by rendering the ''is-a'' association between classes Account and PremiumAccount via a table per class mapping — recall [https://github.com/mfragkoulis/PiCO_QL/blob/master/doc/figure4b.pdf Figure 4(b)]; then the design would include two virtual tables, one for each class. The virtual table representing the Account type provides access to Account members and the virtual table representing the PremiumAccount type provides access to PremiumAccount members. Member access is provided by path expressions according to the DSL specification.
+
+<center><div id="Listing8">Listing 8: Join query — querying ''is-a'' and ''has-a'' associations</div></center>
+```sql
+            SELECT ∗ FROM PremiumAccount_VT 
+            JOIN Account_VT 
+            ON Account_VT.base = PremiumAccount_VT.account_id 
+            JOIN Customer_VT 
+            ON Customer_VT.base = Account_VT.customer_id;
+```
+
+Virtual tables may be combined in SQL queries by means of join operations (Listings [[Relational-representation-and-querying-of-data-structures#wiki-Listing8|8]], [[Relational-representation-and-querying-of-data-structures#wiki-Listing9|9]]). Object-oriented data structures may span arbitrary levels of nesting. Although the nested data structure may be represented as one or more virtual table(s) in the relational interface, access to it is available through a parent data structure only. The virtual table representing the nested data structure (NVT) can only be used in SQL queries combined with the virtual table representing a parent data structure (PVT). For instance, one cannot select a customer’s associated medical plan without first selecting the customer.  If such a query is input, it terminates producing a misuse error message.
+
+A join is required to allow querying of NVTs. The join uses the column of the PVT that refers to the nested structure (similar to a foreign key) and the NVT's '''base''' column, which acts as an internal identifier. 
+When a join operation references the NVT’s base column it instantiates the NVT by setting the foreign key column’s value to the base column. This drives the new instantiation thereby performing the equivalent of a join operation: ''for each value of the join attribute, that is the foreign key column, the operation finds the collection of tuples in each table participating in the join that contain that value''. In our case the join is a precomputed one and, therefore, it has the cost of a pointer traversal. The base column acts as the activation interface of an NVT and guarantees type-safety by checking that the NVT’s specification is appropriate for representing the nested data structure.
+
+Providing relational views of object-oriented data using a relational query engine imposes one requirement to SQL queries. PVTs have to be specified before NVTs in the from clause. This stems from the implementation of SQLite’s syntactic join evaluation and does not impose a limitation to query expressiveness.
+
+<center><div id="Listing9">Listing 9: Join query — querying polymorphic data structures</div></center>
+```sql
+            SELECT ∗ FROM Account_VT 
+            JOIN PremiumAccount_VT 
+            ON PremiumAccount_VT.base=Account_VT.premiumaccount_id 
+            JOIN SavingsAccount_VT
+            ON SavingsAccount VT.base=Account VT.savingsaccount id;
+```
+
+In addition to combining relational representations of associated data structures in an SQL query, joins may also be used to combine relational representations of unassociated data structures; this is implemented through a nested loop join. Say the bank regulator requested account information of specific bank customers by providing their full names. After incorporating the customer list in the system and creating its relational representation (IRSCitizen_VT) we could issue the query shown in [[Relational-representation-and-querying-of-data-structures#wiki-Listing10|Listing 10]].
+
+<center><div id="Listing10">Listing 10: Relational join query</div></center>
+```sql
+            SELECT ∗ FROM Customer_VT, IRSCitizen_VT 
+            WHERE Customer_VT.first_name = IRSCitizen_VT.first_name 
+            AND Customer_VT.surname = IRSCitizen_VT.surname;
+```

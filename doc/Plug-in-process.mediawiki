@@ -1,29 +1,43 @@
-After the writing of the description, users should be able to execute the ruby parser and generator successfully. This can be found in the src/ directory as ''pico_ql_generator.rb'' and takes at most three arguments, the file where the description resides and, optionally, the option ''typesafe'' which instructs the generator to generate code for type safety and the option ''debug'' which prints debug information. In UNIX like systems, typing 
+After defining a relational representation of data structures using the [[Relational-representation-and-querying-of-data-structures#wiki-DSL_syntax|PiCO QL DSL]], users should provide this description (say ''pico_ql_dsl.sql'' to the Ruby parser-generator by executing:
 
-            ruby pico_ql_generator.rb pico_ql_dsl.sql typesafe
+```bash
+            cd PiCO QL/src
+            ruby pico_ql_generator.rb pico_ql_dsl.sql [cpp] [c] [kernel] [mem_mgt] [no_mem_mgt] [debug]
+```
 
-would generate two files, ''pico_ql_search.cpp'' and ''pico_ql_makefile.append'' to merge with the application's makefile. As a last action, users should add the ''pico_ql_search.h'' header file to the file where the library will be called from, add the line 
+''cpp'' and ''mem_mgt'' are the default configuration. ''cpp'' means generate code for C++ build and ''mem_mgt'' means provide
+appropriate memory containers for storing method return variables in case they contain temporaries.
+''c'' means generate code for C build while ''kernel'' means generate code for Linux kernel module build.
+The option ''debug'' prints debug information.
 
+Users can register data structures with PiCO QL by calling:
+
+```cpp
             void pico_ql_register(void *data_structure, const char *ds_name) 
+```
 
-for each data structure users want to represent as a virtual table and initiate the library by adding the call:
+Each data structure will be represented as one or more virtual table. '''void *data_structure''' is a pointer to a described C/C++ data structure and '''const char *ds_name''' is a name for the data structure that has to agree with the C NAME used in the DSL description (WITH REGISTERED C NAME '''ds_name''').
 
-            pico_ql_serve();   
+The library is initiated with a call to:
 
-That's it. '''void *data_structure''' is a pointer to a described C++ data structure and '''const char *ds_name''' is a name for the data structure that has to be identical to the variable name used in the DSL description (WITH BASE = ds_name). The definition will be generated in the ''pico_ql_search.cpp''.
+```cpp
+            int pico_ql_serve();   
+```
+
+Application source code files containing the above two calls should include the ''pico_ql_search.h'' header file. [https://github.com/mfragkoulis/PiCO_QL/blob/master/doc/figure6.pdf Figure 6] presents the plug-in process.
 
 
 == Compile options ==
-The flags PICO_QL_DEBUG, PICO_QL_TEST, PICO_QL_TYPESAFE, PICO_QL_SINGLE_THREADED, PICO_QL_JOIN_THREADS and PICO_QL_HANDLE_POLYMORPHISM configure the source code. 
+The flags PICO_QL_DEBUG, PICO_QL_TEST, PICO_QL_SINGLE_THREADED, PICO_QL_JOIN_THREADS, PICO_QL_HANDLE_TEXT_ARRAY and PICO_QL_HANDLE_POLYMORPHISM configure the source code. 
 
 * PICO_QL_DEBUG corresponds to debug switches all over the C/C++ source code.
 
-* PICO_QL_TEST option switches to test mode. Instead of starting the local server, PICO_QL_TEST prints state information and executes the test queries it finds in ''pico_ql_test.c''. Accordingly, it writes the results in a file called ''pico_ql_test_current.txt'' and calls a small, simple script (pico_ql_diff_test.sh) which compares the latter with ''pico_ql_test_success.txt''. A SEED option may be used to copy the results from ''pico_ql_test_current.txt'' to ''pico_ql_test_success.txt''. 
+* PICO_QL_TEST option switches to test mode. Instead of starting the SWILL web interface, PICO QL executes the test queries it finds in ''pico_ql_test.c''. Accordingly, it writes the results in a file called ''pico_ql_test_current.txt'' and calls a small, simple script (pico_ql_diff_test.sh) which compares the latter with ''pico_ql_test_success.txt''.
 
-* PICO_QL_TYPESAFE only has meaning with the PICO_QL_TEST flag. It should be set for safely executing test queries, i.e. ones that need code for type safety to have been generated (this is achieved by providing ''typesafe'' as an argument to the ruby parser). Those queries have to be placed in an '''#ifdef PICO_QL_TYPESAFE''' block in ''pico_ql_test.c'', otherwise their execution will result in a SEG_FAULT (see ''pico_ql_test.c'' in ''examples/VRP/'') when PICO_QL_TYPESAFE flag is disabled. 
+* PICO_QL_SINGLE_THREADED starts the library in the same thread as the application.
 
-* PICO_QL_SINGLE_THREADED starts the library in the same thread as the application. If it is not defined PICO_QL operates in a separate thread.
+* PICO_QL_JOIN_THREADS starts the library in a separate thread from the application's. Either the previous or this compile option has to be defined otherwise the PiCO QL library won't start.
 
-* PICO_QL_JOIN_THREADS is useful in multi-threaded mode to prevent the application from terminating.
+* PICO_QL_HANDLE_TEXT_ARRAY forces the use of a dynamic ''<nowiki> vector<string*> </nowiki>'' to hold char array return values of methods. This is useful in case of virtual methods that write to the same or neighboring memory locations their return value and the columns that represent them coexist in a SELECT clause. Since SQLite collects each column's value and presents them when the whole row is complete, the return values of the virtual methods are messed up when SQLite uses the pointer to the character array provided to it.
 
-* PICO_QL_HANDLE_POLYMORPHISM forces the use of a dynamic vector<string*> to hold char array return values of methods. This is useful in case of virtual methods that write to the same or neighboring memory locations their return value and the columns that represent them coexist in a SELECT clause. Since SQLite collects each column's value and presents them when the whole row is complete, the return values of the virtual methods are messed up when SQLite uses the pointer to the character array provided to it.
+* PICO_QL_HANDLE_POLYMORPHISM drives dynamic type checks to ensure the safe querying of polymorphic data structures.

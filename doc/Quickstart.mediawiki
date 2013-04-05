@@ -5,7 +5,8 @@
 3. Copy the contents of the ''src/'' source code folder in your application's source code folder, where the  C++ object collections of interest are located.
 
 4. Describe the collection(s) using the DSL, e.g. for the simple C++ source code provided below:
-```c
+
+```cpp
                         #include <vector>
                         #include "Car.h"
                         using namespace std;
@@ -17,26 +18,31 @@
                             ...
                         }
 ```
+
 the required definitions would be the following:
- <nowiki>                       #include <vector>
+
+```sql
+                        #include <vector>
                         #include "Car.h"
                         using namespace std;
                         ;
-                        CREATE ELEMENT TABLE Car (
-                             colPlate STRING FROM get_plate(),
-                             brandCol STRING FROM brand,
+                        CREATE STRUCT VIEW Car (
+                             colPlate TEXT FROM get_plate(),
+                             brandCol TEXT FROM brand,
                              col_model STRING FROM model,
                              color STRING FROM color,
                              power INT FROM horse_power
                          );
 
-                         CREATE TABLE CarsDB.AllCars
-                         WITH BASE = cars AS 
-                         SELECT * FROM vector<Car>;</nowiki>
-According to the latter definition, virtual table AllCars will belong to database CarsDB. This is only a representation, i.e. a virtual table. Only the table schema will be stored and no physical storage for data will be occupied.
+                         CREATE VIRTUAL TABLE AllCars
+                         USING STRUCT VIEW Car
+                         WITH REGISTERED C NAME cars 
+                         WITH REGISTERED C TYPE vector<Car>;
+```
 
-5. Add the header file '''#include pico_ql_search.h''' and the calls to the library '''pico_ql_register(void *data_structure, const char *ds_name);''', '''pico_ql_serve();''' into a convenient place of the source code file, where your object collections are located. The former function makes a described collection available to the library, the latter initiates the library as in:
-```c
+5. Add the header file '''#include pico_ql_search.h''' and the calls to the library '''pico_ql_register(void *data_structure, const char *ds_name);''', '''pico_ql_serve();''' into a convenient place of the source code file(s), where your object collections are located. The former function registers a described collection with the library, the latter initiates the library as in:
+
+```cpp
                          #include <vector>
                          #include "Car.h"
                          #include "pico_ql_search.h"              // Include library header file.
@@ -50,35 +56,46 @@ According to the latter definition, virtual table AllCars will belong to databas
                              pico_ql_register(&cars, "cars");     /* Export the collection and register it   
                                                                    * with the library.
                                                                    */
-                             while (pico_ql_serve())            // Start the query interface.
-                                      ;
+                             pico_ql_serve();                     // Start the query interface.
                          }
 ```
 
 6. Execute:
- <nowiki>                        ruby pico_ql_generator.rb pico_ql_dsl.sql [typesafe]
+
+```bash
+                         ruby pico_ql_generator.rb pico_ql_dsl.sql
                          -> Created/updated pico_ql_search.cpp .
-                         -> Created/updated pico_ql_makefile.append .</nowiki>
+                         -> Created/updated pico_ql_makefile.append .
+```
 
 7. The generated file pico_ql_makefile.append is a guideline for modifying your application's makefile to compile with the PiCO QL library. There are three actions that need to be settled (shortened example follows).
-* Copy the targets and dependencies for the library's source code files from ''pico_ql_makefile.append'' to your application's makefile (the last five lines in the example below).
-* Embed the dependencies and recipe aimed for the linker from ''pico_ql_makefile.append'' to your application's makefile (the first three lines in the example below).
-* Include ''pico_ql_search.h'' in the dependencies of the makefile target that matches the above mentioned modified source code file (see the fourth line in the example below).
- <nowiki>           1            OBJ=main.o Car.o pico_ql_search.o pico_ql_vt.o pico_ql_interface.o pico_ql_search_helper.o pico_ql_test.o
-            2            executable: $(OBJ)
-            3                    $(CXX) -lswill -lsqlite3 $(CXXFLAGS) $(OBJ) -o $@
-            4            main.o: main.cpp Car.h pico_ql_search.h
-            5            Car.o: Car.cpp Car.h
-            6            pico_ql_search.o: pico_ql_search.cpp pico_ql_search.h pico_ql_interface.h pico_ql_search_helper.h
-            7            pico_ql_vt.o: pico_ql_vt.c pico_ql_vt.h pico_ql_search.h
-            8            pico_ql_interface.o: pico_ql_interface.c pico_ql_interface.h pico_ql_vt.h pico_ql_test.h
-            9            pico_ql_search_helper.o: pico_ql_search_helper.cpp pico_ql_search_helper.h pico_ql_search.h
-           10            pico_ql_test.o: pico_ql_test.c pico_ql_test.h</nowiki>
-
+* Copy the targets and dependencies for the library's source code files from ''pico_ql_makefile.append'' to your application's makefile (the first four and the last five lines in the example below).
+* Embed the dependencies and recipe aimed for the linker from ''pico_ql_makefile.append'' to your application's makefile (lines 5-7 in the example below).
+* Include ''pico_ql_search.h'' in the dependencies of the makefile target(s) whose corresponding source code file(s) register a data structure with PiCO QL and/or start the PiCO QL library (see the eighth line in the example below).
+```bash
+            1            ifdef PICO_QL_JOIN_THREADS
+            2            CXXFLAGS+=-DPICO_QL_JOIN_THREADS
+            3            CFLAGS+=-DPICO_QL_JOIN_THREADS
+            4            endif
+            5            OBJ=main.o Car.o pico_ql_search.o pico_ql_vt.o pico_ql_interface.o pico_ql_search_helper.o pico_ql_test.o
+            6            executable: $(OBJ)
+            7                    $(CXX) -lswill -lsqlite3 $(CXXFLAGS) $(OBJ) -o $@
+            8            main.o: main.cpp Car.h pico_ql_search.h
+            9            Car.o: Car.cpp Car.h
+           10            pico_ql_search.o: pico_ql_search.cpp pico_ql_search.h pico_ql_interface.h pico_ql_search_helper.h
+           11            pico_ql_vt.o: pico_ql_vt.c pico_ql_vt.h pico_ql_search.h
+           12            pico_ql_interface.o: pico_ql_interface.c pico_ql_interface.h pico_ql_vt.h pico_ql_test.h
+           13            pico_ql_search_helper.o: pico_ql_search_helper.cpp pico_ql_search_helper.h pico_ql_search.h
+           14            pico_ql_test.o: pico_ql_test.c pico_ql_test.h
+```
 
 8. Compile with:
- <nowiki>                        make </nowiki>
-For a complete list see [[Plug in process#Compile options|Compile options]]. 
+```bash
+                        make PICO_QL_JOIN_THREADS=1 
+```
+For a complete list see [[Plug-in-process#wiki-Compile_options|Compile options]]. 
 
 9. Execute application and open browser at:
- <nowiki>                        http://localhost:8080</nowiki>
+```markdown
+                        http://localhost:8080
+```

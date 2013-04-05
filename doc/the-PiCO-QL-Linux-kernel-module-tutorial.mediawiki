@@ -1,0 +1,7 @@
+Welcome to the PiCO QL LKM wiki!
+
+Currently the wiki hosts: 
+
+* a [[Fast-track-installation-and-usage-instructions|Fast track installation and usage instructions]] tutorial
+
+* a [[Fast-track-roll-your-own-probes|Fast track roll your own probes]] tutorial

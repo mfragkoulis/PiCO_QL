@@ -1,15 +1,16 @@
 == Single-threaded vs multi-threaded operation ==
-Users may execute PiCO_QL in the same thread as the application (single-threaded) or in a separate thread.
-In the former case, PiCO_QL has to be compiled with PICO_QL_SINGLE_THREADED flag enabled and ''pico_ql_serve()'' may be called from within a loop as in [[Quickstart]] if returning is a problem.
-In the latter case, a normal call to ''pico_ql_serve()'' is enough. When everything goes as planned ''pico_ql_serve()'' returns 1.
+Users may start PiCO_QL in the same thread as the application (single-threaded) or in a separate thread.
+In the former case, PiCO_QL has to be compiled with PICO_QL_SINGLE_THREADED flag enabled. In the latter, it has to be compiled with PICO_QL_JOIN_THREADS compile flag enabled.
+In a happy day scenario ''pico_ql_serve()'' returns 101 (SQLITE_DONE).
 
 == Using PiCO QL ==
-In production (non-test) mode PICO QL opens port ''8080'' at ''localhost'' where the local server is listening for query requests. Opening a browser at this address reveals the query interface.
+In production mode (PICO_QL_TEST not defined) PICO QL opens a port at ''localhost'' where the SWILL web interface is listening for query requests. Opening a browser at this address presents the query interface. The port number is provided as an argument to ''pico_ql_serve()''. A usual port number is ''8080''.
+
+== SQL queries ==
+SQL queries conform to ANSI SQL92 standard. SQLite relaxes SQL's restriction on the column names that can appear in a SELECT with a GROUP BY clause. This makes it easier to process shared objects nested within other collections as single record set.
+
+=== The rownum column ===
+Virtual tables representing C++ collections or C multi-element data structures have an extra column, the ''rownum'' column. It indexes the position of an element inside a C++ collection or a C multi-element data structure. It can be projected in queries as usual and it can be selected using an equality constraint, e.g. ''WHERE rownum = 4'' selects the fourth element. The ''rownum'' column, like the ''base'' column, is auto-generated. The ''rownum'' column is available with a C++ build ([cpp] [[Plug-in-process|argument to parser-generator]]). Many examples of use are provided in the VRP example case study [https://github.com/mfragkoulis/PiCO_QL/blob/master/examples/VRP/pico_ql_test.c#L109 test query file].
 
 == Updating virtual table definitions ==
-Users may update table definitions in the DSL, execute the generator, re-compile and execute the application.
-One further action is required, to drop the previous virtual table definition from the database either by executing a standard
-
- DROP TABLE table_name;
-
-from PiCO QL's web interface or by removing the database file, which lies in the directory where the application is run. When PiCO QL starts it will reinstate all missing virtual table definitions but will not overwrite existing definitions.
+Users may update table definitions in the DSL then execute the generator, re-compile, and execute the application.

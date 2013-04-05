@@ -1,0 +1,116 @@
+1. Download the project's source code tree by executing
+
+```bash
+                 git clone git@github.com:mfragkoulis/PiCO_QL.git
+```
+
+2. Navigate to the downloaded directory; then 
+
+```bash
+                 cd PiCO_QL/src/Linux-kernel-mod/server/ 
+```
+
+where the PiCO QL LKM's source code is located.
+
+3. Only the first time type 
+
+```bash
+                 sudo make prep
+```
+
+to copy header file placeholders that PiCO QL requires in the central catalogue.
+
+4. You can build the module by typing
+
+```bash
+                 make
+```
+
+and clean compilation artifacts by typing
+
+```bash
+                 make clean
+```
+
+5. To load the module type
+
+```bash
+                 sudo insmod picoQL.ko
+```
+
+6. You can verify that the module is loaded by typing
+
+```bash
+                 grep 'picoQL' /proc/modules
+```
+
+7. Entering an SQL query is as easy as
+
+```bash
+                 echo "SELECT * FROM SQLITE_MASTER;" > /proc/picoQL
+```
+
+or you can try the [[Fast-track-installation-and-usage-instructions#wiki-Web_interface|Web interface]].
+
+8. To retrieve the query's result set, type
+
+```bash
+                 cat /proc/picoQL
+```
+
+This query will return the virtual database schema.
+
+9. It is possible to configure query output. Available options are:
+* No metadata -'''default'''-, that is no column names, no result set rows and no execution time reported. In other words, uniform output as Unix commands. (''code'' '''100''')
+* Metadata (''code'' '''111''')
+* Result set as plain text output -'''default'''- (''code'' '''10''')
+* Result set as HTML output (''code'' '''11''')
+
+```bash
+                 ./picoQL_config_ioctl code
+```
+First compile with:
+
+```bash
+                 gcc -g picoQL_config_ioctl.c -o picoQL_config_ioctl
+```
+
+10. To unload the module simply type
+
+```bash
+                 sudo rmmod picoQL
+```
+
+== Web interface ==
+1. Having loaded the PiCO QL LKM, navigate to the client code as follows.
+
+```bash
+                 cd PiCO_QL/src/Linux-kernel-mod/client/ 
+```
+
+2. Compile the web interface by typing
+
+```bash
+                 make
+```
+
+and clean compilation artifacts by typing
+
+```bash
+                 make clean
+```
+
+3. Start the web interface by typing
+
+```bash
+                 ./picoQL-client
+```
+
+4. Open your favorite browser and go to
+
+```markdown
+                 http://localhost:8080
+```
+
+Once the web interface starts it configures the module to produce metadata and provide the result set as an HTML table. To facilitate querying, the query input page features the current virtual table schema.
+

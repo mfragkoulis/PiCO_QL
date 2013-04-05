@@ -1,0 +1,153 @@
+== Quickstart ==
+1. Choose your target data structures. First class example: the list of processes. Processes in the Linux kernel are modeled by '''struct task struct'''. '''init task''' is the head of the process list initialized by the system at boot time.
+```c
+             /* from <linux/sched.h> */
+             extern struct task_struct init_task;
+```
+
+2. Tracking data structures only has to happen once. PiCO QL uses '''pico_ql_register(void *, const char *)''' to keep a reference for each data structure. This is carried out at the module's initialization routines specifically at '''init_sqlite3()''') located in [https://github.com/mfragkoulis/PiCO_QL/blob/master/src/Linux-kernel-mod/server/pico_ql_procfs.c#L187 pico_ql_procfs.c]. To track a kernel data structure simply add a call to '''pico_ql_register()''' including as arguments the data structure's reference and an identifier for mapping it to a relational representation.
+
+```c
+             /* pico_ql_procfs.c */
+             #include <linux/sched.h>
+             sqlite3 *db;
+             pico_ql_register(&init_task, "processes");
+             output = pico_ql_serve(db);
+```
+
+3. PiCO QL uses a relational representation to represent data structures. The relational representation essentially describes a virtual table, that is its columns. Each column is composed of: 
+* the column's name 
+* the column's type 
+* the column's access path, that is how the column will be retrieved.
+The relational representation for data structures representing processes is presented [https://gist.github.com/4687499 here].
+
+
+4. Finally, a virtual table requires information about the mapped data structure, that is:
+* the identifier provided to '''pico_ql_register()''' ('''C NAME''')
+* the data structure's programming language type ('''CTYPE''')
+* a way for traversing the data structure, if it is a multi-element data structure like an array or a linked list. ('''USING LOOP''')
+This information is combined with a virtual table description (see previous point) through the '''USING STRUCT VIEW''' clause. Thus, a data structure type maps to a relational representation.
+
+To provide this information for the list of processes we would write:
+
+```sql
+              CREATE VIRTUAL TABLE Process_VT
+              USING STRUCT VIEW Process_SV
+              WITH REGISTERED C NAME processes
+              WITH REGISTERED C TYPE struct task_struct *
+              USING LOOP list_for_each_entry_rcu(iter, &base->tasks, tasks)
+```
+5. All virtual table descriptions (struct view definitions) and virtual table definitions are located in [https://github.com/mfragkoulis/PiCO_QL/blob/master/src/Linux-kernel-mod/server/pico_ql_dsl.sql pico_ql_dsl.sql]. All '''pico_ql_register()''' calls are located in [https://github.com/mfragkoulis/PiCO_QL/blob/master/src/Linux-kernel-mod/server/pico_ql_procfs.c#L187 pico_ql_procfs.c:init_sqlite3()]. These are the places of interest for creating probes as described in this section. As an exercise try to add a column to the process virtual table ('''Process_VT'''), which is already represented. Then you can re-compile the module to include the newly-added column and load the module to use the column in SQL queries. [[Fast-track-installation-and-usage-instructions#top|Usage instructions]] available.
+
+Happy hacking!
+
+== Quickstart explained ==
+
+Each point in this section explains the corresponding point of the [[Fast-track-roll-your-own-probes#wiki-Quickstart|Quickstart]] section.
+
+1. An observation: since PiCO QL is a loadable kernel module it has direct access to the Linux kernel's exported data structures from the module's routines. All that is required is to include the data structure's header file.
+
+2. '''pico_ql_serve(sqlite3 *db)''' registers the virtual tables with SQLite and starts the query library service. This has been taken care of. You can also browse the code at [https://github.com/mfragkoulis/PiCO_QL/blob/master/src/Linux-kernel-mod/server/pico_ql_procfs.c#L189 pico_ql_procfs.c:init_sqlite3(sqlite3 *db)].
+
+3. A reasonable question following from the previous point would be what is the meaning of '''"processes"'''. PiCO QL requires a convention to match a data structure with its relational representation so that a fitting virtual table can be generated and so that queries that regard the virtual table map to the matched data structure.
+
+4. The '''USING LOOP''' directive in this case leverages a defined macro of the Linux kernel ('''<nowiki><linux/list.h></nowiki>''') for traversing Linux kernel's extensively used linked lists. PiCO QL evaluates the '''USING LOOP''' by substituting references to '''base''' with an appropriate variable instantiation; references to '''iter''' denote the iterator. The virtual table definition links all essential elements for a working virtual table.
+
+Sometimes a loop construct for traversing multi-element data structures is not available. In complex cases a defined macro is required. [https://github.com/mfragkoulis/PiCO_QL/blob/client-server/src/GNU-Linux/server/pico_ql_dsl.sql pico_ql_dsl.sql] contains a variety of '''USING LOOP''' examples.
+
+5. It is almost definite that you would find everything you need in [https://github.com/mfragkoulis/PiCO_QL/blob/master/src/Linux-kernel-mod/server/pico_ql_dsl.sql pico_ql_dsl.sql] in order to extend the relational representation. There are many worked examples there both simple and advanced. An additional aid regards [[Relational-representation-and-querying-of-data-structures#wiki-Datatypes|acceptable datatypes]] in relational representations.
+
+== More advanced probes ==
+
+The Linux kernel exports data structures with caution. Hence, it might be the case that your chosen data structure is not immediately available on its own. There are two ways to solve this issue:
+* Find how to reach the desired data structure from an exported data structure and provide the whole path to '''pico_ql_register()''' like in this [https://github.com/mfragkoulis/PiCO_QL/blob/master/src/Linux-kernel-mod/server/pico_ql_procfs.c#L188 case]. This case differs to nothing from the process described in [[Fast-track-roll-your-own-probes#wiki-Quickstart|Quickstart]].
+* Register the exported data structure, if it meets your purpose, and represent the associations between data structures in the path until you reach your data structure. Defining relational representations of embedded data structures are distinct from defining exported, able to be referenced, data structures in one way; no '''WITH REGISTERED C NAME''' is required for the embedded data structure since it is not registered but will be reachable through its parent structure.
+
+=== Representing associations ===
+This alternative introduces the link that allows representing an arbitrary graph of data structures through relational representations. This section contains a quite extensive documentation on relational representation of associations. Although this is not exactly "fast-track", it is required in order to communicate the semantics of this work. The following two paragraphs are essential for understanding how to represent associations, especially the second. The last two paragraphs explain the associations through a worked example.
+
+Associations include ''has-a'' associations and ''many-to-many'' associations between data structures. To the best of our knowledge a number of many-many associations exist in the kernel, like the association between processes and shared memory segments, but they are not navigable from both sides. In the unlikely event that the kernel introduces such associations, our method can represent them.
+
+''has-a'' associations are of two types: ''has-one'', where a
+data structure has an one-to-one association with another data structure or reference to data structure, and ''has-many'', where a data structure has an one-to-many association with another data structure or reference to data structure.
+''has-one'' associations include in-built primitive values, references to primitives, data structures and references to data structures. These are represented as attributes in a virtual table that stands for the containing data structure. Alternatively, an associated virtual table can be used to stand for has-one associations identically to the representation of has-many associations. ''has-many'' associations are represented by an associated table that corresponds to the set of contained data structures. Although the associated table’s schema is static, ''the contents of the associated table are specific to the containing data structure instance: for each instance of the containing instance we have distinct contents''. 
+
+Both association types are represented in the same manner in the DSL. The foreign key column definition (see [https://gist.github.com/4687499 Process_SV]) 
+
+```sql
+       FOREIGN KEY(fs_fd_file_id) FROM files->fdt REFERENCES EFile_VT POINTER
+```
+
+supports relationships between virtual tables, which in turn represent a ''has-a'' association between the underlying data structures. A foreign key specification resembles its relational counterpart except that no matching column of the referenced table is specified. This is because the foreign key column matches against a standard column of the referenced virtual table. Two more notes regarding the foreign key definition involve:
+* the special identifier POINTER, which is used to denote that the column maps to a pointer type
+* the extensive use of path expressions in access paths
+The former is required to generate code that meets mapped data structures types while the latter is a core aspect of the mapping method and of the query evaluation mechanism.
+
+For example, '''Figure 1''' shows the different representation alternatives for ''has-one'' associations. [https://github.com/mfragkoulis/PiCO_QL/blob/master/src/Linux-kernel-mod/doc/figure1a.pdf Figure1(a)] shows a simplified software model for Linux kernel’s files, processes, and virtual memory while [https://github.com/mfragkoulis/PiCO_QL/blob/master/src/Linux-kernel-mod/doc/figure1b.pdf Figure1(b)] shows the respective virtual table schema. On the schema, each record in the process table ('''Process VT''') represents a process. A process’s associated virtual memory structure has been represented in an associated table. By contrast, the associated file structure has been included within the process’s representation. In addition, the structure '''fdtable''' has been included in its associated file structure and it is also part of the process representation; each member of '''fdtable''' and '''<nowiki>files struct</nowiki>''' occupies a column in '''Process VT'''. By allowing to represent a ''has-one'' association as a separate table or inside the containing instance’s table, the relational representation flexibly expands or folds to meet representation objectives.
+
+'''Figure 1''' shows also the representation of has-many associations. In table '''Process VT''' foreign key column <nowiki>fs_fd_file_id</nowiki> identifies the set of files that a process retains open. A process’s open file information can be retrieved by specifying in a query a join to the file table ('''EFile VT'''). By specifying a join to the file table, an instantiation happens. The instantiation of the file table is process specific; it contains the open files of the current process only. For another process another instantiation would be created. Thus, multiple instances of '''EFile VT''' implicitly exist in the background as [https://github.com/mfragkoulis/PiCO_QL/blob/master/src/Linux-kernel-mod/doc/figure1b.pdf Figure1(b)] shows.
+
+== Even more advanced probes ==
+We have described how we can track data structures, which form arbitrary graphs, through a relational representation of them and their associations. This can be satisfactory up to a level, but data structures can compose lists or arrays and require special operations for traversing them, other than a traditional for loop. For example, the Linux kernel indexes the set of open files for a process through a bit set. PiCO QL introduces [[Fast-track-roll-your-own-probes#wiki-Loop_variants|loop variants]] so that users can define their own customized loop variant for traversing a data structure.
+
+An important consideration for modern tools is to be able to leverage developments taking place in its environment. PiCO QL has strong characteristics for making the best out of existing kernel data sources. Data sources could mean operating system's [[Fast-track-roll-your-own-probes#wiki-Performance_counters|performance counters]] but also DTrace providers, which is a future work plan.
+
+=== Loop variants ===
+
+An interface is required for traversing data structures like arrays and linked lists to execute queries. The USING LOOP directive serves this cause. In PiCO QL, a container/iterator-based uniform abstraction is utilized that wraps diverse types of data structures. The following example (also mentioned in 
+[[Fast-track-roll-your-own-probes#wiki-Quickstart|Quickstart]]
+makes use of a Linux kernel built-in macro for traversing linked lists. 
+
+```sql
+              CREATE VIRTUAL TABLE Process_VT
+              USING STRUCT VIEW Process_SV
+              WITH REGISTERED C NAME processes
+              WITH REGISTERED C TYPE struct task_struct *
+              USING LOOP list_for_each_entry_rcu(iter, &base->tasks, tasks)
+```
+
+If such a mechanism does not exist, user defined macros in a specific place of the DSL description reserved for C declarations may customize the loop variant by means of iterator methods ('''declare''', '''begin''', '''end''', '''advance''') as in the following example. The DSL parser will substitute references to '''base''', which abstracts the data structure instantiation, with an appropriate variable instance. References to '''iter''' are reserved and denote the iterator.
+
+```sql
+              #define EFile_VT_decl(X) struct file *X; int bit = 0
+              #define EFile_VT_begin(X, Y, Z)  (X) = (Y)[(Z)]
+              #define EFile_VT_advance(X, Y, Z) EFile_VT_begin(X,Y,Z)
+
+              CREATE VIRTUAL TABLE EFile_VT 
+              USING STRUCT VIEW File_SV 
+              WITH REGISTERED C TYPE struct fdtable:struct file* 
+              USING LOOP for (
+                 EFile_VT_begin(iter, base->fd, (bit = find_first_bit(
+                    (unsigned long *)base->open_fds, base->max_fds))); 
+                 bit < base->max_fds; 
+                 EFile_VT_advance(iter, base->fd, (bit = find_next_bit( 
+                    (unsigned long *)base->open_fds, base->max_fds, bit + 1)))
+```
+
+=== Performance counters ===
+PiCO QL can instrument operating system performance counters like any other kernel data structure. Performance counters, however, are not ordinary data structures. When requested for presentation they go through a phase of aggregation, thus accessing them in this context is a challenge. The following example achieves the representation of '''TCP /proc/net/snmp''' performance counters.
+
+```sql
+                 CREATE STRUCT VIEW TcpStat_SV (
+                 RtoAlgorithm BIGINT FROM snmp_fold_field((void __percpu **) this.mibs, TCP_MIB_RTOALGORITHM),
+                 RtoMin BIGINT FROM snmp_fold_field((void __percpu **) this.mibs, TCP_MIB_RTOMIN),
+                 RtoMax BIGINT FROM snmp_fold_field((void __percpu **) this.mibs, TCP_MIB_RTOMAX),
+                 MaxConn BIGINT FROM snmp_fold_field((void __percpu **) this.mibs, TCP_MIB_MAXCONN),
+                 ActiveOpens BIGINT FROM snmp_fold_field((void __percpu **) this.mibs, TCP_MIB_ACTIVEOPENS),
+                 PassiveOpens BIGINT FROM snmp_fold_field((void __percpu **) this.mibs, TCP_MIB_PASSIVEOPENS),
+                 AttemptFails BIGINT FROM snmp_fold_field((void __percpu **) this.mibs, TCP_MIB_ATTEMPTFAILS),
+                 EstabResets BIGINT FROM snmp_fold_field((void __percpu **) this.mibs, TCP_MIB_ESTABRESETS),
+                 CurrEstab BIGINT FROM snmp_fold_field((void __percpu **) this.mibs, TCP_MIB_CURRESTAB),
+                 InSegs BIGINT FROM snmp_fold_field((void __percpu **) this.mibs, TCP_MIB_INSEGS),
+                 OutSegs BIGINT FROM snmp_fold_field((void __percpu **) this.mibs, TCP_MIB_OUTSEGS),
+                 RetransSegs BIGINT FROM snmp_fold_field((void __percpu **) this.mibs, TCP_MIB_RETRANSSEGS),
+                 InErrs BIGINT FROM snmp_fold_field((void __percpu **) this.mibs, TCP_MIB_INERRS),
+                 OutRsts BIGINT FROM snmp_fold_field((void __percpu **) this.mibs, TCP_MIB_OUTRSTS)
+              )
+```
+
+Consequently, performance counters are computed within '''snmp_fold_field()''' by supplying the array of counters and the offset of the specific counter in the array. A number of notes follow.
+* Column access paths (what follows after the '''FROM''' clause) can take functions; the other way around is not always true, that is not all functions can sit in access paths. An example concerns functions that take as argument an instance except for the column's represented instance.
+* Function column access paths, where the column's represented instance is provided as an argument to the function, require tapping the overall access path. Remember a column's access path is a relative construct; it is meaningful only when the root access path is attached to it. For this reason, we employ the '''this''' magic word, used in many programming languages with similar semantics, to denote where the root access path should attach.
+* Except for '''this''', the access path remains as is. By introducing a cast before the '''this''' we can cast the complete access path to a preferred type.
+* Since kernel modules have access to the kernel's definitions we can even use the kernel's meaningful macros for expressing the offsets.
