@@ -38,7 +38,7 @@ CREATE STRUCT VIEW Planet (
        albedo FLOAT FROM data()->albedo,
        axisRotation FLOAT FROM data()->axisRotation,
 //       FOREIGN KEY(parentPlanet_id) FROM parent.data() REFERENCES Planet POINTER,
-       FOREIGN KEY(satellites_id) FROM data()->getStdSatellites() REFERENCES SatellitePlanet POINTER
+       FOREIGN KEY(satellites_id) FROM data()->satellites.toStdList() REFERENCES SatellitePlanet
 )$
 
 CREATE VIRTUAL TABLE Planet
