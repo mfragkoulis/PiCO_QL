@@ -189,10 +189,12 @@ int init_sqlite3(void) {
   if (output != SQLITE_DONE) {
     printk(KERN_ERR "Serve failed with error code %i.\n", output);
     return -ECANCELED;
-  } else
+  } else {
+    start_serving();
 #ifdef PICO_QL_DEBUG
     printk(KERN_DEBUG "Serve succeeded.\n");
 #endif
+  }
   return 0;
 }
 
