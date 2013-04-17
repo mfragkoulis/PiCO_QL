@@ -92,4 +92,6 @@ void clear_temp_structs(void);
 
 void deinit_selectors(void);
 
+void start_serving(void);
+
 #endif

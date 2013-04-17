@@ -347,7 +347,9 @@ int register_table(sqlite3 *db,
 
 exit:
   sqlite3_free(sqlite_query);
-  if (re == 101)
+  if (re == 101) {
     serving = 1;
+    start_serving();
+  }
   return re;
 }

@@ -340,6 +340,7 @@ int register_table(int argc,
       }
     }
   }
+  start_serving();
 #ifndef PICO_QL_TEST
   printf("Please visit http://localhost:%i to be served\n", port_number);
   call_swill(db, port_number);

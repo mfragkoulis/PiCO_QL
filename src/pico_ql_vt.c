@@ -28,6 +28,12 @@
 #include "pico_ql_vt.h"
 #include "pico_ql_internal.h"
 
+static int serving = 0;
+
+void start_serving(void) {
+  serving = 1;
+}
+
 // Constructs the SQL CREATE query.
 void create(sqlite3 *db, 
 	    int argc, 
@@ -165,7 +171,7 @@ int init_vtable(int iscreate,
 #endif
       return SQLITE_OK;
     }
-  }else{
+  } else {
     *pzErr = sqlite3_mprintf("Unknown error");
     printf("%s \n", *pzErr);
     return SQLITE_ERROR;
@@ -194,22 +200,23 @@ int create_vtable(sqlite3 *db,
 		  const char * const * argv, 
 		  sqlite3_vtab **ppVtab,
 		  char **pzErr) {
+  if (!serving) {
 #ifdef PICO_QL_DEBUG
-  printf("Creating vtable %s \n\n", argv[2]);
+    printf("Creating vtable %s \n\n", argv[2]);
 #endif
-  return init_vtable(1, db, paux, argc, argv, ppVtab, pzErr);
+    return init_vtable(1, db, paux, argc, argv, ppVtab, pzErr);
+  } else {
+/* Forbid creating virtual tables 
+ * after serving queries has started,
+ * that is from the query interface.
+ */
+    return SQLITE_MISUSE;
+  }
 }
 
 // xDestroy
 int destroy_vtable(sqlite3_vtab *ppVtab) {
-  int result;
-#ifdef PICO_QL_DEBUG
-  picoQLTable *st = (picoQLTable *)ppVtab;
-  printf("Destroying vtable %s \n\n", st->zName);
-#endif
-  // Need to destroy additional structures. So far none.
-  result = disconnect_vtable(ppVtab);
-  return result;
+  return SQLITE_MISUSE;
 }
 
 // xDisconnect. Called when closing a database connection.
@@ -546,6 +553,15 @@ void fill_module(sqlite3_module *m) {
   m->xConnect = connect_vtable;
   m->xBestIndex = best_index_vtable;
   m->xDisconnect = disconnect_vtable;
+  /* destroy_vtable is a dummy implementation
+   * for xDestroy which returns SQLITE_MISUSE.
+   * I do not see any benefit in allowing DROP table.
+   * The virtual table schema is in-memory, hence
+   * transient, and CREATE VIRTUAL TABLE calls
+   * are auto-generated as per the DSL. So a manual
+   * CREATE call would have no effect as the underlying
+   * column mapping would be missing.
+   */
   m->xDestroy = destroy_vtable;
   m->xOpen = open_vtable;
   m->xClose = close_vtable;
