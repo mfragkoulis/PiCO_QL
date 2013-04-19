@@ -41,6 +41,8 @@
 #include "pico_ql_search_helper.h"
 <%     if $argK != "KERNEL" %>
 #include "pico_ql_interface.h"
+<%     else %>
+#include "pico_ql_exec.h"
 <%     end %>
 
 <%     @tables.each { |vt| %>

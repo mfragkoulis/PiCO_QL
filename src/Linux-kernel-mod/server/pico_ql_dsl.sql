@@ -13,7 +13,6 @@
 #include <net/sock.h>
 #include <linux/net.h>
 #include <net/ip_vs.h>
-#include "pico_ql_exec.h"
 #define __NO_VERSION__      
 #define EIpVsStatsEstim_VT_decl(X) struct ip_vs_estimator *X
 #define Process_VT_decl(X) struct task_struct *X
@@ -97,7 +96,8 @@ CREATE STRUCT VIEW VirtualMem_SV (
        flags BIGINT FROM flags,
 //     FOREIGN KEY(process_owner_id) FROM owner REFERENCES EProcess_VT POINTER, CONFIG_MM_OWNER 
 //     FOREIGN KEY(exe_file_id) FROM exe_file REFERENCES FILE POINTER,  
-       num_exe_file_vmas BIGINT FROM num_exe_file_vmas
+       num_exe_file_vmas BIGINT FROM num_exe_file_vmas,
+       locked INT FROM mmap_sem.count
 )
 $
 
