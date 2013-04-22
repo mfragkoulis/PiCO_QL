@@ -127,7 +127,7 @@ void * thread_sqlite(void *data) {
 <%    } %>
 <%    if views_length > 0 %>
 <%      @views.each_index { |vs| %>
-  queries[<%= vs + @tables.length %>] = (char *)sqlite3_malloc(sizeof(char) * <%= query.length %>);
+  queries[<%= vs + @tables.length %>] = (char *)sqlite3_malloc(sizeof(char) * <%= @views[vs].stmt.length.to_s %>);
   strcpy(queries[<%= vs + @tables.length %>], "<%= @views[vs].stmt %>");
   sqlite_names[<%= vs + @tables.length %>] = "<%= @views[vs].name %>";
 <%      } %>
