@@ -95,16 +95,24 @@ int test_prep_exec(FILE *f, sqlite3 *db, const char *q) {
 int call_test(sqlite3 *db) {
   FILE *f;
   f = fopen("pico_ql_test_current.txt", "w");
-
-  /*
   int result, i = 0;
   char *q;
 
-  q = "select...;";
+  q = "SELECT * FROM Matrix;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);
 
-  */
+  q = "SELECT * FROM RowWiseA;";
+  fprintf(f, "Query %i:\n %s\n\n", i++, q);
+  result = test_prep_exec(f, db, q);
+
+  q = "SELECT * FROM RowWiseB;";
+  fprintf(f, "Query %i:\n %s\n\n", i++, q);
+  result = test_prep_exec(f, db, q);
+
+  q = "SELECT * FROM RowWiseC;";
+  fprintf(f, "Query %i:\n %s\n\n", i++, q);
+  result = test_prep_exec(f, db, q);
 
   deinit_vt_selectors();
   sqlite3_close(db);
