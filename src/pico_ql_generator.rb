@@ -416,6 +416,15 @@ class VirtualTable
     @loop_root = ""       # Holds starting address of C array for NULL 
                           # checking C containers (linked lists, arrays etc)
                           # A uniform abstraction is defined.
+    @lock = ""            # Custom loop to use for iterating C containers
+                          # (linked lists, arrays, etc.)
+                          # A uniform abstraction is defined.
+                          # generic_clist.
+    @lock_name = ""       # Lock class name.
+    @lock_argument = ""   # Actual lock to hold/release, if any.
+    @lock_root = ""       # Holds starting address of C array for NULL 
+                          # checking C containers (linked lists, arrays etc)
+                          # A uniform abstraction is defined.
     @object_class = ""    # If an object instance.
     @columns = Array.new  # References to the VT columns.
     @include_text_col = 0 # True if VirtualTable includes column
@@ -434,7 +443,8 @@ class VirtualTable
                 :object_class,:columns,
                 :include_text_col,
                 :C_container_types, :loop,
-                :loop_root)
+                :loop_root, :lock, :lock_name,
+                :lock_argument)
 
 # Getter for static member C_container_types at class level
   def self.C_container_types
@@ -988,8 +998,7 @@ class VirtualTable
 
   def display_loop(base)
     loop = String.new(@loop)
-    matchdata = loop.match(/base/)
-    if matchdata
+    if loop.match(/base/)
       loop.gsub!(/base\.|base->/, "#{base}->")
       loop.gsub!(/base/, "#{base}")
     else
@@ -1717,8 +1726,38 @@ class VirtualTable
     end
   end
 
+# Process lock directive.
+  def process_lock()
+    if @lock.match(/\(/)
+      matchdata = @lock.split(/\(|\)/)
+      @lock_name = matchdata[0]
+      if matchdata[1]
+        @lock_argument = matchdata[1]
+      end
+      if !@lock_argument.empty?
+         if @lock_argument.match("base")
+           @lock.gsub!(/base\.|base->/, "any_dstr->")
+           @lock_argument.gsub!(/base\.|base->/, "any_dstr->")
+         else
+           puts "Attention: Argument to lock #{@lock_argument} did not match \"base\"."
+         end
+      end
+    else
+      @lock_name = @lock
+    end
+    if $argD == "DEBUG"
+      puts "Processed lock is #{@lock}"
+      puts "Processed lock name is #{@lock_name}"
+      puts "Processed lock argument is #{@lock_argument}"
+    end
+#TODO: NULL checking
+#NULL checking as implemented below might need improvement.
+#Hint:pointer vs instance
+  end
+
 # Isolate root address of C container for NULL checking.
   def process_loop()
+    matched = 0
     if @signature.match(":")
       matchdata = @loop.split(/,|;/)
       matchdata.each { |m|
@@ -1738,25 +1777,31 @@ class VirtualTable
           matchdata2 = m.match(/base\.(.+)/)
         when /base->(.+)/
           matchdata2 = m.match(/base->(.+)/)
+        when /base/
+          matchdata2 = m.match(/base/)
+# see for example skb_queue_walk_safe for Linux kernel
         end
         if matchdata2
+          matched = 1
 # We are insterested to catch the C container's start address.
 # Most probably it will be an array. Therefore, we hard-code '&'.
 # For arrays of primitive types, '&' will probably precede base.
 # It is discarded in the patterns and refit here.
 # Otherwise, it will probably not be there (in order to
 # talk abou the array's first element) but we want it there.
-          @loop_root = "&any_dstr->#{matchdata2[1]}"
-          if $argD == "DEBUG"
-            puts "@loop = #{@loop}"
-            puts "@loop_root = #{@loop_root}"
-            puts "matchdata[0] = #{matchdata2[0]}"
-            puts "matchdata[1] = #{matchdata2[1]}"
+          if matchdata2[1]
+            @loop_root = "&any_dstr->#{matchdata2[1]}"
+            if $argD == "DEBUG"
+              puts "@loop = #{@loop}"
+              puts "@loop_root = #{@loop_root}"
+              puts "matchdata[0] = #{matchdata2[0]}"
+              puts "matchdata[1] = #{matchdata2[1]}"
+            end
           end
           break
         end
       }
-      if @loop_root.length == 0
+      if !matched
         puts "Attention: not matched 'base' in #{@loop}."
       end
     end
@@ -1764,10 +1809,12 @@ class VirtualTable
 
 # Matches VT definitions against prototype patterns.
   def match_table(table_description)
-    table_ptn1 = /^create virtual table (\w+) using struct view (\w+) with registered c name (.+) with registered c type (.+) using loop (.+)/im
-    table_ptn2 = /^create virtual table (\w+) using struct view (\w+) with registered c type (.+) using loop (.+)/im
-    table_ptn3 = /^create virtual table (\w+) using struct view (\w+) with registered c name (.+) with registered c type (.+)/im
-    table_ptn4 = /^create virtual table (\w+) using struct view (\w+) with registered c type (.+)/im
+    table_ptn1 = /^create virtual table (\w+) using struct view (\w+) with registered c name (.+) with registered c type (.+) using loop (.+) using lock (.+)/im
+    table_ptn2 = /^create virtual table (\w+) using struct view (\w+) with registered c type (.+) using loop (.+) using lock (.+)/im
+    table_ptn3 = /^create virtual table (\w+) using struct view (\w+) with registered c name (.+) with registered c type (.+) using loop (.+)/im
+    table_ptn4 = /^create virtual table (\w+) using struct view (\w+) with registered c type (.+) using loop (.+)/im
+    table_ptn5 = /^create virtual table (\w+) using struct view (\w+) with registered c name (.+) with registered c type (.+)/im
+    table_ptn6 = /^create virtual table (\w+) using struct view (\w+) with registered c type (.+)/im
     if $argD == "DEBUG"
       puts "Table description is: #{table_description}"
     end
@@ -1781,6 +1828,8 @@ class VirtualTable
       @signature = matchdata[4]
       @loop = matchdata[5]
       process_loop()
+      @lock = matchdata[6]
+      process_lock()
     when table_ptn2
       matchdata = table_ptn2.match(table_description)
       @name = matchdata[1]
@@ -1788,20 +1837,41 @@ class VirtualTable
       @signature = matchdata[3]
       @loop = matchdata[4]
       process_loop()
+      @lock = matchdata[5]
+      process_lock()
     when table_ptn3
       matchdata = table_ptn3.match(table_description)
       @name = matchdata[1]
       struct_view_name = matchdata[2]
       @base_var = matchdata[3]
       @signature = matchdata[4]
+      @loop = matchdata[5]
+      process_loop()
     when table_ptn4
       matchdata = table_ptn4.match(table_description)
       @name = matchdata[1]
       struct_view_name = matchdata[2]
       @signature = matchdata[3]
+      @loop = matchdata[4]
+      process_loop()
+    when table_ptn5
+      matchdata = table_ptn5.match(table_description)
+      @name = matchdata[1]
+      struct_view_name = matchdata[2]
+      @base_var = matchdata[3]
+      @signature = matchdata[4]
+    when table_ptn6
+      matchdata = table_ptn6.match(table_description)
+      @name = matchdata[1]
+      struct_view_name = matchdata[2]
+      @signature = matchdata[3]
     end
     verify_signature()
-    $struct_views.each { |sv| if sv.name == struct_view_name : @struct_view = sv end }
+    $struct_views.each { |sv| 
+      if sv.name == struct_view_name 
+        @struct_view = sv 
+      end 
+    }
     begin
       if @struct_view == nil
         raise "Cannot match struct_view for table #{@name}.\\n"
@@ -1981,27 +2051,30 @@ end
 
 class Lock
   def initialize
+    @name = ""
     @lock_function = ""
     @unlock_function = ""
-    @active = 0
   end
-  attr_accessor(:lock_function, :unlock_function, :active)
+  attr_accessor(:name, :lock_function, 
+                :unlock_function)
 
   def match_lock(lock_description)
-    lock_ptn = /use c lock (.+) unlock (.+)/im
+    lock_ptn = /create lock (.+) hold with (.+) release with (.+)/im
     case lock_description
     when lock_ptn
       matchdata = lock_ptn.match(lock_description)
-      @lock_function = matchdata[1]
-      @unlock_function = matchdata[2]
-      @active = 1
+      @name = matchdata[1]
+      @lock_function = matchdata[2]
+      @unlock_function = matchdata[3]
     end
+    @lock_function.gsub!(/\((.*)\)/, "")
+    @unlock_function.gsub!(/\((.*)\)/, "")
     if $argD == "DEBUG"
       puts "Lock description: #{lock_description}"
+      puts "Lock class name: #{@name}"
       puts "Lock function: #{@lock_function}"
       puts "Unlock function: #{@unlock_function}"
-      puts "Active: #{@active}"
-      puts "Universal lock registered."
+      puts "Lock class #{@name} registered."
     end
   end
   
@@ -2171,7 +2244,9 @@ class InputDescription
       x.lstrip!
       x.rstrip!
       x.squeeze!(" ")
-      if / ,|, /.match(x) : x.gsub!(/ ,|, /, ",") end
+      if / ,|, /.match(x)
+        x.gsub!(/ ,|, /, ",") 
+      end
     }
     @description = token_d.select{ |x| x =~ /(\S+)/ }
     if $argD == "DEBUG"
@@ -2180,7 +2255,7 @@ class InputDescription
     end
     $struct_views = Array.new
     $union_views = Array.new
-    $lock = Lock.new
+    $locks = Array.new
     $table_index = Hash.new
     w = 0
     @description.each { |stmt|
@@ -2198,8 +2273,8 @@ class InputDescription
         @views.push(RelationalView.new(stmt)).last.extract_name()
       when /^create union view/im
         $union_views.push(UnionView.new).last.match_union_view(stmt)
-      when /^use c lock/im
-        $lock.match_lock(stmt)
+      when /^create lock/im
+        $locks.push(Lock.new).last.match_lock(stmt)
       end
       w += 1
     }
@@ -2234,7 +2309,11 @@ if __FILE__ == $0
   $argM = "MEM_MGT"
   $argLB = "CPP"
   $argK = ""
-  ARGV.each_index { |arg| if arg > 0 : take_cases(ARGV[arg]) end }
+  ARGV.each_index { |arg| 
+    if arg > 0
+      take_cases(ARGV[arg]) 
+    end 
+  }
   begin
     $lined_description = File.open($argF, "r") { |fw| 
       fw.readlines.each{ |line| 
@@ -2252,13 +2331,19 @@ if __FILE__ == $0
   # Strip white-space.
   $lined_description.each { |line|
     line.squeeze!(" ")
-    if / ,|, /.match(line) : line.gsub!(/ ,|, /, ",") end
+    if / ,|, /.match(line)
+      line.gsub!(/ ,|, /, ",") 
+    end
     #      if / \(/.match(line) : line.gsub!(/ \(/, "(") end
-    if /\( /.match(line) : line.gsub!(/\( /, "(") end
+    if /\( /.match(line)
+      line.gsub!(/\( /, "(") 
+    end
     #      if /\) /.match(line) : line.gsub!(/\) /, ")") end
-    if / \)/.match(line) : line.gsub!(/ \)/, ")") end
+    if / \)/.match(line) 
+      line.gsub!(/ \)/, ")") 
+    end
   }
-  description = $lined_description.to_s
+  description = $lined_description.join
   begin
     token_description = description.split(/\$/)
   rescue

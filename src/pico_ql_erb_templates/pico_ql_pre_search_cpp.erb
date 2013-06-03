@@ -181,6 +181,16 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
           }
 <%          end %>
 <%        end %>
+<%        if !@lock_argument.empty? %>
+<%          $locks.each { |l| %>
+<%            if l.name == @lock_name %>
+          if (picoQL->locked == 1) 
+            <%= l.lock_function %>(<%= @lock_argument %>);
+<%              break %>
+<%            end %>
+<%# Lock nesting has been handled in init_result_set; already +1 %>
+<%          } %>
+<%        end %>
 <%        if @container_class.length > 0 %>
           if ((stcsr->max_size = (int)(*this)(cur, cur->pVtab)) == 0) {
             stcsr->isInstanceEmpty = 1;

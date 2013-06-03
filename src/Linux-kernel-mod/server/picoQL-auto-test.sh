@@ -8,6 +8,7 @@ function test {
        output=`cat /proc/picoQL`
    done
    echo "$output" > temp
+   echo "$output" >> total
    if ! egrep -q -i ' rows in result set.' temp
    then
        echo "Auto-tests failed."

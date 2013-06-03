@@ -13,6 +13,8 @@
 #include <net/sock.h>
 #include <linux/net.h>
 #include <net/ip_vs.h>
+#include <net/net_namespace.h>
+#include <linux/skbuff.h>
 #define __NO_VERSION__      
 #define EIpVsStatsEstim_VT_decl(X) struct ip_vs_estimator *X
 #define Process_VT_decl(X) struct task_struct *X
@@ -24,11 +26,20 @@
 #define EGroup_VT_decl(X) int *X; int i = 0
 #define EGroup_VT_begin(X, Y, Z) (X) = (int *)&(Y)[(Z)]
 #define EGroup_VT_advance(X, Y, Z) EGroup_VT_begin(X, Y, Z)
+#define NetNamespace_VT_decl(X) struct net *X
+#define ERcvQueue_VT_decl(X) struct sk_buff *X;struct sk_buff *next
+#define ENetDevice_VT_decl(X) struct net_device *X
 $
 
-USE C LOCK rcu_read_lock() UNLOCK rcu_read_unlock()
+CREATE LOCK RCU
+HOLD WITH rcu_read_lock()
+RELEASE WITH rcu_read_unlock()
 $
 
+CREATE LOCK SPINLOCK
+HOLD WITH spin_lock(x)
+RELEASE WITH spin_unlock(x)
+$
 
 CREATE STRUCT VIEW VirtualMemRegion_SV (
        vm_usage INT FROM vm_usage
@@ -75,7 +86,7 @@ CREATE STRUCT VIEW VirtualMem_SV (
        shared_vm BIGINT FROM shared_vm,
        exec_vm BIGINT FROM exec_vm,
        stack_vm BIGINT FROM stack_vm,
-       reserved_vm BIGINT FROM reserved_vm,
+//       reserved_vm BIGINT FROM reserved_vm,
        def_flags BIGINT FROM def_flags,
        nr_ptes BIGINT FROM nr_ptes,
        start_code BIGINT FROM start_code,
@@ -90,13 +101,13 @@ CREATE STRUCT VIEW VirtualMem_SV (
        env_start BIGINT FROM env_start,
        env_end BIGINT FROM env_end,
 //       FOREIGN KEY(rss_stat_id) FROM rss_stat REFERENCES ,
-       faultstamp INT FROM faultstamp,
-       token_priority INT FROM token_priority,
-       last_interval INT FROM last_interval,
+//       faultstamp INT FROM faultstamp,
+//       token_priority INT FROM token_priority,
+//       last_interval INT FROM last_interval,
        flags BIGINT FROM flags,
 //     FOREIGN KEY(process_owner_id) FROM owner REFERENCES EProcess_VT POINTER, CONFIG_MM_OWNER 
 //     FOREIGN KEY(exe_file_id) FROM exe_file REFERENCES FILE POINTER,  
-       num_exe_file_vmas BIGINT FROM num_exe_file_vmas,
+//       num_exe_file_vmas BIGINT FROM num_exe_file_vmas,
        locked INT FROM mmap_sem.count
 )
 $
@@ -104,6 +115,18 @@ $
 CREATE VIRTUAL TABLE EVirtualMem_VT
 USING STRUCT VIEW VirtualMem_SV
 WITH REGISTERED C TYPE struct mm_struct$
+
+CREATE STRUCT VIEW NetDevice_SV (
+	name TEXT FROM name
+)
+$
+
+CREATE VIRTUAL TABLE ENetDevice_VT
+USING STRUCT VIEW NetDevice_SV
+WITH REGISTERED C TYPE struct net:struct net_device *
+USING LOOP for_each_netdev_rcu(base, iter)
+USING LOCK RCU
+$
 
 CREATE STRUCT VIEW TcpStat_SV (
        RtoAlgorithm BIGINT FROM snmp_fold_field((void __percpu **) this.mibs, TCP_MIB_RTOALGORITHM),
@@ -149,6 +172,19 @@ CREATE VIRTUAL TABLE ESocket_VT
 USING STRUCT VIEW Socket_SV
 WITH REGISTERED C TYPE struct socket$      
 
+CREATE STRUCT VIEW RcvQueue_SV (
+	skb_iif INT FROM skb_iif
+)$
+
+CREATE VIRTUAL TABLE ERcvQueue_VT
+USING STRUCT VIEW RcvQueue_SV
+WITH REGISTERED C TYPE struct sk_buff_head:struct sk_buff *
+USING LOOP skb_queue_walk_safe(base, iter, next)
+USING LOCK SPINLOCK(&base.lock)
+$
+//require spin_lock see net/unix/garbage.c
+//per virtual table USING LOCK spin_lock(&base.lock)
+
 CREATE STRUCT VIEW Sock_SV (
        timestamp_last_rcv BIGINT FROM sk_stamp.tv64,
        drops INT FROM atomic_read(&this.sk_drops),
@@ -159,8 +195,9 @@ CREATE STRUCT VIEW Sock_SV (
        pending_writes INT FROM sk_write_pending,
        snd_buf_size INT FROM sk_sndbuf,
        rcv_buf_size INT FROM sk_rcvbuf,
-       FOREIGN KEY(socket_id) FROM sk_socket REFERENCES ESocket_VT POINTER
+       FOREIGN KEY(socket_id) FROM sk_socket REFERENCES ESocket_VT POINTER,
 //       FOREIGN KEY(peer_process_id) FROM get_pid_task(this->sk_peer_pid, PIDTYPE_PID) REFERENCES EProcess_VT POINTER
+       FOREIGN KEY(receive_queue_id) FROM sk_receive_queue REFERENCES ERcvQueue_VT
 )
 $
 
@@ -185,7 +222,11 @@ $
 CREATE VIRTUAL TABLE EIpVsStatsEstim_VT
 USING STRUCT VIEW IpVsStatsEstim_SV
 WITH REGISTERED C TYPE struct ip_vs_estimator *
-USING LOOP list_for_each_entry_rcu(iter, &base->list, list)$
+USING LOOP list_for_each_entry_rcu(iter, &base->list, list)
+USING LOCK RCU
+$
+//Equivalently USING LOCK RCU()
+
 
 CREATE STRUCT VIEW NetnsIpvs_SV (
        FOREIGN KEY(ipvs_stats_estim_id) FROM tot_stats.est REFERENCES EIpVsStatsEstim_VT
@@ -202,12 +243,20 @@ CREATE STRUCT VIEW NetNamespace_SV (
 //       use_count INT FROM use_count.counter,
        FOREIGN KEY(rtnl_sock_id) FROM rtnl REFERENCES ESock_VT POINTER,
        FOREIGN KEY(genl_sock_id) FROM genl_sock REFERENCES ESock_VT POINTER,
-       FOREIGN KEY(nfnl_sock_id) FROM nfnl REFERENCES ESock_VT POINTER,
+       FOREIGN KEY(genl_sock_id) FROM genl_sock REFERENCES ESock_VT POINTER,
+       FOREIGN KEY(dev_list_id) FROM self REFERENCES ENetDevice_VT POINTER,
        FOREIGN KEY(nfnl_stash_sock_id) FROM nfnl_stash REFERENCES ESock_VT POINTER,
        FOREIGN KEY(netns_mib_id) FROM mib REFERENCES ENetMib_VT,
        FOREIGN KEY(netns_ipvs) FROM ipvs REFERENCES ENetnsIpvs_VT POINTER
 )
 $
+
+CREATE VIRTUAL TABLE NetNamespace_VT
+USING STRUCT VIEW NetNamespace_SV
+WITH REGISTERED C NAME network_namespaces
+WITH REGISTERED C TYPE struct list_head *:struct net *
+USING LOOP list_for_each_entry_rcu(iter, base, list)
+USING LOCK RCU$
 
 CREATE VIRTUAL TABLE ENetNamespace_VT
 USING STRUCT VIEW NetNamespace_SV
@@ -225,7 +274,7 @@ $
 
 CREATE VIRTUAL TABLE Nsproxy_VT
 USING STRUCT VIEW Nsproxy_SV
-WITH REGISTERED C NAME init_task_nsproxy
+WITH REGISTERED C NAME namespace_proxy
 WITH REGISTERED C TYPE struct nsproxy
 $
 
@@ -260,9 +309,9 @@ CREATE STRUCT VIEW ProcessSignal (
        cutime BIGINT FROM cutime,
        cstime BIGINT FROM cstime,
 //CONFIG_VIRT_CPU_ACCOUNTING
-       prev_utime BIGINT FROM prev_utime, 
+//       prev_utime BIGINT FROM prev_utime, 
 //CONFIG_VIRT_CPU_ACCOUNTING
-       prev_stime BIGINT FROM prev_stime, 
+//       prev_stime BIGINT FROM prev_stime, 
        nvcsw BIGINT FROM nvcsw,
        nivcsw BIGINT FROM nivcsw,
        cnvcsw BIGINT FROM cnvcsw,
@@ -292,13 +341,16 @@ CREATE STRUCT VIEW File_SV (
        count BIGINT FROM f_count.counter,
        flags INT FROM f_flags,
        path_dentry BIGINT FROM (long)this.f_dentry,
-       path_mount BIGINT FROM (long)this.f_vfsmnt,
+//     path_mount BIGINT FROM (long)this.f_vfsmnt,
+       path_mount BIGINT FROM (long)this.f_path.mnt,
        fowner_uid INT FROM f_owner.uid,
        fowner_euid INT FROM f_owner.euid,
        fcred_gid INT FROM f_cred->gid,
        fcred_egid INT FROM f_cred->egid,
        fmode INT FROM f_mode,
        FOREIGN KEY(socket_id) FROM private_data REFERENCES ESocket_VT POINTER
+// sock_from_file(this->private_data, err) and define int *err on top
+// net/socket.c
 )
 $
 
@@ -426,6 +478,7 @@ USING STRUCT VIEW Process_SV
 WITH REGISTERED C NAME processes
 WITH REGISTERED C TYPE struct task_struct *
 USING LOOP list_for_each_entry_rcu(iter, &base->tasks, tasks)
+USING LOCK RCU
 $
 
 CREATE VIRTUAL TABLE EProcess_VT
@@ -437,11 +490,13 @@ CREATE VIRTUAL TABLE EProcessChild_VT
 USING STRUCT VIEW Process_SV
 WITH REGISTERED C TYPE struct task_struct *
 USING LOOP list_for_each_entry_rcu(iter, &base->children, children)
+USING LOCK RCU
 $
 
 CREATE VIRTUAL TABLE EThread_VT
 USING STRUCT VIEW Process_SV
 WITH REGISTERED C TYPE struct task_struct *
 USING LOOP list_for_each_entry_rcu(iter, &base->thread_group, thread_group)
+USING LOCK RCU
 $
 

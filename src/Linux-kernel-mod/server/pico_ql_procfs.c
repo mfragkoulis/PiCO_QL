@@ -2,7 +2,7 @@
  */
 
 
-#include <config/modversions.h>   
+//#include <config/modversions.h>   
 #include <linux/module.h>   
 #include <linux/version.h>
 
@@ -24,6 +24,7 @@
 #include <linux/sched.h>
 #include <linux/nsproxy.h>
 #include <linux/fs.h>
+#include <net/net_namespace.h>
 #include <linux/spinlock.h>
 #include <unistd.h>
 #include <sqlite3.h>
@@ -184,7 +185,8 @@ int init_sqlite3(void) {
     printk(KERN_DEBUG "Module registered successfully.");
 #endif
   pico_ql_register(&init_task, "processes");
-  pico_ql_register(init_task.nsproxy, "init_task_nsproxy");
+  pico_ql_register(&init_task.nsproxy, "namespace_proxy");
+  pico_ql_register(&net_namespace_list, "network_namespaces");
   output = pico_ql_serve(db);
   if (output != SQLITE_DONE) {
     printk(KERN_ERR "Serve failed with error code %i.\n", output);
