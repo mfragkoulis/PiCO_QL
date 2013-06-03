@@ -110,13 +110,13 @@ int step_query(sqlite3_stmt *stmt,
       strcat(result_set, (const char *)result_set_row);
     }
 #ifdef PICO_QL_DEBUG
-    printk(KERN_DEBUG "result_set of row %i is %s.\n", rows, result_set_row); 
+    printf("result_set of row %i is %s.\n", rows, result_set_row); 
 #endif
   }
   if (result == SQLITE_DONE) {
     struct timespec picoQL_exec_time;
     char *metadata = (char *)sqlite3_malloc(sizeof(char) * 50);
-    // printk(KERN_DEBUG "Query stepped successfully. Now decorating result_set of length %i, partition %i.\n", (int)strlen(result_set), *argc_slots - 1);
+    // printf("Query stepped successfully. Now decorating result_set of length %i, partition %i.\n", (int)strlen(result_set), *argc_slots - 1);
     if (PICO_QL_TEXT) {
     } else {
       strcpy(placeholder,"</table>");
@@ -141,7 +141,7 @@ int step_query(sqlite3_stmt *stmt,
       strcat(placeholder, metadata);
     }
 #ifdef PICO_QL_DEBUG
-    printk(KERN_DEBUG "picoQL query executed in %luns.\n", (long unsigned int)timespec_to_ns((const struct timespec *)&picoQL_exec_time));
+    printf("picoQL query executed in %luns.\n", (long unsigned int)timespec_to_ns((const struct timespec *)&picoQL_exec_time));
 #endif
     sqlite3_free(metadata);
     if (strlen(result_set) + strlen(placeholder) + 53 >= PICO_QL_RESULT_SET_SIZE) { // 50 for execution time, 3 for safety
@@ -156,7 +156,7 @@ int step_query(sqlite3_stmt *stmt,
     } else
       if (PICO_QL_META)
         strcat(result_set, (const char *)placeholder);
-    // printk(KERN_DEBUG "Decorated result set of length %i, partition %i.\n", (int)strlen(result_set), *argc_slots - 1);
+    // printf("Decorated result set of length %i, partition %i.\n", (int)strlen(result_set), *argc_slots - 1);
   }
   sqlite3_free(result_set_row);
   sqlite3_free(placeholder);
@@ -176,7 +176,7 @@ int file_prep_exec(sqlite3* db,
   char *result_set;
   int result = 0;
 #ifdef PICO_QL_DEBUG
-  printk(KERN_DEBUG "In file_prep_exec query to execute is %s, statement structure %lx.\n", q, (long)stmt);
+  printf("In file_prep_exec query to execute is %s, statement structure %lx.\n", q, (long)stmt);
 #endif
   result = step_query(stmt, root_result_set, argc_slots);
   result_set = (*root_result_set)[*argc_slots - 1];
@@ -243,7 +243,7 @@ int file_prep_exec(sqlite3* db,
     break;
   }
 #ifdef PICO_QL_DEBUG
-  printk(KERN_DEBUG "file_prep_exec returns code %i and result_set %s.\n", result, result_set);
+  printf("file_prep_exec returns code %i and result_set %s.\n", result, result_set);
 #endif
   sqlite3_free(placeholder);
   return result;
@@ -258,16 +258,16 @@ int prep_exec(sqlite3 *db, const char *q){
   char *result_set = (char *)sqlite3_malloc(sizeof(char) * PICO_QL_RESULT_SET_SIZE);
   root_result_set[0] = result_set;
 #ifdef PICO_QL_DEBUG
-  printk(KERN_DEBUG "In prep_exec query to execute is %s.\n", q);
+  printf("In prep_exec query to execute is %s.\n", q);
 #endif
   if ((prepare = sqlite3_prepare_v2(db, q, -1, &stmt, 0)) == SQLITE_OK) {
 #ifdef PICO_QL_DEBUG
-    printk(KERN_DEBUG "Preparing query %s returned %i. Statement is %lx.\n", q, prepare, (long)stmt);
+    printf("Preparing query %s returned %i. Statement is %lx.\n", q, prepare, (long)stmt);
 #endif
     re = file_prep_exec(db, stmt, q, &root_result_set, &argc_slots);
 #ifdef PICO_QL_DEBUG
-    printk(KERN_DEBUG "Stepping query %s returned %i.\n", q, re);
-    printk(KERN_DEBUG "Once again: query returned %i.\n", re);
+    printf("Stepping query %s returned %i.\n", q, re);
+    printf("Once again: query returned %i.\n", re);
 #endif
     goto exit;
   } else {
@@ -285,7 +285,7 @@ int prep_exec(sqlite3 *db, const char *q){
 exit:
   sqlite3_finalize(stmt);
 #ifdef PICO_QL_DEBUG
-  printk(KERN_DEBUG "Result set to place is partitioned in %i pieces. Last partition is \n%s.\n\nEnd.\n", argc_slots - 1, result_set);
+  printf("Result set to place is partitioned in %i pieces. Last partition is \n%s.\n\nEnd.\n", argc_slots - 1, result_set);
 #endif
   if (serving)
     place_result_set((const char **)root_result_set, &argc_slots);
@@ -318,7 +318,7 @@ int register_table(sqlite3 *db,
   re = prep_exec(db, "PRAGMA temp.journal_mode=OFF;");
 #ifdef PICO_QL_DEBUG
   for (i = 0; i < argc; i++) {
-    printk(KERN_DEBUG "Query to be executed: %s.", q[i]);
+    printf("Query to be executed: %s.", q[i]);
   }
 #endif
   for (i = 0; i < argc; i++) {
@@ -335,7 +335,7 @@ int register_table(sqlite3 *db,
       }
       re = prep_exec(db, (const char *)q[i]);
 #ifdef PICO_QL_DEBUG
-      printk(KERN_DEBUG "Table registration query %s returned %i\n", q[i], re);
+      printf("Table registration query %s returned %i\n", q[i], re);
 #endif
       if (re != 101) {
         printk(KERN_ERR "Extended error code: %i.\n", sqlite3_extended_errcode(db));

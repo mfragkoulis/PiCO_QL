@@ -27,6 +27,7 @@
 #include <net/net_namespace.h>
 #include <linux/spinlock.h>
 #include <unistd.h>
+#include <stdio.h>
 #include <sqlite3.h>
 #include "pico_ql_search.h"
 #include "pico_ql_vt.h"
@@ -53,7 +54,7 @@ static int current_partition = 0;
 
 int place_result_set(const char **root_result_set, int *argc_slots) {
 #ifdef PICO_QL_DEBUG
-  printk(KERN_DEBUG "In place_result_set, result_set partitioned in %i pieces.", *argc_slots);
+  printf("In place_result_set, result_set partitioned in %i pieces.", *argc_slots);
 #endif
   root_query_result_set = (char **)root_result_set;
   query_result_set_partitions = *argc_slots;
@@ -74,7 +75,7 @@ ssize_t picoQL_read(         struct file *f,
   int len = 0;
   
 #ifdef PICO_QL_DEBUG
-  printk(KERN_DEBUG "/proc/picoQL read initiated. File offset is %i, page_len is %i, PICO_QL_RS_ACTIVE %i, PICO_QL_READY %i.\n", (int)*offset, (int)page_len, PICO_QL_RS_ACTIVE, PICO_QL_READY);
+  printf("/proc/picoQL read initiated. File offset is %i, page_len is %i, PICO_QL_RS_ACTIVE %i, PICO_QL_READY %i.\n", (int)*offset, (int)page_len, PICO_QL_RS_ACTIVE, PICO_QL_READY);
 #endif
 
   /* We return 0 to indicate end of file, that we
@@ -106,7 +107,7 @@ ssize_t picoQL_read(         struct file *f,
       PICO_QL_RS_NAVAILABLE;
       PICO_QL_AVAILABLE;
 #ifdef PICO_QL_DEBUG
-      printk(KERN_DEBUG "Consumed query partition %i. Another %i to go. PICO_QL_RS_ACTIVE is %i, PICO_QL_READY is %i.\n", current_partition, query_result_set_partitions, PICO_QL_RS_ACTIVE, PICO_QL_READY);
+      printf("Consumed query partition %i. Another %i to go. PICO_QL_RS_ACTIVE is %i, PICO_QL_READY is %i.\n", current_partition, query_result_set_partitions, PICO_QL_RS_ACTIVE, PICO_QL_READY);
 #endif
     }
   }
@@ -126,7 +127,7 @@ ssize_t picoQL_write(
   int j = 0, rc;
 
 #ifdef PICO_QL_DEBUG
-  printk(KERN_DEBUG "/proc/picoQL write %s of length %li.\n", buf, len);
+  printf("/proc/picoQL write %s of length %li.\n", buf, len);
 #endif
 
   if (!PICO_QL_READY)
@@ -171,7 +172,7 @@ int init_sqlite3(void) {
     return -ECANCELED;
   }
 #ifdef PICO_QL_DEBUG
-  printk(KERN_DEBUG "SQLite in-memory database %lx opened successfully.\n", (long)db);
+  printf("SQLite in-memory database %lx opened successfully.\n", (long)db);
 #endif
   mod = (sqlite3_module *)sqlite3_malloc(sizeof(sqlite3_module));
   fill_module(mod);
@@ -182,7 +183,7 @@ int init_sqlite3(void) {
   }
 #ifdef PICO_QL_DEBUG
   else if (output == 0)
-    printk(KERN_DEBUG "Module registered successfully.");
+    printf("Module registered successfully.");
 #endif
   pico_ql_register(&init_task, "processes");
   pico_ql_register(&init_task.nsproxy, "namespace_proxy");
@@ -194,7 +195,7 @@ int init_sqlite3(void) {
   } else {
     start_serving();
 #ifdef PICO_QL_DEBUG
-    printk(KERN_DEBUG "Serve succeeded.\n");
+    printf("Serve succeeded.\n");
 #endif
   }
   return 0;
@@ -209,7 +210,7 @@ int picoQL_open(struct inode *i, struct file *f) {
   (void)i;
   (void)f;
 #ifdef PICO_QL_DEBUG
-  printk(KERN_DEBUG "Opening /proc/picoQL. Was open? %i\n", PICO_QL_OPEN); 
+  printf("Opening /proc/picoQL. Was open? %i\n", PICO_QL_OPEN); 
 #endif
   if (PICO_QL_OPEN) 
     return -EBUSY;
@@ -224,7 +225,7 @@ long picoQL_ioctl(struct file *f,
   (void)f;
   (void)picoQL_parameter;
 #ifdef PICO_QL_DEBUG
-  printk(KERN_DEBUG "ioctl being configured with code %i.\n", picoQL_code);
+  printf("ioctl being configured with code %i.\n", picoQL_code);
 #endif
   switch(picoQL_code) {
   case 100:
@@ -247,7 +248,7 @@ int picoQL_release(struct inode *i, struct file *f) {
   (void)i;
   (void)f;
 #ifdef PICO_QL_DEBUG
-  printk(KERN_DEBUG "Releasing /proc/picoQL. Was open? %i\n", PICO_QL_OPEN); 
+  printf("Releasing /proc/picoQL. Was open? %i\n", PICO_QL_OPEN); 
 #endif
   if (PICO_QL_OPEN)
     picoQL_copen = 0;
@@ -258,11 +259,11 @@ int picoQL_release(struct inode *i, struct file *f) {
 
 int picoQL_permission (struct inode *i, int mask) {
 #ifdef PICO_QL_DEBUG
-  printk(KERN_DEBUG "Requesting permission to /proc/picoQL for operation %i.\n", mask);
+  printf("Requesting permission to /proc/picoQL for operation %i.\n", mask);
 #endif
   if ((mask & MAY_READ) || (mask & MAY_WRITE))
     return 0;
-  printk(KERN_DEBUG "Access to /proc/picoQL denied.\n");
+  printf("Access to /proc/picoQL denied.\n");
   return -EACCES;
 }
 
@@ -290,7 +291,7 @@ int init_module()
   PicoQL_Proc_File->proc_iops = &picoQL_iops;
   PicoQL_Proc_File->proc_fops = &picoQL_fops;
 #ifdef PICO_QL_DEBUG
-  printk(KERN_DEBUG "Created proc entry %s.\n", PicoQL_Proc_File->name);
+  printf("Created proc entry %s.\n", PicoQL_Proc_File->name);
 #endif
   return re;
 }
@@ -303,7 +304,7 @@ void cleanup_module()
   sqlite3_free(mod);
   remove_proc_entry(PicoQL_Proc_File->name, NULL);
 #ifdef PICO_QL_DEBUG
-  printk(KERN_DEBUG "Cleaned up after picoQL module.\n");
+  printf("Cleaned up after picoQL module.\n");
 #endif
 }
 
