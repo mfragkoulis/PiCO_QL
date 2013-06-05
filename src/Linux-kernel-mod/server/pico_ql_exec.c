@@ -1,6 +1,7 @@
 #include <linux/slab.h>
 #include <linux/types.h>
 #include <linux/string.h>
+#include <stdio.h>
 #include <sqlite3.h>
 #include "pico_ql_exec.h"
 

@@ -117,7 +117,42 @@ USING STRUCT VIEW VirtualMem_SV
 WITH REGISTERED C TYPE struct mm_struct$
 
 CREATE STRUCT VIEW NetDevice_SV (
-	name TEXT FROM name
+	name TEXT FROM name,
+	ifalias TEXT FROM ifalias,
+	ifindex INT FROM ifindex,
+	iflink INT FROM iflink,
+	mem_end BIGINT FROM mem_end,
+	mem_start BIGINT FROM mem_start,
+	address BIGINT FROM base_addr,
+	irq_no INT FROM irq,
+	state BIGINT FROM state,
+	active_features BIGINT FROM features,
+	user_changeable_features BIGINT FROM hw_features,
+	user_requested_features BIGINT FROM wanted_features,
+	vlan_inheritable_features BIGINT FROM vlan_features,
+	rx_packets BIGINT FROM stats.rx_packets,
+	tx_packets BIGINT FROM stats.tx_packets,
+	rx_bytes BIGINT FROM stats.rx_bytes,
+	tx_bytes BIGINT FROM stats.tx_bytes,
+	rx_errors BIGINT FROM stats.rx_errors,
+	tx_errors BIGINT FROM stats.tx_errors,
+	rx_dropped BIGINT FROM stats.rx_dropped,
+	tx_dropped BIGINT FROM stats.tx_dropped,
+	multicast BIGINT FROM stats.multicast,
+	collisions BIGINT FROM stats.collisions,
+	rx_length_errors BIGINT FROM stats.rx_length_errors,
+	rx_over_errors BIGINT FROM stats.rx_over_errors,
+	rx_crc_errors BIGINT FROM stats.rx_crc_errors,
+	rx_frame_errors BIGINT FROM stats.rx_frame_errors,
+	rx_fifo_errors BIGINT FROM stats.rx_fifo_errors,
+	rx_missed_errors BIGINT FROM stats.rx_missed_errors,
+	tx_aborted_errors BIGINT FROM stats.tx_aborted_errors,
+	tx_carrier_errors BIGINT FROM stats.tx_carrier_errors,
+	tx_fifo_errors BIGINT FROM stats.tx_fifo_errors,
+	tx_heartbeat_errors BIGINT FROM stats.tx_heartbeat_errors,
+	tx_window_errors BIGINT FROM stats.tx_window_errors,
+	rx_compressed BIGINT FROM stats.rx_compressed,
+	tx_compressed BIGINT FROM stats.tx_compressed
 )
 $
 
@@ -242,7 +277,6 @@ CREATE STRUCT VIEW NetNamespace_SV (
        count_to_shut INT FROM count.counter,
 //       use_count INT FROM use_count.counter,
        FOREIGN KEY(rtnl_sock_id) FROM rtnl REFERENCES ESock_VT POINTER,
-       FOREIGN KEY(genl_sock_id) FROM genl_sock REFERENCES ESock_VT POINTER,
        FOREIGN KEY(genl_sock_id) FROM genl_sock REFERENCES ESock_VT POINTER,
        FOREIGN KEY(dev_list_id) FROM self REFERENCES ENetDevice_VT POINTER,
        FOREIGN KEY(nfnl_stash_sock_id) FROM nfnl_stash REFERENCES ESock_VT POINTER,
