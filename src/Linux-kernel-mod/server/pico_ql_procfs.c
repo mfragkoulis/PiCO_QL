@@ -188,6 +188,7 @@ int init_sqlite3(void) {
   pico_ql_register(&init_task, "processes");
   pico_ql_register(&init_task.nsproxy, "namespace_proxy");
   pico_ql_register(&net_namespace_list, "network_namespaces");
+  pico_ql_register(&super_blocks, "superblock_list");
   output = pico_ql_serve(db);
   if (output != SQLITE_DONE) {
     printk(KERN_ERR "Serve failed with error code %i.\n", output);

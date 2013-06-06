@@ -29,6 +29,7 @@
 #define NetNamespace_VT_decl(X) struct net *X
 #define ERcvQueue_VT_decl(X) struct sk_buff *X;struct sk_buff *next
 #define ENetDevice_VT_decl(X) struct net_device *X
+#define Superblock_VT_decl(X) struct super_block *X
 $
 
 CREATE LOCK RCU
@@ -366,6 +367,21 @@ USING STRUCT VIEW ProcessSignal
 WITH REGISTERED C TYPE struct signal_struct
 $
 
+CREATE STRUCT VIEW Superblock_SV (
+	name TEXT FROM s_id,
+	subtype TEXT FROM s_subtype,
+	blocksize BIGINT FROM s_blocksize,
+	count INT FROM s_count
+)
+$
+
+CREATE VIRTUAL TABLE Superblock_VT
+USING STRUCT VIEW Superblock_SV
+WITH REGISTERED C NAME superblock_list
+WITH REGISTERED C TYPE struct list_head: struct super_block *
+USING LOOP list_for_each_entry_rcu(iter, base, s_list)
+USING LOCK RCU
+$
 
 CREATE STRUCT VIEW File_SV (
        inode_name TEXT FROM f_path.dentry->d_iname,
