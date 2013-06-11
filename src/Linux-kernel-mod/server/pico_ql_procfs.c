@@ -24,7 +24,9 @@
 #include <linux/sched.h>
 #include <linux/nsproxy.h>
 #include <linux/fs.h>
+#include <linux/fdtable.h>
 #include <net/net_namespace.h>
+#include <linux/pci.h>
 #include <linux/spinlock.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -43,6 +45,11 @@ static int picoQL_res_avail = 0;
 #define PICO_QL_RS_AVAILABLE picoQL_res_avail = 1
 #define PICO_QL_RS_NAVAILABLE picoQL_res_avail = 0
 #define PICO_QL_RS_ACTIVE picoQL_res_avail == 1
+
+#define EFile_VT_decl(X) struct file *X; int bit = 0
+#define EFile_VT_begin(X, Y, Z) (X) = (Y)[(Z)]
+#define EFile_VT_advance(X, Y, Z) EFile_VT_begin(X,Y,Z)
+
 
 sqlite3 *db;
 sqlite3_module *mod;
@@ -164,6 +171,10 @@ static struct proc_dir_entry *PicoQL_Proc_File;
 
 int init_sqlite3(void) {
   int output, re;
+  struct task_struct *iter;
+  struct file *iterf;
+  int bit = 0;
+  struct super_block *sb = NULL;
   re = sqlite3_open(":memory:", &db);
 
   if (re) {
@@ -188,7 +199,22 @@ int init_sqlite3(void) {
   pico_ql_register(&init_task, "processes");
   pico_ql_register(&init_task.nsproxy, "namespace_proxy");
   pico_ql_register(&net_namespace_list, "network_namespaces");
-  pico_ql_register(&super_blocks, "superblock_list");
+  pico_ql_register(hypervisor_kobj, "sysfs_hypervisor_kobject");
+  pico_ql_register(&pci_bus_type, "pci_bus");
+  rcu_read_lock();
+  list_for_each_entry_rcu(iter, &init_task.tasks, tasks) {
+    for (EFile_VT_begin(iterf, iter->files->fdt->fd, (bit = find_first_bit((unsigned long *)iter->files->fdt->open_fds, iter->files->fdt->max_fds))); 
+         bit < iter->files->fdt->max_fds; 
+         EFile_VT_advance(iterf, iter->files->fdt->fd, (bit = find_next_bit((unsigned long *)iter->files->fdt->open_fds, iter->files->fdt->max_fds, bit + 1)))) {
+      if (iterf != NULL) {
+        sb = iterf->f_path.dentry->d_inode->i_sb;
+        break;
+      }
+    }
+  }
+  rcu_read_unlock();
+  if (sb == NULL) return -ECANCELED;
+  pico_ql_register(sb, "superblock");
   output = pico_ql_serve(db);
   if (output != SQLITE_DONE) {
     printk(KERN_ERR "Serve failed with error code %i.\n", output);

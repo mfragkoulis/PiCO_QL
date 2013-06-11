@@ -30,6 +30,8 @@
 #define ERcvQueue_VT_decl(X) struct sk_buff *X;struct sk_buff *next
 #define ENetDevice_VT_decl(X) struct net_device *X
 #define Superblock_VT_decl(X) struct super_block *X
+#define EKobjectSet_VT_decl(X) struct kobject *X
+#define EKobjectList_VT_decl(X) struct kobject *X
 $
 
 CREATE LOCK RCU
@@ -367,24 +369,114 @@ USING STRUCT VIEW ProcessSignal
 WITH REGISTERED C TYPE struct signal_struct
 $
 
+CREATE STRUCT VIEW Bus_SV (
+	name TEXT FROM name,
+	dev_name TEXT FROM dev_name,
+//        FOREIGN KEY(klist_id) FROM bus_get_device_klist(this) REFERENCES EDeviceList_VT POINTER
+)
+$
+
+CREATE VIRTUAL TABLE Bus_VT
+USING STRUCT VIEW Bus_SV
+WITH REGISTERED C NAME pci_bus
+WITH REGISTERED C TYPE struct bus_type
+$
+
+CREATE STRUCT VIEW Device_SV (
+	name TEXT FROM init_name,
+	id INT FROM id,
+	dev BIGINT FROM devt
+)
+$
+
+CREATE VIRTUAL TABLE EDevice_VT
+USING STRUCT VIEW Device_SV
+WITH REGISTERED C TYPE struct device
+$
+
+
+CREATE STRUCT VIEW Kobject_SV (
+	name TEXT FROM name,
+	container_ref INT FROM atomic_read(&this->kref.refcount),
+	FOREIGN KEY(kobject_list_id) FROM entry REFERENCES EKobjectList_VT,
+	FOREIGN KEY(kobject_parent_id) FROM parent REFERENCES EKobject_VT POINTER,
+	FOREIGN KEY(kset_id) FROM kset REFERENCES EKobjectSet_VT POINTER,
+	state_initialized INT FROM state_initialized,
+	state_in_sysfs INT FROM state_in_sysfs,
+	state_add_uevent_sent INT FROM state_add_uevent_sent,
+	state_remove_uevent_sent INT FROM state_remove_uevent_sent,
+	uevent_suppress INT FROM uevent_suppress
+)
+$
+
+CREATE VIRTUAL TABLE EKobject_VT
+USING STRUCT VIEW Kobject_SV
+WITH REGISTERED C TYPE struct kobject
+$
+	
+CREATE VIRTUAL TABLE EKobjectList_VT
+USING STRUCT VIEW Kobject_SV
+WITH REGISTERED C TYPE struct list_head:struct kobject *
+USING LOOP list_for_each_entry_rcu(iter, base, entry)
+USING LOCK RCU
+$
+
+CREATE VIRTUAL TABLE Kobject_VT
+USING STRUCT VIEW Kobject_SV
+WITH REGISTERED C NAME sysfs_hypervisor_kobject
+WITH REGISTERED C TYPE struct kobject
+$
+	
+CREATE VIRTUAL TABLE EKobjectSet_VT
+USING STRUCT VIEW Kobject_SV
+WITH REGISTERED C TYPE struct kset:struct kobject *
+USING LOOP list_for_each_entry_rcu(iter, &base->list, entry)
+USING LOCK RCU
+$
+
+CREATE STRUCT VIEW Inode_SV (
+       ino BIGINT FROM i_ino,
+       i_mode INT FROM i_mode,
+       bytes INT FROM i_bytes,
+       i_size INT FROM i_size,
+       blocks BIGINT FROM i_blocks
+)
+$
+
+CREATE VIRTUAL TABLE EInode_VT
+USING STRUCT VIEW Inode_SV
+WITH REGISTERED C TYPE struct inode *
+$
+
 CREATE STRUCT VIEW Superblock_SV (
 	name TEXT FROM s_id,
 	subtype TEXT FROM s_subtype,
+	fs_name TEXT FROM s_type->name,
+        dentry_root_name TEXT FROM s_root->d_name.name,
 	blocksize BIGINT FROM s_blocksize,
-	count INT FROM s_count
+	max_file_size INT FROM s_maxbytes,
+	count INT FROM s_count,
+	flags BIGINT FROM s_flags,
+	magic BIGINT FROM s_magic,
+	fs_flags INT FROM s_type->fs_flags
 )
 $
 
 CREATE VIRTUAL TABLE Superblock_VT
 USING STRUCT VIEW Superblock_SV
-WITH REGISTERED C NAME superblock_list
-WITH REGISTERED C TYPE struct list_head: struct super_block *
-USING LOOP list_for_each_entry_rcu(iter, base, s_list)
+WITH REGISTERED C NAME superblock
+WITH REGISTERED C TYPE struct super_block *
+USING LOOP list_for_each_entry_rcu(iter, &base->s_list, s_list)
 USING LOCK RCU
 $
 
+CREATE VIRTUAL TABLE ESuperblock_VT
+USING STRUCT VIEW Superblock_SV
+WITH REGISTERED C TYPE struct super_block *
+$
+
 CREATE STRUCT VIEW File_SV (
-       inode_name TEXT FROM f_path.dentry->d_iname,
+       inode_name TEXT FROM f_path.dentry->d_name.name,
        inode_mode INT FROM f_path.dentry->d_inode->i_mode,
        inode_bytes INT FROM f_path.dentry->d_inode->i_bytes,
        inode_size INT FROM f_path.dentry->d_inode->i_size,
@@ -398,7 +490,8 @@ CREATE STRUCT VIEW File_SV (
        fcred_gid INT FROM f_cred->gid,
        fcred_egid INT FROM f_cred->egid,
        fmode INT FROM f_mode,
-       FOREIGN KEY(socket_id) FROM private_data REFERENCES ESocket_VT POINTER
+       FOREIGN KEY(socket_id) FROM private_data REFERENCES ESocket_VT POINTER,
+       FOREIGN KEY(sb_id) FROM f_path.dentry->d_inode->i_sb REFERENCES ESuperblock_VT POINTER
 // sock_from_file(this->private_data, err) and define int *err on top
 // net/socket.c
 )
