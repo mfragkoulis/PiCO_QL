@@ -372,7 +372,6 @@ $
 CREATE STRUCT VIEW Bus_SV (
 	name TEXT FROM name,
 	dev_name TEXT FROM dev_name,
-//        FOREIGN KEY(klist_id) FROM bus_get_device_klist(this) REFERENCES EDeviceList_VT POINTER
 )
 $
 

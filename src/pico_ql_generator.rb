@@ -556,6 +556,14 @@ class VirtualTable
                    line, space)
     if access_path.match(/this\.|this->/)
       access_path.gsub!(/this\.|this->/, "#{iden}")
+    elsif access_path.match(/\(this\)/)
+      if iden.end_with?(".")
+        access_path.gsub!(/\(this\)/, "(#{iden.chomp(".")})")
+        puts "#{iden}, #{access_path}"
+      elsif iden.end_with?("->")
+        access_path.gsub!(/\(this\)/, "(#{iden.chomp("->")})")
+        puts "#{iden}, #{access_path}"
+      end
     else
       access_path = "#{iden}#{access_path}"
     end
@@ -989,6 +997,21 @@ class VirtualTable
     if access_path.match(/this\.|this->/)
       access_pathF = access_path.gsub(/this\.|this->/, "#{idenF}")
       access_pathN = access_path.gsub(/this\.|this->/, "#{idenN}")
+    elsif access_path.match(/\(this\)/)
+      if idenF.end_with?(".")
+        access_pathF = access_path.gsub(/\(this\)/, "(#{idenF.chomp(".")})")
+        puts "F-#{idenF}, #{access_pathF}"
+      elsif idenF.end_with?("->")
+        access_pathF = access_path.gsub(/\(this\)/, "(#{idenF.chomp("->")})")
+        puts "F-#{idenF}, #{access_pathF}"
+      end
+      if idenN.end_with?(".")
+        access_pathN = access_path.gsub(/\(this\)/, "(#{idenN.chomp(".")})")
+        puts "N-#{idenN}, #{access_pathN}"
+      elsif idenN.end_with?("->")
+        access_pathN = access_path.gsub(/\(this\)/, "(#{idenN.chomp("->")})")
+        puts "N-#{idenN}, #{access_pathN}"
+      end
     else
       access_pathF = "#{idenF}#{access_path}"
       access_pathN = "#{idenN}#{access_path}"
