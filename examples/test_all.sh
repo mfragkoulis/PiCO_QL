@@ -6,37 +6,85 @@ cd BankApp
 echo "In BankApp..."
 echo "-> Generating files."
 make prep > /dev/null
-ruby pico_ql_generator.rb pico_ql_dsl.sql
+if ! ruby pico_ql_generator.rb pico_ql_dsl.sql
+then
+  echo "Failure in this step.Troubleshoot."
+  exit
+fi
 echo "-> Building."
 make clean > /dev/null
-make PICO_QL_JOIN_THREADS=1 > /dev/null
+if ! make PICO_QL_JOIN_THREADS=1 > /dev/null
+then
+  echo "Failure in this step.Troubleshoot."
+  exit
+fi
 echo "-> Executing tests."
-./bank_app > /dev/null
+if ! ./bank_app > /dev/null
+then
+  echo "Failure in this step.Troubleshoot."
+  exit
+fi
 cat pico_ql_test_output.txt
+if ! egrep -q -i 'Test successful' pico_ql_test_output.txt
+then
+  diff pico_ql_test_current.txt pico_ql_test_success.txt
+fi
 
 cd ../Chess
 echo "\nIn Chess..."
 echo "-> Generating files."
 make prep > /dev/null
-ruby pico_ql_generator.rb pico_ql_dsl.sql
+if ! ruby pico_ql_generator.rb pico_ql_dsl.sql
+then
+  echo "Failure in this step.Troubleshoot."
+  exit
+fi
 echo "-> Building."
 make clean > /dev/null
-make PICO_QL_JOIN_THREADS=1 > /dev/null
+if ! make PICO_QL_JOIN_THREADS=1 > /dev/null
+then
+  echo "Failure in this step.Troubleshoot."
+  exit
+fi
 echo "-> Executing tests."
-./chess > /dev/null
+if ! ./chess > /dev/null
+then
+  echo "Failure in this step.Troubleshoot."
+  exit
+fi
 cat pico_ql_test_output.txt
+if ! egrep -q -i 'Test successful' pico_ql_test_output.txt
+then
+  diff pico_ql_test_current.txt pico_ql_test_success.txt
+fi
 
 cd ../VRP
 echo "\nIn VRP..."
 echo "-> Generating files."
 make prep > /dev/null
-ruby pico_ql_generator.rb pico_ql_dsl.sql
+if ! ruby pico_ql_generator.rb pico_ql_dsl.sql
+then
+  echo "Failure in this step.Troubleshoot."
+  exit
+fi
 echo "-> Building."
 make clean > /dev/null
-make PICO_QL_JOIN_THREADS=1 > /dev/null
+if ! make PICO_QL_JOIN_THREADS=1 > /dev/null
+then
+  echo "Failure in this step.Troubleshoot."
+  exit
+fi
 echo "-> Executing tests."
-./schedule solomon.txt 2 > /dev/null
+if ! ./schedule solomon.txt 2 > /dev/null
+then
+  echo "Failure in this step.Troubleshoot."
+  exit
+fi
 cat pico_ql_test_output.txt
+if ! egrep -q -i 'Test successful' pico_ql_test_output.txt
+then
+  diff pico_ql_test_current.txt pico_ql_test_success.txt
+fi
 
 cd ../CApp
 echo "\n CApp..."
@@ -44,25 +92,28 @@ echo "-> Generating files."
 make prep > /dev/null
 make clean > /dev/null
 rm pico_ql_internal.c pico_ql_search.c > /dev/null
-ruby pico_ql_generator.rb pico_ql_dsl.sql
+if ! ruby pico_ql_generator.rb pico_ql_dsl.sql
+then
+  echo "Failure in this step.Troubleshoot."
+  exit
+fi
 echo "-> Building."
-make G_CXX=1 PICO_QL_JOIN_THREADS=1 > /dev/null
+if ! make G_CXX=1 PICO_QL_JOIN_THREADS=1 > /dev/null
+then
+  echo "Failure in this step.Troubleshoot."
+  exit
+fi
 echo "-> Executing tests."
-./capp > /dev/null
+if ! ./capp > /dev/null
+then
+  echo "Failure in this step.Troubleshoot."
+  exit
+fi
 cat pico_ql_test_output.txt
-
-#cd ../bowtie
-#echo "\nIn bowtie..."
-#echo "-> Generating files."
-#ruby pico_ql_generator.rb sqtl_pico_ql_dsl.sql > /dev/null
-#echo "-> Building."
-#rm *.o /dev/null
-#make clean > /dev/null
-#make > /dev/null
-#echo "-> Executing tests."
-#./bowtie-debug c > /dev/null
-#cat pico_ql_test_output.txt
-#echo "(Expected failure.)"
+if ! egrep -q -i 'Test successful' pico_ql_test_output.txt
+then
+  diff pico_ql_test_current.txt pico_ql_test_success.txt
+fi
 
 cd ..
 echo "\n*Testing examples with single threaded version, no memory assistance for temporary variables, and polymorphism support.*\n"
@@ -71,60 +122,143 @@ cd BankApp
 echo "In BankApp..."
 echo "-> Generating files."
 make prep > /dev/null
-ruby pico_ql_generator.rb pico_ql_dsl.sql no_mem_mgt > /dev/null
+if ! ruby pico_ql_generator.rb pico_ql_dsl.sql no_mem_mgt
+then
+  echo "Failure in this step.Troubleshoot."
+  exit
+fi
 echo "-> Building."
 make clean > /dev/null
-make PICO_QL_SINGLE_THREADED=1 PICO_QL_HANDLE_TEXT_ARRAY=1 PICO_QL_HANDLE_POLYMORPHISM=1 > /dev/null
+if ! make PICO_QL_SINGLE_THREADED=1 PICO_QL_HANDLE_TEXT_ARRAY=1 PICO_QL_HANDLE_POLYMORPHISM=1 > /dev/null
+then
+  echo "Failure in this step.Troubleshoot."
+  exit
+fi
 echo "-> Executing tests."
-./bank_app > /dev/null
+if ! ./bank_app > /dev/null
+then
+  echo "Failure in this step.Troubleshoot."
+  exit
+fi
 cat pico_ql_test_output.txt
+if ! egrep -q -i 'Test successful' pico_ql_test_output.txt
+then
+  diff pico_ql_test_current.txt pico_ql_test_success.txt
+fi
 
 cd ../Chess
 echo "\nIn Chess..."
 echo "-> Generating files."
 make prep > /dev/null
-ruby pico_ql_generator.rb pico_ql_dsl.sql no_mem_mgt > /dev/null
+if ! ruby pico_ql_generator.rb pico_ql_dsl.sql no_mem_mgt
+then
+  echo "Failure in this step.Troubleshoot."
+  exit
+fi
 echo "-> Building."
 make clean > /dev/null
-make PICO_QL_SINGLE_THREADED=1 PICO_QL_HANDLE_TEXT_ARRAY=1 PICO_QL_HANDLE_POLYMORPHISM=1 > /dev/null
+if ! make PICO_QL_SINGLE_THREADED=1 PICO_QL_HANDLE_TEXT_ARRAY=1 PICO_QL_HANDLE_POLYMORPHISM=1 > /dev/null
+then
+  echo "Failure in this step.Troubleshoot."
+  exit
+fi
 echo "-> Executing tests."
-./chess > /dev/null
+if ! ./chess > /dev/null
+then
+  echo "Failure in this step.Troubleshoot."
+  exit
+fi
 cat pico_ql_test_output.txt
+if ! egrep -q -i 'Test successful' pico_ql_test_output.txt
+then
+  diff pico_ql_test_current.txt pico_ql_test_success.txt
+fi
 
 cd ../VRP
 echo "\nIn VRP..."
 echo "-> Generating files."
 make prep > /dev/null
-ruby pico_ql_generator.rb pico_ql_dsl.sql no_mem_mgt > /dev/null
+if ! ruby pico_ql_generator.rb pico_ql_dsl.sql no_mem_mgt 
+then
+  echo "Failure in this step.Troubleshoot."
+  exit
+fi
 echo "-> Building."
 make clean > /dev/null
-make PICO_QL_SINGLE_THREADED=1 PICO_QL_HANDLE_TEXT_ARRAY=1 PICO_QL_HANDLE_POLYMORPHISM=1 > /dev/null
+if ! make PICO_QL_SINGLE_THREADED=1 PICO_QL_HANDLE_TEXT_ARRAY=1 PICO_QL_HANDLE_POLYMORPHISM=1 > /dev/null
+then
+  echo "Failure in this step.Troubleshoot."
+  exit
+fi
 echo "-> Executing tests."
-./schedule cvrp/solomon.txt 2 > /dev/null
+if ! ./schedule solomon.txt 2 > /dev/null
+then
+  echo "Failure in this step.Troubleshoot."
+  exit
+fi
 cat pico_ql_test_output.txt
+if ! egrep -q -i 'Test successful' pico_ql_test_output.txt
+then
+  diff pico_ql_test_current.txt pico_ql_test_success.txt
+fi
 
 cd ../CApp
 echo "\n CApp..."
 echo "-> Generating files."
 make prep > /dev/null
 make clean > /dev/null
-ruby pico_ql_generator.rb pico_ql_dsl.sql C
+if ! ruby pico_ql_generator.rb pico_ql_dsl.sql C
+then
+  echo "Failure in this step.Troubleshoot."
+  exit
+fi
 echo "-> Building."
-make PICO_QL_JOIN_THREADS=1 > /dev/null
+if ! make PICO_QL_JOIN_THREADS=1 > /dev/null
+then
+  echo "Failure in this step.Troubleshoot."
+  exit
+fi
 echo "-> Executing tests."
-./capp > /dev/null
+if ! ./capp > /dev/null
+then
+  echo "Failure in this step.Troubleshoot."
+  exit
+fi
 cat pico_ql_test_output.txt
+if ! egrep -q -i 'Test successful' pico_ql_test_output.txt
+then
+  diff pico_ql_test_current.txt pico_ql_test_success.txt
+fi
 
 cd ../Polymorphism
 echo "\nIn Polymorphism..."
 echo "-> Generating files."
 make prep > /dev/null
-ruby pico_ql_generator.rb pico_ql_dsl.sql no_mem_mgt > /dev/null
+if ! ruby pico_ql_generator.rb pico_ql_dsl.sql no_mem_mgt 
+then
+  echo "Failure in this step.Troubleshoot."
+  exit
+fi
 echo "-> Building."
 make clean > /dev/null
-make PICO_QL_SINGLE_THREADED=1 PICO_QL_HANDLE_TEXT_ARRAY=1 PICO_QL_HANDLE_POLYMORPHISM=1 > /dev/null
+if ! make PICO_QL_SINGLE_THREADED=1 PICO_QL_HANDLE_TEXT_ARRAY=1 PICO_QL_HANDLE_POLYMORPHISM=1 > /dev/null
+then
+  echo "Failure in this step.Troubleshoot."
+  exit
+fi
 echo "-> Executing tests."
-./poly > /dev/null
+if ! ./poly > /dev/null
+then
+  echo "Failure in this step.Troubleshoot."
+  exit
+fi
 cat pico_ql_test_output.txt
+if ! egrep -q -i 'Test successful' pico_ql_test_output.txt
+then
+  diff pico_ql_test_current.txt pico_ql_test_success.txt
+fi
 
-echo "\nEND"
+echo "\n"
+echo "****************************************"
+echo "* End of tests. All tests operational. *"
+echo "****************************************"
