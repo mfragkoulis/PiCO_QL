@@ -6,6 +6,9 @@
 #include "StelObject.hpp"
 #include "SolarSystem.hpp"
 #include "Planet.hpp"
+#include "StelProjector.hpp"
+#include "StelApp.hpp"
+#include "StelCore.hpp"
 
 using namespace std;
 $
@@ -48,6 +51,10 @@ CREATE STRUCT VIEW Planet (
        cloudSharpness FLOAT FROM data()->cloudSharpness,
        albedo FLOAT FROM data()->albedo,
        axisRotation FLOAT FROM data()->axisRotation,
+       screenPosd0 DOUBLE FROM data()->screenPos[0],
+       screenPosd1 DOUBLE FROM data()->screenPos[1],
+       screenPosd2 DOUBLE FROM data()->screenPos[2],
+       onScreen BOOL FROM StelApp::getInstance().getCore()->getProjection(StelApp::getInstance().getCore()->getHeliocentricEclipticModelViewTransform())->checkInViewport(this->data()->screenPos),
 //       FOREIGN KEY(parentPlanet_id) FROM parent.data() REFERENCES Planet POINTER,
        FOREIGN KEY(satellites_id) FROM data()->satellites REFERENCES SatellitePlanet
 )$
