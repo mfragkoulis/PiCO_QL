@@ -1,7 +1,7 @@
 void cpp_query2() {                                         
   clock_t start, finish;                                    
   double t = 0;                                             
-  std::list<QSharedPointer<Planet> >::iterator iterP, iterSP;
+  PlanetP iterP, iterSP;
   float minAxisRotation, spAxisRotation;                    
   bool inserted;                                            
   std::multimap<float, std::pair<float,std::string> > aggregate;
@@ -11,14 +11,13 @@ void cpp_query2() {
     start = clock();                                        
     minAxisRotation = 100000000;                            
     inserted = false;                                       
-    for (iterP = listSystemPlanets->begin(); iterP != listSystemPlanets->end();iterP++) {                              
+    foreach (iterP,  s->getAllPlanets()) {                              
       inserted = false;                                     
       minAxisRotation = 100000000;                          
-      if (StelApp::getInstance().getCore()->getProjection(StelApp::getInstance().getCore()->getHeliocentricEclipticModelViewTransform())->checkInViewport(this->data()->screenPos) {
-        for (iterSP=(*iterP).data()->getStdSatellites()->begin();
-          iterSP != (*iterP).data()->getStdSatellites()->end(); iterSP++) {
-          spAxisRotation = (*iterSP).data()->axisRotation;    
-          if ((*iterP).data()->axisRotation > spAxisRotation) {
+      if (StelApp::getInstance().getCore()->getProjection(StelApp::getInstance().getCore()->getHeliocentricEclipticModelViewTransform())->checkInViewport(iterP->screenPos) {
+        foreach (iterSP, (*iterP).satellites()) {
+          spAxisRotation = (*iterSP).axisRotation;    
+          if ((*iterP).axisRotation > spAxisRotation) {
             if (spAxisRotation < minAxisRotation) {           
               minAxisRotation = spAxisRotation;               
               inserted = true;                                
@@ -26,8 +25,8 @@ void cpp_query2() {
           }                                                   
         }
         if (inserted) {
-	  axisName=make_pair(minAxisRotation, (*iterP).data()->getNameI18n().toStdString());
-          aggregate.insert(std::pair<float, std::pair<float, std::string>>((*iterP).data()->axisRotation, axisName));   
+	  axisName=make_pair(minAxisRotation, (*iterP).getNameI18n().toStdString());
+          aggregate.insert(std::pair<float, std::pair<float, std::string>>((*iterP).axisRotation, axisName));   
         }                                                     
       }                                                     
     }                                                       

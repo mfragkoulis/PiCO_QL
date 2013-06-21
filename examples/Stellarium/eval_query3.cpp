@@ -1,7 +1,7 @@
-void cpp_query3() {                                         
+void cpp_query3(SolarSystem *s) {                                         
   clock_t start, finish;                                    
   double t = 0;                                             
-  std::list<QSharedPointer<Planet> >::iterator iterP, iterSP;
+  PlanetP iterP, iterSP;
   std::multimap<std::string, std::pair<int,Planet *> > aggregate;
   std::pair<int, Planet *> pSatellites;                     
   std::multimap<std::string, std::pair<int, Planet *> >::iterator aggrIt;
@@ -10,16 +10,16 @@ void cpp_query3() {
   for (int i = 0; i < 100; i++) {                           
     start = clock();                                        
     count = 0;                                              
-    for (iterP = listSystemPlanets->begin(); iterP != listSystemPlanets->end(); iterP++) {                              
+    foreach (iterP, s->getAllPlanets()) {                              
       count = 0;                                            
-      if (StelApp::getInstance().getCore()->getProjection(StelApp::getInstance().getCore()->getHeliocentricEclipticModelViewTransform())->checkInViewport(this->data()->screenPos) {
-        for (iterSP = (*iterP).data()->getStdSatellites()->begin();
-             iterSP != (*iterP).data()->getStdSatellites()->end(); iterSP++) {        if ((*iterSP).data()->hasAtmosphere())              
+      if (StelApp::getInstance().getCore()->getProjection(StelApp::getInstance().getCore()->getHeliocentricEclipticModelViewTransform())->checkInViewport(iterP->screenPos) {
+        foreach (iterSP, (*iterP).satellites()) {
+        if ((*iterSP).hasAtmosphere())              
             count++;                                          
         }
         if (count > 0) {                                      
-          pSatellites = std::make_pair (count, (*iterP).data());
-          aggregate.insert(std::pair<std::string, std::pair<int, Planet*>>((*iterP).data()->getNameI18n().toStdString(), pSatellites));
+          pSatellites = std::make_pair (count, iterP.data());
+          aggregate.insert(std::pair<std::string, std::pair<int, Planet*>>((*iterP).getNameI18n().toStdString(), pSatellites));
         }
       }                                                     
     }                                                       
