@@ -31,7 +31,7 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
     rs->resBts.resize(stcsr->max_size, 0);
 <%        end %>
   int rowNum = -1;
-<%        if @@C_container_types.include?(@container_class) %>
+<%        if @loop.match(/\Witer\W/) %>
   int i = 0;
   bool found = false;
   <%= @name %>_decl(iter);

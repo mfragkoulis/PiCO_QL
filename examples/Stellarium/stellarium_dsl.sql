@@ -1,6 +1,6 @@
 #include <vector>
 #include <QString>
-#include <list>
+#include <QList>
 #include "Meteor.hpp"
 #include "Constellation.hpp"
 #include "StelObject.hpp"
@@ -9,6 +9,17 @@
 
 using namespace std;
 $
+
+CREATE STRUCT VIEW CurrentStelObject (
+	i18nName STRING FROM data()->getNameI18n().toStdString(),
+	englishName STRING FROM data()->getEnglishName().toStdString(),
+	type STRING FROM data()->getType().toStdString()
+)$
+
+CREATE VIRTUAL TABLE CurrentStelObject
+USING STRUCT VIEW CurrentStelObject
+WITH REGISTERED C NAME selected_objects
+WITH REGISTERED C TYPE QList<StelObjectP>$
 
 CREATE STRUCT VIEW Meteor (
        alive BOOL FROM isAlive(),
@@ -38,17 +49,17 @@ CREATE STRUCT VIEW Planet (
        albedo FLOAT FROM data()->albedo,
        axisRotation FLOAT FROM data()->axisRotation,
 //       FOREIGN KEY(parentPlanet_id) FROM parent.data() REFERENCES Planet POINTER,
-       FOREIGN KEY(satellites_id) FROM data()->satellites.toStdList() REFERENCES SatellitePlanet
+       FOREIGN KEY(satellites_id) FROM data()->satellites REFERENCES SatellitePlanet
 )$
 
 CREATE VIRTUAL TABLE Planet
        USING STRUCT VIEW Planet
        WITH REGISTERED C NAME allPlanets
-       WITH REGISTERED C TYPE list<PlanetP>$
+       WITH REGISTERED C TYPE QList<PlanetP>$
 
 CREATE VIRTUAL TABLE SatellitePlanet
        USING STRUCT VIEW Planet
-       WITH REGISTERED C TYPE list<QSharedPointer<Planet> >*$
+       WITH REGISTERED C TYPE QList<QSharedPointer<Planet> >$
 
 CREATE STRUCT VIEW Constellation (
        constelName STRING FROM getNameI18n().toStdString(),

@@ -408,9 +408,8 @@ class VirtualTable
                           # Use @type for management. It is active for 
                           # both container and object.
     @pointer = ""         # Is the record type pointer? ("*").
-    @iterator = ""        # Iterator name in app to use for C containers. 
-    @loop = ""            # Custom loop to use for iterating C containers
-                          # (linked lists, arrays, etc.)
+    @iterator = ""        # Iterator name in app to use for C containers (not used). 
+    @loop = ""            # Custom loop to use for iterating custom containers
                           # A uniform abstraction is defined.
                           # generic_clist.
     @loop_root = ""       # Holds starting address of C array for NULL 
@@ -2322,6 +2321,8 @@ def take_cases(argv)
   when /kernel/i
     $argK = "KERNEL"
     $argLB = "C"
+  when /concept_check/i
+    $argC = "CONCEPT_CHECK"
   end
 end
 
@@ -2332,6 +2333,7 @@ if __FILE__ == $0
   $argM = "MEM_MGT"
   $argLB = "CPP"
   $argK = ""
+  $argC = ""
   ARGV.each_index { |arg| 
     if arg > 0
       take_cases(ARGV[arg]) 

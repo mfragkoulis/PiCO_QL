@@ -52,6 +52,7 @@ using namespace boost;
 
 namespace picoQL {
 
+<%    if $argc == "CONCEPT_CHECK" %>
 template <class T>
 void forward_container_concept_check(T x) {
   BOOST_CONCEPT_ASSERT((ForwardContainer<T>));
@@ -65,8 +66,8 @@ class forward_iterator_concept_class {
 
 // For the compiler to verify.
 void check_concepts() {
-<%    @tables.each_index { |vt| %>
-<%      if @tables[vt].container_class.length > 0 && !VirtualTable.C_container_types.include?(@tables[vt].container_class) %>
+<%      @tables.each_index { |vt| %>
+<%        if @tables[vt].container_class.length > 0 && !VirtualTable.C_container_types.include?(@tables[vt].container_class) %>
 <%# Chomp the pointer from signature. %>
 <%# For non-pointers it will have zero effect. %>
   <%= @tables[vt].signature.chomp('*') %> container_instance<%= vt %>;
@@ -74,10 +75,10 @@ void check_concepts() {
   forward_iterator_concept_class<<%= @tables[vt].signature.chomp('*') %>::iterator> it<%= vt %>;
   (void)it<%= vt %>;	// Silence compiler unused variable warning
  
-<%      end %>
-<%    } %>
+<%        end %>
+<%      } %>
 }
-
+<%    end %>
 
 struct name_cmp {
   bool operator()(const char *a, const char *b) {

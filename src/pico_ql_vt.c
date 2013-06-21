@@ -216,6 +216,7 @@ int create_vtable(sqlite3 *db,
 
 // xDestroy
 int destroy_vtable(sqlite3_vtab *ppVtab) {
+  (void)ppVtab;
   return SQLITE_MISUSE;
 }
 

@@ -20,7 +20,7 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
 <%        type_retype = "#{@type}" %>
 <%      end %>
   <%= sign_retype %> any_dstr;  
-<%      if @container_class.length > 0 %>
+<%      if @loop.match(/\Witer\W/) %>
   <%= @name %>_decl(iter);
   int index = 0;
   ResultSet *rs;
