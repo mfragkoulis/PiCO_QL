@@ -12,13 +12,15 @@ void cpp_query3() {
     count = 0;                                              
     for (iterP = listSystemPlanets->begin(); iterP != listSystemPlanets->end(); iterP++) {                              
       count = 0;                                            
-      for (iterSP = (*iterP).data()->getStdSatellites()->begin();
-           iterSP != (*iterP).data()->getStdSatellites()->end(); iterSP++) {        if ((*iterSP).data()->hasAtmosphere())              
-          count++;                                          
-      }                                                     
-      if (count > 0) {                                      
-        pSatellites = std::make_pair (count, (*iterP).data());
-        aggregate.insert(std::pair<std::string, std::pair<int, Planet*>>((*iterP).data()->getNameI18n().toStdString(), pSatellites));
+      if (StelApp::getInstance().getCore()->getProjection(StelApp::getInstance().getCore()->getHeliocentricEclipticModelViewTransform())->checkInViewport(this->data()->screenPos) {
+        for (iterSP = (*iterP).data()->getStdSatellites()->begin();
+             iterSP != (*iterP).data()->getStdSatellites()->end(); iterSP++) {        if ((*iterSP).data()->hasAtmosphere())              
+            count++;                                          
+        }
+        if (count > 0) {                                      
+          pSatellites = std::make_pair (count, (*iterP).data());
+          aggregate.insert(std::pair<std::string, std::pair<int, Planet*>>((*iterP).data()->getNameI18n().toStdString(), pSatellites));
+        }
       }                                                     
     }                                                       
     std::cout << " name | radius | "                        
