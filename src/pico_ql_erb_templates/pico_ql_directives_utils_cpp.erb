@@ -90,7 +90,7 @@ static map<string, VtblImpl*> selector_vt;
 
 <%     @tables.each { |vt| %>
 <%      if vt.base_var.length > 0 %>
-<%        type = vt.type.gsub(/(\s*)/, "").gsub(/,/, "").gsub(/</, "").gsub(/>/, "").gsub(/\*/, "ptr") %>
+<%        type = vt.type.gsub(/(\s*)/, "").gsub(/,/, "").gsub(/</, "").gsub(/>/, "").gsub(/:{2}/, "").gsub(/\*/, "ptr") %>
 <%        /\*/.match(vt.signature_pointer) == nil ? retype = "*" : retype = "" %>
 <%        if $argD == "DEBUG" %>
 // C NAME (pico_ql_table_)<%= vt.base_var %>_<%= type %> in line <%= vt.base_var_line + 1 %> <%= $argF %> 
@@ -155,7 +155,7 @@ int register_vt(picoQLTable *picoQL) {
 <%    count = 0 %>
 <%    @tables.each_index { |vt| %>
 <%      if @tables[vt].base_var.length > 0 %>
-<%        type = @tables[vt].type.gsub(/(\s*)/, "").gsub(/,/, "").gsub(/</, "").gsub(/>/, "").gsub(/\*/, "ptr") %>
+<%        type = @tables[vt].type.gsub(/(\s*)/, "").gsub(/,/, "").gsub(/</, "").gsub(/>/, "").gsub(/:{2}/, "").gsub(/\*/, "ptr") %>
 <%        if count == 0 %>
   if (!strcmp(picoQL->zName, "<%= @tables[vt].name %>")) {
 <%	  count += 1 %>

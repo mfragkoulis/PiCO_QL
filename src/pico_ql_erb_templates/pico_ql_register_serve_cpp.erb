@@ -39,7 +39,7 @@ namespace picoQL {
 <%     @tables.each { |vt| %>
 <%      if vt.base_var.length > 0 %>
 <%        /\*/.match(vt.signature_pointer) ? retype = "" : retype = "*" %>
-<%        type = vt.type.gsub(/(\s*)/, "").gsub(/,/, "").gsub(/</, "").gsub(/>/, "").gsub(/\*/, "ptr") %>
+<%        type = vt.type.gsub(/(\s*)/, "").gsub(/,/, "").gsub(/</, "").gsub(/>/, "").gsub(/:{2}/, "").gsub(/\*/, "ptr") %>
 <%        if $argD == "DEBUG" %>
 // C NAME (pico_ql_table_)<%= vt.base_var %>_<%= type %> in line <%= vt.base_var_line + 1 %> <%= $argF %> 
 <%        end %>
@@ -57,7 +57,7 @@ void pico_ql_register(const void *data_structure, const char *ds_name) {
 <%    count = 0 %>
 <%    @tables.each_index { |vt| %>
 <%      if @tables[vt].base_var.length > 0 %>
-<%        type = @tables[vt].type.gsub(/(\s*)/, "").gsub(/,/, "").gsub(/</, "").gsub(/>/, "").gsub(/\*/, "ptr") %>
+<%        type = @tables[vt].type.gsub(/(\s*)/, "").gsub(/,/, "").gsub(/</, "").gsub(/>/, "").gsub(/:{2}/, "").gsub(/\*/, "ptr") %>
 <%        if count == 0 %>
   if (!strcmp(ds_name, "<%= @tables[vt].base_var %>")) {
 <%	  count += 1 %>

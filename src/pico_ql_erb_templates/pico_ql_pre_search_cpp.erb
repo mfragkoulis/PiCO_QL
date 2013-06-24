@@ -31,9 +31,11 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
     rs->resBts.resize(stcsr->max_size, 0);
 <%        end %>
   int rowNum = -1;
-<%        if @loop.match(/\Witer\W/) %>
+<%        if @@C_container_types.include?(@container_class) %>
   int i = 0;
   bool found = false;
+<%        end %>
+<%        if @loop.match(/\Witer\W/) %>
   <%= @name %>_decl(iter);
 <%        end %>
 <%      end %>
@@ -69,8 +71,8 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
 <%      end %>
 <%      if @base_var.length > 0 %>
 <%        if (@signature <=> @type) != 0 %>
+<%# C container %>
 <%          if @loop_root.length > 0 %>
-<%# C containers: only then @loop_root %>
   if (<%= @loop_root %> == NULL) {
     rs->res.clear();
     rs->resBts.clear();

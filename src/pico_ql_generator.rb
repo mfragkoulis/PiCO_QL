@@ -720,13 +720,18 @@ class VirtualTable
     type_check = ""
     if @container_class.length > 0
       if @@C_container_types.include?(@container_class)
+# that is !@loop.empty?
         if $argLB == "CPP"
           access_path.length == 0 ? iden =  "*(rs->resIter)" : iden = "(*(rs->resIter))."
         else
           access_path.length == 0 ? iden =  "((#{@name}ResultSetImpl *)rs)->res[rs->offset]" : iden = "((#{@name}ResultSetImpl *)rs)->res[rs->offset]."
         end
       else
-        access_path.length == 0 ? iden =  "**(rs->resIter)" : iden = "(**(rs->resIter))."
+        if @loop.empty?
+          access_path.length == 0 ? iden =  "**(rs->resIter)" : iden = "(**(rs->resIter))."
+        else
+          access_path.length == 0 ? iden =  "*(rs->resIter)" : iden = "(*(rs->resIter))."
+        end
       end
     else
       access_path.length == 0 ? iden = "any_dstr" : iden = "any_dstr->"
@@ -735,12 +740,8 @@ class VirtualTable
     when /gen_all|union/
       if @container_class.length > 0
         if access_path.length == 0
-          if @@C_container_types.include?(@container_class)
+          if @type.match(/\*/)
             iden = "*#{iden}"
-          else
-            if @type.match(/\*/)
-              iden = "*#{iden}"
-            end
           end
         else
           if (access_path == "first" && 
@@ -750,7 +751,7 @@ class VirtualTable
             iden = "*#{iden}"
           elsif !access_path.match(/first/) &&
                  !access_path.match(/second/) &&
-                 @type.gsub(/ /,"").match(/(.+)\*/) &&
+                 @type.gsub(/ /,"").end_with?("*") &&
                  iden.end_with?(".")
             iden.chomp!(".")
             iden.concat("->")
@@ -763,7 +764,7 @@ class VirtualTable
         if access_path.length > 0 &&
            !access_path.match(/first/) &&
            !access_path.match(/second/) &&
-           @type.gsub(/ /,"").match(/(.+)\*/) &&
+           @type.gsub(/ /,"").end_with?("*") &&
            iden.end_with?(".")
           iden.chomp!(".")
           iden.concat("->")
@@ -898,6 +899,7 @@ class VirtualTable
     access_pathN = ""
     if @container_class.length > 0
       if @@C_container_types.include?(@container_class)
+# that is !@loop.empty?
         access_path.length == 0 ? idenF = "iter" : idenF = "iter."
         if $argLB == "CPP"
           access_path.length == 0 ? idenN = "(*resIterC)" : idenN = "(*resIterC)."
@@ -905,8 +907,13 @@ class VirtualTable
           access_path.length == 0 ? idenN = "((#{@name}ResultSetImpl *)rs)->res[index]" : idenN = "((#{@name}ResultSetImpl *)rs)->res[index]."
         end
       else
-        access_path.length == 0 ? idenF = "(*iter)" : idenF = "(*iter)."
-        access_path.length == 0 ? idenN = "(**resIterC)" : idenN = "(**resIterC)."
+        if @loop.empty?
+          access_path.length == 0 ? idenF = "(*iter)" : idenF = "(*iter)."
+          access_path.length == 0 ? idenN = "(**resIterC)" : idenN = "(**resIterC)."
+        else
+          access_path.length == 0 ? idenF = "iter" : idenF = "iter."
+          access_path.length == 0 ? idenN = "(*resIterC)" : idenN = "(*resIterC)."
+        end
       end
     else
       access_path.length == 0 ? idenF = "any_dstr" : idenF = "any_dstr->"
@@ -938,14 +945,10 @@ class VirtualTable
     when "all"
       if @container_class.length > 0
         if access_path.length == 0
-          if @@C_container_types.include?(@container_class)
+# Dereference what is there for all containers.
+          if @type.end_with?("*")
             idenF = "*#{idenF}"
             idenN = "*#{idenN}"
-          else
-            if @type.match(/\*/)
-              idenF = "*#{idenF}"
-              idenN = "*#{idenN}"
-            end
           end
         else
           if (access_path == "first" && 
@@ -956,7 +959,7 @@ class VirtualTable
             idenN = "*#{idenN}"
           elsif !access_path.match(/first/) &&
               !access_path.match(/second/) &&
-              @type.gsub(/ /,"").match(/(.+)\*/)
+              @type.gsub(/ /,"").end_with?("*")
             if idenF.end_with?(".")
               idenF.chomp!(".")
               idenF.concat("->")
@@ -974,7 +977,7 @@ class VirtualTable
         if access_path.length > 0 &&
             !access_path.match(/first/) &&
             !access_path.match(/second/) &&
-            @type.gsub(/ /,"").match(/(.+)\*/)
+            @type.gsub(/ /,"").end_with?("*")
           if idenF.end_with?(".")
             idenF.chomp!(".")
             idenF.concat("->")
@@ -986,7 +989,7 @@ class VirtualTable
         end
       end
       if (access_path.length == 0 && 
-          !@type.gsub(/ /,"").match(/(.+)\*/)) ||
+          !@type.gsub(/ /,"").end_with?("*")) ||
           (access_path.length > 0 && 
            fk_type == "object")
         idenF = "&#{idenF}"
@@ -1678,6 +1681,34 @@ class VirtualTable
   def verify_signature()
     begin
       case @signature
+      when /(\w+)<(.+)>(\**):(.+)/m
+# Negative lookahead does not work for ':(?!:). 
+# So hacking it non-elegantly. Seek alternative.'
+        @signature.gsub!(/:{3}/, "[DDD]")
+        @signature.gsub!(/:{2}/, "[DD]")
+        if @signature.match(/(.+):(.+)/)
+          puts "s: #{@signature}\n"
+          matchdata = @signature.match(/(.+):(.+)/)
+          @signature = matchdata[1]
+          @type = matchdata[2]
+          @signature.gsub!(/\[DDD\]/, ":::")
+          @signature.gsub!(/\[DD\]/, "::")
+          matchdata1 = @signature.match(/(\w+)<(.+)>/)
+          @container_class = matchdata1[1]
+          @type.gsub!(/\[DDD\]/, ":::")
+          @type.gsub!(/\[DD\]/, "::")
+          puts "s: #{@signature}\n"
+          puts "t: #{@type}\n"
+          @signature.rstrip!
+          @type.rstrip!
+          if !@signature.end_with?("*")
+            @signature.concat("*")
+          end
+          @signature_pointer = "*"
+          if @type.end_with?("*")
+            @pointer = "*"
+          end
+        end
       when /(\w+)<(.+)>(\**)/m
         matchdata = /(\w+)<(.+)>(\**)/m.match(@signature)
         if matchdata[3].length == 0
@@ -1688,15 +1719,15 @@ class VirtualTable
         @type = matchdata[2]
         if @type.match(/,/)
           type_array = @type.split(",")
-          if type_array[0].match(/\*/)
+          if type_array[0].end_with?("*")
             @pointer.concat("*,")
           else
             @pointer.concat(",")
           end
-          if type_array[1].match(/\*/)
+          if type_array[1].end_with?("*")
             @pointer.concat("*")
           end
-        elsif @type.match(/\*/)
+        elsif @type.end_with?("*")
           @pointer = "*"
         end
         if $argD == "DEBUG"
@@ -1711,15 +1742,15 @@ class VirtualTable
           @type = matchdata[2]
           @signature.rstrip!
           @type.rstrip!
-          if !@signature.match(/\*/)
+          if !@signature.end_with?("*")
             @signature.concat("*")
           end
           @signature_pointer = "*"
-          if @type.match(/\*/)
+          if @type.end_with?("*")
             @pointer = "*"
           end
         else
-          if !@signature.match(/\*/)
+          if !@signature.end_with?("*")
             @signature.concat("*")
           end
           @signature_pointer = "*"
@@ -1780,7 +1811,9 @@ class VirtualTable
 # Isolate root address of C container for NULL checking.
   def process_loop()
     matched = 0
-    if @signature.match(":")
+    if !@signature.match(/<|>/) &&
+# C container
+       @signature.match(":")
       matchdata = @loop.split(/,|;/)
       matchdata.each { |m|
         if $argD == "DEBUG"
