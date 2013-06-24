@@ -94,12 +94,12 @@ CREATE STRUCT VIEW Number (
 CREATE VIRTUAL TABLE Number
 USING STRUCT VIEW Number
 WITH REGISTERED C NAME numbers
-WITH REGISTERED C TYPE int
+WITH REGISTERED C TYPE int*
 USING LOOP for(iter = &base[num]; num < 8; Number_advance(iter, base, ++num))$
 
 
 CREATE VIRTUAL TABLE ENumber
 USING STRUCT VIEW Number
 WITH REGISTERED C NAME int_array
-WITH REGISTERED C TYPE MoneyArray:int
+WITH REGISTERED C TYPE MoneyArray:int*
 USING LOOP for(iter = &base->intArray[enm]; enm < base->iArraySize; Number_advance(iter, base->intArray, ++enm))$
