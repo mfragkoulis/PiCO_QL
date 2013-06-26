@@ -1,4 +1,4 @@
-void cpp_query2() {                                         
+void cpp_query2(SolarSystem *s) {                                         
   clock_t start, finish;                                    
   double t = 0;                                             
   PlanetP iterP, iterSP;
