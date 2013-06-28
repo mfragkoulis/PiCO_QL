@@ -16,24 +16,26 @@
 #include "sensor_t.h"
 #include "pico_ql_search.h"
 
-#define FILE            "h5ex_t_cmpd.h5"
-#define DATASET         "DS1"
+#define FILENAME            "h5ex_t_cmpd.h5"
+#define DATASETNAME         "DS1"
 #define DIM0            4
 #define DIM1            3
 #define DIM2            2
-
+#define RANK            3
 
 int
 main (void)
 {
-    hid_t       file, filetype, memtype, strtype, space, dset;
+    /* For writing dataset to HDF file */
+    hid_t       file, memtype, strtype, space, dset;
                                             /* Handles */
     herr_t      status;
-    hsize_t     dims[3] = {DIM0, DIM1, DIM2};
-    sensor_t    wdata[DIM0][DIM1][DIM2],                /* Write buffer */
-                ***rdata;                     /* Read buffer */
-    int         ndims,
-                i, j, k;
+    hsize_t     dims[RANK] = {DIM0, DIM1, DIM2};
+    sensor_t    wdata[DIM0][DIM1][DIM2];                /* Write buffer */
+
+    /* For reading dataset from HDF file */
+    sensor_t      rdata[DIM0][DIM1][DIM2];                     /* Read buffer */
+    int          i, j, k;
 
     /*
      * Initialize data.
@@ -141,9 +143,15 @@ main (void)
     wdata[3][2][1].pressure = 84.11;
 
     /*
+     * Create dataspace.  Setting maximum size to NULL sets the maximum
+     * size to be the current size.
+     */
+    space = H5Screate_simple (RANK, dims, NULL);
+
+    /*
      * Create a new file using the default properties.
      */
-    file = H5Fcreate (FILE, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+    file = H5Fcreate (FILENAME, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
     /*
      * Create variable-length string datatype.
@@ -165,38 +173,18 @@ main (void)
                 HOFFSET (sensor_t, pressure), H5T_NATIVE_DOUBLE);
 
     /*
-     * Create the compound datatype for the file.  Because the standard
-     * types we are using for the file may have different sizes than
-     * the corresponding native types, we must manually calculate the
-     * offset of each member.
-     */
-    filetype = H5Tcreate (H5T_COMPOUND, 8 + sizeof (hvl_t) + 8 + 8);
-    status = H5Tinsert (filetype, "Serial number", 0, H5T_STD_I64BE);
-    status = H5Tinsert (filetype, "Location", 8, strtype);
-    status = H5Tinsert (filetype, "Temperature (F)", 8 + sizeof (hvl_t),
-                H5T_IEEE_F64BE);
-    status = H5Tinsert (filetype, "Pressure (inHg)", 8 + sizeof (hvl_t) + 8,
-                H5T_IEEE_F64BE);
-
-    /*
-     * Create dataspace.  Setting maximum size to NULL sets the maximum
-     * size to be the current size.
-     */
-    space = H5Screate_simple (3, dims, NULL);
-
-    /*
      * Create the dataset and write the compound data to it.
      */
-    dset = H5Dcreate (file, DATASET, filetype, space, H5P_DEFAULT, H5P_DEFAULT,
+    dset = H5Dcreate2 (file, DATASETNAME, memtype, space, H5P_DEFAULT, H5P_DEFAULT,
                 H5P_DEFAULT);
     status = H5Dwrite (dset, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, wdata);
 
     /*
      * Close and release resources.
      */
-    status = H5Dclose (dset);
+    status = H5Tclose (memtype);
     status = H5Sclose (space);
-    status = H5Tclose (filetype);
+    status = H5Dclose (dset);
     status = H5Fclose (file);
 
     pico_ql_register(wdata, "hd5_sensors");
@@ -213,42 +201,60 @@ main (void)
     /*
      * Open file and dataset.
      */
-    file = H5Fopen (FILE, H5F_ACC_RDONLY, H5P_DEFAULT);
-    dset = H5Dopen (file, DATASET, H5P_DEFAULT);
+    file = H5Fopen (FILENAME, H5F_ACC_RDONLY, H5P_DEFAULT);
+    dset = H5Dopen2 (file, DATASETNAME, H5P_DEFAULT);
 
     /*
      * Get dataspace and allocate memory for read buffer.
      */
     space = H5Dget_space (dset);
-    ndims = H5Sget_simple_extent_dims (space, dims, NULL);
-    rdata = (sensor_t ***) malloc (dims[0] * sizeof (sensor_t**));
-    for (j=0; j<dims[0]; j++) {
-      rdata[j] = (sensor_t **) malloc (dims[1] * sizeof (sensor_t*));
-      for (k=0; k<dims[1]; k++) {
-        rdata[j][k] = (sensor_t *) malloc (dims[2] * sizeof (sensor_t));
-      }
-    }
+    //ndims = H5Sget_simple_extent_ndims (space);
+    //status_n = H5Sget_simple_extent_dims (space, dimsr, NULL);
+    
+    /*
+     * Define the memory space to read dataset.
+     */
+    //space = H5Screate_simple(ndims, dimsr, NULL);
+
+    /*
+     * Create the compound datatype for memory.
+     */
+    memtype = H5Tcreate (H5T_COMPOUND, sizeof (sensor_t));
+    status = H5Tinsert (memtype, "Serial number",
+                HOFFSET (sensor_t, serial_no), H5T_NATIVE_INT);
+    status = H5Tinsert (memtype, "Location", HOFFSET (sensor_t, location),
+                strtype);
+    status = H5Tinsert (memtype, "Temperature (F)",
+                HOFFSET (sensor_t, temperature), H5T_NATIVE_DOUBLE);
+    status = H5Tinsert (memtype, "Pressure (inHg)",
+                HOFFSET (sensor_t, pressure), H5T_NATIVE_DOUBLE);
+
 
     /*
      * Read the data.
      */
-//    status = H5Dread (dset, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, rdata);
+    status = H5Dread (dset, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, rdata);
 
     /*
      * Output the data to the screen.
      */
-    printf("*** %lx\n", (long unsigned int)rdata);
+    printf("rdata %lx\n", (long unsigned int)rdata);
     for (i=0; i<dims[0]; i++) {
-      printf("** %lx\n", (long unsigned int)rdata[i]);
+//      printf("rdata[%d] %lx\n", i, (long unsigned int)rdata[i]);
       for (j=0; j<dims[1]; j++) {
-        printf("* %lx\n", (long unsigned int)rdata[i][j]);
+//        printf("rdata[%d][%d] %lx\n", i, j, (long unsigned int)rdata[i][j]);
         for (k=0; k<dims[2]; k++) {
-          printf("%lx\n", (long unsigned int)&rdata[i][j][k]);
-          printf ("%s[%d][%d][%d]:\n", DATASET, i, j, k);
-          //printf ("Serial number   : %d\n", rdata[i][j][k].serial_no);
-          //printf ("Location        : %s\n", rdata[i][j][k].location);
-          //printf ("Temperature (F) : %f\n", rdata[i][j][k].temperature);
-          //printf ("Pressure (inHg) : %f\n\n", rdata[i][j][k].pressure);
+//          printf("rdata[%d][%d][%d] %lx\n", i, j, k, (long unsigned int)&rdata[i][j][k]);
+          printf ("%s[%d][%d][%d]:\n", DATASETNAME, i, j, k);
+          printf ("Serial number   : %d\n", rdata[i][j][k].serial_no);
+          printf ("Location        : %s\n", rdata[i][j][k].location);
+          printf ("Temperature (F) : %f\n", rdata[i][j][k].temperature);
+          printf ("Pressure (inHg) : %f\n\n", rdata[i][j][k].pressure);
+/*          printf ("Serial number   : %d\n", rdata[i*dims[0]+j*dims[1]+k].serial_no);
+          printf ("Location        : %s\n", rdata[i*dims[0]+j*dims[1]+k].location);
+          printf ("Temperature (F) : %f\n", rdata[i*dims[0]+j*dims[1]+k].temperature);
+          printf ("Pressure (inHg) : %f\n\n", rdata[i*dims[0]+j*dims[1]+k].pressure);
+*/
         }
       }
     }
@@ -259,7 +265,7 @@ main (void)
      * case).
      */
     status = H5Dvlen_reclaim (memtype, space, H5P_DEFAULT, rdata);
-    free (rdata);
+
     status = H5Dclose (dset);
     status = H5Sclose (space);
     status = H5Tclose (memtype);

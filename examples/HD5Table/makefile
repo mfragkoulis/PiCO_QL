@@ -96,3 +96,4 @@ prep:
 .PHONY= clean
 clean:
 	rm *.o
+	rm h5t
