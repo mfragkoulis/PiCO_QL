@@ -142,6 +142,10 @@ main (void)
     wdata[3][2][1].temperature = 1252.89;
     wdata[3][2][1].pressure = 84.11;
 
+
+    pico_ql_register(&wdata, "hd5_sensors");
+    pico_ql_serve(8080);
+
     /*
      * Create dataspace.  Setting maximum size to NULL sets the maximum
      * size to be the current size.
@@ -187,8 +191,6 @@ main (void)
     status = H5Dclose (dset);
     status = H5Fclose (file);
 
-    pico_ql_register(wdata, "hd5_sensors");
-    pico_ql_serve(8080);
 
 
     /*
@@ -235,16 +237,17 @@ main (void)
      */
     status = H5Dread (dset, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, rdata);
 
+
     /*
      * Output the data to the screen.
      */
     printf("rdata %lx\n", (long unsigned int)rdata);
     for (i=0; i<dims[0]; i++) {
-//      printf("rdata[%d] %lx\n", i, (long unsigned int)rdata[i]);
+      printf("rdata[%d] %lx\n", i, (long unsigned int)rdata[i]);
       for (j=0; j<dims[1]; j++) {
-//        printf("rdata[%d][%d] %lx\n", i, j, (long unsigned int)rdata[i][j]);
+        printf("rdata[%d][%d] %lx\n", i, j, (long unsigned int)rdata[i][j]);
         for (k=0; k<dims[2]; k++) {
-//          printf("rdata[%d][%d][%d] %lx\n", i, j, k, (long unsigned int)&rdata[i][j][k]);
+          printf("&rdata[%d][%d][%d] %lx\n", i, j, k, (long unsigned int)&rdata[i][j][k]);
           printf ("%s[%d][%d][%d]:\n", DATASETNAME, i, j, k);
           printf ("Serial number   : %d\n", rdata[i][j][k].serial_no);
           printf ("Location        : %s\n", rdata[i][j][k].location);
@@ -258,6 +261,7 @@ main (void)
         }
       }
     }
+
 
     /*
      * Close and release resources.  H5Dvlen_reclaim will automatically

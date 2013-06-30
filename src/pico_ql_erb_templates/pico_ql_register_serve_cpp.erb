@@ -28,7 +28,9 @@
 #ifndef PICO_QL_SINGLE_THREADED
 #include <pthread.h>
 #endif
-<%= directives %>
+<% stripDir = String.new(directives) %>
+<% stripDir.gsub!(/^(?!#)(.+)\((.*)\)(\s*)\{(.+)\}/m, "") %>
+<%= stripDir %>
 #include <string.h>
 #include <sqlite3.h>
 #include "pico_ql_search.h"
@@ -43,7 +45,11 @@ namespace picoQL {
 <%        if $argD == "DEBUG" %>
 // C NAME (pico_ql_table_)<%= vt.base_var %>_<%= type %> in line <%= vt.base_var_line + 1 %> <%= $argF %> 
 <%        end %>
+<%        if /\[/.match(vt.signature) %>
+<%= vt.assignable_signature.gsub("<variable_name>", "pico_ql_table_#{vt.base_var}_#{type}") %>;
+<%        else %>
 <%= vt.signature %> <%= retype %>pico_ql_table_<%= vt.base_var %>_<%= type %>;
+<%        end %>
 <%        if $argD == "DEBUG" %>
 #line <%= vt.signature_line + 1 %> "<%= $argF %>" 
 <%        end %>

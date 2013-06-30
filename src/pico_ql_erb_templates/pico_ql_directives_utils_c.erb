@@ -51,7 +51,11 @@
 <%        if $argD == "DEBUG" %>
 // C NAME (pico_ql_table_)<%= vt.base_var %>_<%= vt.type.gsub(/(\s*)/, "").gsub(/\*/, "ptr") %> in line <%= vt.base_var_line + 1 %> <%= $argF %> 
 <%        end %>
+<%        if /\[/.match(vt.signature) %>
+extern <%= vt.assignable_signature.gsub("<variable_name>", "pico_ql_table_#{vt.base_var}_#{vt.type.gsub(/(\s*)/, "").gsub(/\*/, "ptr")}") %>;
+<%        else %>
 extern <%= vt.signature %> <%= retype %>pico_ql_table_<%= vt.base_var %>_<%= vt.type.gsub(/(\s*)/, "").gsub(/\*/, "ptr") %>;
+<%        end %>
 <%        if $argD == "DEBUG" %>
 #line <%= vt.signature_line + 1 %> "<%= $argF %>" 
 <%        end %>

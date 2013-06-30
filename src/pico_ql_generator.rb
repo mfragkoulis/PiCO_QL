@@ -401,6 +401,8 @@ class VirtualTable
     @struct_view          # Reference to the respective 
                           # struct_view definition.
     @signature = ""       # The C/C++ signature of the (base) struct.
+    @assignable_signature = ""  # The C/C++assignable signature of the (base) struct.
+                                # Different only for multi-dimensional C arrays.
     @signature_pointer = "" # Signature is of type pointer? ("*")
     @container_class = "" # If a container instance as per 
                           # the SGI container concept.
@@ -437,6 +439,7 @@ class VirtualTable
                 :signature_line,:base_var,
                 :struct_view,
                 :signature,:signature_pointer,
+                :assignable_signature,
                 :container_class,:type,
                 :pointer,:iterator,
                 :object_class,:columns,
@@ -1687,7 +1690,6 @@ class VirtualTable
         @signature.gsub!(/:{3}/, "[DDD]")
         @signature.gsub!(/:{2}/, "[DD]")
         if @signature.match(/(.+):(.+)/)
-          puts "s: #{@signature}\n"
           matchdata = @signature.match(/(.+):(.+)/)
           @signature = matchdata[1]
           @type = matchdata[2]
@@ -1697,8 +1699,6 @@ class VirtualTable
           @container_class = matchdata1[1]
           @type.gsub!(/\[DDD\]/, ":::")
           @type.gsub!(/\[DD\]/, "::")
-          puts "s: #{@signature}\n"
-          puts "t: #{@type}\n"
           @signature.rstrip!
           @type.rstrip!
           if !@signature.end_with?("*")
@@ -1743,7 +1743,14 @@ class VirtualTable
           @signature.rstrip!
           @type.rstrip!
           if !@signature.end_with?("*")
-            @signature.concat("*")
+            if !@signature.end_with?("]")   # Not an array
+              @signature.concat("*")
+            else
+              if !@signature.match(/\(\*\)(\s*)\[/)
+                @signature.sub!(/\[/, "(*)[")
+              end
+              @assignable_signature = @signature.gsub(/\(\*\)(.+)/, '(*<variable_name>)\1')
+            end
           end
           @signature_pointer = "*"
           if @type.end_with?("*")
@@ -1765,10 +1772,14 @@ class VirtualTable
       when /(.+)/
         raise "Template instantiation faulty: #{@signature}.\n"
       end
+      if @assignable_signature.empty?
+        @assignable_signature = @signature
+      end
       if $argD == "DEBUG"
         puts "Table object class name : " + @object_class
         puts "Table container class name : " + @container_class
         puts "Table base is of type : " + @signature
+        puts "Table assignable base is of type : " + @assignable_signature
         puts "Table base is pointer: " + @signature_pointer
         puts "Table record is of type: " + @type
         puts "Table type is of type pointer: " + @pointer

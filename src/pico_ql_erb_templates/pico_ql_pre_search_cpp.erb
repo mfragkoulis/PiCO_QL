@@ -65,7 +65,11 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
 <%      else %>
 <%        sign_retype = @signature %>
 <%      end %>
+<%      if /\[/.match(@signature) %>
+  <%= @assignable_signature.gsub("<variable_name>", "any_dstr") %>;
+<%      else %>
   <%= sign_retype %> any_dstr = (<%= sign_retype %>)stcsr->source;
+<%      end %>
 <%      if $argD == "DEBUG" %>
 #line <%= @signature_line + 1 %> "<%= $argF %>" 
 <%      end %>

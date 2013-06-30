@@ -95,7 +95,11 @@ static map<string, VtblImpl*> selector_vt;
 <%        if $argD == "DEBUG" %>
 // C NAME (pico_ql_table_)<%= vt.base_var %>_<%= type %> in line <%= vt.base_var_line + 1 %> <%= $argF %> 
 <%        end %>
+<%        if /\[/.match(vt.signature) %>
+extern <%= vt.assignable_signature.gsub("<variable_name>", "pico_ql_table_#{vt.base_var}_#{type}") %>;
+<%        else %>
 extern <%= vt.signature %> <%= retype %>pico_ql_table_<%= vt.base_var %>_<%= type %>;
+<%        end %>
 <%        if $argD == "DEBUG" %>
 #line <%= vt.signature_line + 1 %> "<%= $argF %>" 
 <%        end %>
