@@ -108,7 +108,10 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
 <%      if @base_var.length > 0 %>
 <%        if @container_class.length > 0 %>
 <%          if @@C_container_types.include?(@container_class) %>
-    <%= display_loop("any_dstr") %> {
+<% loop = display_loop("any_dstr") %>
+<% loop.gsub!(/<space>/, "    ") %>
+<%# Generate spacing for nested loops %>
+    <%= loop %> {
       if (iter == NULL) continue;
 <%          end %>
       rs->size++;
@@ -121,6 +124,9 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
       }
       ((<%= @name %>ResultSetImpl *)rs)->res[rs->size - 1] = iter;
     }
+<%          for i in 0..@nloops-1 %>
+    }
+<%          end %>
 <%        else %>
     stcsr->size = 1;
 <%        end %>

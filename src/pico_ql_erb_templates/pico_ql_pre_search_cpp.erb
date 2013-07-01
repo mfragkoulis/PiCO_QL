@@ -96,11 +96,17 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
 <%        if @container_class.length > 0 %>
 <%          if @@C_container_types.include?(@container_class) %>
     rs->resBts.clear();
-    <%= display_loop("any_dstr") %> {
+<% loop = display_loop("any_dstr") %>
+<% loop.gsub!(/<space>/, "    ") %>
+<%# Generate spacing for nested loops %>
+    <%= loop %> {
       if (iter == NULL) continue;
       rs->res.push_back(iter);
       rs->resBts.push_back(1);
     }
+<%          for i in 0..@nloops-1 %>
+    }
+<%          end %>
 <%          else %>
     for (iter = any_dstr->begin(); iter != any_dstr->end(); iter++) {
 <%            if !@pointer.match(/,/) && @pointer.match(/\*/) %>

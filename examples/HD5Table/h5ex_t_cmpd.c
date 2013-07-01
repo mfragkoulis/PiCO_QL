@@ -143,8 +143,6 @@ main (void)
     wdata[3][2][1].pressure = 84.11;
 
 
-    pico_ql_register(&wdata, "hd5_sensors");
-    pico_ql_serve(8080);
 
     /*
      * Create dataspace.  Setting maximum size to NULL sets the maximum
@@ -262,6 +260,8 @@ main (void)
       }
     }
 
+    pico_ql_register(rdata, "hd5_sensors");
+    pico_ql_serve(8080);
 
     /*
      * Close and release resources.  H5Dvlen_reclaim will automatically

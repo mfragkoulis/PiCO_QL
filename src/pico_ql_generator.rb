@@ -414,6 +414,7 @@ class VirtualTable
     @loop = ""            # Custom loop to use for iterating custom containers
                           # A uniform abstraction is defined.
                           # generic_clist.
+    @nloops = 0           # Counts nested loops
     @loop_root = ""       # Holds starting address of C array for NULL 
                           # checking C containers (linked lists, arrays etc)
                           # A uniform abstraction is defined.
@@ -444,7 +445,7 @@ class VirtualTable
                 :pointer,:iterator,
                 :object_class,:columns,
                 :include_text_col,
-                :C_container_types, :loop,
+                :C_container_types, :loop, :nloops,
                 :loop_root, :lock, :lock_name,
                 :lock_argument)
 
@@ -887,6 +888,9 @@ class VirtualTable
       else
         add_to_result_setN = "<space>    rs->actualSize--;\n<space>    ((#{@name}ResultSetImpl *)rs)->res[index] = NULL;\n<space>  }\n<space>  index++;\n<space>  while ((index < rs->size) && (((#{@name}ResultSetImpl *)rs)->res[index] == NULL)) {index++;}\n<space>}"
       end
+      for i in 0..@nloops-1        # Generate closing curly braces for nested loops
+        add_to_result_setF.concat("\n<space>}")
+      end
     else
       add_to_result_setF = "<space>  stcsr->size = 1;\n<space>}"
       add_to_result_setN = "<space>  stcsr->size = 0;\n<space>}"
@@ -1137,6 +1141,9 @@ class VirtualTable
       fw.puts "#{$s}}"
       fw.puts "#{$s}i++;"
       fw.puts "      }"
+      for i in 0..@nloops-1    # Generate closing curly braces for nested loops
+        fw.puts "      }"
+      end
       fw.puts "      if (!found) {"
     end
     fw.puts "        rs->res.clear();"
@@ -1822,6 +1829,13 @@ class VirtualTable
 # Isolate root address of C container for NULL checking.
   def process_loop()
     matched = 0
+    @loop.chomp!("{")
+    @nloops = @loop.count("{")
+    if @nloops > 0
+      @loop.gsub!(/\{ /, "{\n<space>")
+# Configure spacing for nested loop.
+# Opening curly braces required.
+    end
     if !@signature.match(/<|>/) &&
 # C container
        @signature.match(":")
@@ -1859,6 +1873,7 @@ class VirtualTable
             @loop_root = "&any_dstr->#{matchdata2[1]}"
             if $argD == "DEBUG"
               puts "@loop = #{@loop}"
+              puts "@nloops = #{@nloops.to_s}"
               puts "@loop_root = #{@loop_root}"
               puts "matchdata[0] = #{matchdata2[0]}"
               puts "matchdata[1] = #{matchdata2[1]}"

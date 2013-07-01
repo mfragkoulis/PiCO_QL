@@ -98,7 +98,7 @@ int call_test(sqlite3 *db) {
   int result, i = 0;
   char *q;
 
-  q = "SELECT pressure FROM Sensor;";
+  q = "SELECT * FROM Sensor;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);
 
