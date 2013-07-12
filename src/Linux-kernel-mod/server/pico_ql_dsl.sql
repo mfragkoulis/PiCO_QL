@@ -520,7 +520,7 @@ $
 
 CREATE VIRTUAL TABLE EGroup_VT
 USING STRUCT VIEW Group_SV
-WITH REGISTERED C TYPE struct group_info*:int
+WITH REGISTERED C TYPE struct group_info*:int*
 USING LOOP for (EGroup_VT_begin(iter, base->small_block, i); i < base->ngroups; EGroup_VT_advance(iter, base->small_block, ++i))
 $
 
