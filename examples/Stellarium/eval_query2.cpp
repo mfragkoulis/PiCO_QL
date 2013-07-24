@@ -1,16 +1,16 @@
+/* C++ lines of code: 22
+ * x: excluded
+ */
 void cpp_query2(SolarSystem *s) {                                         
-  clock_t start, finish;                                    
-  double t = 0;                                             
   PlanetP iterP, iterSP;
   float minAxisRotation, spAxisRotation;                    
   bool inserted;                                            
   std::multimap<float, std::pair<float,std::string> > aggregate;
   std::pair<float, std::string> axisName;                   
   std::multimap<float, std::pair<float, std::string> >::reverse_iterator aggrRit;
-  for (int i = 0; i < 100; i++) {                           
-    start = clock();                                        
-    minAxisRotation = 100000000;                            
-    inserted = false;                                       
+  for (int i = 0; i < 100; i++) {                           /*  x */
+    minAxisRotation = 100000000;                            /*  x */
+    inserted = false;                                       /*  x */
     foreach (iterP,  s->getAllPlanets()) {                              
       inserted = false;                                     
       minAxisRotation = 100000000;                          
@@ -20,30 +20,24 @@ void cpp_query2(SolarSystem *s) {
           if ((*iterP).axisRotation > spAxisRotation) {
             if (spAxisRotation < minAxisRotation) {           
               minAxisRotation = spAxisRotation;               
-              inserted = true;                                
-            }                                                 
-          }                                                   
-        }
+              inserted = true;                              /*  x */
+            }                                               /*  x */  
+          }                                                 /*  x */  
+        }                                                   /*  x */
         if (inserted) {
 	  axisName=make_pair(minAxisRotation, (*iterP).getNameI18n().toStdString());
           aggregate.insert(std::pair<float, std::pair<float, std::string>>((*iterP).axisRotation, axisName));   
-        }                                                     
-      }                                                     
-    }                                                       
+        }                                                   /*  x */  
+      }                                                     /*  x */
+    }                                                       /*  x */
     std::cout << " name | PlanetRotation | "                
-              << "MinSatelliteRotation " << std::endl;      
-    for (aggrRit = aggregate.rbegin(); aggrRit != aggregate.rend(); aggrRit++) {                                       
+              << "MinSatelliteRotation " << std::endl;      /*  x */
+    for (aggrRit = aggregate.rbegin(); aggrRit != aggregate.rend(); aggrRit++) {
       std::cout << (*aggrRit).second.second << " | "        
-                << (*aggrRit).first << " | "                
-                << (*aggrRit).second.first                  
-                << std::endl;                               
-    }                                                       
-    aggregate.clear();                                      
-    finish = clock();                                       
-    t += ((double)finish - (double)start)/CLOCKS_PER_SEC;   
-  }                                                         
-  t = t/100;                                                
-  std::cout << "Query took " << t                           
-            << " seconds to execute."                       
-            << std::endl;                                   
-}                                                           
+                << (*aggrRit).first << " | "                /*  x */
+                << (*aggrRit).second.first                  /*  x */
+                << std::endl;                               /*  x */
+    }                                                       /*  x */
+    aggregate.clear();                                      /*  x */
+  }                                                         /*  x */
+}                                                           /*  x */
