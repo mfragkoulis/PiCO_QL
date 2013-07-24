@@ -2,6 +2,7 @@
 #include <linux/sched.h>
 #include <linux/fdtable.h>
 #include <linux/fs.h>
+#include <linux/fs_struct.h>
 #include <linux/mm_types.h>
 #include <linux/nsproxy.h>
 #include <net/net_namespace.h>
@@ -582,6 +583,8 @@ CREATE STRUCT VIEW Process_SV (
        nivcsw BIGINT FROM nivcsw,
        link_count INT FROM link_count,
        total_link_count INT FROM total_link_count,
+       root_path_name TEXT FROM fs->root.dentry->d_name.name,
+       pwd_path_name TEXT FROM fs->pwd.dentry->d_name.name,
 //       FOREIGN KEY(fs_struct_id) FROM fs REFERENCES EFs POINTER,
        FOREIGN KEY(files_struct_id) FROM files REFERENCES EFilesStruct_VT POINTER,
        fs_count BIGINT FROM files->count.counter,
