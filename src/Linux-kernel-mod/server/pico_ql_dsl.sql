@@ -29,7 +29,11 @@
 #define EGroup_VT_advance(X, Y, Z) EGroup_VT_begin(X, Y, Z)
 #define NetNamespace_VT_decl(X) struct net *X
 #define ERcvQueue_VT_decl(X) struct sk_buff *X;struct sk_buff *next
+#if KERNEL_VERSION > 2.6.32
 #define ENetDevice_VT_decl(X) struct net_device *X
+#else
+#define ENetDevice_VT_decl(X) struct net_device *X; struct net_device *aux
+#endif
 #define Superblock_VT_decl(X) struct super_block *X
 #define EKobjectSet_VT_decl(X) struct kobject *X
 #define EKobjectList_VT_decl(X) struct kobject *X
@@ -45,8 +49,18 @@ HOLD WITH spin_lock(x)
 RELEASE WITH spin_unlock(x)
 $
 
+CREATE LOCK RTNL
+HOLD WITH rtnl_lock()
+RELEASE WITH rtnl_unlock()
+$
+
+// 2.6.32.38 - atomic_t
 CREATE STRUCT VIEW VirtualMemRegion_SV (
+#if KERNEL_VERSION > 2.6.32
        vm_usage INT FROM vm_usage
+#else
+       vm_usage INT FROM vm_usage.counter
+#endif
 )
 $
 
@@ -86,7 +100,9 @@ CREATE STRUCT VIEW VirtualMem_SV (
        hiwater_vm BIGINT FROM hiwater_vm,
        total_vm BIGINT FROM total_vm,
        locked_vm BIGINT FROM locked_vm,
+#if KERNEL_VERSION > 2.6.32
        pinned_vm BIGINT FROM pinned_vm,
+#endif
        shared_vm BIGINT FROM shared_vm,
        exec_vm BIGINT FROM exec_vm,
        stack_vm BIGINT FROM stack_vm,
@@ -131,8 +147,10 @@ CREATE STRUCT VIEW NetDevice_SV (
 	irq_no INT FROM irq,
 	state BIGINT FROM state,
 	active_features BIGINT FROM features,
+#if KERNEL_VERSION > 2.6.32
 	user_changeable_features BIGINT FROM hw_features,
 	user_requested_features BIGINT FROM wanted_features,
+#endif
 	vlan_inheritable_features BIGINT FROM vlan_features,
 	rx_packets BIGINT FROM stats.rx_packets,
 	tx_packets BIGINT FROM stats.tx_packets,
@@ -163,11 +181,18 @@ $
 CREATE VIRTUAL TABLE ENetDevice_VT
 USING STRUCT VIEW NetDevice_SV
 WITH REGISTERED C TYPE struct net:struct net_device *
+#if KERNEL_VERSION > 2.6.32
 USING LOOP for_each_netdev_rcu(base, iter)
 USING LOCK RCU
+#else
+USING LOOP for_each_netdev_safe(base, iter, aux)
+USING LOCK RTNL
+#endif
 $
 
+// 2.6.32.38 (void **) instead of (void *__percpu *)
 CREATE STRUCT VIEW TcpStat_SV (
+#if KERNEL_VERSION > 2.6.32
        RtoAlgorithm BIGINT FROM snmp_fold_field((void __percpu **) this.mibs, TCP_MIB_RTOALGORITHM),
        RtoMin BIGINT FROM snmp_fold_field((void __percpu **) this.mibs, TCP_MIB_RTOMIN),
        RtoMax BIGINT FROM snmp_fold_field((void __percpu **) this.mibs, TCP_MIB_RTOMAX),
@@ -182,6 +207,22 @@ CREATE STRUCT VIEW TcpStat_SV (
        RetransSegs BIGINT FROM snmp_fold_field((void __percpu **) this.mibs, TCP_MIB_RETRANSSEGS),
        InErrs BIGINT FROM snmp_fold_field((void __percpu **) this.mibs, TCP_MIB_INERRS),
        OutRsts BIGINT FROM snmp_fold_field((void __percpu **) this.mibs, TCP_MIB_OUTRSTS)
+#else
+       RtoAlgorithm BIGINT FROM snmp_fold_field((void **) this.mibs, TCP_MIB_RTOALGORITHM),
+       RtoMin BIGINT FROM snmp_fold_field((void **) this.mibs, TCP_MIB_RTOMIN),
+       RtoMax BIGINT FROM snmp_fold_field((void **) this.mibs, TCP_MIB_RTOMAX),
+       MaxConn BIGINT FROM snmp_fold_field((void **) this.mibs, TCP_MIB_MAXCONN),
+       ActiveOpens BIGINT FROM snmp_fold_field((void **) this.mibs, TCP_MIB_ACTIVEOPENS),
+       PassiveOpens BIGINT FROM snmp_fold_field((void **) this.mibs, TCP_MIB_PASSIVEOPENS),
+       AttemptFails BIGINT FROM snmp_fold_field((void **) this.mibs, TCP_MIB_ATTEMPTFAILS),
+       EstabResets BIGINT FROM snmp_fold_field((void **) this.mibs, TCP_MIB_ESTABRESETS),
+       CurrEstab BIGINT FROM snmp_fold_field((void **) this.mibs, TCP_MIB_CURRESTAB),
+       InSegs BIGINT FROM snmp_fold_field((void **) this.mibs, TCP_MIB_INSEGS),
+       OutSegs BIGINT FROM snmp_fold_field((void **) this.mibs, TCP_MIB_OUTSEGS),
+       RetransSegs BIGINT FROM snmp_fold_field((void **) this.mibs, TCP_MIB_RETRANSSEGS),
+       InErrs BIGINT FROM snmp_fold_field((void **) this.mibs, TCP_MIB_INERRS),
+       OutRsts BIGINT FROM snmp_fold_field((void **) this.mibs, TCP_MIB_OUTRSTS)
+#endif
 )
 $
 
@@ -211,9 +252,15 @@ CREATE VIRTUAL TABLE ESocket_VT
 USING STRUCT VIEW Socket_SV
 WITH REGISTERED C TYPE struct socket$      
 
+// 2.6.32.38 - skb_iif no member
 CREATE STRUCT VIEW RcvQueue_SV (
-	skb_iif INT FROM skb_iif
-)$
+#if KERNEL_VERSION > 2.6.32
+	skb_iif INT FROM skb_iif,
+#endif
+	len INT FROM len,
+        data_len INT FROM data_len
+)
+$
 
 CREATE VIRTUAL TABLE ERcvQueue_VT
 USING STRUCT VIEW RcvQueue_SV
@@ -244,6 +291,7 @@ CREATE VIRTUAL TABLE ESock_VT
 USING STRUCT VIEW Sock_SV
 WITH REGISTERED C TYPE struct sock$
 
+#if KERNEL_VERSION > 2.6.32
 CREATE STRUCT VIEW IpVsStatsEstim_SV (
        last_inbytes BIGINT FROM last_inbytes,
        last_outbytes BIGINT FROM last_outbytes,
@@ -266,7 +314,7 @@ USING LOCK RCU
 $
 //Equivalently USING LOCK RCU()
 
-
+// 2.6.32.38 - incomplete type
 CREATE STRUCT VIEW NetnsIpvs_SV (
        FOREIGN KEY(ipvs_stats_estim_id) FROM tot_stats.est REFERENCES EIpVsStatsEstim_VT
 )
@@ -275,17 +323,20 @@ $
 CREATE VIRTUAL TABLE ENetnsIpvs_VT
 USING STRUCT VIEW NetnsIpvs_SV
 WITH REGISTERED C TYPE struct netns_ipvs$
+#endif
 
 CREATE STRUCT VIEW NetNamespace_SV (
+#if KERNEL_VERSION > 2.6.32
        count_to_free INT FROM passive.counter,
+       FOREIGN KEY(nfnl_stash_sock_id) FROM nfnl_stash REFERENCES ESock_VT POINTER,
+       FOREIGN KEY(netns_ipvs) FROM ipvs REFERENCES ENetnsIpvs_VT POINTER,
+#endif
        count_to_shut INT FROM count.counter,
 //       use_count INT FROM use_count.counter,
        FOREIGN KEY(rtnl_sock_id) FROM rtnl REFERENCES ESock_VT POINTER,
        FOREIGN KEY(genl_sock_id) FROM genl_sock REFERENCES ESock_VT POINTER,
        FOREIGN KEY(dev_list_id) FROM self REFERENCES ENetDevice_VT POINTER,
-       FOREIGN KEY(nfnl_stash_sock_id) FROM nfnl_stash REFERENCES ESock_VT POINTER,
-       FOREIGN KEY(netns_mib_id) FROM mib REFERENCES ENetMib_VT,
-       FOREIGN KEY(netns_ipvs) FROM ipvs REFERENCES ENetnsIpvs_VT POINTER
+       FOREIGN KEY(netns_mib_id) FROM mib REFERENCES ENetMib_VT
 )
 $
 
@@ -333,9 +384,11 @@ WITH REGISTERED C TYPE struct task_io_accounting
 $
 
 CREATE STRUCT VIEW ProcessSignal (
+#if KERNEL_VERSION > 2.6.32
        signal_counter INT FROM sigcnt.counter,
-       live INT FROM live.counter,
        nr_threads INT FROM nr_threads,
+#endif
+       live INT FROM live.counter,
        group_exit_code INT FROM group_exit_code,
        notify_count INT FROM notify_count,
        group_stop_count INT FROM group_stop_count,
@@ -372,7 +425,9 @@ $
 
 CREATE STRUCT VIEW Bus_SV (
 	name TEXT FROM name,
+#if KERNEL_VERSION > 2.6.32
 	dev_name TEXT FROM dev_name,
+#endif
 )
 $
 
@@ -384,7 +439,9 @@ $
 
 CREATE STRUCT VIEW Device_SV (
 	name TEXT FROM init_name,
+#if KERNEL_VERSION > 2.6.32
 	id INT FROM id,
+#endif
 	dev BIGINT FROM devt
 )
 $
@@ -548,8 +605,17 @@ CREATE STRUCT VIEW Process_SV (
        usage INT FROM usage.counter,
        flags INT FROM flags,
        ptrace INT FROM ptrace,
+#if KERNEL_VERSION > 2.6.32
        on_cpu INT FROM on_cpu, // CONFIG_SMP
        on_rq INT FROM on_rq,
+       jobctl INT FROM jobctl,
+       rss_stat_events INT FROM rss_stat.events,
+       cpuset_slab_spread_rotor INT FROM cpuset_slab_spread_rotor, //CONFIG_CPUSETS
+       nr_dirtied INT FROM nr_dirtied,
+       nr_dirtied_pause INT FROM nr_dirtied_pause,
+       nr_pages BIGINT FROM memcg_batch.nr_pages, // CONFIG_CGROUP_MEM_RES_CTLR
+       memsw_nr_pages BIGINT FROM memcg_batch.memsw_nr_pages, // CONFIG_CGROUP_MEM_RES_CTLR
+#endif
        rt_priority INT FROM rt_priority,
        prio INT FROM prio,
        static_prio INT FROM static_prio,
@@ -558,7 +624,6 @@ CREATE STRUCT VIEW Process_SV (
        exit_code INT FROM exit_code,
        exit_signal INT FROM exit_signal,
        pdeath_signal INT FROM pdeath_signal,
-       jobctl INT FROM jobctl,
        personality INT FROM personality,
        FOREIGN KEY(children_id) FROM self REFERENCES EProcessChild_VT, // why does not need POINTER
        FOREIGN KEY(sibling_id) FROM self REFERENCES EProcessChild_VT,
@@ -573,7 +638,6 @@ CREATE STRUCT VIEW Process_SV (
        run_delay BIGINT FROM sched_info.run_delay,
        last_arrival BIGINT FROM sched_info.last_arrival,
        last_queued BIGINT FROM sched_info.last_queued,
-       rss_stat_events INT FROM rss_stat.events,
 //       FOREIGN KEY(rss_stat_counter_id) FROM rss_stat.count REFERENCES CounterInt POINTER, // require array support
        utime BIGINT FROM utime,
        stime BIGINT FROM stime,
@@ -608,15 +672,10 @@ CREATE STRUCT VIEW Process_SV (
        acct_rss_mem1 BIGINT FROM (u64)this.acct_rss_mem1, // defined(CONFIG_TASK_XACCT)
        acct_vm_mem1 BIGINT FROM (u64)this.acct_vm_mem1, // defined(CONFIG_TASK_XACCT)
        cpuset_mem_spread_rotor INT FROM cpuset_mem_spread_rotor, // CONFIG_CPUSETS
-       cpuset_slab_spread_rotor INT FROM cpuset_slab_spread_rotor, //CONFIG_CPUSETS
-       nr_dirtied INT FROM nr_dirtied,
-       nr_dirtied_pause INT FROM nr_dirtied_pause,
        timer_slack_ns BIGINT FROM timer_slack_ns,
        default_timer_slack_ns BIGINT FROM default_timer_slack_ns,
        trace BIGINT FROM trace, // CONFIG_TRACING
        trace_recursion BIGINT FROM trace_recursion, // CONFIG_TRACING
-       nr_pages BIGINT FROM memcg_batch.nr_pages, // CONFIG_CGROUP_MEM_RES_CTLR
-       memsw_nr_pages BIGINT FROM memcg_batch.memsw_nr_pages // CONFIG_CGROUP_MEM_RES_CTLR
 )
 $
 

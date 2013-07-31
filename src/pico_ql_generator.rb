@@ -2367,6 +2367,58 @@ class InputDescription
   
 end
 
+# Compare kernel version numbers
+def cmp_v(condition, lhs, rhs)
+  if $argD == "DEBUG"
+    puts "Comparing kernel versions: #{lhs} #{condition} #{rhs}\n"
+  end
+  case condition
+  when "<"
+    return lhs < rhs
+  when "<="
+    return lhs <= rhs
+  when "="
+    return lhs == rhs
+  when "=="
+    return lhs == rhs
+  when ">="
+    return lhs >= rhs
+  when ">"
+    return lhs > rhs
+  end
+end
+
+# Reform kernel version no part to comparable size.
+def form(version_part, cmp_size)
+  while version_part.size < cmp_size
+    version_part << "0"
+  end
+  if $argD == "DEBUG"
+    puts "version_part: #{version_part}"
+  end
+  return version_part
+end
+
+# Check DSL-given kernel version against 
+# this machine's kernel version.
+def kernel_version_match(condition, version, subv, ssv, sssv)
+  machine_kernel_version = `uname -r`
+  if $argD == "DEBUG"
+    puts "Machine kernel version: #{machine_kernel_version}"
+  end
+  matchdata = machine_kernel_version.match(/(\d)\.(\d{1,2})((\.(\d{1,3}))*)((\.(\d{1,3}))*)/) 
+  if $argD == "DEBUG"
+    puts "machine kernel version tokenized: #{matchdata.inspect}"
+  end
+  version << form(subv, 2) << form(ssv, 3) << form(sssv, 3)
+  version_no_form = version.to_i
+  machine_kernel_version_tokenized = String.new(matchdata[1])
+  machine_kernel_version_tokenized << form(matchdata[2], 2) << 
+                                      form(matchdata[5], 3) << 
+                                      form(matchdata[6], 3)
+  machine_kernel_version_no_form = machine_kernel_version_tokenized.to_i
+  return cmp_v(condition, machine_kernel_version_no_form, version_no_form) 
+end
 
 # Take cases on command-line arguments.
 def take_cases(argv)
@@ -2428,6 +2480,22 @@ if __FILE__ == $0
     end
   }
   description = $lined_description.join
+  if $argK == "KERNEL"
+    description.gsub!(/^#if KERNEL_VERSION (<|<=|=|==|>=|>) (\d)\.(\d{1,2})((\.(\d{1,3}))*)((\.(\d{1,3}))*)(\s+)(.+?)\n#((else(\s+)(.+?)\n#)*)endif/im) { |m|
+      if $argD == "DEBUG"
+        puts "m initially is: #{m}\n1:#{$1}\n2:#{$2}\n3:#{$3}\n4:#{$4}\n5:#{$5}\n6:#{$6}\n7:#{$7}\n8:#{$8}\n9:#{$9}\n10:#{$10}\n11:#{$11}\n12:#{$12}\n13:#{$13}\n14:#{$14}\n15:#{$15}\n16:#{$16}"
+      end
+      if kernel_version_match($1, $2, $3, $6, $7)
+        m = $11
+      else
+        m = $15
+      end
+      if $argD == "DEBUG"
+        puts "Result of condition is: #{m}\n"
+      end
+      "#{m}"
+    }
+  end
   begin
     token_description = description.split(/\$/)
   rescue
