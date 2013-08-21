@@ -88,8 +88,10 @@ prep:
 	rm $(KERNEL_HEADER_DIR)/unistd.h ; \
 	fi
 	ln -s `pwd`/unistd.h $(KERNEL_HEADER_DIR)/ ; \
-        if [ "$(DISTRO)" = "debian" ] && [ -L /usr/src/linux ] ; then \
+        if [ "$(DISTRO)" = "debian" ] ; then \ 
+        if [ -L /usr/src/linux ] ; then \
         rm /usr/src/linux ; \
+        fi ; \
         ln -s /usr/src/linux-headers-`uname -r` /usr/src/linux ; \
         fi
 
