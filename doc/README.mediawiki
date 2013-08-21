@@ -83,12 +83,18 @@ DEPENDENCIES
 PiCO QL PACKAGE STRUCTURE
 
 * At the ''examples/'' directory, users can browse:
-Several implemented userspace application example scenarios which
-can be executed effortlessly (provided the
-dependencies are installed in one's system)
-by executing ''test_all.sh'' located in ''examples/'' or
-from within the worked example directories
-(Bank_App, Chess, VRP) by executing the ''test.sh'' that is:
+Several implemented userspace application example scenarios 
+which can be executed effortlessly (provided the
+dependencies are installed in one's system):
+
+        cd examples/ && test_all.sh
+
+or
+
+        cd examples/<worked-example-dir>/ && test.sh
+
+to run the tests of a particular example. Behind the scenes
+''test.sh'' does:
 
         ruby generator.rb pico_ql_dsl.sql [debug] [kernel] [C] [no_mem_mgt] [concept_check]
 

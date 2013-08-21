@@ -2,6 +2,7 @@ Welcome to the PiCO_QL wiki!
 
 Currently the wiki hosts: 
 
+* [[README|README]]
 * [[the-PiCO-QL-C,-CPP-app-tutorial|The PiCO QL C/C++ application tutorial]]
 
 * [[the-PiCO-QL-Linux-kernel-module-tutorial|The PiCO QL Linux kernel module tutorial]]
