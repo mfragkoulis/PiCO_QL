@@ -1,3 +1,5 @@
+* [http://www.youtube.com/watch?v=rQSCXse2EwQ&lc=X5-_k3p-N4o5VGHhnd6wv-1V5n5pZEmkxUsIVGeU6fg&lch=email&feature=em-comment_received Dirty-start]: 8 minute screencast
+
 * [[Quickstart]] tutorial
 
 * [[Relational representation and querying of data structures]]

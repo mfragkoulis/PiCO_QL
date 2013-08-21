@@ -12,7 +12,12 @@
 
 where the PiCO QL LKM's source code is located.
 
-3. Only the first time type 
+3. As any kernel module, PiCO QL requires kernel headers. If not installed in your system, please type
+```bash
+                 sudo apt-get install linux-headers-`uname -r`
+```
+
+4. Only the first time PiCO QL is compiled (or after moving to another kernel version) type 
 
 ```bash
                  sudo make prep
@@ -20,10 +25,10 @@ where the PiCO QL LKM's source code is located.
 
 to copy header file placeholders that PiCO QL requires in the central catalogue.
 
-4. You can build the module by typing
+5. You can build the module by typing
 
 ```bash
-                 make
+                 sudo make
 ```
 
 and clean compilation artifacts by typing
@@ -32,19 +37,19 @@ and clean compilation artifacts by typing
                  make clean
 ```
 
-5. To load the module type
+6. To load the module type
 
 ```bash
                  sudo insmod picoQL.ko
 ```
 
-6. You can verify that the module is loaded by typing
+7. You can verify that the module is loaded by typing
 
 ```bash
                  grep 'picoQL' /proc/modules
 ```
 
-7. Entering an SQL query is as easy as
+8. Entering an SQL query is as easy as
 
 ```bash
                  echo "SELECT * FROM SQLITE_MASTER;" > /proc/picoQL
@@ -52,7 +57,7 @@ and clean compilation artifacts by typing
 
 or you can try the [[Fast-track-installation-and-usage-instructions#wiki-Web_interface|Web interface]].
 
-8. To retrieve the query's result set, type
+9. To retrieve the query's result set, type
 
 ```bash
                  cat /proc/picoQL
@@ -60,7 +65,7 @@ or you can try the [[Fast-track-installation-and-usage-instructions#wiki-Web_int
 
 This query will return the virtual database schema.
 
-9. It is possible to configure query output. Available options are:
+10. It is possible to configure query output. Available options are:
 * No metadata -'''default'''-, that is no column names, no result set rows and no execution time reported. In other words, uniform output as Unix commands. (''code'' '''100''')
 * Metadata (''code'' '''111''')
 * Result set as plain text output -'''default'''- (''code'' '''10''')
@@ -75,7 +80,7 @@ First compile with:
                  gcc -g picoQL_config_ioctl.c -o picoQL_config_ioctl
 ```
 
-10. To unload the module simply type
+11. To unload the module simply type
 
 ```bash
                  sudo rmmod picoQL
