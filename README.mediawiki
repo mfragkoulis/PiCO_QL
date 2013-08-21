@@ -19,9 +19,8 @@ will provide a loop variant (using the
 [https://github.com/mfragkoulis/PiCO_QL/wiki/Fast-track-roll-your-own-probes#wiki-Loop_variants 
 USING LOOP] directive). It also supports querying of mere structs.
 
-PiCO QL is also configurable as a loadable 
-Linux kernel module (see Wiki pages for details). 
-It provides both a /proc and a
+PiCO QL is also configurable as a loadable Linux kernel module.
+It provides both a ''/proc'' and a
 high-level web interface to be able to issue SQL queries
 against kernel data structures. Currently PiCO QL supports
 data structures modelling processes (such as the linked
@@ -92,13 +91,15 @@ from within the worked example directories
 (Bank_App, Chess, VRP) by executing the ''test.sh'':
 
 ```bash
-        ruby generator.rb pico_ql_dsl.sql [debug] 
-[kernel] [C] [no_mem_mgt] [concept_check]
+        ruby generator.rb pico_ql_dsl.sql [debug] [kernel] [C] [no_mem_mgt] [concept_check]
 ```
 
 ```bash
-        make with various options listed in the Wiki pages
+        make 
 ```
+
+with various options listed in the Wiki pages
+
 
 ```bash
         ./<executable>
