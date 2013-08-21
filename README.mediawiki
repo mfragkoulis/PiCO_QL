@@ -8,16 +8,16 @@ and [http://www.sgi.com/tech/stl/ForwardIterator.html forward iterator]
 concept. The container classes of the STL consist a prime 
 example of such. PiCO QL provides concept checks to
 verify that containers follow the above concepts.
-It also supports querying of custom containers
-(using the USING LOOP directive - see the Wiki pages)
-and mere objects.
+It also supports querying of custom containers (using the 
+[https://github.com/mfragkoulis/PiCO_QL/wiki/Fast-track-roll-your-own-probes#wiki-Loop_variants
+USING LOOP] directive) and mere objects.
 
 For C applications, PiCO QL supports querying of data 
 structures like arrays and linked lists (see examples/CApp) 
 but also any other data structure for which users 
-will provide a loop variant
-(using the USING LOOP directive - see the Wiki pages). 
-It also supports querying of mere structs.
+will provide a loop variant (using the 
+[https://github.com/mfragkoulis/PiCO_QL/wiki/Fast-track-roll-your-own-probes#wiki-Loop_variants 
+USING LOOP] directive). It also supports querying of mere structs.
 
 PiCO QL is also configurable as a loadable 
 Linux kernel module (see Wiki pages for details). 
@@ -56,24 +56,24 @@ TESTING
 
 DEPENDENCIES
 
--[http://www.ruby-lang.org/en Ruby]
+* [http://www.ruby-lang.org/en Ruby]
    Part of the library's source code (the
    parser/code generator) is written in Ruby.
 
--[http://www.sqlite.org SQLite3]
+* [http://www.sqlite.org SQLite3]
    While PiCO QL does not use a database or other store 
    to copy and/or store data, it uses the virtual 
    table (VT) mechanism of Sqlite3 to provide a relational
    representation of the underlying data model.
 
--[http://swill.sourceforge.net SWILL]
+* [http://swill.sourceforge.net SWILL]
    Once plugged in an application, PiCO QL opens a 
    separate thread and uses the SWILL library to 
    present a local server with a web-like, user 
    friendly query interface. In case of the kernel
    configuration this interface wraps the /proc interface.
 
--[http://www.boost.org Boost]
+* [http://www.boost.org Boost]
    For C++ the library accepts any container modelled by the
    ForwardContainer and ForwardIterator concepts. 
    To ensure this is the case,
@@ -82,25 +82,25 @@ DEPENDENCIES
 
 PiCO QL PACKAGE STRUCTURE
 
-   At the EXAMPLES directory, users can browse:
-        Three implemented example scenarios which
-	can be executed effortlessly (provided the 
-	dependencies are installed in one's system)
-	by executing test_all.sh located in examples/ or
-	from within the worked example directories 
-	(Bank_App, Chess, VRP) by executing the test.sh:
+* At the EXAMPLES directory, users can browse:
+  Three implemented example scenarios which
+  can be executed effortlessly (provided the 
+  dependencies are installed in one's system)
+  by executing test_all.sh located in examples/ or
+  from within the worked example directories 
+  (Bank_App, Chess, VRP) by executing the test.sh:
 	1. "ruby generator.rb "pico_ql_dsl.sql" ["debug"] 
 	   	 	       ["kernel"] ["C"] ["no_mem_mgt"] 
                                ["concept_check"]
 	2. "make" with various options listed in the Wiki pages
 	3. "./<executable>"
 
-   At the bin directory reside image files that 
-   PiCO QL uses.
+* At the bin directory reside image files that 
+  PiCO QL uses.
 
-   At the doc directory there is the BNF of the DSL 
-   that grounds the user description syntax and the wiki 
-   pages.
+* At the doc directory there is the BNF of the DSL 
+  that grounds the user description syntax and the wiki 
+  pages.
 
-   At src directory, the library's source code is 
-   found.
+* At src directory, the library's source code is 
+  found.
