@@ -3,9 +3,9 @@ SQL SELECT interface over C/C++ data structures.
 
 For C++ applications, PiCO QL supports querying of 
 containers compatible with the C++ SGI 
-forward container (http://www.sgi.com/tech/stl/ForwardContainer.html) 
-and forward iterator concept (http://www.sgi.com/tech/stl/ForwardIterator.html).
-The container classes of the STL consist a prime 
+[http://www.sgi.com/tech/stl/ForwardContainer.html forward container] 
+and [http://www.sgi.com/tech/stl/ForwardIterator.html forward iterator]
+concept. The container classes of the STL consist a prime 
 example of such. PiCO QL provides concept checks to
 verify that containers follow the above concepts.
 It also supports querying of custom containers
@@ -28,7 +28,8 @@ data structures modelling processes (such as the linked
 list of processes) , files, virtual memory, file system,
 network, namespaces, devices, busses etc. Support is
 extensible to include more data structures. See 
-[https://github.com/mfragkoulis/PiCO_QL/wiki/Fast-track-roll-your-own-probes Fast track roll your own probes]
+[https://github.com/mfragkoulis/PiCO_QL/wiki/Fast-track-roll-your-own-probes 
+Fast track roll your own probes]
 tutorial in the PiCO QL LKM wiki.
 
 PLATFORMS
@@ -55,24 +56,24 @@ TESTING
 
 DEPENDENCIES
 
--Ruby (http://www.ruby-lang.org/en)
+-[http://www.ruby-lang.org/en Ruby]
    Part of the library's source code (the
    parser/code generator) is written in Ruby.
 
--Sqlite3 (http://www.sqlite.org)
+-[http://www.sqlite.org SQLite3]
    While PiCO QL does not use a database or other store 
    to copy and/or store data, it uses the virtual 
    table (VT) mechanism of Sqlite3 to provide a relational
    representation of the underlying data model.
 
--SWILL (http://swill.sourceforge.net)
+-[http://swill.sourceforge.net SWILL]
    Once plugged in an application, PiCO QL opens a 
    separate thread and uses the SWILL library to 
    present a local server with a web-like, user 
    friendly query interface. In case of the kernel
    configuration this interface wraps the /proc interface.
 
--Boost (http://www.boost.org)
+-[http://www.boost.org Boost]
    For C++ the library accepts any container modelled by the
    ForwardContainer and ForwardIterator concepts. 
    To ensure this is the case,
