@@ -13,7 +13,7 @@ It also supports querying of custom containers (using the
 USING LOOP] directive) and mere objects.
 
 For C applications, PiCO QL supports querying of data 
-structures like arrays and linked lists (see examples/CApp) 
+structures like arrays and linked lists (see ''examples/CApp'') 
 but also any other data structure for which users 
 will provide a loop variant (using the 
 [https://github.com/mfragkoulis/PiCO_QL/wiki/Fast-track-roll-your-own-probes#wiki-Loop_variants 
@@ -29,8 +29,9 @@ list of processes) , files, virtual memory, file system,
 network, namespaces, devices, busses etc. Support is
 extensible to include more data structures. See 
 [https://github.com/mfragkoulis/PiCO_QL/wiki/Fast-track-roll-your-own-probes 
-Fast track roll your own probes]
-tutorial in the PiCO QL LKM wiki.
+Fast track roll your own probes] tutorial in the 
+[https://github.com/mfragkoulis/PiCO_QL/wiki/the-PiCO-QL-Linux-kernel-module-tutorial 
+PiCO QL LKM wiki].
 
 PLATFORMS
 
@@ -91,16 +92,16 @@ from within the worked example directories
 (Bank_App, Chess, VRP) by executing the ''test.sh'':
 
 ```bash
-ruby generator.rb pico_ql_dsl.sql [debug] 
+        ruby generator.rb pico_ql_dsl.sql [debug] 
 [kernel] [C] [no_mem_mgt] [concept_check]
 ```
 
 ```bash
-make with various options listed in the Wiki pages
+        make with various options listed in the Wiki pages
 ```
 
 ```bash
-./<executable>
+        ./<executable>
 ```
 
 * At the ''bin/'' directory reside image files that PiCO QL uses.
