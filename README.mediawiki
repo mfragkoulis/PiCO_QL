@@ -28,7 +28,7 @@ data structures modelling processes (such as the linked
 list of processes) , files, virtual memory, file system,
 network, namespaces, devices, busses etc. Support is
 extensible to include more data structures. See 
-[[Fast-track-roll-your-own-probes|Fast track roll your own probes]]
+[https://github.com/mfragkoulis/PiCO_QL/wiki/Fast-track-roll-your-own-probes Fast track roll your own probes]
 tutorial in the PiCO QL LKM wiki.
 
 PLATFORMS
