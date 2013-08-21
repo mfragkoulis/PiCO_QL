@@ -2,6 +2,7 @@
 #include <linux/sched.h>
 #include <linux/fdtable.h>
 #include <linux/fs.h>
+#include <linux/fs_struct.h>
 #include <linux/mm_types.h>
 #include <linux/nsproxy.h>
 #include <net/net_namespace.h>
@@ -489,6 +490,8 @@ CREATE STRUCT VIEW File_SV (
        fcred_gid INT FROM f_cred->gid,
        fcred_egid INT FROM f_cred->egid,
        fmode INT FROM f_mode,
+       fra_pages INT FROM f_ra.size,
+       fra_mmap_miss INT FROM f_ra.mmap_miss,
        FOREIGN KEY(socket_id) FROM private_data REFERENCES ESocket_VT POINTER,
        FOREIGN KEY(sb_id) FROM f_path.dentry->d_inode->i_sb REFERENCES ESuperblock_VT POINTER
 // sock_from_file(this->private_data, err) and define int *err on top
@@ -582,6 +585,8 @@ CREATE STRUCT VIEW Process_SV (
        nivcsw BIGINT FROM nivcsw,
        link_count INT FROM link_count,
        total_link_count INT FROM total_link_count,
+       root_path_name TEXT FROM fs->root.dentry->d_name.name,
+       pwd_path_name TEXT FROM fs->pwd.dentry->d_name.name,
 //       FOREIGN KEY(fs_struct_id) FROM fs REFERENCES EFs POINTER,
        FOREIGN KEY(files_struct_id) FROM files REFERENCES EFilesStruct_VT POINTER,
        fs_count BIGINT FROM files->count.counter,

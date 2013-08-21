@@ -19,12 +19,14 @@
  #   permissions and limitations under the License.
 
 # Distinguish Fedora, Ubuntu distros.
-DISTRO = `echo $(uname -r)`
-FEDORA = `echo $(DISTRO) | fgrep fc`
-ifneq ($(FEDORA), 0)
+installdir := $(shell if [ -f "/etc/redhat-release" ]; then echo "fedora"; elif [ -f "/etc/debian_version" ]; then echo "debian"; fi)
+# Other places to look for distribution information: /etc/issue, /proc/version, uname -r
+ifeq ($(installdir),fedora)
 KERNEL_HEADER_DIR = "/usr/src/kernels/`uname -r`/include"
+else ifeq ($(installdir),debian)
+KERNEL_HEADER_DIR = "/usr/src/linux-headers-`uname -r`/include"
 else
-KERNEL_HEADER_DIR = "/usr/src/linux-headers/`uname -r`/include"
+KERNEL_HEADER_DIR = "/undefined"
 endif
 
 EXTRA_CFLAGS += -O3 -Wall -Werror -g -nostdinc -I /usr/src/linux/include -DPICO_QL_SINGLE_THREADED -DSQLITE_OMIT_FLOATING_POINT -DSQLITE_THREADSAFE=0 -DSQLITE_OMIT_LOAD_EXTENSION -DSQLITE_OMIT_BUILTIN_TEST -DNDEBUG -DSQLITE_OMIT_WAL
