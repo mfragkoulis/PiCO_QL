@@ -19,17 +19,17 @@
  #   permissions and limitations under the License.
 
 # Distinguish Fedora, Ubuntu distros.
-installdir := $(shell if [ -f "/etc/redhat-release" ]; then echo "fedora"; elif [ -f "/etc/debian_version" ]; then echo "debian"; fi)
+DISTRO := $(shell if [ -f "/etc/redhat-release" ]; then echo "fedora"; elif [ -f "/etc/debian_version" ]; then echo "debian"; fi)
 # Other places to look for distribution information: /etc/issue, /proc/version, uname -r
-ifeq ($(installdir),fedora)
+ifeq ($(DISTRO),fedora)
 KERNEL_HEADER_DIR = "/usr/src/kernels/`uname -r`/include"
-else ifeq ($(installdir),debian)
+else ifeq ($(DISTRO),debian)
 KERNEL_HEADER_DIR = "/usr/src/linux-headers-`uname -r`/include"
 else
 KERNEL_HEADER_DIR = "/undefined"
 endif
 
-EXTRA_CFLAGS += -O3 -Wall -Werror -g -nostdinc -I /usr/src/linux/include -DPICO_QL_SINGLE_THREADED -DSQLITE_OMIT_FLOATING_POINT -DSQLITE_THREADSAFE=0 -DSQLITE_OMIT_LOAD_EXTENSION -DSQLITE_OMIT_BUILTIN_TEST -DNDEBUG -DSQLITE_OMIT_WAL
+EXTRA_CFLAGS += -O3 -Wall -Werror -g -nostdinc -DPICO_QL_SINGLE_THREADED -DSQLITE_OMIT_FLOATING_POINT -DSQLITE_THREADSAFE=0 -DSQLITE_OMIT_LOAD_EXTENSION -DSQLITE_OMIT_BUILTIN_TEST -DNDEBUG -DSQLITE_OMIT_WAL
 
 obj-m += picoQL.o
 picoQL-objs := sqlite3.o pico_ql_procfs.o pico_ql_search.o pico_ql_exec.o pico_ql_internal.o pico_ql_vt.o pico_ql_search_helper.o stdio.o stdlib.o time.o string.o unistd.o
@@ -88,4 +88,8 @@ prep:
 	rm $(KERNEL_HEADER_DIR)/unistd.h ; \
 	fi
 	ln -s `pwd`/unistd.h $(KERNEL_HEADER_DIR)/ ; \
+        if [ "$(DISTRO)" = "debian" ] && [ -L /usr/src/linux ] ; then \
+        rm /usr/src/linux ; \
+        ln -s /usr/src/linux-headers-`uname -r` /usr/src/linux ; \
+        fi
 
