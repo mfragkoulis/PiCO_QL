@@ -82,23 +82,32 @@ DEPENDENCIES
 
 PiCO QL PACKAGE STRUCTURE
 
-* At the ```examples/``` directory, users can browse:
-  Three implemented example scenarios which
-  can be executed effortlessly (provided the 
-  dependencies are installed in one's system)
-  by executing test_all.sh located in examples/ or
-  from within the worked example directories 
-  (Bank_App, Chess, VRP) by executing the ```test.sh```:
-1. "ruby generator.rb "pico_ql_dsl.sql" ["debug"] 
-["kernel"] ["C"] ["no_mem_mgt"] ["concept_check"]
-2. "make" with various options listed in the Wiki pages
-3. "./<executable>"
+* At the ''examples/'' directory, users can browse:
+Three implemented example scenarios which
+can be executed effortlessly (provided the 
+dependencies are installed in one's system)
+by executing test_all.sh located in ''examples/'' or
+from within the worked example directories 
+(Bank_App, Chess, VRP) by executing the ''test.sh'':
 
-* At the ```bin/``` directory reside image files that PiCO QL uses.
+```bash
+ruby generator.rb pico_ql_dsl.sql [debug] 
+[kernel] [C] [no_mem_mgt] [concept_check]
+```
 
-* At the ```doc/``` directory there is the BNF of the DSL 
+```bash
+make with various options listed in the Wiki pages
+```
+
+```bash
+./<executable>
+```
+
+* At the ''bin/'' directory reside image files that PiCO QL uses.
+
+* At the ''doc/'' directory there is the BNF of the DSL 
 that grounds the user description syntax and the wiki 
 pages.
 
-* At ```src/``` directory, the library's source code is 
+* At ''src/'' directory, the library's source code is 
 found.
