@@ -13,7 +13,8 @@ It also supports querying of custom containers
 and mere objects.
 
 For C applications, PiCO QL supports querying of data 
-structures like arrays and linked lists (see examples/CApp) but also any other data structure for which users 
+structures like arrays and linked lists (see examples/CApp) 
+but also any other data structure for which users 
 will provide a loop variant
 (using the USING LOOP directive - see the Wiki pages). 
 It also supports querying of mere structs.
@@ -26,8 +27,9 @@ against kernel data structures. Currently PiCO QL supports
 data structures modelling processes (such as the linked
 list of processes) , files, virtual memory, file system,
 network, namespaces, devices, busses etc. Support is
-extensible to include more data structures. See Fast track
-roll your own probes tutorial in the PiCO QL LKM wiki.
+extensible to include more data structures. See 
+[[Fast-track-roll-your-own-probes|Fast track roll your own probes]]
+tutorial in the PiCO QL LKM wiki.
 
 PLATFORMS
 
@@ -46,8 +48,9 @@ TESTING
      Linux 2.6).  
    Kernel:
      Commits are verified against an array of SQL
-     queries (see src/Linux-kernel-mod/server/picoQL-auto-test.sh). The list of queries is constantly
-     growing (picoQL-tests.sql in the same catalogue).
+     queries (see src/Linux-kernel-mod/server/picoQL-auto-test.sh). 
+     The list of queries is constantly growing (picoQL-tests.sql 
+     in the same catalogue).
 
 
 DEPENDENCIES
