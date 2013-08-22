@@ -47,51 +47,50 @@ prep:
 	if [ -L $(KERNEL_HEADER_DIR)/sqlite3.h ] ; then \
 	rm $(KERNEL_HEADER_DIR)/sqlite3.h ; \
 	fi
-	ln -s `pwd`/sqlite3.h $(KERNEL_HEADER_DIR)/ ; \
+	ln -s `pwd`/sqlite3.h $(KERNEL_HEADER_DIR)/
 	if [ -L $(KERNEL_HEADER_DIR)/assert.h ] ; then \
 	rm $(KERNEL_HEADER_DIR)/assert.h ; \
 	fi
-	ln -s `pwd`/assert.h $(KERNEL_HEADER_DIR)/ ; \
+	ln -s `pwd`/assert.h $(KERNEL_HEADER_DIR)/
 	if [ -L $(KERNEL_HEADER_DIR)/errno.h ] ; then \
 	rm $(KERNEL_HEADER_DIR)/errno.h ; \
 	fi
-	ln -s `pwd`/errno.h $(KERNEL_HEADER_DIR)/ ; \
+	ln -s `pwd`/errno.h $(KERNEL_HEADER_DIR)/
 	if [ -L $(KERNEL_HEADER_DIR)/fcntl.h ] ; then \
 	rm $(KERNEL_HEADER_DIR)/fcntl.h ; \
 	fi
-	ln -s `pwd`/fcntl.h $(KERNEL_HEADER_DIR)/; \
+	ln -s `pwd`/fcntl.h $(KERNEL_HEADER_DIR)/
 	if [ -L $(KERNEL_HEADER_DIR)/stdio.h ] ; then \
 	rm $(KERNEL_HEADER_DIR)/stdio.h ; \
 	fi
-	ln -s `pwd`/stdio.h $(KERNEL_HEADER_DIR)/; \
+	ln -s `pwd`/stdio.h $(KERNEL_HEADER_DIR)/
 	if [ -L $(KERNEL_HEADER_DIR)/stdlib.h ] ; then \
 	rm $(KERNEL_HEADER_DIR)/stdlib.h ; \
 	fi
-	ln -s `pwd`/stdlib.h $(KERNEL_HEADER_DIR)/ ; \
+	ln -s `pwd`/stdlib.h $(KERNEL_HEADER_DIR)/
 	if [ -L $(KERNEL_HEADER_DIR)/string.h ] ; then \
 	rm $(KERNEL_HEADER_DIR)/string.h ; \
 	fi
-	ln -s `pwd`/string.h $(KERNEL_HEADER_DIR)/ ; \
+	ln -s `pwd`/string.h $(KERNEL_HEADER_DIR)/
 	if [ -L $(KERNEL_HEADER_DIR)/sys ] ; then \
 	rm $(KERNEL_HEADER_DIR)/sys ; \
 	fi
-	ln -s `pwd`/sys $(KERNEL_HEADER_DIR)/ ; \
+	ln -s `pwd`/sys $(KERNEL_HEADER_DIR)/
 	if [ -L $(KERNEL_HEADER_DIR)/time.h ] ; then \
 	rm $(KERNEL_HEADER_DIR)/time.h ; \
 	fi
-	ln -s `pwd`/time.h $(KERNEL_HEADER_DIR)/ ; \
+	ln -s `pwd`/time.h $(KERNEL_HEADER_DIR)/
 	if [ -L $(KERNEL_HEADER_DIR)/sys/time.h ] ; then \
 	rm $(KERNEL_HEADER_DIR)/sys/time.h ; \
 	fi
-	ln -s `pwd`/time.h $(KERNEL_HEADER_DIR)/sys/ ; \
+	ln -s `pwd`/time.h $(KERNEL_HEADER_DIR)/sys/
 	if [ -L $(KERNEL_HEADER_DIR)/unistd.h ] ; then \
 	rm $(KERNEL_HEADER_DIR)/unistd.h ; \
 	fi
-	ln -s `pwd`/unistd.h $(KERNEL_HEADER_DIR)/ ; \
-        if [ "$(DISTRO)" = "debian" ] ; then \ 
-        if [ -L /usr/src/linux ] ; then \
-        rm /usr/src/linux ; \
-        fi ; \
-        ln -s /usr/src/linux-headers-`uname -r` /usr/src/linux ; \
-        fi
-
+	ln -s `pwd`/unistd.h $(KERNEL_HEADER_DIR)/
+	if [ "$(DISTRO)" = "debian" ] ; then \
+	if [ -L /usr/src/linux ] ; then \
+	rm /usr/src/linux ; \
+	fi ; \
+	ln -s /usr/src/linux-headers-`uname -r` /usr/src/linux ; \
+	fi
