@@ -15,7 +15,7 @@ USING LOOP] directive) and mere objects. See the
 PiCO QL for C/C++ applications] tutorial.
 
 For C applications, PiCO QL supports querying of data
-structures like arrays and linked lists (see ''examples/CApp'')
+structures like arrays and linked lists (see [https://github.com/mfragkoulis/PiCO_QL/blob/master/examples/CApp examples/CApp])
 but also any other data structure for which users
 will provide a loop variant (using the
 [https://github.com/mfragkoulis/PiCO_QL/wiki/Fast-track-roll-your-own-probes#wiki-Loop_variants 
