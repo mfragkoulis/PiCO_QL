@@ -425,7 +425,7 @@ $
 
 CREATE STRUCT VIEW Bus_SV (
 	name TEXT FROM name,
-#if KERNEL_VERSION > 2.6.32
+#if KERNEL_VERSION > 3.2.0
 	dev_name TEXT FROM dev_name,
 #endif
 )
@@ -439,7 +439,7 @@ $
 
 CREATE STRUCT VIEW Device_SV (
 	name TEXT FROM init_name,
-#if KERNEL_VERSION > 2.6.32
+#if KERNEL_VERSION > 3.2.0
 	id INT FROM id,
 #endif
 	dev BIGINT FROM devt
