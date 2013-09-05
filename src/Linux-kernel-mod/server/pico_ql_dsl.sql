@@ -16,6 +16,7 @@
 #include <net/ip_vs.h>
 #include <net/net_namespace.h>
 #include <linux/skbuff.h>
+#include <xen/balloon.h>
 #define __NO_VERSION__      
 #define EIpVsStatsEstim_VT_decl(X) struct ip_vs_estimator *X
 #define Process_VT_decl(X) struct task_struct *X
@@ -706,3 +707,25 @@ USING LOOP list_for_each_entry_rcu(iter, &base->thread_group, thread_group)
 USING LOCK RCU
 $
 
+#if KERNEL_VERSION >= 3.2.0
+CREATE STRUCT VIEW XenStats_SV (
+        cur_pages BIGINT FROM current_pages,
+        target_pages BIGINT FROM target_pages,
+        balloon_low BIGINT FROM balloon_low,
+        balloon_high BIGINT FROM balloon_high,
+        sched_delay BIGINT FROM schedule_delay,
+        max_schedule_delay BIGINT FROM max_schedule_delay,
+        retry_count BIGINT FROM retry_count,
+        max_retry_count BIGINT FROM max_retry_count,
+//        hotplug_pages BIGINT FROM hotplug_pages, // #ifdef CONFIG_XEN_BALLOON_MEMORY_HOTPLUG
+//        balloon_hotplug BIGINT FROM balloon_hotplug // #ifdef CONFIG_XEN_BALLOON_MEMORY_HOTPLUG
+)
+$
+
+CREATE VIRTUAL TABLE XenStats_VT
+USING STRUCT VIEW XenStats_SV
+WITH REGISTERED C NAME xen_balloon_stats
+WITH REGISTERED C TYPE struct balloon_stats
+$
+
+#endif

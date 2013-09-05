@@ -28,6 +28,9 @@
 #include <net/net_namespace.h>
 #include <linux/pci.h>
 #include <linux/spinlock.h>
+
+#include <xen/balloon.h>
+
 #include <unistd.h>
 #include <stdio.h>
 #include <sqlite3.h>
@@ -215,6 +218,7 @@ int init_sqlite3(void) {
   rcu_read_unlock();
   if (sb == NULL) return -ECANCELED;
   pico_ql_register(sb, "superblock");
+  pico_ql_register(&balloon_stats, "xen_balloon_stats");
   output = pico_ql_serve(db);
   if (output != SQLITE_DONE) {
     printk(KERN_ERR "Serve failed with error code %i.\n", output);
