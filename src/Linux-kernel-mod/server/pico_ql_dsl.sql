@@ -209,20 +209,20 @@ CREATE STRUCT VIEW TcpStat_SV (
        InErrs BIGINT FROM {snmp_fold_field((void __percpu **) this.mibs, TCP_MIB_INERRS)},
        OutRsts BIGINT FROM {snmp_fold_field((void __percpu **) this.mibs, TCP_MIB_OUTRSTS)}
 #else
-       RtoAlgorithm BIGINT FROM snmp_fold_field((void **) this.mibs, TCP_MIB_RTOALGORITHM),
-       RtoMin BIGINT FROM snmp_fold_field((void **) this.mibs, TCP_MIB_RTOMIN),
-       RtoMax BIGINT FROM snmp_fold_field((void **) this.mibs, TCP_MIB_RTOMAX),
-       MaxConn BIGINT FROM snmp_fold_field((void **) this.mibs, TCP_MIB_MAXCONN),
-       ActiveOpens BIGINT FROM snmp_fold_field((void **) this.mibs, TCP_MIB_ACTIVEOPENS),
-       PassiveOpens BIGINT FROM snmp_fold_field((void **) this.mibs, TCP_MIB_PASSIVEOPENS),
-       AttemptFails BIGINT FROM snmp_fold_field((void **) this.mibs, TCP_MIB_ATTEMPTFAILS),
-       EstabResets BIGINT FROM snmp_fold_field((void **) this.mibs, TCP_MIB_ESTABRESETS),
-       CurrEstab BIGINT FROM snmp_fold_field((void **) this.mibs, TCP_MIB_CURRESTAB),
-       InSegs BIGINT FROM snmp_fold_field((void **) this.mibs, TCP_MIB_INSEGS),
-       OutSegs BIGINT FROM snmp_fold_field((void **) this.mibs, TCP_MIB_OUTSEGS),
-       RetransSegs BIGINT FROM snmp_fold_field((void **) this.mibs, TCP_MIB_RETRANSSEGS),
-       InErrs BIGINT FROM snmp_fold_field((void **) this.mibs, TCP_MIB_INERRS),
-       OutRsts BIGINT FROM snmp_fold_field((void **) this.mibs, TCP_MIB_OUTRSTS)
+       RtoAlgorithm BIGINT FROM {snmp_fold_field((void **) this.mibs, TCP_MIB_RTOALGORITHM)},
+       RtoMin BIGINT FROM {snmp_fold_field((void **) this.mibs, TCP_MIB_RTOMIN)},
+       RtoMax BIGINT FROM {snmp_fold_field((void **) this.mibs, TCP_MIB_RTOMAX)},
+       MaxConn BIGINT FROM {snmp_fold_field((void **) this.mibs, TCP_MIB_MAXCONN)},
+       ActiveOpens BIGINT FROM {snmp_fold_field((void **) this.mibs, TCP_MIB_ACTIVEOPENS)},
+       PassiveOpens BIGINT FROM {snmp_fold_field((void **) this.mibs, TCP_MIB_PASSIVEOPENS)},
+       AttemptFails BIGINT FROM {snmp_fold_field((void **) this.mibs, TCP_MIB_ATTEMPTFAILS)},
+       EstabResets BIGINT FROM {snmp_fold_field((void **) this.mibs, TCP_MIB_ESTABRESETS)},
+       CurrEstab BIGINT FROM {snmp_fold_field((void **) this.mibs, TCP_MIB_CURRESTAB)},
+       InSegs BIGINT FROM {snmp_fold_field((void **) this.mibs, TCP_MIB_INSEGS)},
+       OutSegs BIGINT FROM {snmp_fold_field((void **) this.mibs, TCP_MIB_OUTSEGS)},
+       RetransSegs BIGINT FROM {snmp_fold_field((void **) this.mibs, TCP_MIB_RETRANSSEGS)},
+       InErrs BIGINT FROM {snmp_fold_field((void **) this.mibs, TCP_MIB_INERRS)},
+       OutRsts BIGINT FROM {snmp_fold_field((void **) this.mibs, TCP_MIB_OUTRSTS)}
 #endif
 )
 $
