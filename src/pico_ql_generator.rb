@@ -106,6 +106,7 @@ class Column
       return "fk", @related_to, @col_type, @line, 
              @fk_method_ret, 
              @tokenized_access_path.clone,
+             @pre_access_path, @post_access_path, # Placeholder: not yet implemented support for FK.
              @saved_results_index, @fk_col_type
     elsif @name == "base"              # 'base' column. refactor: elsif perhaps?
       sqlite3_type.replace("int64")
@@ -118,7 +119,8 @@ class Column
     elsif @cpp_data_type == "union"
       access_path.replace(@access_path)
       return "union", @name, @col_type, @line, nil, 
-             @tokenized_access_path.clone
+             @tokenized_access_path.clone,  
+             @pre_access_path, @post_access_path # Placeholder: not yet implemented support for U.
     else
       dt = @data_type.downcase         # Normal data column.
       if @@bigint_data_types.include?(dt)
@@ -150,7 +152,8 @@ class Column
       end
       access_path.replace(@access_path)
       return "gen_all", nil, "", @line, nil,
-             @tokenized_access_path.clone
+             @tokenized_access_path.clone,
+             @pre_access_path, @post_access_path
     end
   end
 
@@ -541,7 +544,8 @@ class VirtualTable
       total_access_path = ""
       access_path_col = ""
       op, fk_col_name, column_type, line, 
-      fk_method_ret, tokenized_access_path_col, 
+      fk_method_ret, tokenized_access_path_col,
+      pre_access_path_col, post_access_path_col, # Used only in data columns for now. 
       saved_results_index, fk_col_type = 
       columns[col].bind_datatypes(sqlite3_type, 
                                   column_cast, 
@@ -576,6 +580,8 @@ class VirtualTable
       when "gen_all"
         access_path_col.insert(0, union_access_path)
         all_retrieve(fw, iden, access_path_col, 
+                     pre_access_path_col,  # Placeholder to allow compiling
+		     post_access_path_col, # Ditto
                      tokenized_access_path_col,
                      sqlite3_type, column_cast_back, 
                      sqlite3_parameters, 
@@ -596,6 +602,8 @@ class VirtualTable
   end
 
   def all_retrieve(fw, iden, access_path, 
+                   pre_access_path,
+                   post_access_path,
                    tokenized_access_path,
                    sqlite3_type,
                    column_cast_back, 
@@ -844,6 +852,7 @@ class VirtualTable
       access_path = ""
       op, fk_col_name, column_type, line, 
       fk_method_ret, tokenized_access_path,
+      pre_access_path, post_access_path,
       saved_results_index, fk_col_type = 
       @columns[col].bind_datatypes(sqlite3_type, 
                                    column_cast, 
@@ -882,6 +891,8 @@ class VirtualTable
                     fk_col_type, col, "")
       when "gen_all"
         all_retrieve(fw, iden, access_path, 
+                     pre_access_path,
+                     post_access_path,
                      token_ac_p,
                      sqlite3_type,
                      column_cast_back, 
@@ -1303,6 +1314,7 @@ class VirtualTable
       total_access_path = ""
       op, union_view_embedded, col_type, line, 
       fk_method_ret, tokenized_access_path, 
+      pre_access_path_col, post_access_path_col, # Placeholder: extension for unions later on.
       useless3, useless4 = 
       col.bind_datatypes(sqlite3_type, 
                          column_cast, 
@@ -1353,6 +1365,8 @@ class VirtualTable
       when "gen_all"
         gen_all_constr(fw, column_cast, 
                        total_access_path,
+                       pre_access_path_col,  # Placeholder to allow compiling.
+                       post_access_path_col, # Ditto 
                        un_col_ac_t, 
                        column_cast_back, 
                        sqlite3_type, notC, 
@@ -1428,6 +1442,7 @@ class VirtualTable
   end
 
   def gen_all_constr(fw, column_cast, access_path, 
+                     pre_access_path, post_access_path, 
                      tokenized_access_path,
                      column_cast_back, 
                      sqlite3_type, notC, iteration, 
@@ -1453,7 +1468,8 @@ class VirtualTable
     fw.puts "#{add_to_result_set.gsub("<space>", "#{space}")}"
   end
 
-  def gen_all(fw, column_cast, access_path, 
+  def gen_all(fw, column_cast, access_path,
+              pre_access_path, post_access_path, 
               tokenized_access_path,
               column_cast_back, sqlite3_type, line)
     access_pathF = ""
@@ -1472,7 +1488,8 @@ class VirtualTable
     token_ac_p = Array.new
     array_string_copy_deep(tokenized_access_path, token_ac_p)
     configure_token_access_checks(token_ac_p, idenF)
-    gen_all_constr(fw, column_cast, access_pathF, 
+    gen_all_constr(fw, column_cast, access_pathF,
+                   pre_access_path, post_access_path, 
                    token_ac_p,
                    column_cast_back, 
                    sqlite3_type, notC, iterationF, 
@@ -1488,6 +1505,7 @@ class VirtualTable
     array_string_copy_deep(tokenized_access_path, token_ac_p)
     configure_token_access_checks(token_ac_p, idenN)
     gen_all_constr(fw, column_cast, access_pathN, 
+                   pre_access_path, post_access_path, 
                    token_ac_p,
                    column_cast_back, 
                    sqlite3_type, notC, iterationN, 
@@ -1638,6 +1656,7 @@ class VirtualTable
       space = "      "
       op, union_view_name, col_type, line, 
       fk_method_ret, tokenized_access_path, 
+      pre_access_path, post_access_path, # Initially only for data columns.
       union_access_tokens, useless3 =
       @columns[col].bind_datatypes(sqlite3_type, 
                                    column_cast, 
@@ -1669,6 +1688,7 @@ class VirtualTable
                tokenized_access_path)
       when "gen_all"
         gen_all(fw, column_cast, access_path,
+                pre_access_path, post_access_path,
                 tokenized_access_path,
                 column_cast_back, sqlite3_type, 
                 line)
