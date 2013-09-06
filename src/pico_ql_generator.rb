@@ -197,7 +197,9 @@ class Column
           bare_access_path << s
         end
       }
+      @pre_access_path.gsub!(/base/, "any_dstr")
       @access_path.replace(bare_access_path)
+      @post_access_path.gsub!(/base/, "any_dstr")
       #if $argD == "DEBUG"
         puts "In process_access_path_code_block:"
         puts "  @pre_access_path: #{@pre_access_path}"
@@ -622,6 +624,9 @@ class VirtualTable
     else
       access_path = "#{iden}#{access_path}"
     end
+    iden_block = String.new(iden) # Used for code block access path {pre, post}
+    iden_block.chomp!("->")       # Chomping accessor because it is configured
+    iden_block.chomp!(".")        # from user in code block.
     null_check_action = "{\n#{space}      sqlite3_result_null(con);\n#{space}      break;\n#{space}      }"
     display_null_check(tokenized_access_path,
                        iden,
@@ -635,13 +640,25 @@ class VirtualTable
       end
       if $argLB == "CPP"
         fw.puts "#ifdef PICO_QL_HANDLE_TEXT_ARRAY"
+        if !pre_access_path.empty?  # "iter" in retrieve is out of context. Has to be substituted with resultset[index].
+          fw.puts "#{space}    #{pre_access_path.match(/iter/) ? pre_access_path.gsub(/iter/, "#{iden_block}") : pre_access_path}"
+        end
         fw.puts "#{space}    textVector.push_back(#{string_construct_cast}#{access_path});"
+        if !post_access_path.empty?
+          fw.puts "#{space}    #{post_access_path.match(/iter/) ? post_access_path.gsub(/iter/, "#{iden_block}") : post_access_path}"
+        end
         print_line_directive(fw, line)
         fw.puts "#{space}    sqlite3_result_text(con, (const char *)textVector.back().c_str()#{sqlite3_parameters});"
         fw.puts "#else"
       end
     end
+    if !pre_access_path.empty?   # ditto
+      fw.puts "#{space}    #{pre_access_path.match(/iter/) ? pre_access_path.gsub(/iter/, "#{iden_block}") : pre_access_path}"
+    end
     fw.puts "#{space}    sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{access_path}#{column_cast_back}#{sqlite3_parameters});"
+    if !post_access_path.empty?
+      fw.puts "#{space}    #{post_access_path.match(/iter/) ? post_access_path.gsub(/iter/, "#{iden_block}") : post_access_path}"
+    end
     print_line_directive(fw, line)
     if sqlite3_type == "text" && $argLB == "CPP"
       fw.puts "#endif"
@@ -1460,12 +1477,20 @@ class VirtualTable
     display_null_check(tokenized_access_path, "",
                        null_check_action,
                        fw, space)
+    if !pre_access_path.empty?
+      fw.puts "#{space}#{pre_access_path}"
+    end
     fw.puts "#{space}if (#{notC}compare_#{sqlite3_type}(#{column_cast}#{access_path}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val))) {"
     print_line_directive(fw, line)
     if @container_class.length > 0
       space.chomp!("  ")
     end
-    fw.puts "#{add_to_result_set.gsub("<space>", "#{space}")}"
+    if !post_access_path.empty?
+      fw.puts "#{add_to_result_set.gsub(/}\Z/,  # Generate post-access path within loop
+                 "  #{post_access_path}\n<space>}").gsub("<space>", "#{space}")}"
+    else
+      fw.puts "#{add_to_result_set.gsub("<space>", "#{space}")}"
+    end
   end
 
   def gen_all(fw, column_cast, access_path,

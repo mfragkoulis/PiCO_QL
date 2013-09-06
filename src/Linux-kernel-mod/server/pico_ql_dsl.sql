@@ -2,6 +2,7 @@
 #include <linux/sched.h>
 #include <linux/fdtable.h>
 #include <linux/fs.h>
+#include <linux/spinlock.h>
 #include <linux/fs_struct.h>
 #include <linux/mm_types.h>
 #include <linux/nsproxy.h>
@@ -22,7 +23,7 @@
 #define Process_VT_decl(X) struct task_struct *X
 #define EProcessChild_VT_decl(X) struct task_struct *X
 #define EThread_VT_decl(X) struct task_struct *X
-#define EFile_VT_decl(X) struct file *X; int bit = 0
+#define EFile_VT_decl(X) struct file *X = NULL; int bit = 0
 #define EFile_VT_begin(X, Y, Z) (X) = (Y)[(Z)]
 #define EFile_VT_advance(X, Y, Z) EFile_VT_begin(X,Y,Z)
 #define EGroup_VT_decl(X) int *X; int i = 0
@@ -538,9 +539,9 @@ CREATE STRUCT VIEW File_SV (
        inode_mode INT FROM f_path.dentry->d_inode->i_mode,
        inode_bytes INT FROM f_path.dentry->d_inode->i_bytes,
        inode_size INT FROM f_path.dentry->d_inode->i_size,
-       file_offset INT FROM {spin_lock(&base->f_lock);
+       file_offset INT FROM {spin_lock(&iter->f_lock);
                              this->f_pos;
-                             spin_unlock(&base->f_lock);},
+                             spin_unlock(&iter->f_lock);},
        count BIGINT FROM f_count.counter,
        flags INT FROM f_flags,
        path_dentry BIGINT FROM (long)this.f_dentry,
