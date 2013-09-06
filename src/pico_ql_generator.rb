@@ -41,7 +41,9 @@ class Column
                               # Required for managing temporary variables.
     @saved_results_index = -1 # Required for naming the particular 
                               # saved results instance.
+    @pre_access_path = ""     # Pre-access path statements in code block format.
     @access_path = ""         # The access statement for the column value.
+    @post_access_path = ""    # Post-access path statements in code block format.
     @tokenized_access_path = Array.new # Access path tokens to check for 
                                        # NULLs.
     @col_type = "object"      # Record type (pointer or reference) for 
@@ -60,11 +62,12 @@ class Column
                                /nchar/i]
   end
   attr_accessor(:name,:line,:data_type,
-                :cpp_data_type,
-                :related_to,:fk_col_type,
-		:fk_method_ret,:saved_results_index,
-		:access_path,:col_type,:case,
-                :tokenized_access_path)
+		:cpp_data_type,:related_to,
+		:fk_col_type,:fk_method_ret,
+		:saved_results_index,
+		:pre_access_path,:access_path,
+		:post_access_path,:col_type,
+		:case,:tokenized_access_path)
 
 
 # Used to clone a Column object. Ruby does not support deep copies.
@@ -168,14 +171,47 @@ class Column
     }
   end
 
-# Checks if NULL checks for access path
-# have to be performed 
-  def process_access_path()
+# Process and tokenize access paths in code block format.
+# Output:
+# 	 pre_access_path: C statements prior to "this" C statement
+# 	     access_path: "this" C statement; the actual access path
+# 	post_access_path: C statements after "this" statement
+  def process_access_path_code_block()
     @access_path.lstrip!
     @access_path.rstrip!
     @access_path.delete!("{")  # Required for code block format
     @access_path.chomp!("}")   # ditto
     @access_path.chomp!(";")   # ditto - maybe
+    if @access_path.match(/;/)
+      statements = @access_path.split(/;/)
+      bare_access_path = ""
+      statements.each{ |s|
+        s.lstrip!
+        s.rstrip!
+        if !s.match(/this/)
+          bare_access_path.empty? ? @pre_access_path << "#{s};" : @post_access_path << "#{s};"
+        else
+          bare_access_path << s
+        end
+      }
+      @access_path.replace(bare_access_path)
+      #if $argD == "DEBUG"
+        puts "In process_access_path_code_block:"
+        puts "  @pre_access_path: #{@pre_access_path}"
+        puts "  @access_path: #{@access_path}"
+        puts "  @post_access_path: #{@post_access_path}"
+      #end
+    end
+  end
+
+# Checks if NULL checks for access path
+# have to be performed 
+  def process_access_path()
+    if @access_path.match(/\{(.+)\}/)
+      process_access_path_code_block()
+    else
+      @access_path.chomp!(";") # In case users end an access path in C fashion
+    end
     if $argD == "DEBUG"
       puts "Access path to process is #{@access_path}."
     end
@@ -184,6 +220,7 @@ class Column
          @access_path.match(/this\./)
         if @access_path.match(/this->(.+)\)/) || 
            @access_path.match(/this->(.+),/) ||
+           @access_path.match(/this->(.+)/) ||  # Introduced with code block
            @access_path.match(/this\.(.+)->(.+),/) ||
            @access_path.match(/this\.(.+)->(.+)\)/)
           case @access_path
@@ -191,6 +228,8 @@ class Column
             matchdata = @access_path.match(/this->(.+)\)/)
           when /this->(.+),/
             matchdata = @access_path.match(/this->(.+),/)
+          when /this->(.+)/			# Introduced with code block
+            matchdata = @access_path.match(/this->(.+)/)
           when /this\.(.+)->(.+),/
             matchdata = @access_path.match(/this\.(.+),/)
           when /this\.(.+)->(.+)\)/
@@ -204,7 +243,7 @@ class Column
             @tokenized_access_path.pop
           end
         else
-          puts "WARNING: Dereference in access path not part of data structure registered with PiCO QL. Exiting now.\n"
+          puts "WARNING: Dereference in access path not part of data structure registered with PiCO QL.\n"
         end
       else
         @tokenized_access_path = @access_path.split(/->/)
