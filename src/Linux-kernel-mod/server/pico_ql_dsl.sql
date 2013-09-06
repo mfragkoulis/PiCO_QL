@@ -3,6 +3,7 @@
 #include <linux/fdtable.h>
 #include <linux/fs.h>
 #include <linux/spinlock.h>
+#include <linux/pagemap.h>
 #include <linux/fs_struct.h>
 #include <linux/mm_types.h>
 #include <linux/nsproxy.h>
@@ -542,6 +543,9 @@ CREATE STRUCT VIEW File_SV (
        file_offset INT FROM {spin_lock(&iter->f_lock);
                              this->f_pos;
                              spin_unlock(&iter->f_lock);},
+       page_in_cache BIGINT FROM {spin_lock(&iter->f_lock);
+                               (long)find_get_page(this->f_mapping, this->f_pos >> PAGE_CACHE_SHIFT);
+                               spin_unlock(&iter->f_lock);},
        count BIGINT FROM f_count.counter,
        flags INT FROM f_flags,
        path_dentry BIGINT FROM (long)this.f_dentry,

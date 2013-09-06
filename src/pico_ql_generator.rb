@@ -191,7 +191,7 @@ class Column
       statements.each{ |s|
         s.lstrip!
         s.rstrip!
-        if !s.match(/this/)
+        if !s.match(/this/)  # {pre,post} shouldn't contain "this".
           bare_access_path.empty? ? @pre_access_path << "#{s};" : @post_access_path << "#{s};"
         else
           bare_access_path << s
@@ -200,12 +200,12 @@ class Column
       @pre_access_path.gsub!(/base/, "any_dstr")
       @access_path.replace(bare_access_path)
       @post_access_path.gsub!(/base/, "any_dstr")
-      #if $argD == "DEBUG"
+      if $argD == "DEBUG"
         puts "In process_access_path_code_block:"
         puts "  @pre_access_path: #{@pre_access_path}"
         puts "  @access_path: #{@access_path}"
         puts "  @post_access_path: #{@post_access_path}"
-      #end
+      end
     end
   end
 
@@ -223,16 +223,16 @@ class Column
     if @access_path.match(/->/)
       if @access_path.match(/this->/) ||
          @access_path.match(/this\./)
-        if @access_path.match(/this->(.+)\)/) || 
-           @access_path.match(/this->(.+),/) ||
+        if @access_path.match(/this->(.+?),(.+)\)/) ||
+           @access_path.match(/this->(.+?)\)/) || 
            @access_path.match(/this->(.+)/) ||  # Introduced with code block
            @access_path.match(/this\.(.+)->(.+),/) ||
            @access_path.match(/this\.(.+)->(.+)\)/)
           case @access_path
-          when /this->(.+)\)/
-            matchdata = @access_path.match(/this->(.+)\)/)
-          when /this->(.+),/
-            matchdata = @access_path.match(/this->(.+),/)
+          when /this->(.+?),(.+)\)/
+            matchdata = @access_path.match(/this->(.+?),(.+)\)/)
+          when /this->(.+?)\)/
+            matchdata = @access_path.match(/this->(.+?)\)/)
           when /this->(.+)/			# Introduced with code block
             matchdata = @access_path.match(/this->(.+)/)
           when /this\.(.+)->(.+),/
