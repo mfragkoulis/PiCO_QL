@@ -171,6 +171,11 @@ class Column
 # Checks if NULL checks for access path
 # have to be performed 
   def process_access_path()
+    @access_path.lstrip!
+    @access_path.rstrip!
+    @access_path.delete!("{")  # Required for code block format
+    @access_path.chomp!("}")   # ditto
+    @access_path.chomp!(";")   # ditto - maybe
     if $argD == "DEBUG"
       puts "Access path to process is #{@access_path}."
     end
@@ -368,8 +373,8 @@ class Column
     if @access_path.match(/self/)
       @access_path.gsub!(/self/,"")
     end
-    if @access_path.match(/;/)
-      @access_path.gsub!(/;/,",")
+    if @access_path.match(/#/)     # Substituting back "," in place of "#" 
+      @access_path.gsub!(/#/,",")  # for code block formats.
     end
     process_access_path()
     if $argD == "DEBUG"
@@ -2012,11 +2017,18 @@ class StructView
       # structview.
       # Second record contains the struct view's name
       @name = matchdata[1]
+      all_columns = String.new(matchdata[3])
       columns_str = Array.new
-      if matchdata[3].match(/,/)
-        columns_str = matchdata[3].split(/,/)
+      if all_columns.match(/\{(.+?)\}/)       # For access paths in code block format
+        all_columns.gsub!(/\{(.+?)\}/) { |m|  # we need to substitute "," in the code
+          m.gsub!(/,/, "#")                   # block with "#" to allow splitting the
+          "#{m}"                              # column descriptions using the SQL-reminiscent
+        }                                     # "," delimeter. Seek alternative.
+      end
+      if all_columns.match(/,/)
+        columns_str = all_columns.split(/,/)
       else
-        columns_str[0] = matchdata[3]
+        columns_str[0] = all_columns
       end
     end
     begin
@@ -2315,10 +2327,6 @@ class InputDescription
       end
     end
     token_d.each { |x|            # Cleaning white space.
-      if x.match(/^CREATE STRUCT/) &&
-         x.match(/,(?!\n)/)
-         x.gsub!(/,(?!\n)/, ";")  # Protect ','
-      end
       if /\n|\t|\r|\f/.match(x)
         x.gsub!(/\n|\t|\r|\f/, " ") 
       end
