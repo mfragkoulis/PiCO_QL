@@ -538,6 +538,9 @@ CREATE STRUCT VIEW File_SV (
        inode_mode INT FROM f_path.dentry->d_inode->i_mode,
        inode_bytes INT FROM f_path.dentry->d_inode->i_bytes,
        inode_size INT FROM f_path.dentry->d_inode->i_size,
+       file_offset INT FROM {spin_lock(&base->f_lock);
+                             this->f_pos;
+                             spin_unlock(&base->f_lock);},
        count BIGINT FROM f_count.counter,
        flags INT FROM f_flags,
        path_dentry BIGINT FROM (long)this.f_dentry,

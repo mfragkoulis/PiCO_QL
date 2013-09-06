@@ -48,13 +48,13 @@ class Column
                               # special columns, the ones that refer to 
                               # other VT or UNIONS.
     @case = ucase             # switch case for union view fields
-    @@int_data_types = ["int", "integer", "tinyint", 
-                        "smallint", "mediumint", "int2",
-                        "bool", "boolean", "numeric"]
-    @@bigint_data_types = ["bigint", "unsigned big int",
-                           "int8"]
-    @@double_data_types = ["float", "double", "double precision", "real"]
-    @@text_data_types = ["text", "date", "datetime", "clob", "string"]
+    @@int_data_types        = ["int", "integer", "tinyint", 
+                               "smallint", "mediumint", "int2",
+                               "bool", "boolean", "numeric"]
+    @@bigint_data_types     = ["bigint", "unsigned big int",
+                               "int8"]
+    @@double_data_types     = ["float", "double", "double precision", "real"]
+    @@text_data_types       = ["text", "date", "datetime", "clob", "string"]
     @@text_match_data_types = [/character/i, /varchar/i, /nvarchar/i, 
                                /varying character/i, /native character/i,
                                /nchar/i]
