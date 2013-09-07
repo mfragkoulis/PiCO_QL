@@ -544,8 +544,8 @@ CREATE STRUCT VIEW File_SV (
                              this->f_pos;
                              spin_unlock(&iter->f_lock);},
        page_in_cache BIGINT FROM {spin_lock(&iter->f_lock);
-                               (long)find_get_page(this->f_mapping, this->f_pos >> PAGE_CACHE_SHIFT);
-                               spin_unlock(&iter->f_lock);},
+                                  (long)find_get_page(this->f_mapping, this->f_pos >> PAGE_CACHE_SHIFT);
+                                  spin_unlock(&iter->f_lock);},
        count BIGINT FROM f_count.counter,
        flags INT FROM f_flags,
        path_dentry BIGINT FROM (long)this.f_dentry,
