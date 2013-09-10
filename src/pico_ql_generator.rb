@@ -611,18 +611,27 @@ class VirtualTable
                    column_cast_back, 
                    sqlite3_parameters, column_cast,
                    line, space)
-    if access_path.match(/this\.|this->/)
-      access_path.gsub!(/this\.|this->/, "#{iden}")
-    elsif access_path.match(/\(this\)/)
-      if iden.end_with?(".")
-        access_path.gsub!(/\(this\)/, "(#{iden.chomp(".")})")
-        puts "#{iden}, #{access_path}"
-      elsif iden.end_with?("->")
-        access_path.gsub!(/\(this\)/, "(#{iden.chomp("->")})")
-        puts "#{iden}, #{access_path}"
+    ap_copy = String.new(access_path)
+    if access_path.match(/this\.|this->|\(this,|\(this\)/)
+      if access_path.match(/this\.|this->/)
+        ap_copy.gsub!(/this\.|this->/, "#{iden}")
       end
+      if access_path.match(/\(this,|\(this\)/)
+        if iden.end_with?(".")
+          ap_copy.gsub!(/\(this,/, "(#{iden.chomp(".")},")
+          ap_copy.gsub!(/\(this\)/, "(#{iden.chomp(".")})")
+        elsif iden.end_with?("->")
+          ap_copy.gsub!(/\(this,/, "(#{iden.chomp("->")},")
+          ap_copy.gsub!(/\(this\)/, "(#{iden.chomp("->")})")
+        end
+      end
+      if $argD == "DEBUG"
+        puts "all_retrieve: substituting \"this\" in access path:"
+        puts "  #{iden}, #{ap_copy}"
+      end
+      access_path = "#{ap_copy}"
     else
-      access_path = "#{iden}#{access_path}"
+      access_path = "#{iden}#{ap_copy}"
     end
     iden_block = String.new(iden) # Used for code block access path {pre, post}
     iden_block.chomp!("->")       # Chomping accessor because it is configured
@@ -1075,27 +1084,39 @@ class VirtualTable
         idenN = "&#{idenN}"
       end
     end
-    if access_path.match(/this\.|this->/)
-      access_pathF = access_path.gsub(/this\.|this->/, "#{idenF}")
-      access_pathN = access_path.gsub(/this\.|this->/, "#{idenN}")
-    elsif access_path.match(/\(this\)/)
-      if idenF.end_with?(".")
-        access_pathF = access_path.gsub(/\(this\)/, "(#{idenF.chomp(".")})")
-        puts "F-#{idenF}, #{access_pathF}"
-      elsif idenF.end_with?("->")
-        access_pathF = access_path.gsub(/\(this\)/, "(#{idenF.chomp("->")})")
-        puts "F-#{idenF}, #{access_pathF}"
+    ap_copyF = String.new(access_path)
+    ap_copyN = String.new(access_path)
+    if access_path.match(/this\.|this->|\(this,|\(this\)/)
+      if access_path.match(/this\.|this->/)
+        ap_copyF.gsub!(/this\.|this->/, "#{idenF}")
+        ap_copyN.gsub!(/this\.|this->/, "#{idenN}")
       end
-      if idenN.end_with?(".")
-        access_pathN = access_path.gsub(/\(this\)/, "(#{idenN.chomp(".")})")
-        puts "N-#{idenN}, #{access_pathN}"
-      elsif idenN.end_with?("->")
-        access_pathN = access_path.gsub(/\(this\)/, "(#{idenN.chomp("->")})")
-        puts "N-#{idenN}, #{access_pathN}"
+      if access_path.match(/\(this,|\(this\)/)
+        if idenF.end_with?(".")
+          ap_copyF.gsub!(/\(this,/, "(#{idenF.chomp(".")},")
+          ap_copyF.gsub!(/\(this\)/, "(#{idenF.chomp(".")})")
+        elsif idenF.end_with?("->")
+          ap_copyF.gsub!(/\(this,/, "(#{idenF.chomp("->")},")
+          ap_copyF.gsub!(/\(this\)/, "(#{idenF.chomp("->")})")
+        end
+        if idenN.end_with?(".")
+          ap_copyN.gsub!(/\(this,/, "(#{idenN.chomp(".")},")
+          ap_copyN.gsub!(/\(this\)/, "(#{idenN.chomp(".")})")
+        elsif idenN.end_with?("->")
+          ap_copyN.gsub!(/\(this,/, "(#{idenN.chomp("->")},")
+          ap_copyN.gsub!(/\(this\)/, "(#{idenN.chomp("->")})")
+        end
       end
+      if $argD == "DEBUG"
+        puts "configure_search: substituting \"this\" in access path:"
+        puts "  F-#{idenF}, #{ap_copyF}"
+        puts "  N-#{idenN}, #{ap_copyN}"
+      end
+      access_pathF = "#{ap_copyF}"
+      access_pathN = "#{ap_copyN}"
     else
-      access_pathF = "#{idenF}#{access_path}"
-      access_pathN = "#{idenN}#{access_path}"
+      access_pathF = "#{idenF}#{ap_copyF}"
+      access_pathN = "#{idenN}#{ap_copyN}"
     end
     return access_pathF, access_pathN, idenF, idenN
   end

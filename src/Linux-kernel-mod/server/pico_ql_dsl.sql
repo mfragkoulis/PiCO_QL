@@ -40,6 +40,28 @@
 #define Superblock_VT_decl(X) struct super_block *X
 #define EKobjectSet_VT_decl(X) struct kobject *X
 #define EKobjectList_VT_decl(X) struct kobject *X
+
+unsigned pages_in_cache(struct file *f, pgoff_t index) {
+  loff_t i_size;
+  struct page **pages;
+  unsigned int nr_pages;
+  i_size = ((i_size_read(f->f_mapping->host) + PAGE_CACHE_SIZE -1) >> PAGE_CACHE_SHIFT);
+  pages = (struct page **)kzalloc(i_size * sizeof(struct page *), GFP_KERNEL);
+  nr_pages = find_get_pages_contig(f->f_mapping, index, i_size, pages);
+  kfree(pages);
+  return nr_pages;
+}
+
+unsigned pages_in_cache_tag(struct file *f, pgoff_t index, int tag) {
+  loff_t i_size;
+  struct page **pages;
+  unsigned int nr_pages;
+  i_size = ((i_size_read(f->f_mapping->host) + PAGE_CACHE_SIZE -1) >> PAGE_CACHE_SHIFT);
+  pages = (struct page **)kzalloc(i_size * sizeof(struct page *), GFP_KERNEL);
+  nr_pages = find_get_pages_tag(f->f_mapping, &index, tag, i_size, pages);
+  kfree(pages);
+  return nr_pages;
+}
 $
 
 CREATE LOCK RCU
@@ -539,13 +561,27 @@ CREATE STRUCT VIEW File_SV (
        inode_name TEXT FROM f_path.dentry->d_name.name,
        inode_mode INT FROM f_path.dentry->d_inode->i_mode,
        inode_bytes INT FROM f_path.dentry->d_inode->i_bytes,
-       inode_size INT FROM f_path.dentry->d_inode->i_size,
+       inode_size_bytes INT FROM i_size_read(this->f_mapping->host),
+       inode_size_pages INT FROM ((i_size_read(this->f_mapping->host) + PAGE_CACHE_SIZE -1) >> PAGE_CACHE_SHIFT),
        file_offset INT FROM {spin_lock(&iter->f_lock);
                              this->f_pos;
+                             spin_unlock(&iter->f_lock);},
+       page_offset INT FROM {spin_lock(&iter->f_lock);
+                             this->f_pos >> PAGE_CACHE_SHIFT;
                              spin_unlock(&iter->f_lock);},
        page_in_cache BIGINT FROM {spin_lock(&iter->f_lock);
                                   (long)find_get_page(this->f_mapping, this->f_pos >> PAGE_CACHE_SHIFT);
                                   spin_unlock(&iter->f_lock);},
+       pages_in_cache_contig_start INT FROM {pages_in_cache(this, 0)},
+       pages_in_cache_contig_current INT FROM {spin_lock(&iter->f_lock);
+					       pages_in_cache(this, this->f_pos);
+					       spin_unlock(&iter->f_lock);},
+       pages_in_cache_tag_dirty INT FROM {pages_in_cache_tag(this, 0, PAGECACHE_TAG_DIRTY)},
+       pages_in_cache_tag_writeback INT FROM {pages_in_cache_tag(this, 0, PAGECACHE_TAG_WRITEBACK)},
+       pages_in_cache_tag_towrite INT FROM {pages_in_cache_tag(this, 0, PAGECACHE_TAG_TOWRITE)},
+       pages_in_cache INT FROM {spin_lock(&iter->f_mapping->tree_lock);
+                             this->f_mapping->nrpages;
+                             spin_unlock(&iter->f_mapping->tree_lock);},
        count BIGINT FROM f_count.counter,
        flags INT FROM f_flags,
        path_dentry BIGINT FROM (long)this.f_dentry,
