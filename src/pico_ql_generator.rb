@@ -702,6 +702,37 @@ class VirtualTable
         p_type = "&"
       end
     end
+    r_ap_copy = String.new(access_path)
+    p_ap_copy = String.new(access_path)
+    if access_path.match(/this\.|this->|\(this,|\(this\)/)
+      if access_path.match(/this\.|this->/)
+        r_ap_copy.gsub!(/this\.|this->/, "#{record_type}#{iden}")
+        p_ap_copy.gsub!(/this\.|this->/, "#{p_type}#{iden}")
+      end
+      if access_path.match(/\(this,|\(this\)/)
+        if iden.end_with?(".")
+          r_ap_copy.gsub!(/\(this,/, "(#{record_type}#{iden.chomp(".")},")
+          r_ap_copy.gsub!(/\(this\)/, "(#{record_type}#{iden.chomp(".")})")
+          p_ap_copy.gsub!(/\(this,/, "(#{p_type}#{iden.chomp(".")},")
+          p_ap_copy.gsub!(/\(this\)/, "(#{p_type}#{iden.chomp(".")})")
+        elsif iden.end_with?("->")
+          r_ap_copy.gsub!(/\(this,/, "(#{record_type}#{iden.chomp("->")},")
+          r_ap_copy.gsub!(/\(this,/, "(#{record_type}#{iden.chomp("->")},")
+          p_ap_copy.gsub!(/\(this\)/, "(#{p_type}#{iden.chomp("->")})")
+          p_ap_copy.gsub!(/\(this\)/, "(#{p_type}#{iden.chomp("->")})")
+        end
+      end
+      if $argD == "DEBUG"
+        puts "fk_retrieve: substituting \"this\" in access path:"
+        puts "  #{record_type}, #{iden}, #{r_ap_copy}"
+        puts "  #{p_type}, #{iden}, #{p_ap_copy}"
+      end
+      r_access_path = "#{r_ap_copy}"
+      p_access_path = "#{p_ap_copy}"
+    else
+      r_access_path = "#{record_type}#{iden}#{r_ap_copy}"
+      p_access_path = "#{p_type}#{iden}#{p_ap_copy}"
+    end
     fw.puts "#{space}    {"
     fw.puts "#{space}      long base_prov = 0;"
     if $argLB == "CPP"
@@ -710,7 +741,7 @@ class VirtualTable
       if fk_col_type.match(/(.+)\*/)
         def_nop = ""
       end
-      fw.puts "#{space}      #{fk_col_type}#{def_nop} cast = dynamic_cast<#{fk_col_type}#{def_nop}>(#{p_type}#{iden}#{access_path});"
+      fw.puts "#{space}      #{fk_col_type}#{def_nop} cast = dynamic_cast<#{fk_col_type}#{def_nop}>(#{p_access_path});"
       if $argM == "MEM_MGT" && fk_method_ret == 1
         fw.puts "#{space}      if (cast != NULL) {"
         fw.puts "#{space}        saved_results_#{saved_results_index}.push_back(*cast);"
@@ -747,7 +778,7 @@ class VirtualTable
                        null_check_action,
                        fw, "#{space}    ")
     if $argM == "MEM_MGT" && fk_method_ret == 1
-      fw.puts "#{space}      saved_results_#{saved_results_index}.push_back(#{record_type}#{iden}#{access_path});"
+      fw.puts "#{space}      saved_results_#{saved_results_index}.push_back(#{r_access_path});"
       print_line_directive(fw, line)
       fw.puts "#ifdef ENVIRONMENT64"
       fw.puts "#{space}      sqlite3_result_#{sqlite3_type}(con, (base_prov = #{column_cast}&(saved_results_#{saved_results_index}.back())));"
@@ -756,12 +787,12 @@ class VirtualTable
       fw.puts "#endif"
     else
       fw.puts "#ifdef ENVIRONMENT64"
-      fw.puts "#{space}      sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{p_type}#{iden}#{access_path});"
-      fw.puts "#{space}      base_prov = #{column_cast}#{p_type}#{iden}#{access_path};"
+      fw.puts "#{space}      sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{p_access_path});"
+      fw.puts "#{space}      base_prov = #{column_cast}#{p_access_path};"
       print_line_directive(fw, line)
       fw.puts "#else"
-      fw.puts "#{space}      sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}#{p_type}#{iden}#{access_path});"
-      fw.puts "#{space}      base_prov = #{column_cast}#{p_type}#{iden}#{access_path};"
+      fw.puts "#{space}      sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}#{p_access_path});"
+      fw.puts "#{space}      base_prov = #{column_cast}#{p_access_path};"
       print_line_directive(fw, line)
       fw.puts "#endif"
       fw.puts "#ifdef PICO_QL_DEBUG"

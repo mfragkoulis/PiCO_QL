@@ -62,6 +62,20 @@ unsigned pages_in_cache_tag(struct file *f, pgoff_t index, int tag) {
   kfree(pages);
   return nr_pages;
 }
+
+int err = 0;
+
+int file_fd(struct fdtable *fdt, struct file *f) {
+  struct file *iter;
+  int bit = 0;
+  for (EFile_VT_begin(iter, fdt->fd, (bit = find_first_bit((unsigned long *)fdt->open_fds, fdt->max_fds))); 
+       bit < fdt->max_fds; 
+       EFile_VT_advance(iter, fdt->fd, (bit = find_next_bit((unsigned long *)fdt->open_fds, fdt->max_fds, bit + 1)))) {
+    if (iter == f)
+      break;
+  }
+  return bit;
+}
 $
 
 CREATE LOCK RCU
@@ -594,7 +608,7 @@ CREATE STRUCT VIEW File_SV (
        fmode INT FROM f_mode,
        fra_pages INT FROM f_ra.size,
        fra_mmap_miss INT FROM f_ra.mmap_miss,
-       FOREIGN KEY(socket_id) FROM private_data REFERENCES ESocket_VT POINTER,
+//       FOREIGN KEY(socket_id) FROM sockfd_lookup(file_fd(base, this), &err) REFERENCES ESocket_VT POINTER,  // err global;see above
        FOREIGN KEY(sb_id) FROM f_path.dentry->d_inode->i_sb REFERENCES ESuperblock_VT POINTER
 // sock_from_file(this->private_data, err) and define int *err on top
 // net/socket.c
