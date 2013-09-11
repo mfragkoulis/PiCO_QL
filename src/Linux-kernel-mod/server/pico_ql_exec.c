@@ -257,6 +257,7 @@ int prep_exec(sqlite3 *db, const char *q){
   char **root_result_set = (char **)sqlite3_malloc(sizeof(char *));
   int argc_slots = 1;
   char *result_set = (char *)sqlite3_malloc(sizeof(char) * PICO_QL_RESULT_SET_SIZE);
+  char *placeholder = (char *)sqlite3_malloc(sizeof(char) * PICO_QL_RESULT_SET_SIZE);
   root_result_set[0] = result_set;
 #ifdef PICO_QL_DEBUG
   printf("In prep_exec query to execute is %s.\n", q);
@@ -272,11 +273,22 @@ int prep_exec(sqlite3 *db, const char *q){
 #endif
     goto exit;
   } else {
-    printk(KERN_ERR "Error during query preparation: error no %i.\n", prepare);
-    if (PICO_QL_TEXT) 
+    printk(KERN_ERR "[picoQL] Error during query preparation: error no %i.\n", prepare);
+    printk(KERN_ERR "[picoQL] Extended error code %i.\n", sqlite3_extended_errcode(db));
+    printk(KERN_ERR "[picoQL] Extended error message:\n%s\n", sqlite3_errmsg(db));
+    if (PICO_QL_TEXT) {
       sprintf(result_set, "Error during query preparation: error no %i\n", prepare);
-    else
+      sprintf(placeholder, "\nExtended error code %i.\n", sqlite3_extended_errcode(db));
+      strcat(result_set, placeholder);
+      sprintf(placeholder, "\nExtended error message:\n%s\n\n", sqlite3_errmsg(db));
+      strcat(result_set, placeholder);
+    } else {
       sprintf(result_set, "Error during query preparation: error no %i<br>", prepare);
+      sprintf(placeholder, "<br><b>Extended error code <b>%i.<br>Please advise </b><a href =\"", sqlite3_extended_errcode(db));
+      strcat(result_set, placeholder);
+      sprintf(placeholder, "<br><b>Extended error message:<br><b>%s</b><br><br>", sqlite3_errmsg(db));
+      strcat(result_set, placeholder);
+    }
     if (PICO_QL_META)
       strcat(result_set, "1");
     re = prepare;
@@ -288,6 +300,7 @@ exit:
 #ifdef PICO_QL_DEBUG
   printf("Result set to place is partitioned in %i pieces. Last partition is \n%s.\n\nEnd.\n", argc_slots - 1, result_set);
 #endif
+  sqlite3_free(placeholder);
   if (serving)
     place_result_set((const char **)root_result_set, &argc_slots);
   else {

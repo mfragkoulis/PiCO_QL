@@ -63,8 +63,13 @@ unsigned pages_in_cache_tag(struct file *f, pgoff_t index, int tag) {
   return nr_pages;
 }
 
-int err = 0;
+long is_socket(struct file *f) {
+  if (S_ISSOCK(f->f_path.dentry->d_inode->i_mode))
+    return (long)f->private_data;
+  return 0;
+}
 
+int err = 0;
 int file_fd(struct fdtable *fdt, struct file *f) {
   struct file *iter;
   int bit = 0;
@@ -280,7 +285,7 @@ WITH REGISTERED C TYPE struct netns_mib$
 
 CREATE STRUCT VIEW Socket_SV (
        socket_state INT FROM state,
-       type INT FROM type,
+       socket_type INT FROM type,
        flags BIGINT FROM flags,
        FOREIGN KEY(file_id) FROM file REFERENCES EFile_VT POINTER,
        FOREIGN KEY(sock_id) FROM sk REFERENCES ESock_VT POINTER
@@ -608,7 +613,10 @@ CREATE STRUCT VIEW File_SV (
        fmode INT FROM f_mode,
        fra_pages INT FROM f_ra.size,
        fra_mmap_miss INT FROM f_ra.mmap_miss,
-       FOREIGN KEY(socket_id) FROM {sockfd_lookup(file_fd(base, this), &err)} REFERENCES ESocket_VT POINTER,  // err global;see above
+       is_socket INT FROM S_ISSOCK(this->f_path.dentry->d_inode->i_mode),
+       special_interface BIGINT FROM (long)this->private_data,
+       FOREIGN KEY(socket_id) FROM is_socket(this) REFERENCES ESocket_VT POINTER,
+//       FOREIGN KEY(socket_id) FROM {sockfd_lookup(file_fd(base, this), &err)} REFERENCES ESocket_VT POINTER,  // err global;see above
        FOREIGN KEY(sb_id) FROM f_path.dentry->d_inode->i_sb REFERENCES ESuperblock_VT POINTER
 // sock_from_file(this->private_data, err) and define int *err on top
 // net/socket.c

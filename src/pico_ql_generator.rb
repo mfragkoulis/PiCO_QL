@@ -197,9 +197,7 @@ class Column
           bare_access_path << s
         end
       }
-      @pre_access_path.gsub!(/base/, "any_dstr")
       @access_path.replace(bare_access_path)
-      @post_access_path.gsub!(/base/, "any_dstr")
       if $argD == "DEBUG"
         puts "In process_access_path_code_block:"
         puts "  @pre_access_path: #{@pre_access_path}"
@@ -523,13 +521,22 @@ class VirtualTable
 # Refactor to include 'this' substitutions in here too.
   def sub_keywords(pre_post_ap, access_path, iter)
     if access_path
-      access_path.gsub!(/iter(\.|->)/, "#{iter})")
-      access_path.gsub!(/iter/, "#{iter}")
-      access_path.gsub!(/base(\.|->)/, "any_dstr->")
-      access_path.gsub!(/base/, "any_dstr")
+      if iter != nil &&
+         access_path.match(/iter->|iter\.|iter,|iter\)/)
+        access_path.gsub!(/iter/, "#{iter}") 
+      end
+      if access_path.match(/base->|base\.|base,|base\)/)
+        access_path.gsub!(/base(\.|->)/, "any_dstr->")
+        access_path.gsub!(/base/, "any_dstr") 
+      end
     elsif pre_post_ap
-      pre_post_ap.gsub!(/iter/, "#{iter}")
-      pre_post_ap.gsub!(/base/, "any_dstr")
+      if iter != nil &&
+         pre_post_ap.match(/iter->|iter\.|iter,|iter\)/)
+        pre_post_ap.gsub!(/iter/, "#{iter}")
+      end
+      if pre_post_ap.match(/base->|base\.|base,|base\)/)
+        pre_post_ap.gsub!(/base/, "any_dstr")
+      end
     end
   end
     
@@ -658,6 +665,7 @@ class VirtualTable
     iden_block = String.new(iden) # Used for code block access path {pre, post}
     iden_block.chomp!("->")       # Chomping accessor because it is configured
     iden_block.chomp!(".")        # from user in code block.
+    sub_keywords(nil, access_path, iden_block)
     pre_ap = String.new(pre_access_path)
     sub_keywords(pre_ap, nil, iden_block)
     post_ap = String.new(post_access_path)
@@ -768,6 +776,8 @@ class VirtualTable
     iden_block = String.new(iden) # Used for code block access path {pre, post}
     iden_block.chomp!("->")       # Chomping accessor because it is configured
     iden_block.chomp!(".")        # from user in code block.
+    sub_keywords(nil, r_access_path, iden_block)
+    sub_keywords(nil, p_access_path, iden_block)
     pre_ap = String.new(pre_access_path)
     sub_keywords(pre_ap, nil, iden_block)
     post_ap = String.new(post_access_path)
@@ -1597,20 +1607,25 @@ class VirtualTable
       end
 # not for union
     end
+    sub_keywords(nil, access_path, nil)
+    pre_ap = String.new(pre_access_path)
+    sub_keywords(pre_ap, nil, nil)
+    post_ap = String.new(post_access_path)
+    sub_keywords(post_ap, nil, nil)
     display_null_check(tokenized_access_path, "",
                        null_check_action,
                        fw, space)
-    if !pre_access_path.empty?
-      fw.puts "#{space}#{pre_access_path}"
+    if !pre_ap.empty?
+      fw.puts "#{space}#{pre_ap}"
     end
     fw.puts "#{space}if (#{notC}compare_#{sqlite3_type}(#{column_cast}#{access_path}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val))) {"
     print_line_directive(fw, line)
     if @container_class.length > 0
       space.chomp!("  ")
     end
-    if !post_access_path.empty?
+    if !post_ap.empty?
       fw.puts "#{add_to_result_set.gsub(/}\Z/,  # Generate post-access path within loop
-                 "  #{post_access_path}\n<space>}").gsub("<space>", "#{space}")}"
+                 "  #{post_ap}\n<space>}").gsub("<space>", "#{space}")}"
     else
       fw.puts "#{add_to_result_set.gsub("<space>", "#{space}")}"
     end
@@ -1687,6 +1702,11 @@ class VirtualTable
     if @container_class.length > 0
       null_check_action = "continue;"
     end
+    sub_keywords(nil, access_path, nil)
+    pre_ap = String.new(pre_access_path_col)
+    sub_keywords(pre_ap, nil, nil)
+    post_ap = String.new(post_access_path_col)
+    sub_keywords(post_ap, nil, nil)
     if $argM == "MEM_MGT" && fk_method_ret == 1
       fw.puts "#{space}{"
       space.concat("  ")
@@ -1703,14 +1723,14 @@ class VirtualTable
                        fw, space) 
     if $argM == "MEM_MGT" && fk_method_ret == 1    # Returning from a method.
       temp_support(access_path) # Called once; it suffices.
-      if !pre_access_path_col.empty?
-        fw.puts "#{space}#{pre_access_path_col}"
+      if !pre_ap.empty?
+        fw.puts "#{space}#{pre_ap}"
       end
       fw.puts "#{space}typeof(#{access_path}) t = #{access_path};"
       fw.puts "#{space}if (#{notC}compare_#{sqlite3_type}(#{column_cast}&t#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_type}(val))) {"
     else
-      if !pre_access_path_col.empty?
-        fw.puts "#{space}#{pre_access_path_col}"
+      if !pre_ap.empty?
+        fw.puts "#{space}#{pre_ap}"
       end
       fw.puts "#{space}if (#{notC}compare_#{sqlite3_type}(#{column_cast}#{access_path}#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_type}(val))) {"
     end
@@ -1720,14 +1740,14 @@ class VirtualTable
                        null_check_action,
                        fw, space) 
     if $argM == "MEM_MGT" && fk_method_ret == 1
-      if !pre_access_path_col.empty?
-        fw.puts "#{space}#{pre_access_path_col}"
+      if !pre_ap.empty?
+        fw.puts "#{space}#{pre_ap}"
       end
       fw.puts "#{space}typeof(#{access_path}) t = #{access_path};"
       fw.puts "#{space}if (#{notC}compare_#{sqlite3_parameters}(#{column_cast}&t#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_parameters}(val))) {"
     else
       if !pre_access_path_col.empty?
-        fw.puts "#{space}#{pre_access_path_col}"
+        fw.puts "#{space}#{pre_ap}"
       end
       fw.puts "#{space}if (#{notC}compare_#{sqlite3_parameters}(#{column_cast}#{access_path}#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_parameters}(val))) {"
     end
@@ -1736,9 +1756,9 @@ class VirtualTable
     end
     print_line_directive(fw, line)
     fw.puts "#endif"
-    if !post_access_path_col.empty?
+    if !post_ap.empty?
       fw.puts "#{add_to_result_set.gsub(/}\Z/,  # Generate post-access path within loop
-                 "  #{post_access_path_col}\n<space>}").gsub("<space>", "#{space}")}"
+                 "  #{post_ap}\n<space>}").gsub("<space>", "#{space}")}"
     else
       fw.puts "#{add_to_result_set.gsub("<space>", "#{space}")}"
     end
