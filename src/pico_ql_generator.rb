@@ -517,6 +517,24 @@ class VirtualTable
     fw.puts post_retrieve.result(get_binding)
   end
 
+# Substitute special keywords in access paths.
+# For pre, post access paths we don't want to substitute
+# accessors. In access paths we do.
+# Refactor to include 'this' substitutions in here too.
+  def sub_keywords(pre_post_ap, access_path, iter)
+    if access_path
+      access_path.gsub!(/iter(\.|->)/, "#{iter})")
+      access_path.gsub!(/iter/, "#{iter}")
+      access_path.gsub!(/base(\.|->)/, "any_dstr->")
+      access_path.gsub!(/base/, "any_dstr")
+    elsif pre_post_ap
+      pre_post_ap.gsub!(/iter/, "#{iter}")
+      pre_post_ap.gsub!(/base/, "any_dstr")
+    end
+  end
+    
+    
+
   def union_retrieve(fw, union_view_name, iden, 
                      union_access_path, 
                      tokenized_access_path, space)
@@ -574,6 +592,8 @@ class VirtualTable
       when "fk"
         access_path_col.insert(0, union_access_path)
         fk_retrieve(fw, access_path_col, 
+                    pre_access_path_col,  # Placeholder to allow compiling
+                    post_access_path_col, # ditto
                     tokenized_access_path_col, 
                     column_type, fk_method_ret,
                     line, iden, saved_results_index, sqlite3_type,
@@ -583,7 +603,7 @@ class VirtualTable
         access_path_col.insert(0, union_access_path)
         all_retrieve(fw, iden, access_path_col, 
                      pre_access_path_col,  # Placeholder to allow compiling
-		     post_access_path_col, # Ditto
+		     post_access_path_col, # ditto
                      tokenized_access_path_col,
                      sqlite3_type, column_cast_back, 
                      sqlite3_parameters, 
@@ -612,17 +632,19 @@ class VirtualTable
                    sqlite3_parameters, column_cast,
                    line, space)
     ap_copy = String.new(access_path)
-    if access_path.match(/this\.|this->|\(this,|\(this\)/)
+    if access_path.match(/this\.|this->|\(this,|\(this\)|this\)/)
       if access_path.match(/this\.|this->/)
         ap_copy.gsub!(/this\.|this->/, "#{iden}")
       end
-      if access_path.match(/\(this,|\(this\)/)
+      if access_path.match(/\(this,|\(this\)|this\)/)
         if iden.end_with?(".")
           ap_copy.gsub!(/\(this,/, "(#{iden.chomp(".")},")
           ap_copy.gsub!(/\(this\)/, "(#{iden.chomp(".")})")
+          ap_copy.gsub!(/this\)/, "#{iden.chomp(".")})")
         elsif iden.end_with?("->")
           ap_copy.gsub!(/\(this,/, "(#{iden.chomp("->")},")
           ap_copy.gsub!(/\(this\)/, "(#{iden.chomp("->")})")
+          ap_copy.gsub!(/this\)/, "#{iden.chomp("->")})")
         end
       end
       if $argD == "DEBUG"
@@ -636,6 +658,10 @@ class VirtualTable
     iden_block = String.new(iden) # Used for code block access path {pre, post}
     iden_block.chomp!("->")       # Chomping accessor because it is configured
     iden_block.chomp!(".")        # from user in code block.
+    pre_ap = String.new(pre_access_path)
+    sub_keywords(pre_ap, nil, iden_block)
+    post_ap = String.new(post_access_path)
+    sub_keywords(post_ap, nil, iden_block)
     null_check_action = "{\n#{space}      sqlite3_result_null(con);\n#{space}      break;\n#{space}      }"
     display_null_check(tokenized_access_path,
                        iden,
@@ -649,24 +675,24 @@ class VirtualTable
       end
       if $argLB == "CPP"
         fw.puts "#ifdef PICO_QL_HANDLE_TEXT_ARRAY"
-        if !pre_access_path.empty?  # "iter" in retrieve is out of context. Has to be substituted with resultset[index].
-          fw.puts "#{space}    #{pre_access_path.match(/iter/) ? pre_access_path.gsub(/iter/, "#{iden_block}") : pre_access_path}"
+        if !pre_ap.empty? 
+          fw.puts "#{space}    #{pre_ap}"
         end
         fw.puts "#{space}    textVector.push_back(#{string_construct_cast}#{access_path});"
-        if !post_access_path.empty?
-          fw.puts "#{space}    #{post_access_path.match(/iter/) ? post_access_path.gsub(/iter/, "#{iden_block}") : post_access_path}"
+        if !post_ap.empty?
+          fw.puts "#{space}    #{post_ap}"
         end
         print_line_directive(fw, line)
         fw.puts "#{space}    sqlite3_result_text(con, (const char *)textVector.back().c_str()#{sqlite3_parameters});"
         fw.puts "#else"
       end
     end
-    if !pre_access_path.empty?   # ditto
-      fw.puts "#{space}    #{pre_access_path.match(/iter/) ? pre_access_path.gsub(/iter/, "#{iden_block}") : pre_access_path}"
+    if !pre_ap.empty? 
+      fw.puts "#{space}    #{pre_ap}"
     end
     fw.puts "#{space}    sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{access_path}#{column_cast_back}#{sqlite3_parameters});"
-    if !post_access_path.empty?
-      fw.puts "#{space}    #{post_access_path.match(/iter/) ? post_access_path.gsub(/iter/, "#{iden_block}") : post_access_path}"
+    if !post_ap.empty?
+      fw.puts "#{space}    #{post_ap}"
     end
     print_line_directive(fw, line)
     if sqlite3_type == "text" && $argLB == "CPP"
@@ -676,6 +702,8 @@ class VirtualTable
   end
 
   def fk_retrieve(fw, access_path, 
+                  pre_access_path,
+                  post_access_path,
                   tokenized_access_path,
                   column_type, fk_method_ret,
                   line, iden, saved_results_index, 
@@ -704,22 +732,26 @@ class VirtualTable
     end
     r_ap_copy = String.new(access_path)
     p_ap_copy = String.new(access_path)
-    if access_path.match(/this\.|this->|\(this,|\(this\)/)
+    if access_path.match(/this\.|this->|\(this,|\(this\)|this\)/)
       if access_path.match(/this\.|this->/)
         r_ap_copy.gsub!(/this\.|this->/, "#{record_type}#{iden}")
         p_ap_copy.gsub!(/this\.|this->/, "#{p_type}#{iden}")
       end
-      if access_path.match(/\(this,|\(this\)/)
+      if access_path.match(/\(this,|\(this\)|this\)/)
         if iden.end_with?(".")
           r_ap_copy.gsub!(/\(this,/, "(#{record_type}#{iden.chomp(".")},")
           r_ap_copy.gsub!(/\(this\)/, "(#{record_type}#{iden.chomp(".")})")
+          r_ap_copy.gsub!(/this\)/, "#{record_type}#{iden.chomp(".")})")
           p_ap_copy.gsub!(/\(this,/, "(#{p_type}#{iden.chomp(".")},")
           p_ap_copy.gsub!(/\(this\)/, "(#{p_type}#{iden.chomp(".")})")
+          p_ap_copy.gsub!(/this\)/, "#{p_type}#{iden.chomp(".")})")
         elsif iden.end_with?("->")
           r_ap_copy.gsub!(/\(this,/, "(#{record_type}#{iden.chomp("->")},")
-          r_ap_copy.gsub!(/\(this,/, "(#{record_type}#{iden.chomp("->")},")
+          r_ap_copy.gsub!(/\(this\)/, "(#{record_type}#{iden.chomp("->")})")
+          r_ap_copy.gsub!(/this\)/, "#{record_type}#{iden.chomp("->")})")
+          p_ap_copy.gsub!(/\(this,/, "(#{p_type}#{iden.chomp("->")},")
           p_ap_copy.gsub!(/\(this\)/, "(#{p_type}#{iden.chomp("->")})")
-          p_ap_copy.gsub!(/\(this\)/, "(#{p_type}#{iden.chomp("->")})")
+          p_ap_copy.gsub!(/this\)/, "#{p_type}#{iden.chomp("->")})")
         end
       end
       if $argD == "DEBUG"
@@ -733,6 +765,13 @@ class VirtualTable
       r_access_path = "#{record_type}#{iden}#{r_ap_copy}"
       p_access_path = "#{p_type}#{iden}#{p_ap_copy}"
     end
+    iden_block = String.new(iden) # Used for code block access path {pre, post}
+    iden_block.chomp!("->")       # Chomping accessor because it is configured
+    iden_block.chomp!(".")        # from user in code block.
+    pre_ap = String.new(pre_access_path)
+    sub_keywords(pre_ap, nil, iden_block)
+    post_ap = String.new(post_access_path)
+    sub_keywords(post_ap, nil, iden_block)
     fw.puts "#{space}    {"
     fw.puts "#{space}      long base_prov = 0;"
     if $argLB == "CPP"
@@ -741,7 +780,13 @@ class VirtualTable
       if fk_col_type.match(/(.+)\*/)
         def_nop = ""
       end
+      if !pre_ap.empty? 
+        fw.puts "#{space}    #{pre_ap}"
+      end
       fw.puts "#{space}      #{fk_col_type}#{def_nop} cast = dynamic_cast<#{fk_col_type}#{def_nop}>(#{p_access_path});"
+      if !post_ap.empty?
+        fw.puts "#{space}    #{post_ap}"
+      end
       if $argM == "MEM_MGT" && fk_method_ret == 1
         fw.puts "#{space}      if (cast != NULL) {"
         fw.puts "#{space}        saved_results_#{saved_results_index}.push_back(*cast);"
@@ -778,7 +823,13 @@ class VirtualTable
                        null_check_action,
                        fw, "#{space}    ")
     if $argM == "MEM_MGT" && fk_method_ret == 1
+      if !pre_ap.empty? 
+        fw.puts "#{space}    #{pre_ap}"
+      end
       fw.puts "#{space}      saved_results_#{saved_results_index}.push_back(#{r_access_path});"
+      if !post_ap.empty?
+        fw.puts "#{space}    #{post_ap}"
+      end
       print_line_directive(fw, line)
       fw.puts "#ifdef ENVIRONMENT64"
       fw.puts "#{space}      sqlite3_result_#{sqlite3_type}(con, (base_prov = #{column_cast}&(saved_results_#{saved_results_index}.back())));"
@@ -787,12 +838,24 @@ class VirtualTable
       fw.puts "#endif"
     else
       fw.puts "#ifdef ENVIRONMENT64"
+      if !pre_ap.empty? 
+        fw.puts "#{space}    #{pre_ap}"
+      end
       fw.puts "#{space}      sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{p_access_path});"
       fw.puts "#{space}      base_prov = #{column_cast}#{p_access_path};"
+      if !post_ap.empty?
+        fw.puts "#{space}    #{post_ap}"
+      end
       print_line_directive(fw, line)
       fw.puts "#else"
+      if !pre_ap.empty? 
+        fw.puts "#{space}    #{pre_ap}"
+      end
       fw.puts "#{space}      sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}#{p_access_path});"
       fw.puts "#{space}      base_prov = #{column_cast}#{p_access_path};"
+      if !post_ap.empty?
+        fw.puts "#{space}    #{post_ap}"
+      end
       print_line_directive(fw, line)
       fw.puts "#endif"
       fw.puts "#ifdef PICO_QL_DEBUG"
@@ -939,6 +1002,8 @@ class VirtualTable
         fw.puts "    break;"
       when "fk"
         fk_retrieve(fw, access_path, 
+                    pre_access_path,
+                    post_access_path,
                     token_ac_p,
                     column_type, fk_method_ret,
                     line, iden, saved_results_index, 
@@ -1117,25 +1182,29 @@ class VirtualTable
     end
     ap_copyF = String.new(access_path)
     ap_copyN = String.new(access_path)
-    if access_path.match(/this\.|this->|\(this,|\(this\)/)
+    if access_path.match(/this\.|this->|\(this,|\(this\)|this\)/)
       if access_path.match(/this\.|this->/)
         ap_copyF.gsub!(/this\.|this->/, "#{idenF}")
         ap_copyN.gsub!(/this\.|this->/, "#{idenN}")
       end
-      if access_path.match(/\(this,|\(this\)/)
+      if access_path.match(/\(this,|\(this\)|this\)/)
         if idenF.end_with?(".")
           ap_copyF.gsub!(/\(this,/, "(#{idenF.chomp(".")},")
           ap_copyF.gsub!(/\(this\)/, "(#{idenF.chomp(".")})")
+          ap_copyF.gsub!(/this\)/, "#{idenF.chomp(".")})")
         elsif idenF.end_with?("->")
           ap_copyF.gsub!(/\(this,/, "(#{idenF.chomp("->")},")
           ap_copyF.gsub!(/\(this\)/, "(#{idenF.chomp("->")})")
+          ap_copyF.gsub!(/this\)/, "#{idenF.chomp("->")})")
         end
         if idenN.end_with?(".")
           ap_copyN.gsub!(/\(this,/, "(#{idenN.chomp(".")},")
           ap_copyN.gsub!(/\(this\)/, "(#{idenN.chomp(".")})")
+          ap_copyN.gsub!(/this\)/, "#{idenN.chomp(".")})")
         elsif idenN.end_with?("->")
           ap_copyN.gsub!(/\(this,/, "(#{idenN.chomp("->")},")
           ap_copyN.gsub!(/\(this\)/, "(#{idenN.chomp("->")})")
+          ap_copyN.gsub!(/this\)/, "#{idenN.chomp("->")})")
         end
       end
       if $argD == "DEBUG"
@@ -1423,6 +1492,8 @@ class VirtualTable
       when "fk"
         gen_fk_col_constr(fw, fk_method_ret, 
                           total_access_path, 
+                          pre_access_path_col,  # Placeholder to allow compiling.
+                          post_access_path_col, # Ditto 
                           un_col_ac_t,
                           col_type, 
                           column_cast, 
@@ -1602,6 +1673,8 @@ class VirtualTable
   
   def gen_fk_col_constr(fw, fk_method_ret, 
                         access_path, 
+                        pre_access_path_col, 
+                        post_access_path_col, 
                         tokenized_access_path,
                         fk_type, 
                         column_cast, 
@@ -1630,9 +1703,15 @@ class VirtualTable
                        fw, space) 
     if $argM == "MEM_MGT" && fk_method_ret == 1    # Returning from a method.
       temp_support(access_path) # Called once; it suffices.
+      if !pre_access_path_col.empty?
+        fw.puts "#{space}#{pre_access_path_col}"
+      end
       fw.puts "#{space}typeof(#{access_path}) t = #{access_path};"
       fw.puts "#{space}if (#{notC}compare_#{sqlite3_type}(#{column_cast}&t#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_type}(val))) {"
     else
+      if !pre_access_path_col.empty?
+        fw.puts "#{space}#{pre_access_path_col}"
+      end
       fw.puts "#{space}if (#{notC}compare_#{sqlite3_type}(#{column_cast}#{access_path}#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_type}(val))) {"
     end
     print_line_directive(fw, line)
@@ -1641,9 +1720,15 @@ class VirtualTable
                        null_check_action,
                        fw, space) 
     if $argM == "MEM_MGT" && fk_method_ret == 1
+      if !pre_access_path_col.empty?
+        fw.puts "#{space}#{pre_access_path_col}"
+      end
       fw.puts "#{space}typeof(#{access_path}) t = #{access_path};"
       fw.puts "#{space}if (#{notC}compare_#{sqlite3_parameters}(#{column_cast}&t#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_parameters}(val))) {"
     else
+      if !pre_access_path_col.empty?
+        fw.puts "#{space}#{pre_access_path_col}"
+      end
       fw.puts "#{space}if (#{notC}compare_#{sqlite3_parameters}(#{column_cast}#{access_path}#{column_cast_back}, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_parameters}(val))) {"
     end
     if @container_class.length > 0
@@ -1651,7 +1736,12 @@ class VirtualTable
     end
     print_line_directive(fw, line)
     fw.puts "#endif"
-    fw.puts "#{add_to_result_set.gsub("<space>", "#{space}")}"
+    if !post_access_path_col.empty?
+      fw.puts "#{add_to_result_set.gsub(/}\Z/,  # Generate post-access path within loop
+                 "  #{post_access_path_col}\n<space>}").gsub("<space>", "#{space}")}"
+    else
+      fw.puts "#{add_to_result_set.gsub("<space>", "#{space}")}"
+    end
     if @container_class.length > 0
       if iteration.length > 0
         space.chomp!("  ")
@@ -1670,6 +1760,7 @@ class VirtualTable
              column_cast, column_cast_back, 
              sqlite3_type, sqlite3_parameters, 
              line, access_path,
+             pre_access_path, post_access_path,
              tokenized_access_path)
     access_pathF = ""
     access_pathN = ""
@@ -1689,6 +1780,8 @@ class VirtualTable
     configure_token_access_checks(token_ac_p, idenF)
     gen_fk_col_constr(fw, fk_method_ret, 
                       access_pathF, 
+                      pre_access_path,
+                      post_access_path,
                       token_ac_p,
                       fk_type, 
                       column_cast, column_cast_back, 
@@ -1708,6 +1801,8 @@ class VirtualTable
     configure_token_access_checks(token_ac_p, idenN)
     gen_fk_col_constr(fw, fk_method_ret, 
                       access_pathN, 
+                      pre_access_path,
+                      post_access_path,
                       token_ac_p,
                       fk_type, 
                       column_cast, column_cast_back, 
@@ -1762,6 +1857,7 @@ class VirtualTable
                column_cast_back, 
                sqlite3_type, sqlite3_parameters, 
                line, access_path,
+               pre_access_path, post_access_path,
                tokenized_access_path)
       when "gen_all"
         gen_all(fw, column_cast, access_path,
