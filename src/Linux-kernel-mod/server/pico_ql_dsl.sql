@@ -19,6 +19,7 @@
 #include <net/net_namespace.h>
 #include <linux/skbuff.h>
 #include <xen/balloon.h>
+#include <asm/virtext.h>
 #define __NO_VERSION__      
 #define EIpVsStatsEstim_VT_decl(X) struct ip_vs_estimator *X
 #define Process_VT_decl(X) struct task_struct *X
@@ -67,6 +68,20 @@ long is_socket(struct file *f) {
   if (S_ISSOCK(f->f_path.dentry->d_inode->i_mode))
     return (long)f->private_data;
   return 0;
+}
+
+int check_vmx(struct balloon_stats *dummy) {
+  (void)dummy;
+  return cpu_has_vmx();
+}
+
+char *msg;
+char *check_svm(struct balloon_stats *dummy, char *msg) {
+  (void)dummy;
+  if (cpu_has_svm((const char **)&msg))
+    sprintf(msg, "1");
+  return msg;
+  
 }
 
 int err = 0;
@@ -775,6 +790,10 @@ $
 
 #if KERNEL_VERSION >= 3.2.0
 CREATE STRUCT VIEW XenStats_SV (
+        cpu_has_vmx INT FROM check_vmx(this),
+        cpu_has_svm TEXT FROM {msg = (char *)sqlite3_malloc(sizeof(char) * PAGE_SIZE/4);  // defined globally on top
+                               check_svm(this, msg);
+                               sqlite3_free(msg);},
         cur_pages BIGINT FROM current_pages,
         target_pages BIGINT FROM target_pages,
         balloon_low BIGINT FROM balloon_low,
