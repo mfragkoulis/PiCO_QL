@@ -44,6 +44,64 @@
 #define EKobjectSet_VT_decl(X) struct kobject *X
 #define EKobjectList_VT_decl(X) struct kobject *X
 //#define KVM_VT_decl(X) struct kvm *X
+#define EKVMArchPitChannelState_VT_decl(X) struct kvm_pit_channel_state *X; int i = 0
+
+struct kvm_timer {
+        struct hrtimer timer;
+        s64 period;                             /* unit: ns */
+        u32 timer_mode_mask;
+        u64 tscdeadline;
+        atomic_t pending;                       /* accumulated triggered timers */
+        bool reinject;
+        struct kvm_timer_ops *t_ops;
+        struct kvm *kvm;
+        struct kvm_vcpu *vcpu;
+};
+
+struct kvm_kpit_channel_state {
+        u32 count; /* can be 65536 */
+        u16 latched_count;
+        u8 count_latched;
+        u8 status_latched;
+        u8 status;
+        u8 read_state;
+        u8 write_state;
+        u8 write_latch;
+        u8 rw_mode;
+        u8 mode;
+        u8 bcd; /* not supported */
+        u8 gate; /* timer start */
+        ktime_t count_load_time;
+};
+
+struct kvm_kpit_state {
+        struct kvm_kpit_channel_state channels[3];
+        u32 flags;
+        struct kvm_timer pit_timer;
+        bool is_periodic;
+        u32    speaker_data_on;
+        struct mutex lock;
+        struct kvm_pit *pit;
+        spinlock_t inject_lock;
+        unsigned long irq_ack;
+        struct kvm_irq_ack_notifier irq_ack_notifier;
+};
+
+struct kvm_io_device {
+        const struct kvm_io_device_ops *ops;
+};
+
+struct kvm_pit {
+        struct kvm_io_device dev;
+        struct kvm_io_device speaker_dev;
+        struct kvm *kvm;
+        struct kvm_kpit_state pit_state;
+        int irq_source_id;
+        struct kvm_irq_mask_notifier mask_notifier;
+        struct workqueue_struct *wq;
+        struct work_struct expired;
+};
+
 
 unsigned pages_in_cache(struct file *f, pgoff_t index) {
   loff_t i_size;
@@ -926,8 +984,33 @@ USING STRUCT VIEW KVMVCPU_SV
 WITH REGISTERED C TYPE struct kvm_vcpu *
 $
 
+CREATE STRUCT VIEW KVMArchPitChannelState_SV (
+        count INT FROM count, // can be 65536
+        latched_count INT FROM latched_count,
+        count_latched INT FROM count_latched,
+        status_latched INT FROM status_latched,
+        status INT FROM status,
+        read_state INT FROM read_state,
+        write_state INT FROM write_state,
+        write_latch INT FROM write_latch,
+        rw_mode INT FROM rw_mode,
+        mode INT FROM mode,
+        bcd INT FROM bcd,
+        gate INT FROM gate,
+        count_load_time BIGINT FROM count_load_time
+)
+$
+
+CREATE VIRTUAL TABLE EKVMArchPitChannelState_VT
+USING STRUCT VIEW KVMArchPitChannelState_SV
+WITH REGISTERED C TYPE struct kvm_pit_state:struct kvm_pit_channel_state *
+USING LOOP for(iter = &base->channels[i]; i < 3; iter = &base->channels[++i])
+// USING LOCK MUTEX(&base->lock) required for kvm_kpit_state;not accessible
+$
+
 CREATE STRUCT VIEW KVM_SV (
-	bsp_vcpu_id INT FROM bsp_vcpu_id
+	bsp_vcpu_id INT FROM bsp_vcpu_id,
+	FOREIGN KEY(pit_state_id) FROM arch.vpit->pit_state REFERENCES EKVMArchPitChannelState_VT
 )
 $
 
