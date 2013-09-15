@@ -37,8 +37,10 @@ int <%= @name %>_vt_init_result_set (sqlite3_vtab *vtab, sqlite3_vtab_cursor *cu
 <%                sign_retype = "#{@signature}" %>
 <%              end %>
 <%              if !@base_var.empty? %>
+<%                if @lock_argument.match(/any_dstr->/) %>
     picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
     <%= sign_retype %> any_dstr = (<%= sign_retype %>)stcsr->source;
+<%                end %>
     <%= l.lock_function %>(<%= @lock_argument %>);
 <%              end %>
 <%            else %>
@@ -183,7 +185,9 @@ void <%= @name %>_vt_deinit_result_set (sqlite3_vtab_cursor *cur, struct Vtbl *v
 <%              end %>
     picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
     if (!stcsr->isInstanceNULL) {
+<%                if @lock_argument.match(/any_dstr->/) %>
       <%= sign_retype %> any_dstr = (<%= sign_retype %>)stcsr->source;
+<%                end %>
       <%= l.unlock_function %>(<%= @lock_argument %>);
     }
 <%            else %>

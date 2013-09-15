@@ -19,7 +19,9 @@
 #include <net/net_namespace.h>
 #include <linux/skbuff.h>
 #include <xen/balloon.h>
-#include <asm/virtext.h>
+#include <asm/virtext.h>    // cpu_has_vmx(), cpu_has svm()
+#include <asm/kvm_host.h>
+#include <linux/kvm_host.h>
 #define __NO_VERSION__      
 #define EIpVsStatsEstim_VT_decl(X) struct ip_vs_estimator *X
 #define Process_VT_decl(X) struct task_struct *X
@@ -41,6 +43,7 @@
 #define Superblock_VT_decl(X) struct super_block *X
 #define EKobjectSet_VT_decl(X) struct kobject *X
 #define EKobjectList_VT_decl(X) struct kobject *X
+//#define KVM_VT_decl(X) struct kvm *X
 
 unsigned pages_in_cache(struct file *f, pgoff_t index) {
   loff_t i_size;
@@ -81,7 +84,42 @@ char *check_svm(struct balloon_stats *dummy, char *msg) {
   if (cpu_has_svm((const char **)&msg))
     sprintf(msg, "1");
   return msg;
-  
+}
+
+int is_kvm_file(struct file *f) {
+  if (!strcmp(f->f_path.dentry->d_name.name, "kvm-vm"))
+    return 1;
+  return 0;
+}
+
+long check_kvm(struct file *f) {
+  if (!strcmp(f->f_path.dentry->d_name.name, "kvm-vm"))
+    return (long)f->private_data;
+  return 0;
+}
+
+int is_kvm_vcpu_file(struct file *f) {
+  if (!strcmp(f->f_path.dentry->d_name.name, "kvm-vcpu"))
+    return 1;
+  return 0;
+}
+
+long check_kvm_vcpu(struct file *f) {
+  if (!strcmp(f->f_path.dentry->d_name.name, "kvm-vcpu"))
+    return (long)f->private_data;
+  return 0;
+}
+
+int get_nmi_mask(struct kvm_vcpu *vcpu) {
+  return kvm_x86_ops->get_nmi_mask(vcpu);
+}
+
+int get_cpl(struct kvm_vcpu *vcpu) {
+  return kvm_x86_ops->get_cpl(vcpu);
+}
+
+int check_cpl(struct kvm_vcpu *vcpu) {
+  return (kvm_x86_ops->get_cpl(vcpu) == 0);
 }
 
 int err = 0;
@@ -111,6 +149,11 @@ $
 CREATE LOCK RTNL
 HOLD WITH rtnl_lock()
 RELEASE WITH rtnl_unlock()
+$
+
+CREATE LOCK RAW_SPINLOCK
+HOLD WITH raw_spin_lock(x)
+RELEASE WITH raw_spin_unlock(x)
 $
 
 // 2.6.32.38 - atomic_t
@@ -316,8 +359,15 @@ CREATE STRUCT VIEW RcvQueue_SV (
 #if KERNEL_VERSION > 2.6.32
 	skb_iif INT FROM skb_iif,
 #endif
+	tstamp BIGINT FROM tstamp.tv64,
 	len INT FROM len,
-        data_len INT FROM data_len
+        data_len INT FROM data_len,
+	truesize INT FROM truesize,
+	priority INT FROM priority,
+	mark INT FROM mark,
+	dropcount INT FROM dropcount,
+	avail_size INT FROM avail_size
+
 )
 $
 
@@ -629,6 +679,10 @@ CREATE STRUCT VIEW File_SV (
        fra_pages INT FROM f_ra.size,
        fra_mmap_miss INT FROM f_ra.mmap_miss,
        is_socket INT FROM S_ISSOCK(this->f_path.dentry->d_inode->i_mode),
+       is_kvm_file INT FROM is_kvm_file(this),
+       FOREIGN KEY(kvm_id) FROM check_kvm(this) REFERENCES EKVM_VT POINTER,
+       is_kvm_vcpu_file INT FROM is_kvm_vcpu_file(this),
+       FOREIGN KEY(kvm_vcpu_id) FROM check_kvm_vcpu(this) REFERENCES EKVMVCPU_VT POINTER,
        special_interface BIGINT FROM (long)this->private_data,
        FOREIGN KEY(socket_id) FROM is_socket(this) REFERENCES ESocket_VT POINTER,
 //       FOREIGN KEY(socket_id) FROM {sockfd_lookup(file_fd(base, this), &err)} REFERENCES ESocket_VT POINTER,  // err global;see above
@@ -786,6 +840,48 @@ USING STRUCT VIEW Process_SV
 WITH REGISTERED C TYPE struct task_struct *
 USING LOOP list_for_each_entry_rcu(iter, &base->thread_group, thread_group)
 USING LOCK RCU
+$
+
+CREATE STRUCT VIEW KVMVCPU_SV (
+//vcpu_load(vcpu) required; locking doesnt seem so
+        exception_injected INT FROM arch.exception.pending,
+        exception_nr INT FROM arch.exception.nr,
+        exception_has_error_code INT FROM arch.exception.has_error_code,
+//        exception_pad INT FROM arch.exception.pad,
+        exception_error_code INT FROM arch.exception.error_code,
+        interrupt_injected INT FROM arch.interrupt.pending,
+        interrupt_nr INT FROM arch.interrupt.nr,
+        interrupt_soft INT FROM arch.interrupt.soft,
+//#if KERNEL_VERSION > 2.6.33
+//        interrupt_shadow INT FROM arch.interrupt.shadow,
+//#else
+//        interrupt_shadow INT FROM arch.interrupt.pad,
+//#endif
+        nmi_injected INT FROM arch.nmi_injected,
+        nmi_pending INT FROM arch.nmi_pending,
+//        nmi_masked INT FROM kvm_x86_ops->get_nmi_mask(this),  // NULL check fails
+        nmi_masked INT FROM get_nmi_mask(this),
+        current_privilege_level INT FROM get_cpl(this),
+        hypercalls_allowed INT FROM check_cpl(this),
+//        nmi_pad INT FROM arch.nmi.pad,
+	sipi_vector INT FROM arch.sipi_vector
+//        flags INT FROM 
+)
+$
+
+CREATE VIRTUAL TABLE EKVMVCPU_VT
+USING STRUCT VIEW KVMVCPU_SV
+WITH REGISTERED C TYPE struct kvm_vcpu *
+$
+
+CREATE STRUCT VIEW KVM_SV (
+	bsp_vcpu_id INT FROM bsp_vcpu_id
+)
+$
+
+CREATE VIRTUAL TABLE EKVM_VT
+USING STRUCT VIEW KVM_SV
+WITH REGISTERED C TYPE struct kvm *
 $
 
 #if KERNEL_VERSION >= 3.2.0

@@ -2066,8 +2066,6 @@ class VirtualTable
          if @lock_argument.match("base")
            @lock.gsub!(/base\.|base->/, "any_dstr->")
            @lock_argument.gsub!(/base\.|base->/, "any_dstr->")
-         else
-           puts "Attention: Argument to lock #{@lock_argument} did not match \"base\"."
          end
       end
     else
