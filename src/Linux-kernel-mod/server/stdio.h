@@ -3,7 +3,7 @@
 
 #include <linux/kernel.h>
 
-#define printf(...) printk(KERN_DEBUG __VA_ARGS__)
+#define printf(...) printk(KERN_ERR __VA_ARGS__)
 #define fprintf(X, ...) printk(KERN_DEBUG __VA_ARGS__)
 
 //fopen(): no-op

@@ -110,10 +110,6 @@ long check_kvm_vcpu(struct file *f) {
   return 0;
 }
 
-int get_nmi_mask(struct kvm_vcpu *vcpu) {
-  return kvm_x86_ops->get_nmi_mask(vcpu);
-}
-
 int get_cpl(struct kvm_vcpu *vcpu) {
   return kvm_x86_ops->get_cpl(vcpu);
 }
@@ -121,6 +117,53 @@ int get_cpl(struct kvm_vcpu *vcpu) {
 int check_cpl(struct kvm_vcpu *vcpu) {
   return (kvm_x86_ops->get_cpl(vcpu) == 0);
 }
+
+// global; hope this is not a problem
+//wrt frame size.
+struct kvm_vcpu_events vcpu_events;
+// Clone of the function sharing the same name in 
+// arch/x86/kvm/x86.c
+// Also includes non exported process_nmi() implemented in
+// the same source file.
+// We are emulating an ioctl for KVM_GET_VCPU_EVENTS in fact.
+long kvm_vcpu_ioctl_x86_get_vcpu_events(struct kvm_vcpu *vcpu) {
+  unsigned limit = 2;
+
+  /*
+   * x86 is limited to one NMI running, and one NMI pending after it.
+   * If an NMI is already in progress, limit further NMIs to just one.
+   * Otherwise, allow two (and we'll inject the first one immediately).
+   */
+  if (kvm_x86_ops->get_nmi_mask(vcpu) || vcpu->arch.nmi_injected)
+    limit = 1;
+
+  vcpu->arch.nmi_pending += atomic_xchg(&vcpu->arch.nmi_queued, 0);
+  vcpu->arch.nmi_pending = min(vcpu->arch.nmi_pending, limit);
+  kvm_make_request(KVM_REQ_EVENT, vcpu);
+
+  /* End of process_nmi(vcpu); */
+
+  vcpu_events.exception.injected = vcpu->arch.exception.pending;
+  vcpu_events.exception.nr = vcpu->arch.exception.nr;
+  vcpu_events.exception.has_error_code = vcpu->arch.exception.has_error_code;
+  vcpu_events.exception.error_code = vcpu->arch.exception.error_code;
+
+  vcpu_events.interrupt.injected = vcpu->arch.interrupt.pending;
+  vcpu_events.interrupt.nr = vcpu->arch.interrupt.nr;
+  vcpu_events.interrupt.soft = vcpu->arch.interrupt.soft;
+
+  vcpu_events.nmi.injected = vcpu->arch.nmi_injected;
+  vcpu_events.nmi.pending = vcpu->arch.nmi_pending;
+//  vcpu_events.nmi.masked = kvm_x86_ops->get_nmi_mask(vcpu);
+
+  vcpu_events.sipi_vector = vcpu->arch.sipi_vector;
+
+  vcpu_events.flags = (KVM_VCPUEVENT_VALID_NMI_PENDING
+                         | KVM_VCPUEVENT_VALID_SIPI_VECTOR);
+
+  return (long)&vcpu_events;
+}
+
 
 int err = 0;
 int file_fd(struct fdtable *fdt, struct file *f) {
@@ -842,30 +885,39 @@ USING LOOP list_for_each_entry_rcu(iter, &base->thread_group, thread_group)
 USING LOCK RCU
 $
 
-CREATE STRUCT VIEW KVMVCPU_SV (
-//vcpu_load(vcpu) required; locking doesnt seem so
-        exception_injected INT FROM arch.exception.pending,
-        exception_nr INT FROM arch.exception.nr,
-        exception_has_error_code INT FROM arch.exception.has_error_code,
-//        exception_pad INT FROM arch.exception.pad,
-        exception_error_code INT FROM arch.exception.error_code,
-        interrupt_injected INT FROM arch.interrupt.pending,
-        interrupt_nr INT FROM arch.interrupt.nr,
-        interrupt_soft INT FROM arch.interrupt.soft,
-//#if KERNEL_VERSION > 2.6.33
-//        interrupt_shadow INT FROM arch.interrupt.shadow,
-//#else
-//        interrupt_shadow INT FROM arch.interrupt.pad,
-//#endif
-        nmi_injected INT FROM arch.nmi_injected,
-        nmi_pending INT FROM arch.nmi_pending,
+CREATE STRUCT VIEW KVMVCPUEvents_SV (
+        exception_injected INT FROM exception.injected,
+        exception_nr INT FROM exception.nr,
+        exception_has_error_code INT FROM exception.has_error_code,
+        exception_pad INT FROM exception.pad,
+        exception_error_code INT FROM exception.error_code,
+        interrupt_injected INT FROM interrupt.injected,
+        interrupt_nr INT FROM interrupt.nr,
+        interrupt_soft INT FROM interrupt.soft,
+#if KERNEL_VERSION > 2.6.33
+        interrupt_shadow INT FROM interrupt.shadow,
+#else
+        interrupt_shadow INT FROM interrupt.pad,
+#endif
+        nmi_injected INT FROM nmi.injected,
+        nmi_pending INT FROM nmi.pending,
 //        nmi_masked INT FROM kvm_x86_ops->get_nmi_mask(this),  // NULL check fails
-        nmi_masked INT FROM get_nmi_mask(this),
+        nmi_masked INT FROM nmi.masked,
+        nmi_pad INT FROM nmi.pad,
+	sipi_vector INT FROM sipi_vector,
+        flags INT FROM flags
+)
+$
+
+CREATE VIRTUAL TABLE EKVMVCPUEvents_VT
+USING STRUCT VIEW KVMVCPUEvents_SV
+WITH REGISTERED C TYPE struct kvm_vcpu_events
+$
+
+CREATE STRUCT VIEW KVMVCPU_SV (
         current_privilege_level INT FROM get_cpl(this),
         hypercalls_allowed INT FROM check_cpl(this),
-//        nmi_pad INT FROM arch.nmi.pad,
-	sipi_vector INT FROM arch.sipi_vector
-//        flags INT FROM 
+	FOREIGN KEY(vcpu_events_id) FROM kvm_vcpu_ioctl_x86_get_vcpu_events(this) REFERENCES EKVMVCPUEvents_VT POINTER
 )
 $
 
