@@ -31,12 +31,6 @@
 
 #include <xen/balloon.h>
 
-/*#include <asm/kvm_host.h>    * for list_head vm_list
-			       * actually defined in
-			       * asm/kvm_host.h
-			       */ 
-//#include <linux/kvm_host.h>
-
 #include <unistd.h>
 #include <stdio.h>
 #include <sqlite3.h>
@@ -225,7 +219,6 @@ int init_sqlite3(void) {
   if (sb == NULL) return -ECANCELED;
   pico_ql_register(sb, "superblock");
   pico_ql_register(&balloon_stats, "xen_balloon_stats");
-//  pico_ql_register(&vm_list, "kvm_list");
   output = pico_ql_serve(db);
   if (output != SQLITE_DONE) {
     printk(KERN_ERR "Serve failed with error code %i.\n", output);

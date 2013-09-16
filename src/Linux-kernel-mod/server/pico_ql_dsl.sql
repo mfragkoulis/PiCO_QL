@@ -20,7 +20,6 @@
 #include <linux/skbuff.h>
 #include <xen/balloon.h>
 #include <asm/virtext.h>    // cpu_has_vmx(), cpu_has svm()
-#include <asm/kvm_host.h>
 #include <linux/kvm_host.h>
 #define __NO_VERSION__      
 #define EIpVsStatsEstim_VT_decl(X) struct ip_vs_estimator *X
@@ -43,7 +42,6 @@
 #define Superblock_VT_decl(X) struct super_block *X
 #define EKobjectSet_VT_decl(X) struct kobject *X
 #define EKobjectList_VT_decl(X) struct kobject *X
-//#define KVM_VT_decl(X) struct kvm *X
 #define EKVMArchPitChannelState_VT_decl(X) struct kvm_pit_channel_state *X; int i = 0
 
 struct kvm_timer {
@@ -131,13 +129,13 @@ long is_socket(struct file *f) {
   return 0;
 }
 
-int check_vmx(struct balloon_stats *dummy) {
+int check_vmx(void *dummy) {
   (void)dummy;
   return cpu_has_vmx();
 }
 
 char *msg;
-char *check_svm(struct balloon_stats *dummy, char *msg) {
+char *check_svm(void *dummy, char *msg) {
   (void)dummy;
   if (cpu_has_svm((const char **)&msg))
     sprintf(msg, "1");
@@ -176,15 +174,20 @@ int check_cpl(struct kvm_vcpu *vcpu) {
   return (kvm_x86_ops->get_cpl(vcpu) == 0);
 }
 
-// global; hope this is not a problem
-//wrt frame size.
+/* global; hope this is not a problem
+ * wrt frame size.
+ */
 struct kvm_vcpu_events vcpu_events;
-// Clone of the function sharing the same name in 
-// arch/x86/kvm/x86.c
-// Also includes non exported process_nmi() implemented in
-// the same source file.
-// We are emulating an ioctl for KVM_GET_VCPU_EVENTS in fact.
+/* Clone of the function sharing the same name in 
+ * arch/x86/kvm/x86.c as implemented in 2.6.33.
+ * As opposed to the 3.2.37 implementation
+ * member initialization is not complete.
+ * Also includes non exported process_nmi() implemented in
+ * the same source file (3.2.37).
+ * We are emulating an ioctl for KVM_GET_VCPU_EVENTS in fact.
+ */
 long kvm_vcpu_ioctl_x86_get_vcpu_events(struct kvm_vcpu *vcpu) {
+  /* process_nmi() inline */
   unsigned limit = 2;
 
   /*
@@ -212,7 +215,7 @@ long kvm_vcpu_ioctl_x86_get_vcpu_events(struct kvm_vcpu *vcpu) {
 
   vcpu_events.nmi.injected = vcpu->arch.nmi_injected;
   vcpu_events.nmi.pending = vcpu->arch.nmi_pending;
-//  vcpu_events.nmi.masked = kvm_x86_ops->get_nmi_mask(vcpu);
+  vcpu_events.nmi.masked = kvm_x86_ops->get_nmi_mask(vcpu);
 
   vcpu_events.sipi_vector = vcpu->arch.sipi_vector;
 
@@ -222,6 +225,21 @@ long kvm_vcpu_ioctl_x86_get_vcpu_events(struct kvm_vcpu *vcpu) {
   return (long)&vcpu_events;
 }
 
+/* global; hope this is not a problem
+ * wrt frame size.
+ */
+struct kvm_pit_state pit_state;
+/* Emulating an ioctl for KVM_GET_PIT in fact.
+ * Kernel code in arch/x86/kvm/x86.c -
+ * kvm_vm_ioctl_get_pit(); it's implementation 
+ * is the same in 2.6.33 and 3.2.37 .
+ */
+long mem_copy_pit_state(struct kvm_kpit_state *kpit_state) {
+  mutex_lock(&kpit_state->lock);
+  memcpy(&pit_state, kpit_state, sizeof(struct kvm_pit_state));
+  mutex_unlock(&kpit_state->lock);
+  return (long)&pit_state;
+}
 
 int err = 0;
 int file_fd(struct fdtable *fdt, struct file *f) {
@@ -788,8 +806,6 @@ CREATE STRUCT VIEW File_SV (
        FOREIGN KEY(socket_id) FROM is_socket(this) REFERENCES ESocket_VT POINTER,
 //       FOREIGN KEY(socket_id) FROM {sockfd_lookup(file_fd(base, this), &err)} REFERENCES ESocket_VT POINTER,  // err global;see above
        FOREIGN KEY(sb_id) FROM f_path.dentry->d_inode->i_sb REFERENCES ESuperblock_VT POINTER
-// sock_from_file(this->private_data, err) and define int *err on top
-// net/socket.c
 )
 $
 
@@ -973,6 +989,10 @@ WITH REGISTERED C TYPE struct kvm_vcpu_events
 $
 
 CREATE STRUCT VIEW KVMVCPU_SV (
+        cpu_has_vmx INT FROM check_vmx(this),
+        cpu_has_svm TEXT FROM {msg = (char *)sqlite3_malloc(sizeof(char) * PAGE_SIZE/4);  // defined globally on top
+                               check_svm(this, msg);
+                               sqlite3_free(msg);},
         current_privilege_level INT FROM get_cpl(this),
         hypercalls_allowed INT FROM check_cpl(this),
 	FOREIGN KEY(vcpu_events_id) FROM kvm_vcpu_ioctl_x86_get_vcpu_events(this) REFERENCES EKVMVCPUEvents_VT POINTER
@@ -1010,7 +1030,7 @@ $
 
 CREATE STRUCT VIEW KVM_SV (
 	bsp_vcpu_id INT FROM bsp_vcpu_id,
-	FOREIGN KEY(pit_state_id) FROM arch.vpit->pit_state REFERENCES EKVMArchPitChannelState_VT
+	FOREIGN KEY(pit_state_id) FROM mem_copy_pit_state(this->arch.vpit->pit_state) REFERENCES EKVMArchPitChannelState_VT
 )
 $
 
