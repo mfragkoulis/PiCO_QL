@@ -248,19 +248,9 @@ HOLD WITH rcu_read_lock()
 RELEASE WITH rcu_read_unlock()
 $
 
-CREATE LOCK SPINLOCK
-HOLD WITH spin_lock(x)
-RELEASE WITH spin_unlock(x)
-$
-
 CREATE LOCK RTNL
 HOLD WITH rtnl_lock()
 RELEASE WITH rtnl_unlock()
-$
-
-CREATE LOCK RAW_SPINLOCK
-HOLD WITH raw_spin_lock(x)
-RELEASE WITH raw_spin_unlock(x)
 $
 
 // 2.6.32.38 - atomic_t
@@ -396,6 +386,7 @@ USING LOCK RCU
 #else
 USING LOOP for_each_netdev_safe(base, iter, aux)
 USING LOCK RTNL
+// Test again RTNL lock
 #endif
 $
 
@@ -461,31 +452,6 @@ CREATE VIRTUAL TABLE ESocket_VT
 USING STRUCT VIEW Socket_SV
 WITH REGISTERED C TYPE struct socket$      
 
-// 2.6.32.38 - skb_iif no member
-CREATE STRUCT VIEW RcvQueue_SV (
-#if KERNEL_VERSION > 2.6.32
-	skb_iif INT FROM skb_iif,
-#endif
-	tstamp BIGINT FROM tstamp.tv64,
-	len INT FROM len,
-        data_len INT FROM data_len,
-	truesize INT FROM truesize,
-	priority INT FROM priority,
-	mark INT FROM mark,
-	dropcount INT FROM dropcount,
-	avail_size INT FROM avail_size
-
-)
-$
-
-CREATE VIRTUAL TABLE ERcvQueue_VT
-USING STRUCT VIEW RcvQueue_SV
-WITH REGISTERED C TYPE struct sk_buff_head:struct sk_buff *
-USING LOOP skb_queue_walk_safe(base, iter, next)
-USING LOCK SPINLOCK(&base.lock)
-$
-//require spin_lock see net/unix/garbage.c
-//per virtual table USING LOCK spin_lock(&base.lock)
 
 CREATE STRUCT VIEW Sock_SV (
        timestamp_last_rcv BIGINT FROM sk_stamp.tv64,
