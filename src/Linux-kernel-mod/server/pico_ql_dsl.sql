@@ -241,18 +241,6 @@ long mem_copy_pit_state(struct kvm_kpit_state *kpit_state) {
   return (long)&pit_state;
 }
 
-int err = 0;
-int file_fd(struct fdtable *fdt, struct file *f) {
-  struct file *iter;
-  int bit = 0;
-  for (EFile_VT_begin(iter, fdt->fd, (bit = find_first_bit((unsigned long *)fdt->open_fds, fdt->max_fds))); 
-       bit < fdt->max_fds; 
-       EFile_VT_advance(iter, fdt->fd, (bit = find_next_bit((unsigned long *)fdt->open_fds, fdt->max_fds, bit + 1)))) {
-    if (iter == f)
-      break;
-  }
-  return bit;
-}
 $
 
 CREATE LOCK RCU
@@ -804,7 +792,6 @@ CREATE STRUCT VIEW File_SV (
        FOREIGN KEY(kvm_vcpu_id) FROM check_kvm_vcpu(this) REFERENCES EKVMVCPU_VT POINTER,
        special_interface BIGINT FROM (long)this->private_data,
        FOREIGN KEY(socket_id) FROM is_socket(this) REFERENCES ESocket_VT POINTER,
-//       FOREIGN KEY(socket_id) FROM {sockfd_lookup(file_fd(base, this), &err)} REFERENCES ESocket_VT POINTER,  // err global;see above
        FOREIGN KEY(sb_id) FROM f_path.dentry->d_inode->i_sb REFERENCES ESuperblock_VT POINTER
 )
 $
