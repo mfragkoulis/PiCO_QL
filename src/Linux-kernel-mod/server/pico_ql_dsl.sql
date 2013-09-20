@@ -770,7 +770,7 @@ $
 
 CREATE STRUCT VIEW FilesStruct_SV (
        count INT FROM count.counter,
-       FOREIGN KEY(fdtablefile_id) FROM fdt REFERENCES EFile_VT POINTER
+       FOREIGN KEY(fdtablefile_id) FROM files_fdtable(this) REFERENCES EFile_VT POINTER
 )
 $
 
@@ -860,8 +860,8 @@ CREATE STRUCT VIEW Process_SV (
 //       FOREIGN KEY(fs_struct_id) FROM fs REFERENCES EFs POINTER,
        FOREIGN KEY(files_struct_id) FROM files REFERENCES EFilesStruct_VT POINTER,
        fs_count BIGINT FROM files->count.counter,
-       fs_fd_max_fds INT FROM files->fdt->max_fds,
-       FOREIGN KEY(fs_fd_file_id) FROM files->fdt REFERENCES EFile_VT POINTER,
+       fs_fd_max_fds INT FROM files_fdtable(this->files)->max_fds,
+       FOREIGN KEY(fs_fd_file_id) FROM files_fdtable(this->files) REFERENCES EFile_VT POINTER,
        FOREIGN KEY(io_id) FROM ioac REFERENCES EIO_VT,
        FOREIGN KEY(vm_id) FROM mm REFERENCES EVirtualMem_VT POINTER,
 //       FOREIGN KEY(nsproxy_id) FROM nsproxy REFERENCES ENsproxy_VT POINTER,
