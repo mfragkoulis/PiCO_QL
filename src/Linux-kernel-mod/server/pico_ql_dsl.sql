@@ -983,6 +983,13 @@ $
 
 CREATE STRUCT VIEW KVM_SV (
 	bsp_vcpu_id INT FROM bsp_vcpu_id,
+	online_vcpus INT FROM atomic_read(&this->online_vcpus),
+        last_boosted_vcpu INT FROM last_boosted_vcpu,
+	users INT FROM atomic_read(&this->users_count),
+        tlbs_dirty BIGINT FROM tlbs_dirty,
+// kvm_vm_stat
+// mm_list
+// vcpus
 	FOREIGN KEY(pit_state_id) FROM mem_copy_pit_state(this->arch.vpit->pit_state) REFERENCES EKVMArchPitChannelState_VT
 )
 $
@@ -1018,3 +1025,19 @@ WITH REGISTERED C TYPE struct balloon_stats
 $
 
 #endif
+
+CREATE VIEW KVM_View AS
+       SELECT P.name AS kvm_process_name, 
+	      F.inode_name AS kvm_inode_name, 
+              users AS kvm_users, 
+              online_vcpus AS kvm_online_vcpus,
+//              stats_id AS kvm_stats_id, 
+//              online_vcpus_id AS kvm_online_vcpus_id,
+              tlbs_dirty AS kvm_tlbs_dirty, 
+              pit_state_id AS kvm_pit_state_id
+       FROM Process_VT as P
+       JOIN EFile_VT as F
+       ON F.base = P.fs_fd_file_id
+       JOIN EKVM_VT AS KVM
+       ON KVM.base = F.kvm_id;
+$
