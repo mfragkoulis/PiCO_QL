@@ -102,23 +102,21 @@ struct kvm_pit {
 
 
 unsigned pages_in_cache(struct file *f, pgoff_t index) {
-  loff_t i_size;
-  struct page **pages;
+  int malloc_pages = f->f_mapping->nrpages;  /* There will be at most so many */
+  struct page **pages;                       /* contiguous as the total.      */
   unsigned int nr_pages;
-  i_size = ((i_size_read(f->f_mapping->host) + PAGE_CACHE_SIZE -1) >> PAGE_CACHE_SHIFT);
-  pages = (struct page **)kzalloc(i_size * sizeof(struct page *), GFP_KERNEL);
-  nr_pages = find_get_pages_contig(f->f_mapping, index, i_size, pages);
+  pages = (struct page **)kzalloc(malloc_pages * sizeof(struct page *), GFP_KERNEL);
+  nr_pages = find_get_pages_contig(f->f_mapping, index, malloc_pages, pages);
   kfree(pages);
   return nr_pages;
 }
 
 unsigned pages_in_cache_tag(struct file *f, pgoff_t index, int tag) {
-  loff_t i_size;
-  struct page **pages;
+  int malloc_pages = f->f_mapping->nrpages;  /* There will be at most so many */
+  struct page **pages;                       /* tagged as the total.          */
   unsigned int nr_pages;
-  i_size = ((i_size_read(f->f_mapping->host) + PAGE_CACHE_SIZE -1) >> PAGE_CACHE_SHIFT);
-  pages = (struct page **)kzalloc(i_size * sizeof(struct page *), GFP_KERNEL);
-  nr_pages = find_get_pages_tag(f->f_mapping, &index, tag, i_size, pages);
+  pages = (struct page **)kzalloc(malloc_pages * sizeof(struct page *), GFP_KERNEL);
+  nr_pages = find_get_pages_tag(f->f_mapping, &index, tag, malloc_pages, pages);
   kfree(pages);
   return nr_pages;
 }
@@ -143,25 +141,33 @@ char *check_svm(void *dummy, char *msg) {
 }
 
 int is_kvm_file(struct file *f) {
-  if (!strcmp(f->f_path.dentry->d_name.name, "kvm-vm"))
+  if ((f->f_cred->uid == 107) && 
+      (f->f_cred->gid == 107) && 
+      (!strcmp(f->f_path.dentry->d_name.name, "kvm-vm")))
     return 1;
   return 0;
 }
 
 long check_kvm(struct file *f) {
-  if (!strcmp(f->f_path.dentry->d_name.name, "kvm-vm"))
+  if ((f->f_cred->uid == 107) && 
+      (f->f_cred->gid == 107) && 
+      (!strcmp(f->f_path.dentry->d_name.name, "kvm-vm")))
     return (long)f->private_data;
   return 0;
 }
 
 int is_kvm_vcpu_file(struct file *f) {
-  if (!strcmp(f->f_path.dentry->d_name.name, "kvm-vcpu"))
+  if ((f->f_cred->uid == 107) && 
+      (f->f_cred->gid == 107) &&
+      (!strcmp(f->f_path.dentry->d_name.name, "kvm-vcpu")))
     return 1;
   return 0;
 }
 
 long check_kvm_vcpu(struct file *f) {
-  if (!strcmp(f->f_path.dentry->d_name.name, "kvm-vcpu"))
+  if ((f->f_cred->uid == 107) && 
+      (f->f_cred->gid == 107) &&
+      (!strcmp(f->f_path.dentry->d_name.name, "kvm-vcpu")))
     return (long)f->private_data;
   return 0;
 }
@@ -718,12 +724,12 @@ CREATE STRUCT VIEW File_SV (
        inode_name TEXT FROM f_path.dentry->d_name.name,
        inode_mode INT FROM f_path.dentry->d_inode->i_mode,
        inode_bytes INT FROM f_path.dentry->d_inode->i_bytes,
-       inode_size_bytes INT FROM i_size_read(this->f_mapping->host),
-       inode_size_pages INT FROM ((i_size_read(this->f_mapping->host) + PAGE_CACHE_SIZE -1) >> PAGE_CACHE_SHIFT),
-       file_offset INT FROM {spin_lock(&iter->f_lock);
+       inode_size_bytes BIGINT FROM i_size_read(this->f_mapping->host),
+       inode_size_pages BIGINT FROM ((i_size_read(this->f_mapping->host) + PAGE_CACHE_SIZE -1) >> PAGE_CACHE_SHIFT),
+       file_offset BIGINT FROM {spin_lock(&iter->f_lock);
                              this->f_pos;
                              spin_unlock(&iter->f_lock);},
-       page_offset INT FROM {spin_lock(&iter->f_lock);
+       page_offset BIGINT FROM {spin_lock(&iter->f_lock);
                              this->f_pos >> PAGE_CACHE_SHIFT;
                              spin_unlock(&iter->f_lock);},
        page_in_cache BIGINT FROM {spin_lock(&iter->f_lock);
@@ -746,6 +752,8 @@ CREATE STRUCT VIEW File_SV (
        path_mount BIGINT FROM (long)this.f_path.mnt,
        fowner_uid INT FROM f_owner.uid,
        fowner_euid INT FROM f_owner.euid,
+       fcred_uid INT FROM f_cred->uid,
+       fcred_euid INT FROM f_cred->euid,
        fcred_gid INT FROM f_cred->gid,
        fcred_egid INT FROM f_cred->egid,
        fmode INT FROM f_mode,
@@ -946,8 +954,13 @@ CREATE STRUCT VIEW KVMVCPU_SV (
         cpu_has_svm TEXT FROM {msg = (char *)sqlite3_malloc(sizeof(char) * PAGE_SIZE/4);  // defined globally on top
                                check_svm(this, msg);
                                sqlite3_free(msg);},
+        cpu INT FROM cpu,
+        vcpu_id INT FROM vcpu_id,
+	mode INT FROM mode,
         current_privilege_level INT FROM get_cpl(this),
         hypercalls_allowed INT FROM check_cpl(this),
+        requests BIGINT FROM requests,
+// vcpu_stat
 	FOREIGN KEY(vcpu_events_id) FROM kvm_vcpu_ioctl_x86_get_vcpu_events(this) REFERENCES EKVMVCPUEvents_VT POINTER
 )
 $
@@ -1039,5 +1052,24 @@ CREATE VIEW KVM_View AS
        JOIN EFile_VT as F
        ON F.base = P.fs_fd_file_id
        JOIN EKVM_VT AS KVM
-       ON KVM.base = F.kvm_id;
+       ON KVM.base = F.kvm_id
+       WHERE F.is_kvm_file;
+$
+
+CREATE VIEW KVM_VCPU_View AS
+       SELECT P.name AS vcpu_process_name, 
+              F.inode_name AS vcpu_inode_name, 
+              cpu_has_vmx, cpu_has_svm,
+              cpu, vcpu_id, mode AS vcpu_mode,
+              current_privilege_level,
+              hypercalls_allowed, 
+              requests AS vcpu_requests, 
+//              stats_id AS vcpu_stats_id,
+              vcpu_events_id
+       FROM Process_VT as P
+       JOIN EFile_VT as F
+       ON F.base = P.fs_fd_file_id
+       JOIN EKVMVCPU_VT AS KVM_VCPU
+       ON KVM_VCPU.base = F.kvm_vcpu_id
+       WHERE F.is_kvm_vcpu_file;
 $
