@@ -22,7 +22,7 @@
 #include <math.h> // cmath would fail for pow(int, int).
 #include "Position.h"
 
-using namespace std;
+//using namespace std;
 
 Position::Position () {
   x = 0;

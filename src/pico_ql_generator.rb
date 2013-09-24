@@ -1624,7 +1624,7 @@ class VirtualTable
       space.chomp!("  ")
     end
     if !post_ap.empty?
-      fw.puts "#{add_to_result_set.gsub(/}\Z/,  # Generate post-access path within loop
+      fw.puts "#{add_to_result_set.gsub(/\}\Z/,  # Generate post-access path within loop
                  "  #{post_ap}\n<space>}").gsub("<space>", "#{space}")}"
     else
       fw.puts "#{add_to_result_set.gsub("<space>", "#{space}")}"
@@ -1757,7 +1757,7 @@ class VirtualTable
     print_line_directive(fw, line)
     fw.puts "#endif"
     if !post_ap.empty?
-      fw.puts "#{add_to_result_set.gsub(/}\Z/,  # Generate post-access path within loop
+      fw.puts "#{add_to_result_set.gsub(/\}\Z/,  # Generate post-access path within loop
                  "  #{post_ap}\n<space>}").gsub("<space>", "#{space}")}"
     else
       fw.puts "#{add_to_result_set.gsub("<space>", "#{space}")}"
