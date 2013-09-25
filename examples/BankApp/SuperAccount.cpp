@@ -22,8 +22,6 @@
 #include <math.h>
 #include "SuperAccount.h"
 
-using namespace std;
-
 SuperAccount::SuperAccount(const char *acc_no, float b, 
 			   int i) {
     account_no = acc_no;

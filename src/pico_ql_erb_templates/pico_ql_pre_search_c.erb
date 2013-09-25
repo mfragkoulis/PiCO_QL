@@ -42,6 +42,27 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
     return SQLITE_ERROR;
   } else if (!((picoQLTableCursor *)cur)->active_checked) {
     ((picoQLTableCursor *)cur)->active_checked = 1;
+    if (((picoQLTableCursor *)cur)->active_verify) {
+      int count = 0;
+      while (chs < (int)cursorsSize) {
+        if (cursors[chs]->open) {
+          if (((picoQLTableCursor *)cursors[chs]->cur)->active_owed) {
+            count++;
+            ((picoQLTableCursor *)cursors[chs]->cur)->active_verify = 1;
+            ((picoQLTableCursor *)cursors[chs]->cur)->active_owed = 0;
+          }
+        }
+        chs++;
+      }
+      chs = 0;
+      ((picoQLTableCursor *)cur)->active_verify = 0;
+      if (count > 1) {
+        printf("WARNING: Table %s, cursor: %lx, More active_owed than 1.\n", picoQL->zName, (long)cur);
+      }
+#ifdef PICO_QL_DEBUG
+      printf("Table %s, Verified mismatched cursor: %lx.\n", picoQL->zName, (long)cur);
+#endif
+    }
 #ifdef PICO_QL_DEBUG
     printf("Table %s, Checked cursor: %lx.\n", picoQL->zName, (long)cur);
 #endif

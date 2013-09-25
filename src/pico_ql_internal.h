@@ -114,6 +114,7 @@ namespace picoQL {
       int isInstanceEmpty;
       int active_verify;
       int active_checked;
+      int active_owed;
       int max_size;        // 
       int size;            // For objects only.
       int offset;         // For objects only.

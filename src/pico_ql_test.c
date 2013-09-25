@@ -84,6 +84,8 @@ int test_prep_exec(FILE *f, sqlite3 *db, const char *q) {
     fprintf(f, "\n");
   } else {
     fprintf(f, "Error in preparation of query: error no %i\n", prepare);
+    fprintf(f, "\nExtended error code %i.\n", sqlite3_extended_errcode(db));
+    fprintf(f, "\nExtended error message:\n%s\n\n", sqlite3_errmsg(db));
     return prepare;
   }
   deinit_temp_structs();

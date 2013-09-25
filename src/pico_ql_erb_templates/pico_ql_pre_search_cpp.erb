@@ -11,6 +11,25 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
     return SQLITE_ERROR;
   } else if (!((picoQLTableCursor *)cur)->active_checked) {
     ((picoQLTableCursor *)cur)->active_checked = 1;
+    if (((picoQLTableCursor *)cur)->active_verify) {
+      int count = 0;
+      for (c_map_iter = c_map.begin(); c_map_iter != c_map.end(); c_map_iter++) {
+        if (c_map_iter->second.open) {
+          if (((picoQLTableCursor *)c_map_iter->first)->active_owed) {
+            count++;
+            ((picoQLTableCursor *)c_map_iter->first)->active_verify = 1;
+            ((picoQLTableCursor *)c_map_iter->first)->active_owed = 0;
+          }
+        }
+      }
+      ((picoQLTableCursor *)cur)->active_verify = 0;
+      if (count > 1) {
+        printf("WARNING: Table %s, cursor: %lx, More active_owed than 1.\n", picoQL->zName, (long)cur);
+      }
+#ifdef PICO_QL_DEBUG
+      printf("Table %s, Verified mismatched cursor: %lx.\n", picoQL->zName, (long)cur);
+#endif
+    }
 #ifdef PICO_QL_DEBUG
     printf("Table %s, Checked cursor: %lx.\n", picoQL->zName, (long)cur);
 #endif

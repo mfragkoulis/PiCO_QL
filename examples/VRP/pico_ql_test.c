@@ -74,6 +74,8 @@ int test_prep_exec(FILE *f, sqlite3 *db, const char *q) {
     fprintf(f, "\n");
   } else {
     fprintf(f, "Error in preparation of query: error no %i\n", prepare);
+    fprintf(f, "\nExtended error code %i.\n", sqlite3_extended_errcode(db));
+    fprintf(f, "\nExtended error message:\n%s\n\n", sqlite3_errmsg(db));
     return prepare;
   }
   deinit_temp_structs();
@@ -567,6 +569,20 @@ int call_test(sqlite3 *db) {
   result = test_prep_exec(f, db, q);
 
   q = "select truck.rownum, customer.rownum from truck join customer on customer.base=truck.customers_id where exists (select * from customer where base=customers_id);";
+  fprintf(f, "Query %i:\n %s\n\n", i++, q);
+#ifdef PICO_QL_DEBUG
+  printf("Query %i:\n %s\n\n", i, q);
+#endif
+  result = test_prep_exec(f, db, q);
+
+  q = "select truck.rownum from truck where exists (select * from customer where base=customers_id);";
+  fprintf(f, "Query %i:\n %s\n\n", i++, q);
+#ifdef PICO_QL_DEBUG
+  printf("Query %i:\n %s\n\n", i, q);
+#endif
+  result = test_prep_exec(f, db, q);
+
+  q = "select tc.rownum,customer.rownum from (select rownum,customers_id from truck where exists (select * from customer where base=customers_id)) tc join customer on customer.base=tc.customers_id;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
 #ifdef PICO_QL_DEBUG
   printf("Query %i:\n %s\n\n", i, q);

@@ -471,6 +471,12 @@ int open_vtable(sqlite3_vtab *pVtab,
    */
   stc->active_checked = 0;
   stc->active_verify = 1;
+  /* active_owed is used to compensate for
+   * verifying open active_verify cursors
+   * other than the joined one (=1). See
+   * report_charge() and (pre_)search.
+   */
+  stc->active_owed = 0;
 
   /* To allocate space for the resultset.
    * Will need space at most equal to the data structure 

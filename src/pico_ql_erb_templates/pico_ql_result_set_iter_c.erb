@@ -210,7 +210,9 @@ int <%= @name %>_report_charge (cursor *c, int offset, cursorCharged ***oCharged
   cursorCharged **charged = ((<%= @name %>_vt *)vtbl)->charged;
   size_t chargedSize = ((<%= @name %>_vt *)vtbl)->chargedSize;
   int i = 0;
-  if (!picoQL) return SQLITE_OK;
+  sqlite3_vtab_cursor *joining_cur;
+  int joining = 0;
+  if (!picoQL) return SQLITE_OK; // VT not participating in this query.
   if (offset) {
     int j = 0;
 #ifdef PICO_QL_DEBUG
@@ -220,16 +222,21 @@ int <%= @name %>_report_charge (cursor *c, int offset, cursorCharged ***oCharged
     while (j < (int)cursorsSize) {
       if (cursors[j]->open) {
         if (((picoQLTableCursor *)cursors[j]->cur)->active_verify) {
-          ((picoQLTableCursor *)cursors[j]->cur)->active_verify = 0;
-          if (((<%= @name %>_vt *)vtbl)->passNoVerify)
-            ((<%= @name %>_vt *)vtbl)->passNoVerify--;
-          else
-            break;
+          if (!joining) {
+            ((picoQLTableCursor *)cursors[j]->cur)->active_verify = 0;
+            if (((<%= @name %>_vt *)vtbl)->passNoVerify)
+              ((<%= @name %>_vt *)vtbl)->passNoVerify--;
+            else {
+              joining_cur = cursors[j]->cur;
+              joining = 1;
+            }
+          } else
+            ((picoQLTableCursor *)joining_cur)->active_owed = 1;
         }
       }
       j++;
     }
-    if ((cursorsSize > 0) && (j == cursorsSize))
+    if ((cursorsSize > 0) && (!joining))
       return SQLITE_OK;  // Done servicing searches.
     j = 0;
     while ((j < (int)chargedSize) && (charged[j]->c != c)) {j++;}

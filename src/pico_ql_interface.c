@@ -122,7 +122,11 @@ int prep_exec(FILE *f, sqlite3 *db, const char *q){
        */ 
       result = sqlite3_step(stmt);
   } else {
-    if (f) swill_fprintf(f, "Error in preparation of query: error no %i\n", prepare);
+    if (f) {
+      swill_fprintf(f, "Error in preparation of query: error no %i\n", prepare);
+      swill_fprintf(f, "\nExtended error code %i.\n", sqlite3_extended_errcode(db));
+      swill_fprintf(f, "\nExtended error message:\n%s\n\n", sqlite3_errmsg(db));
+    }
     return prepare;
   }
   sqlite3_finalize(stmt);

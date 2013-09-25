@@ -288,8 +288,10 @@ list <<%= col.fk_col_type.chomp('*') %> > saved_results_<%= i %>;
   map<sqlite3_vtab_cursor *, ResultSet> cursors;
 <%        if VirtualTable.C_container_types.include?(vt.container_class) %>
   vector<<%= vt.type %><%= type_retype %>>::iterator resIterC;
-<%# _decl(iter) .. ? %>
+<%          if vt.loop.empty? %>
+<%# Tables with @loop take care of this with _decl(iter). Silencing compiler unused variable error. %>
   <%= vt.type %><%= type_retype %> iter;
+<%          end %>
 <%        else %>
   vector<<%= vt.signature.chomp('*') %>::iterator>::iterator resIterC;
   <%= vt.signature.chomp('*') %>::iterator iter;
@@ -322,21 +324,27 @@ public:
 <%      if vt.base_var.length == 0 %>
   virtual int operator() (Cursor *c, int current, map<Cursor *, bool> *oCharged, long base) {
     pair<map<Cursor *, bool>::iterator, bool> operation;
-    map<sqlite3_vtab_cursor *, Cursor>::iterator c_map_iter;
+    map<sqlite3_vtab_cursor *, Cursor>::iterator c_map_iter, c_map_iter_joining;
+    bool joining = false;
     if (!picoQL) return SQLITE_OK; // VT not participating in this query.
     if (current) {
       for (c_map_iter = c_map.begin(); c_map_iter != c_map.end(); c_map_iter++) {
         if (c_map_iter->second.open) {
           if (((picoQLTableCursor *)c_map_iter->first)->active_verify) {
-            ((picoQLTableCursor *)c_map_iter->first)->active_verify = 0;
-            if (passNoVerify)
-              passNoVerify--;
-            else
-              break;
+            if (!joining) {
+              ((picoQLTableCursor *)c_map_iter->first)->active_verify = 0;
+              if (passNoVerify)
+                passNoVerify--;
+              else {
+                c_map_iter_joining = c_map_iter;
+                joining = true;
+              }
+            } else
+              ((picoQLTableCursor *)c_map_iter_joining->first)->active_owed = 1;
           }
         }
       }
-      if ((c_map.size() > 0) && (c_map_iter == c_map.end()))
+      if ((c_map.size() > 0) && (!joining))
         return SQLITE_OK; // Done servicing searches.
       nTimesCharged++;
       if ((c_map.size() == 0) && (picoQL) && (picoQL->toOpen)) {

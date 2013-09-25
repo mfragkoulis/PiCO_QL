@@ -21,8 +21,6 @@
 
 #include "SpecialAccount.h"
 
-using namespace std;
-
 SpecialAccount::SpecialAccount(const char *sp_no, 
 			       float sp_b, int sp_i) : 
   SuperAccount(sp_no, sp_b, sp_i) {}
