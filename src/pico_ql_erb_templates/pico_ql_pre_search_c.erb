@@ -40,7 +40,30 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
   if (j == cursorsSize) {
     printf("Cursor %lx not registered. Exiting now.\n", (long)cur);
     return SQLITE_ERROR;
-  } else if (!((picoQLTableCursor *)cur)->active_checked) {
+  } 
+<%      if @container_class.length > 0 %>
+  rs = cursors[j]->res;
+<%      end %>
+  if (struct_empty_null(cur, val, picoQL->embedded, nCol)) {
+<%      if @container_class.length == 0 %>
+    stcsr->size = 1;
+<%	else %>
+<%        @pointer.match(/\*/) ? retype = "" : retype = "*" %>
+    <%= @type %><%= retype %> dummy = NULL;
+    rs->size = 0;
+    rs->actualSize = 0;
+    rs->size++;
+    rs->actualSize++;
+    ((<%= @name %>ResultSetImpl *)rs)->res = (<%= type_retype %>*)sqlite3_realloc(((<%= @name %>ResultSetImpl *)rs)->res, sizeof(<%= type_retype %>)*rs->size);
+    if (((<%= @name %>ResultSetImpl *)rs)->res == NULL)
+      return SQLITE_NOMEM;
+    rs->malloced = 1;
+    ((<%= @name %>ResultSetImpl *)rs)->res[rs->size - 1] = dummy;
+    rs->offset = 0;
+<%      end %>
+    return SQLITE_OK;
+  }
+  if (!((picoQLTableCursor *)cur)->active_checked) {
     ((picoQLTableCursor *)cur)->active_checked = 1;
     if (((picoQLTableCursor *)cur)->active_verify) {
       int count = 0;
@@ -71,28 +94,6 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
     if (cursors[chs]->open)
       checkedSize += ((picoQLTableCursor *)cursors[chs]->cur)->active_checked;
     chs++;
-  }
-<%      if @container_class.length > 0 %>
-  rs = cursors[j]->res;
-<%      end %>
-  if (struct_empty_null(cur, val, picoQL->embedded, nCol)) {
-<%      if @container_class.length == 0 %>
-    stcsr->size = 1;
-<%	else %>
-<%        @pointer.match(/\*/) ? retype = "" : retype = "*" %>
-    <%= @type %><%= retype %> dummy = NULL;
-    rs->size = 0;
-    rs->actualSize = 0;
-    rs->size++;
-    rs->actualSize++;
-    ((<%= @name %>ResultSetImpl *)rs)->res = (<%= type_retype %>*)sqlite3_realloc(((<%= @name %>ResultSetImpl *)rs)->res, sizeof(<%= type_retype %>)*rs->size);
-    if (((<%= @name %>ResultSetImpl *)rs)->res == NULL)
-      return SQLITE_NOMEM;
-    rs->malloced = 1;
-    ((<%= @name %>ResultSetImpl *)rs)->res[rs->size - 1] = dummy;
-    rs->offset = 0;
-<%      end %>
-    return SQLITE_OK;
   }
   any_dstr = (<%= sign_retype %>)stcsr->source;
 <%      if $argD == "DEBUG" %>
