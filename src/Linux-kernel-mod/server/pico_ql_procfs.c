@@ -314,6 +314,7 @@ struct file_operations picoQL_fops = {
 int init_module()
 {
   int re = init_sqlite3();
+  if (re) return -ECANCELED;
   PicoQL_Proc_File = create_proc_entry("picoQL", 0644, NULL);
   if (!PicoQL_Proc_File) {
     remove_proc_entry("picoQL", NULL);
@@ -339,4 +340,5 @@ void cleanup_module()
 #endif
 }
 
+MODULE_AUTHOR("Marios Fragkoulis");
 MODULE_LICENSE("GPL");
