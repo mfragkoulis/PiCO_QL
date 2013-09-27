@@ -173,9 +173,16 @@ int call_test(sqlite3 *db) {
 #endif
   result = test_prep_exec(f, db, q);
 
+  q = "select * from truck JOIN customer ON customer.base=234;";
+  fprintf(f, "Query %i:\n %s\n\n", i++, q);
+#ifdef PICO_QL_DEBUG
+  printf("Query %i:\n %s\n\n", i, q);
+#endif
+  result = test_prep_exec(f, db, q);
+
   fprintf(f, "JOIN QUERIES IMPLICIT\n\n\n");
 
-  q = "select truck.rownum, cost, delcapacity, delcapacity_root, customer.rownum, demand, code from truck, customer WHERE customer.base=truck.customers_id LIMIT 20;";
+  q = "select truck.rownum, cost, delcapacity, delcapacity_root, customer.rownum, demand, code FROM truck, customer WHERE customer.base=truck.customers_id LIMIT 20;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
 #ifdef PICO_QL_DEBUG
   printf("Query %i:\n %s\n\n", i, q);
@@ -183,6 +190,13 @@ int call_test(sqlite3 *db) {
   result = test_prep_exec(f, db, q);
 
   q = "select * from truck, customer;";
+  fprintf(f, "Query %i:\n %s\n\n", i++, q);
+#ifdef PICO_QL_DEBUG
+  printf("Query %i:\n %s\n\n", i, q);
+#endif
+  result = test_prep_exec(f, db, q);
+
+  q = "select * from truck, customer WHERE customer.base=234;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
 #ifdef PICO_QL_DEBUG
   printf("Query %i:\n %s\n\n", i, q);
