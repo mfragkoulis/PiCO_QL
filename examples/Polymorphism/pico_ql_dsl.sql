@@ -27,9 +27,9 @@ CREATE STRUCT VIEW Account (
        balance DOUBLE FROM get_balance(), 
        available_amount DOUBLE FROM available_amount, 
        binded_amount DOUBLE FROM binded_amount, 
-       FOREIGN KEY(premiumaccount_id) FROM self
+       FOREIGN KEY(premiumaccount_id) FROM tuple_iter
        	       		    REFERENCES PremiumAccount POINTER,
-       FOREIGN KEY(savingsaccount_id) FROM self
+       FOREIGN KEY(savingsaccount_id) FROM tuple_iter
        	       		    REFERENCES SavingsAccount POINTER
 )$
 

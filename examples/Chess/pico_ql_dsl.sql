@@ -11,7 +11,7 @@ USING STRUCT VIEW ChessPiece
 WITH REGISTERED C TYPE vector<ChessPiece>$
 // Chessboard description
 CREATE STRUCT VIEW ChessBoard (
-       FOREIGN KEY(row_id) FROM self REFERENCES ChessRow)$
+       FOREIGN KEY(row_id) FROM tuple_iter REFERENCES ChessRow)$
 
 CREATE VIRTUAL TABLE ChessBoard 
 USING STRUCT VIEW ChessBoard

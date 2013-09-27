@@ -11,7 +11,7 @@ CREATE STRUCT VIEW Truck (
       FOREIGN KEY(customers_id) FROM get_Customers() REFERENCES Customer POINTER,
       cost DOUBLE FROM get_cost(),
       delcapacity INT FROM get_delcapacity(),
-      delcapacity_root DOUBLE FROM get_delcapacity_math_root(this.get_delcapacity())
+      delcapacity_root DOUBLE FROM get_delcapacity_math_root(tuple_iter.get_delcapacity())
 )$
 
 CREATE VIRTUAL TABLE Truck
@@ -24,9 +24,9 @@ CREATE STRUCT VIEW Customer (
       code STRING FROM get_code(),
       serviced INT FROM get_serviced(),
       x_coord INT FROM get_pos()->get_x(),
-      x_coord_root INT FROM sqrt((double)this.get_pos()->get_x()),
+      x_coord_root INT FROM sqrt((double)tuple_iter.get_pos()->get_x()),
       y_coord INT FROM get_pos()->get_y(),
-      y_coord_root INT FROM sqrt((double)this->get_pos()->get_y())
+      y_coord_root INT FROM sqrt((double)tuple_iter->get_pos()->get_y())
 )$
 
 // Customer description

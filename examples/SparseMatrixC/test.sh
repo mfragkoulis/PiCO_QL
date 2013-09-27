@@ -1,4 +1,5 @@
 #!/bin/sh
+make prep
 make clean
 rm pico_ql_internal.c pico_ql_search.c > /dev/null
 # Remove "C" argument from ruby command for C++ build
