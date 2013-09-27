@@ -24,8 +24,8 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
 <%      else %>
   <%= sign_retype %> any_dstr;  
 <%      end %>
-<%      if @loop.match(/\Witer\W/) %>
-  <%= @name %>_decl(iter);
+<%      if @loop.match(/\Wtuple_iter\W/) %>
+  <%= @name %>_decl(tuple_iter);
   int index = 0;
   ResultSet *rs;
 <%        if $argLB == "CPP" %>
@@ -134,7 +134,7 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
 <% loop.gsub!(/<space>/, "    ") %>
 <%# Generate spacing for nested loops %>
     <%= loop %> {
-      if (iter == NULL) continue;
+      if (tuple_iter == NULL) continue;
 <%          end %>
       rs->size++;
       rs->actualSize++;
@@ -144,7 +144,7 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
         if (((<%= @name %>ResultSetImpl *)rs)->res == NULL)
           return SQLITE_NOMEM;
       }
-      ((<%= @name %>ResultSetImpl *)rs)->res[rs->size - 1] = iter;
+      ((<%= @name %>ResultSetImpl *)rs)->res[rs->size - 1] = tuple_iter;
     }
 <%          for i in 0..@nloops-1 %>
     }

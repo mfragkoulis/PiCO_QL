@@ -101,17 +101,56 @@ struct kvm_pit {
 };
 
 
-unsigned pages_in_cache(struct file *f, pgoff_t index) {
+
+long get_file_offset(struct file *f) {
+  long f_pos;
+  spin_lock(&f->f_lock);
+  f_pos = f->f_pos;
+  spin_unlock(&f->f_lock);
+  return f_pos;
+}
+
+long get_page_offset(struct file *f) {
+  long p_pos;
+  spin_lock(&f->f_lock);
+  p_pos = f->f_pos >> PAGE_CACHE_SHIFT;
+  spin_unlock(&f->f_lock);
+  return p_pos;
+}
+
+long get_page_in_cache(struct file *f) {
+  long page;
+  spin_lock(&f->f_lock);
+  page = (long)find_get_page(f->f_mapping, f->f_pos >> PAGE_CACHE_SHIFT);
+  spin_unlock(&f->f_lock);
+  return page;
+}
+
+int get_pages_in_cache(struct address_space *a) {
+  int pages;
+  spin_lock(&a->tree_lock);
+  pages = a->nrpages;
+  spin_unlock(&a->tree_lock);
+  return pages;
+}
+
+unsigned get_pages_in_cache_contig(struct file *f, int current_offset) {
+  pgoff_t index = 0;
   int malloc_pages = f->f_mapping->nrpages;  /* There will be at most so many */
   struct page **pages;                       /* contiguous as the total.      */
   unsigned int nr_pages;
+  if (current_offset) {
+    spin_lock(&f->f_lock);
+    index = f->f_pos;
+    spin_unlock(&f->f_lock);
+  }
   pages = (struct page **)kzalloc(malloc_pages * sizeof(struct page *), GFP_KERNEL);
   nr_pages = find_get_pages_contig(f->f_mapping, index, malloc_pages, pages);
   kfree(pages);
   return nr_pages;
 }
 
-unsigned pages_in_cache_tag(struct file *f, pgoff_t index, int tag) {
+unsigned get_pages_in_cache_tag(struct file *f, pgoff_t index, int tag) {
   int malloc_pages = f->f_mapping->nrpages;  /* There will be at most so many */
   struct page **pages;                       /* tagged as the total.          */
   unsigned int nr_pages;
@@ -387,10 +426,10 @@ CREATE VIRTUAL TABLE ENetDevice_VT
 USING STRUCT VIEW NetDevice_SV
 WITH REGISTERED C TYPE struct net:struct net_device *
 #if KERNEL_VERSION > 2.6.32
-USING LOOP for_each_netdev_rcu(base, iter)
+USING LOOP for_each_netdev_rcu(base, tuple_iter)
 USING LOCK RCU
 #else
-USING LOOP for_each_netdev_safe(base, iter, aux)
+USING LOOP for_each_netdev_safe(base, tuple_iter, aux)
 USING LOCK RTNL
 // Test again RTNL lock
 #endif
@@ -399,35 +438,35 @@ $
 // 2.6.32.38 (void **) instead of (void *__percpu *)
 CREATE STRUCT VIEW TcpStat_SV (
 #if KERNEL_VERSION > 2.6.32
-       RtoAlgorithm BIGINT FROM {snmp_fold_field((void __percpu **) this.mibs, TCP_MIB_RTOALGORITHM)},
-       RtoMin BIGINT FROM {snmp_fold_field((void __percpu **) this.mibs, TCP_MIB_RTOMIN)},
-       RtoMax BIGINT FROM {snmp_fold_field((void __percpu **) this.mibs, TCP_MIB_RTOMAX)},
-       MaxConn BIGINT FROM {snmp_fold_field((void __percpu **) this.mibs, TCP_MIB_MAXCONN)},
-       ActiveOpens BIGINT FROM {snmp_fold_field((void __percpu **) this.mibs, TCP_MIB_ACTIVEOPENS)},
-       PassiveOpens BIGINT FROM {snmp_fold_field((void __percpu **) this.mibs, TCP_MIB_PASSIVEOPENS)},
-       AttemptFails BIGINT FROM {snmp_fold_field((void __percpu **) this.mibs, TCP_MIB_ATTEMPTFAILS)},
-       EstabResets BIGINT FROM {snmp_fold_field((void __percpu **) this.mibs, TCP_MIB_ESTABRESETS)},
-       CurrEstab BIGINT FROM {snmp_fold_field((void __percpu **) this.mibs, TCP_MIB_CURRESTAB)},
-       InSegs BIGINT FROM {snmp_fold_field((void __percpu **) this.mibs, TCP_MIB_INSEGS)},
-       OutSegs BIGINT FROM {snmp_fold_field((void __percpu **) this.mibs, TCP_MIB_OUTSEGS)},
-       RetransSegs BIGINT FROM {snmp_fold_field((void __percpu **) this.mibs, TCP_MIB_RETRANSSEGS)},
-       InErrs BIGINT FROM {snmp_fold_field((void __percpu **) this.mibs, TCP_MIB_INERRS)},
-       OutRsts BIGINT FROM {snmp_fold_field((void __percpu **) this.mibs, TCP_MIB_OUTRSTS)}
+       RtoAlgorithm BIGINT FROM {snmp_fold_field((void __percpu **) tuple_iter.mibs, TCP_MIB_RTOALGORITHM)},
+       RtoMin BIGINT FROM {snmp_fold_field((void __percpu **) tuple_iter.mibs, TCP_MIB_RTOMIN)},
+       RtoMax BIGINT FROM {snmp_fold_field((void __percpu **) tuple_iter.mibs, TCP_MIB_RTOMAX)},
+       MaxConn BIGINT FROM {snmp_fold_field((void __percpu **) tuple_iter.mibs, TCP_MIB_MAXCONN)},
+       ActiveOpens BIGINT FROM {snmp_fold_field((void __percpu **) tuple_iter.mibs, TCP_MIB_ACTIVEOPENS)},
+       PassiveOpens BIGINT FROM {snmp_fold_field((void __percpu **) tuple_iter.mibs, TCP_MIB_PASSIVEOPENS)},
+       AttemptFails BIGINT FROM {snmp_fold_field((void __percpu **) tuple_iter.mibs, TCP_MIB_ATTEMPTFAILS)},
+       EstabResets BIGINT FROM {snmp_fold_field((void __percpu **) tuple_iter.mibs, TCP_MIB_ESTABRESETS)},
+       CurrEstab BIGINT FROM {snmp_fold_field((void __percpu **) tuple_iter.mibs, TCP_MIB_CURRESTAB)},
+       InSegs BIGINT FROM {snmp_fold_field((void __percpu **) tuple_iter.mibs, TCP_MIB_INSEGS)},
+       OutSegs BIGINT FROM {snmp_fold_field((void __percpu **) tuple_iter.mibs, TCP_MIB_OUTSEGS)},
+       RetransSegs BIGINT FROM {snmp_fold_field((void __percpu **) tuple_iter.mibs, TCP_MIB_RETRANSSEGS)},
+       InErrs BIGINT FROM {snmp_fold_field((void __percpu **) tuple_iter.mibs, TCP_MIB_INERRS)},
+       OutRsts BIGINT FROM {snmp_fold_field((void __percpu **) tuple_iter.mibs, TCP_MIB_OUTRSTS)}
 #else
-       RtoAlgorithm BIGINT FROM {snmp_fold_field((void **) this.mibs, TCP_MIB_RTOALGORITHM)},
-       RtoMin BIGINT FROM {snmp_fold_field((void **) this.mibs, TCP_MIB_RTOMIN)},
-       RtoMax BIGINT FROM {snmp_fold_field((void **) this.mibs, TCP_MIB_RTOMAX)},
-       MaxConn BIGINT FROM {snmp_fold_field((void **) this.mibs, TCP_MIB_MAXCONN)},
-       ActiveOpens BIGINT FROM {snmp_fold_field((void **) this.mibs, TCP_MIB_ACTIVEOPENS)},
-       PassiveOpens BIGINT FROM {snmp_fold_field((void **) this.mibs, TCP_MIB_PASSIVEOPENS)},
-       AttemptFails BIGINT FROM {snmp_fold_field((void **) this.mibs, TCP_MIB_ATTEMPTFAILS)},
-       EstabResets BIGINT FROM {snmp_fold_field((void **) this.mibs, TCP_MIB_ESTABRESETS)},
-       CurrEstab BIGINT FROM {snmp_fold_field((void **) this.mibs, TCP_MIB_CURRESTAB)},
-       InSegs BIGINT FROM {snmp_fold_field((void **) this.mibs, TCP_MIB_INSEGS)},
-       OutSegs BIGINT FROM {snmp_fold_field((void **) this.mibs, TCP_MIB_OUTSEGS)},
-       RetransSegs BIGINT FROM {snmp_fold_field((void **) this.mibs, TCP_MIB_RETRANSSEGS)},
-       InErrs BIGINT FROM {snmp_fold_field((void **) this.mibs, TCP_MIB_INERRS)},
-       OutRsts BIGINT FROM {snmp_fold_field((void **) this.mibs, TCP_MIB_OUTRSTS)}
+       RtoAlgorithm BIGINT FROM {snmp_fold_field((void **) tuple_iter.mibs, TCP_MIB_RTOALGORITHM)},
+       RtoMin BIGINT FROM {snmp_fold_field((void **) tuple_iter.mibs, TCP_MIB_RTOMIN)},
+       RtoMax BIGINT FROM {snmp_fold_field((void **) tuple_iter.mibs, TCP_MIB_RTOMAX)},
+       MaxConn BIGINT FROM {snmp_fold_field((void **) tuple_iter.mibs, TCP_MIB_MAXCONN)},
+       ActiveOpens BIGINT FROM {snmp_fold_field((void **) tuple_iter.mibs, TCP_MIB_ACTIVEOPENS)},
+       PassiveOpens BIGINT FROM {snmp_fold_field((void **) tuple_iter.mibs, TCP_MIB_PASSIVEOPENS)},
+       AttemptFails BIGINT FROM {snmp_fold_field((void **) tuple_iter.mibs, TCP_MIB_ATTEMPTFAILS)},
+       EstabResets BIGINT FROM {snmp_fold_field((void **) tuple_iter.mibs, TCP_MIB_ESTABRESETS)},
+       CurrEstab BIGINT FROM {snmp_fold_field((void **) tuple_iter.mibs, TCP_MIB_CURRESTAB)},
+       InSegs BIGINT FROM {snmp_fold_field((void **) tuple_iter.mibs, TCP_MIB_INSEGS)},
+       OutSegs BIGINT FROM {snmp_fold_field((void **) tuple_iter.mibs, TCP_MIB_OUTSEGS)},
+       RetransSegs BIGINT FROM {snmp_fold_field((void **) tuple_iter.mibs, TCP_MIB_RETRANSSEGS)},
+       InErrs BIGINT FROM {snmp_fold_field((void **) tuple_iter.mibs, TCP_MIB_INERRS)},
+       OutRsts BIGINT FROM {snmp_fold_field((void **) tuple_iter.mibs, TCP_MIB_OUTRSTS)}
 #endif
 )
 $
@@ -461,7 +500,7 @@ WITH REGISTERED C TYPE struct socket$
 
 CREATE STRUCT VIEW Sock_SV (
        timestamp_last_rcv BIGINT FROM sk_stamp.tv64,
-       drops INT FROM atomic_read(&this.sk_drops),
+       drops INT FROM atomic_read(&tuple_iter.sk_drops),
        errors INT FROM sk_err,
        errors_soft INT FROM sk_err_soft,
        transmit_bytes_committed INT FROM sk_wmem_alloc.counter,
@@ -470,7 +509,7 @@ CREATE STRUCT VIEW Sock_SV (
        snd_buf_size INT FROM sk_sndbuf,
        rcv_buf_size INT FROM sk_rcvbuf,
        FOREIGN KEY(socket_id) FROM sk_socket REFERENCES ESocket_VT POINTER,
-//       FOREIGN KEY(peer_process_id) FROM get_pid_task(this->sk_peer_pid, PIDTYPE_PID) REFERENCES EProcess_VT POINTER
+//       FOREIGN KEY(peer_process_id) FROM get_pid_task(tuple_iter->sk_peer_pid, PIDTYPE_PID) REFERENCES EProcess_VT POINTER
        FOREIGN KEY(receive_queue_id) FROM sk_receive_queue REFERENCES ERcvQueue_VT
 )
 $
@@ -497,7 +536,7 @@ $
 CREATE VIRTUAL TABLE EIpVsStatsEstim_VT
 USING STRUCT VIEW IpVsStatsEstim_SV
 WITH REGISTERED C TYPE struct ip_vs_estimator *
-USING LOOP list_for_each_entry_rcu(iter, &base->list, list)
+USING LOOP list_for_each_entry_rcu(tuple_iter, &base->list, list)
 USING LOCK RCU
 $
 //Equivalently USING LOCK RCU()
@@ -523,7 +562,7 @@ CREATE STRUCT VIEW NetNamespace_SV (
 //       use_count INT FROM use_count.counter,
        FOREIGN KEY(rtnl_sock_id) FROM rtnl REFERENCES ESock_VT POINTER,
        FOREIGN KEY(genl_sock_id) FROM genl_sock REFERENCES ESock_VT POINTER,
-       FOREIGN KEY(dev_list_id) FROM self REFERENCES ENetDevice_VT POINTER,
+       FOREIGN KEY(dev_list_id) FROM tuple_iter REFERENCES ENetDevice_VT POINTER,
        FOREIGN KEY(netns_mib_id) FROM mib REFERENCES ENetMib_VT
 )
 $
@@ -532,7 +571,7 @@ CREATE VIRTUAL TABLE NetNamespace_VT
 USING STRUCT VIEW NetNamespace_SV
 WITH REGISTERED C NAME network_namespaces
 WITH REGISTERED C TYPE struct list_head *:struct net *
-USING LOOP list_for_each_entry_rcu(iter, base, list)
+USING LOOP list_for_each_entry_rcu(tuple_iter, base, list)
 USING LOCK RCU$
 
 CREATE VIRTUAL TABLE ENetNamespace_VT
@@ -642,7 +681,7 @@ $
 
 CREATE STRUCT VIEW Kobject_SV (
 	name TEXT FROM name,
-	container_ref INT FROM atomic_read(&this->kref.refcount),
+	container_ref INT FROM atomic_read(&tuple_iter->kref.refcount),
 	FOREIGN KEY(kobject_list_id) FROM entry REFERENCES EKobjectList_VT,
 	FOREIGN KEY(kobject_parent_id) FROM parent REFERENCES EKobject_VT POINTER,
 	FOREIGN KEY(kset_id) FROM kset REFERENCES EKobjectSet_VT POINTER,
@@ -662,7 +701,7 @@ $
 CREATE VIRTUAL TABLE EKobjectList_VT
 USING STRUCT VIEW Kobject_SV
 WITH REGISTERED C TYPE struct list_head:struct kobject *
-USING LOOP list_for_each_entry_rcu(iter, base, entry)
+USING LOOP list_for_each_entry_rcu(tuple_iter, base, entry)
 USING LOCK RCU
 $
 
@@ -675,7 +714,7 @@ $
 CREATE VIRTUAL TABLE EKobjectSet_VT
 USING STRUCT VIEW Kobject_SV
 WITH REGISTERED C TYPE struct kset:struct kobject *
-USING LOOP list_for_each_entry_rcu(iter, &base->list, entry)
+USING LOOP list_for_each_entry_rcu(tuple_iter, &base->list, entry)
 USING LOCK RCU
 $
 
@@ -711,7 +750,7 @@ CREATE VIRTUAL TABLE Superblock_VT
 USING STRUCT VIEW Superblock_SV
 WITH REGISTERED C NAME superblock
 WITH REGISTERED C TYPE struct super_block *
-USING LOOP list_for_each_entry_rcu(iter, &base->s_list, s_list)
+USING LOOP list_for_each_entry_rcu(tuple_iter, &base->s_list, s_list)
 USING LOCK RCU
 $
 
@@ -724,32 +763,22 @@ CREATE STRUCT VIEW File_SV (
        inode_name TEXT FROM f_path.dentry->d_name.name,
        inode_mode INT FROM f_path.dentry->d_inode->i_mode,
        inode_bytes INT FROM f_path.dentry->d_inode->i_bytes,
-       inode_size_bytes BIGINT FROM i_size_read(this->f_mapping->host),
-       inode_size_pages BIGINT FROM ((i_size_read(this->f_mapping->host) + PAGE_CACHE_SIZE -1) >> PAGE_CACHE_SHIFT),
-       file_offset BIGINT FROM {spin_lock(&iter->f_lock);
-                             this->f_pos;
-                             spin_unlock(&iter->f_lock);},
-       page_offset BIGINT FROM {spin_lock(&iter->f_lock);
-                             this->f_pos >> PAGE_CACHE_SHIFT;
-                             spin_unlock(&iter->f_lock);},
-       page_in_cache BIGINT FROM {spin_lock(&iter->f_lock);
-                                  (long)find_get_page(this->f_mapping, this->f_pos >> PAGE_CACHE_SHIFT);
-                                  spin_unlock(&iter->f_lock);},
-       pages_in_cache_contig_start INT FROM {pages_in_cache(this, 0)},
-       pages_in_cache_contig_current INT FROM {spin_lock(&iter->f_lock);
-					       pages_in_cache(this, this->f_pos);
-					       spin_unlock(&iter->f_lock);},
-       pages_in_cache_tag_dirty INT FROM {pages_in_cache_tag(this, 0, PAGECACHE_TAG_DIRTY)},
-       pages_in_cache_tag_writeback INT FROM {pages_in_cache_tag(this, 0, PAGECACHE_TAG_WRITEBACK)},
-       pages_in_cache_tag_towrite INT FROM {pages_in_cache_tag(this, 0, PAGECACHE_TAG_TOWRITE)},
-       pages_in_cache INT FROM {spin_lock(&iter->f_mapping->tree_lock);
-                             this->f_mapping->nrpages;
-                             spin_unlock(&iter->f_mapping->tree_lock);},
+       inode_size_bytes BIGINT FROM i_size_read(tuple_iter->f_mapping->host),
+       inode_size_pages BIGINT FROM ((i_size_read(tuple_iter->f_mapping->host) + PAGE_CACHE_SIZE -1) >> PAGE_CACHE_SHIFT),
+       file_offset BIGINT FROM get_file_offset(tuple_iter),
+       page_offset BIGINT FROM get_page_offset(tuple_iter),
+       page_in_cache BIGINT FROM get_page_in_cache(tuple_iter),
+       pages_in_cache_contig_start INT FROM {get_pages_in_cache_contig(tuple_iter, 0)},
+       pages_in_cache_contig_current INT FROM {get_pages_in_cache_contig(tuple_iter, 1)},
+       pages_in_cache_tag_dirty INT FROM {get_pages_in_cache_tag(tuple_iter, 0, PAGECACHE_TAG_DIRTY)},
+       pages_in_cache_tag_writeback INT FROM {get_pages_in_cache_tag(tuple_iter, 0, PAGECACHE_TAG_WRITEBACK)},
+       pages_in_cache_tag_towrite INT FROM {get_pages_in_cache_tag(tuple_iter, 0, PAGECACHE_TAG_TOWRITE)},
+       pages_in_cache INT FROM get_pages_in_cache(tuple_iter->f_mapping),
        count BIGINT FROM f_count.counter,
        flags INT FROM f_flags,
-       path_dentry BIGINT FROM (long)this.f_dentry,
-//     path_mount BIGINT FROM (long)this.f_vfsmnt,
-       path_mount BIGINT FROM (long)this.f_path.mnt,
+       path_dentry BIGINT FROM (long)tuple_iter.f_dentry,
+//     path_mount BIGINT FROM (long)tuple_iter.f_vfsmnt,
+       path_mount BIGINT FROM (long)tuple_iter.f_path.mnt,
        fowner_uid INT FROM f_owner.uid,
        fowner_euid INT FROM f_owner.euid,
        fcred_uid INT FROM f_cred->uid,
@@ -759,13 +788,13 @@ CREATE STRUCT VIEW File_SV (
        fmode INT FROM f_mode,
        fra_pages INT FROM f_ra.size,
        fra_mmap_miss INT FROM f_ra.mmap_miss,
-       is_socket INT FROM S_ISSOCK(this->f_path.dentry->d_inode->i_mode),
-       is_kvm_file INT FROM is_kvm_file(this),
-       FOREIGN KEY(kvm_id) FROM check_kvm(this) REFERENCES EKVM_VT POINTER,
-       is_kvm_vcpu_file INT FROM is_kvm_vcpu_file(this),
-       FOREIGN KEY(kvm_vcpu_id) FROM check_kvm_vcpu(this) REFERENCES EKVMVCPU_VT POINTER,
-       special_interface BIGINT FROM (long)this->private_data,
-       FOREIGN KEY(socket_id) FROM is_socket(this) REFERENCES ESocket_VT POINTER,
+       is_socket INT FROM S_ISSOCK(tuple_iter->f_path.dentry->d_inode->i_mode),
+       is_kvm_file INT FROM is_kvm_file(tuple_iter),
+       FOREIGN KEY(kvm_id) FROM check_kvm(tuple_iter) REFERENCES EKVM_VT POINTER,
+       is_kvm_vcpu_file INT FROM is_kvm_vcpu_file(tuple_iter),
+       FOREIGN KEY(kvm_vcpu_id) FROM check_kvm_vcpu(tuple_iter) REFERENCES EKVMVCPU_VT POINTER,
+       special_interface BIGINT FROM (long)tuple_iter->private_data,
+       FOREIGN KEY(socket_id) FROM is_socket(tuple_iter) REFERENCES ESocket_VT POINTER,
        FOREIGN KEY(sb_id) FROM f_path.dentry->d_inode->i_sb REFERENCES ESuperblock_VT POINTER
 )
 $
@@ -773,12 +802,12 @@ $
 CREATE VIRTUAL TABLE EFile_VT
 USING STRUCT VIEW File_SV
 WITH REGISTERED C TYPE struct fdtable:struct file*
-USING LOOP for (EFile_VT_begin(iter, base->fd, (bit = find_first_bit((unsigned long *)base->open_fds, base->max_fds))); bit < base->max_fds; EFile_VT_advance(iter, base->fd, (bit = find_next_bit((unsigned long *)base->open_fds, base->max_fds, bit + 1))))
+USING LOOP for (EFile_VT_begin(tuple_iter, base->fd, (bit = find_first_bit((unsigned long *)base->open_fds, base->max_fds))); bit < base->max_fds; EFile_VT_advance(tuple_iter, base->fd, (bit = find_next_bit((unsigned long *)base->open_fds, base->max_fds, bit + 1))))
 $
 
 CREATE STRUCT VIEW FilesStruct_SV (
        count INT FROM count.counter,
-       FOREIGN KEY(fdtablefile_id) FROM files_fdtable(this) REFERENCES EFile_VT POINTER
+       FOREIGN KEY(fdtablefile_id) FROM files_fdtable(tuple_iter) REFERENCES EFile_VT POINTER
 )
 $
 
@@ -788,14 +817,14 @@ WITH REGISTERED C TYPE struct files_struct
 $
 
 CREATE STRUCT VIEW Group_SV (
-       gid INT FROM self
+       gid INT FROM tuple_iter
 )
 $
 
 CREATE VIRTUAL TABLE EGroup_VT
 USING STRUCT VIEW Group_SV
 WITH REGISTERED C TYPE struct group_info*:int*
-USING LOOP for (EGroup_VT_begin(iter, base->small_block, i); i < base->ngroups; EGroup_VT_advance(iter, base->small_block, ++i))
+USING LOOP for (EGroup_VT_begin(tuple_iter, base->small_block, i); i < base->ngroups; EGroup_VT_advance(tuple_iter, base->small_block, ++i))
 $
 
 CREATE STRUCT VIEW Process_SV (
@@ -839,12 +868,12 @@ CREATE STRUCT VIEW Process_SV (
        exit_signal INT FROM exit_signal,
        pdeath_signal INT FROM pdeath_signal,
        personality INT FROM personality,
-       FOREIGN KEY(children_id) FROM self REFERENCES EProcessChild_VT, // why does not need POINTER
-       FOREIGN KEY(sibling_id) FROM self REFERENCES EProcessChild_VT,
+       FOREIGN KEY(children_id) FROM tuple_iter REFERENCES EProcessChild_VT, // why does not need POINTER
+       FOREIGN KEY(sibling_id) FROM tuple_iter REFERENCES EProcessChild_VT,
        FOREIGN KEY(parent_id) FROM parent REFERENCES EProcess_VT POINTER,
        FOREIGN KEY(real_parent_id) FROM real_parent REFERENCES EProcess_VT POINTER,
        FOREIGN KEY(thread_group_leader_id) FROM group_leader REFERENCES EProcess_VT POINTER,
-       FOREIGN KEY(thread_group_id) FROM self REFERENCES EThread_VT POINTER,
+       FOREIGN KEY(thread_group_id) FROM tuple_iter REFERENCES EThread_VT POINTER,
 //       did_exec INT FROM did_exec:1,
 //       fpu_counter CHAR FROM fpu_counter, CHAR support
        policy INT FROM policy,
@@ -868,8 +897,8 @@ CREATE STRUCT VIEW Process_SV (
 //       FOREIGN KEY(fs_struct_id) FROM fs REFERENCES EFs POINTER,
        FOREIGN KEY(files_struct_id) FROM files REFERENCES EFilesStruct_VT POINTER,
        fs_count BIGINT FROM files->count.counter,
-       fs_fd_max_fds INT FROM files_fdtable(this->files)->max_fds,
-       FOREIGN KEY(fs_fd_file_id) FROM files_fdtable(this->files) REFERENCES EFile_VT POINTER,
+       fs_fd_max_fds INT FROM files_fdtable(tuple_iter->files)->max_fds,
+       FOREIGN KEY(fs_fd_file_id) FROM files_fdtable(tuple_iter->files) REFERENCES EFile_VT POINTER,
        FOREIGN KEY(io_id) FROM ioac REFERENCES EIO_VT,
        FOREIGN KEY(vm_id) FROM mm REFERENCES EVirtualMem_VT POINTER,
 //       FOREIGN KEY(nsproxy_id) FROM nsproxy REFERENCES ENsproxy_VT POINTER,
@@ -879,12 +908,12 @@ CREATE STRUCT VIEW Process_SV (
        maj_flt BIGINT FROM maj_flt,
        sas_ss_sp BIGINT FROM sas_ss_sp,
        sas_ss_size INT FROM sas_ss_size,
-       loginuid INT FROM (uid_t)this.loginuid, // CONFIG_AUDITSYSCALL
+       loginuid INT FROM (uid_t)tuple_iter.loginuid, // CONFIG_AUDITSYSCALL
        sessionid INT FROM sessionid, // CONFIG_AUDITSYSCALL
-//       self_exec_id INT FROM (u32)this.self_exec_id,
-       parent_exec_id INT FROM (u32)this.parent_exec_id,
-       acct_rss_mem1 BIGINT FROM (u64)this.acct_rss_mem1, // defined(CONFIG_TASK_XACCT)
-       acct_vm_mem1 BIGINT FROM (u64)this.acct_vm_mem1, // defined(CONFIG_TASK_XACCT)
+//       self_exec_id INT FROM (u32)tuple_iter.self_exec_id,
+       parent_exec_id INT FROM (u32)tuple_iter.parent_exec_id,
+       acct_rss_mem1 BIGINT FROM (u64)tuple_iter.acct_rss_mem1, // defined(CONFIG_TASK_XACCT)
+       acct_vm_mem1 BIGINT FROM (u64)tuple_iter.acct_vm_mem1, // defined(CONFIG_TASK_XACCT)
        cpuset_mem_spread_rotor INT FROM cpuset_mem_spread_rotor, // CONFIG_CPUSETS
        timer_slack_ns BIGINT FROM timer_slack_ns,
        default_timer_slack_ns BIGINT FROM default_timer_slack_ns,
@@ -897,7 +926,7 @@ CREATE VIRTUAL TABLE Process_VT
 USING STRUCT VIEW Process_SV
 WITH REGISTERED C NAME processes
 WITH REGISTERED C TYPE struct task_struct *
-USING LOOP list_for_each_entry_rcu(iter, &base->tasks, tasks)
+USING LOOP list_for_each_entry_rcu(tuple_iter, &base->tasks, tasks)
 USING LOCK RCU
 $
 
@@ -909,14 +938,14 @@ $
 CREATE VIRTUAL TABLE EProcessChild_VT
 USING STRUCT VIEW Process_SV
 WITH REGISTERED C TYPE struct task_struct *
-USING LOOP list_for_each_entry_rcu(iter, &base->children, children)
+USING LOOP list_for_each_entry_rcu(tuple_iter, &base->children, children)
 USING LOCK RCU
 $
 
 CREATE VIRTUAL TABLE EThread_VT
 USING STRUCT VIEW Process_SV
 WITH REGISTERED C TYPE struct task_struct *
-USING LOOP list_for_each_entry_rcu(iter, &base->thread_group, thread_group)
+USING LOOP list_for_each_entry_rcu(tuple_iter, &base->thread_group, thread_group)
 USING LOCK RCU
 $
 
@@ -936,7 +965,7 @@ CREATE STRUCT VIEW KVMVCPUEvents_SV (
 #endif
         nmi_injected INT FROM nmi.injected,
         nmi_pending INT FROM nmi.pending,
-//        nmi_masked INT FROM kvm_x86_ops->get_nmi_mask(this),  // NULL check fails
+//        nmi_masked INT FROM kvm_x86_ops->get_nmi_mask(tuple_iter),  // NULL check fails
         nmi_masked INT FROM nmi.masked,
         nmi_pad INT FROM nmi.pad,
 	sipi_vector INT FROM sipi_vector,
@@ -950,18 +979,18 @@ WITH REGISTERED C TYPE struct kvm_vcpu_events
 $
 
 CREATE STRUCT VIEW KVMVCPU_SV (
-        cpu_has_vmx INT FROM check_vmx(this),
+        cpu_has_vmx INT FROM check_vmx(tuple_iter),
         cpu_has_svm TEXT FROM {msg = (char *)sqlite3_malloc(sizeof(char) * PAGE_SIZE/4);  // defined globally on top
-                               check_svm(this, msg);
+                               check_svm(tuple_iter, msg);
                                sqlite3_free(msg);},
         cpu INT FROM cpu,
         vcpu_id INT FROM vcpu_id,
 	mode INT FROM mode,
-        current_privilege_level INT FROM get_cpl(this),
-        hypercalls_allowed INT FROM check_cpl(this),
+        current_privilege_level INT FROM get_cpl(tuple_iter),
+        hypercalls_allowed INT FROM check_cpl(tuple_iter),
         requests BIGINT FROM requests,
 // vcpu_stat
-	FOREIGN KEY(vcpu_events_id) FROM kvm_vcpu_ioctl_x86_get_vcpu_events(this) REFERENCES EKVMVCPUEvents_VT POINTER
+	FOREIGN KEY(vcpu_events_id) FROM kvm_vcpu_ioctl_x86_get_vcpu_events(tuple_iter) REFERENCES EKVMVCPUEvents_VT POINTER
 )
 $
 
@@ -990,20 +1019,20 @@ $
 CREATE VIRTUAL TABLE EKVMArchPitChannelState_VT
 USING STRUCT VIEW KVMArchPitChannelState_SV
 WITH REGISTERED C TYPE struct kvm_pit_state:struct kvm_pit_channel_state *
-USING LOOP for(iter = &base->channels[i]; i < 3; iter = &base->channels[++i])
+USING LOOP for(tuple_iter = &base->channels[i]; i < 3; tuple_iter = &base->channels[++i])
 // USING LOCK MUTEX(&base->lock) required for kvm_kpit_state;not accessible
 $
 
 CREATE STRUCT VIEW KVM_SV (
 	bsp_vcpu_id INT FROM bsp_vcpu_id,
-	online_vcpus INT FROM atomic_read(&this->online_vcpus),
+	online_vcpus INT FROM atomic_read(&tuple_iter->online_vcpus),
         last_boosted_vcpu INT FROM last_boosted_vcpu,
-	users INT FROM atomic_read(&this->users_count),
+	users INT FROM atomic_read(&tuple_iter->users_count),
         tlbs_dirty BIGINT FROM tlbs_dirty,
 // kvm_vm_stat
 // mm_list
 // vcpus
-	FOREIGN KEY(pit_state_id) FROM mem_copy_pit_state(this->arch.vpit->pit_state) REFERENCES EKVMArchPitChannelState_VT
+	FOREIGN KEY(pit_state_id) FROM mem_copy_pit_state(tuple_iter->arch.vpit->pit_state) REFERENCES EKVMArchPitChannelState_VT
 )
 $
 
@@ -1014,9 +1043,9 @@ $
 
 #if KERNEL_VERSION >= 3.2.0
 CREATE STRUCT VIEW XenStats_SV (
-        cpu_has_vmx INT FROM check_vmx(this),
+        cpu_has_vmx INT FROM check_vmx(tuple_iter),
         cpu_has_svm TEXT FROM {msg = (char *)sqlite3_malloc(sizeof(char) * PAGE_SIZE/4);  // defined globally on top
-                               check_svm(this, msg);
+                               check_svm(tuple_iter, msg);
                                sqlite3_free(msg);},
         cur_pages BIGINT FROM current_pages,
         target_pages BIGINT FROM target_pages,

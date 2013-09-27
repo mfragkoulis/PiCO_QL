@@ -289,12 +289,12 @@ list <<%= col.fk_col_type.chomp('*') %> > saved_results_<%= i %>;
 <%        if VirtualTable.C_container_types.include?(vt.container_class) %>
   vector<<%= vt.type %><%= type_retype %>>::iterator resIterC;
 <%          if vt.loop.empty? %>
-<%# Tables with @loop take care of this with _decl(iter). Silencing compiler unused variable error. %>
-  <%= vt.type %><%= type_retype %> iter;
+<%# Tables with @loop take care of this with _decl(tuple_iter). Silencing compiler unused variable error. %>
+  <%= vt.type %><%= type_retype %> tuple_iter;
 <%          end %>
 <%        else %>
   vector<<%= vt.signature.chomp('*') %>::iterator>::iterator resIterC;
-  <%= vt.signature.chomp('*') %>::iterator iter;
+  <%= vt.signature.chomp('*') %>::iterator tuple_iter;
 <%        end %>
 <%      else %>
   set<sqlite3_vtab_cursor *> cursors;

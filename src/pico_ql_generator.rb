@@ -191,7 +191,7 @@ class Column
       statements.each{ |s|
         s.lstrip!
         s.rstrip!
-        if !s.match(/this/)  # {pre,post} shouldn't contain "this".
+        if !s.match(/tuple_iter/)  # {pre,post} shouldn't contain "tuple_iter".
           bare_access_path.empty? ? @pre_access_path << "#{s};" : @post_access_path << "#{s};"
         else
           bare_access_path << s
@@ -219,27 +219,27 @@ class Column
       puts "Access path to process is #{@access_path}."
     end
     if @access_path.match(/->/)
-      if @access_path.match(/this->/) ||
-         @access_path.match(/this\./)
-        if @access_path.match(/this->(.+?),(.+)\)/) ||
-           @access_path.match(/this->(.+?)\)/) || 
-           @access_path.match(/this->(.+)/) ||  # Introduced with code block
-           @access_path.match(/this\.(.+)->(.+),/) ||
-           @access_path.match(/this\.(.+)->(.+)\)/)
+      if @access_path.match(/tuple_iter->/) ||
+         @access_path.match(/tuple_iter\./)
+        if @access_path.match(/tuple_iter->(.+?),(.+)\)/) ||
+           @access_path.match(/tuple_iter->(.+?)\)/) || 
+           @access_path.match(/tuple_iter->(.+)/) ||  # Introduced with code block
+           @access_path.match(/tuple_iter\.(.+)->(.+),/) ||
+           @access_path.match(/tuple_iter\.(.+)->(.+)\)/)
           case @access_path
-          when /this->(.+?),(.+)\)/
-            matchdata = @access_path.match(/this->(.+?),(.+)\)/)
-          when /this->(.+?)\)/
-            matchdata = @access_path.match(/this->(.+?)\)/)
-          when /this->(.+)/			# Introduced with code block
-            matchdata = @access_path.match(/this->(.+)/)
-          when /this\.(.+)->(.+),/
-            matchdata = @access_path.match(/this\.(.+),/)
-          when /this\.(.+)->(.+)\)/
-            matchdata = @access_path.match(/this\.(.+)\)/)
+          when /tuple_iter->(.+?),(.+)\)/
+            matchdata = @access_path.match(/tuple_iter->(.+?),(.+)\)/)
+          when /tuple_iter->(.+?)\)/
+            matchdata = @access_path.match(/tuple_iter->(.+?)\)/)
+          when /tuple_iter->(.+)/			# Introduced with code block
+            matchdata = @access_path.match(/tuple_iter->(.+)/)
+          when /tuple_iter\.(.+)->(.+),/
+            matchdata = @access_path.match(/tuple_iter\.(.+),/)
+          when /tuple_iter\.(.+)->(.+)\)/
+            matchdata = @access_path.match(/tuple_iter\.(.+)\)/)
           end
           if $argD == "DEBUG"
-            puts "Access path with 'this' included, path for checking is #{matchdata[1]}."
+            puts "Access path with 'tuple_iter' included, path for checking is #{matchdata[1]}."
           end
           if matchdata[1].match(/->/)
             @tokenized_access_path = matchdata[1].split(/->/)
@@ -310,8 +310,8 @@ class Column
                                             # copy of coln
           this_columns.push(Column.new("")) # and push it to current.
           access_path = ""
-          if coln.access_path.match(/this\.|this->/)
-            access_path = coln.access_path.gsub(/this\.|this->/, '\0<accessor>')
+          if coln.access_path.match(/tuple_iter\.|tuple_iter->/)
+            access_path = coln.access_path.gsub(/tuple_iter\.|tuple_iter->/, '\0<accessor>')
             access_path.gsub!("<accessor>", "#{matchdata[2]}#{access_type_link}")
           else
             access_path = "#{matchdata[2]}#{access_type_link}#{coln.access_path}"
@@ -412,8 +412,8 @@ class Column
     end
     register_line()
     col_type_text = verify_data_type()
-    if @access_path.match(/self/)
-      @access_path.gsub!(/self/,"")
+    if @access_path == "tuple_iter"
+      @access_path.gsub!(/tuple_iter/,"")
     end
     if @access_path.match(/#/)     # Substituting back "," in place of "#" 
       @access_path.gsub!(/#/,",")  # for code block formats.
@@ -518,12 +518,12 @@ class VirtualTable
 # Substitute special keywords in access paths.
 # For pre, post access paths we don't want to substitute
 # accessors. In access paths we do.
-# Refactor to include 'this' substitutions in here too.
+# Refactor to include 'tuple_iter' substitutions in here too.
   def sub_keywords(pre_post_ap, access_path, iter)
     if access_path
       if iter != nil &&
-         access_path.match(/iter->|iter\.|iter,|iter\)/)
-        access_path.gsub!(/iter/, "#{iter}") 
+         access_path.match(/tuple_iter->|tuple_iter\.|tuple_iter,|tuple_iter\)/)
+        access_path.gsub!(/tuple_iter/, "#{iter}") 
       end
       if access_path.match(/base->|base\.|base,|base\)/)
         access_path.gsub!(/base(\.|->)/, "any_dstr->")
@@ -531,8 +531,8 @@ class VirtualTable
       end
     elsif pre_post_ap
       if iter != nil &&
-         pre_post_ap.match(/iter->|iter\.|iter,|iter\)/)
-        pre_post_ap.gsub!(/iter/, "#{iter}")
+         pre_post_ap.match(/tuple_iter->|tuple_iter\.|tuple_iter,|tuple_iter\)/)
+        pre_post_ap.gsub!(/tuple_iter/, "#{iter}")
       end
       if pre_post_ap.match(/base->|base\.|base,|base\)/)
         pre_post_ap.gsub!(/base/, "any_dstr")
@@ -639,23 +639,23 @@ class VirtualTable
                    sqlite3_parameters, column_cast,
                    line, space)
     ap_copy = String.new(access_path)
-    if access_path.match(/this\.|this->|\(this,|\(this\)|this\)/)
-      if access_path.match(/this\.|this->/)
-        ap_copy.gsub!(/this\.|this->/, "#{iden}")
+    if access_path.match(/tuple_iter\.|tuple_iter->|\(tuple_iter,|\(tuple_iter\)|tuple_iter\)/)
+      if access_path.match(/tuple_iter\.|tuple_iter->/)
+        ap_copy.gsub!(/tuple_iter\.|tuple_iter->/, "#{iden}")
       end
-      if access_path.match(/\(this,|\(this\)|this\)/)
+      if access_path.match(/\(tuple_iter,|\(tuple_iter\)|tuple_iter\)/)
         if iden.end_with?(".")
-          ap_copy.gsub!(/\(this,/, "(#{iden.chomp(".")},")
-          ap_copy.gsub!(/\(this\)/, "(#{iden.chomp(".")})")
-          ap_copy.gsub!(/this\)/, "#{iden.chomp(".")})")
+          ap_copy.gsub!(/\(tuple_iter,/, "(#{iden.chomp(".")},")
+          ap_copy.gsub!(/\(tuple_iter\)/, "(#{iden.chomp(".")})")
+          ap_copy.gsub!(/tuple_iter\)/, "#{iden.chomp(".")})")
         elsif iden.end_with?("->")
-          ap_copy.gsub!(/\(this,/, "(#{iden.chomp("->")},")
-          ap_copy.gsub!(/\(this\)/, "(#{iden.chomp("->")})")
-          ap_copy.gsub!(/this\)/, "#{iden.chomp("->")})")
+          ap_copy.gsub!(/\(tuple_iter,/, "(#{iden.chomp("->")},")
+          ap_copy.gsub!(/\(tuple_iter\)/, "(#{iden.chomp("->")})")
+          ap_copy.gsub!(/tuple_iter\)/, "#{iden.chomp("->")})")
         end
       end
       if $argD == "DEBUG"
-        puts "all_retrieve: substituting \"this\" in access path:"
+        puts "all_retrieve: substituting \"tuple_iter\" in access path:"
         puts "  #{iden}, #{ap_copy}"
       end
       access_path = "#{ap_copy}"
@@ -740,30 +740,30 @@ class VirtualTable
     end
     r_ap_copy = String.new(access_path)
     p_ap_copy = String.new(access_path)
-    if access_path.match(/this\.|this->|\(this,|\(this\)|this\)/)
-      if access_path.match(/this\.|this->/)
-        r_ap_copy.gsub!(/this\.|this->/, "#{record_type}#{iden}")
-        p_ap_copy.gsub!(/this\.|this->/, "#{p_type}#{iden}")
+    if access_path.match(/tuple_iter\.|tuple_iter->|\(tuple_iter,|\(tuple_iter\)|tuple_iter\)/)
+      if access_path.match(/tuple_iter\.|tuple_iter->/)
+        r_ap_copy.gsub!(/tuple_iter\.|tuple_iter->/, "#{record_type}#{iden}")
+        p_ap_copy.gsub!(/tuple_iter\.|tuple_iter->/, "#{p_type}#{iden}")
       end
-      if access_path.match(/\(this,|\(this\)|this\)/)
+      if access_path.match(/\(tuple_iter,|\(tuple_iter\)|tuple_iter\)/)
         if iden.end_with?(".")
-          r_ap_copy.gsub!(/\(this,/, "(#{record_type}#{iden.chomp(".")},")
-          r_ap_copy.gsub!(/\(this\)/, "(#{record_type}#{iden.chomp(".")})")
-          r_ap_copy.gsub!(/this\)/, "#{record_type}#{iden.chomp(".")})")
-          p_ap_copy.gsub!(/\(this,/, "(#{p_type}#{iden.chomp(".")},")
-          p_ap_copy.gsub!(/\(this\)/, "(#{p_type}#{iden.chomp(".")})")
-          p_ap_copy.gsub!(/this\)/, "#{p_type}#{iden.chomp(".")})")
+          r_ap_copy.gsub!(/\(tuple_iter,/, "(#{record_type}#{iden.chomp(".")},")
+          r_ap_copy.gsub!(/\(tuple_iter\)/, "(#{record_type}#{iden.chomp(".")})")
+          r_ap_copy.gsub!(/tuple_iter\)/, "#{record_type}#{iden.chomp(".")})")
+          p_ap_copy.gsub!(/\(tuple_iter,/, "(#{p_type}#{iden.chomp(".")},")
+          p_ap_copy.gsub!(/\(tuple_iter\)/, "(#{p_type}#{iden.chomp(".")})")
+          p_ap_copy.gsub!(/tuple_iter\)/, "#{p_type}#{iden.chomp(".")})")
         elsif iden.end_with?("->")
-          r_ap_copy.gsub!(/\(this,/, "(#{record_type}#{iden.chomp("->")},")
-          r_ap_copy.gsub!(/\(this\)/, "(#{record_type}#{iden.chomp("->")})")
-          r_ap_copy.gsub!(/this\)/, "#{record_type}#{iden.chomp("->")})")
-          p_ap_copy.gsub!(/\(this,/, "(#{p_type}#{iden.chomp("->")},")
-          p_ap_copy.gsub!(/\(this\)/, "(#{p_type}#{iden.chomp("->")})")
-          p_ap_copy.gsub!(/this\)/, "#{p_type}#{iden.chomp("->")})")
+          r_ap_copy.gsub!(/\(tuple_iter,/, "(#{record_type}#{iden.chomp("->")},")
+          r_ap_copy.gsub!(/\(tuple_iter\)/, "(#{record_type}#{iden.chomp("->")})")
+          r_ap_copy.gsub!(/tuple_iter\)/, "#{record_type}#{iden.chomp("->")})")
+          p_ap_copy.gsub!(/\(tuple_iter,/, "(#{p_type}#{iden.chomp("->")},")
+          p_ap_copy.gsub!(/\(tuple_iter\)/, "(#{p_type}#{iden.chomp("->")})")
+          p_ap_copy.gsub!(/tuple_iter\)/, "#{p_type}#{iden.chomp("->")})")
         end
       end
       if $argD == "DEBUG"
-        puts "fk_retrieve: substituting \"this\" in access path:"
+        puts "fk_retrieve: substituting \"tuple_iter\" in access path:"
         puts "  #{record_type}, #{iden}, #{r_ap_copy}"
         puts "  #{p_type}, #{iden}, #{p_ap_copy}"
       end
@@ -1063,12 +1063,12 @@ class VirtualTable
     if @container_class.length > 0
       if @@C_container_types.include?(@container_class)
         if $argLB == "CPP"
-          add_to_result_setF = "<space>    rs->res.push_back(iter);\n<space>    rs->resBts.push_back(1);\n<space>  } else {\n<space>    rs->resBts.push_back(0);\n<space>  }\n<space>}"            
+          add_to_result_setF = "<space>    rs->res.push_back(tuple_iter);\n<space>    rs->resBts.push_back(1);\n<space>  } else {\n<space>    rs->resBts.push_back(0);\n<space>  }\n<space>}"            
         else
-          add_to_result_setF = "<space>    rs->size++;\n<space>    rs->actualSize++;\n<space>    if (rs->size == rs->malloced) {\n<space>      rs->malloced *= 2;\n<space>      ((#{@name}ResultSetImpl *)rs)->res = (#{@type}#{retype}*)sqlite3_realloc(((#{@name}ResultSetImpl *)rs)->res, sizeof(#{@type}#{retype}) * rs->malloced);\n<space>      if (((#{@name}ResultSetImpl *)rs)->res == NULL)\n<space>        return SQLITE_NOMEM;\n<space>    }\n<space>    ((#{@name}ResultSetImpl *)rs)->res[rs->size - 1] = iter;\n<space>  }\n<space>}"
+          add_to_result_setF = "<space>    rs->size++;\n<space>    rs->actualSize++;\n<space>    if (rs->size == rs->malloced) {\n<space>      rs->malloced *= 2;\n<space>      ((#{@name}ResultSetImpl *)rs)->res = (#{@type}#{retype}*)sqlite3_realloc(((#{@name}ResultSetImpl *)rs)->res, sizeof(#{@type}#{retype}) * rs->malloced);\n<space>      if (((#{@name}ResultSetImpl *)rs)->res == NULL)\n<space>        return SQLITE_NOMEM;\n<space>    }\n<space>    ((#{@name}ResultSetImpl *)rs)->res[rs->size - 1] = tuple_iter;\n<space>  }\n<space>}"
         end
       else
-        add_to_result_setF = "<space>    rs->res.push_back(iter);\n<space>    rs->resBts.set(index, 1);\n<space>  }\n<space>  index++;\n<space>}"
+        add_to_result_setF = "<space>    rs->res.push_back(tuple_iter);\n<space>    rs->resBts.set(index, 1);\n<space>  }\n<space>  index++;\n<space>}"
       end
       if $argLB == "CPP"
         add_to_result_setN = "<space>    resIterC = rs->res.erase(resIterC);\n<space>    rs->resBts.reset(index);\n<space>  } else\n<space>    resIterC++;\n<space>  index = rs->resBts.find_next(index);\n<space>}"
@@ -1094,7 +1094,7 @@ class VirtualTable
     if @container_class.length > 0
       if @@C_container_types.include?(@container_class)
 # that is !@loop.empty?
-        access_path.length == 0 ? idenF = "iter" : idenF = "iter."
+        access_path.length == 0 ? idenF = "tuple_iter" : idenF = "tuple_iter."
         if $argLB == "CPP"
           access_path.length == 0 ? idenN = "(*resIterC)" : idenN = "(*resIterC)."
         else
@@ -1102,10 +1102,10 @@ class VirtualTable
         end
       else
         if @loop.empty?
-          access_path.length == 0 ? idenF = "(*iter)" : idenF = "(*iter)."
+          access_path.length == 0 ? idenF = "(*tuple_iter)" : idenF = "(*tuple_iter)."
           access_path.length == 0 ? idenN = "(**resIterC)" : idenN = "(**resIterC)."
         else
-          access_path.length == 0 ? idenF = "iter" : idenF = "iter."
+          access_path.length == 0 ? idenF = "tuple_iter" : idenF = "tuple_iter."
           access_path.length == 0 ? idenN = "(*resIterC)" : idenN = "(*resIterC)."
         end
       end
@@ -1192,33 +1192,33 @@ class VirtualTable
     end
     ap_copyF = String.new(access_path)
     ap_copyN = String.new(access_path)
-    if access_path.match(/this\.|this->|\(this,|\(this\)|this\)/)
-      if access_path.match(/this\.|this->/)
-        ap_copyF.gsub!(/this\.|this->/, "#{idenF}")
-        ap_copyN.gsub!(/this\.|this->/, "#{idenN}")
+    if access_path.match(/tuple_iter\.|tuple_iter->|\(tuple_iter,|\(tuple_iter\)|tuple_iter\)/)
+      if access_path.match(/tuple_iter\.|tuple_iter->/)
+        ap_copyF.gsub!(/tuple_iter\.|tuple_iter->/, "#{idenF}")
+        ap_copyN.gsub!(/tuple_iter\.|tuple_iter->/, "#{idenN}")
       end
-      if access_path.match(/\(this,|\(this\)|this\)/)
+      if access_path.match(/\(tuple_iter,|\(tuple_iter\)|tuple_iter\)/)
         if idenF.end_with?(".")
-          ap_copyF.gsub!(/\(this,/, "(#{idenF.chomp(".")},")
-          ap_copyF.gsub!(/\(this\)/, "(#{idenF.chomp(".")})")
-          ap_copyF.gsub!(/this\)/, "#{idenF.chomp(".")})")
+          ap_copyF.gsub!(/\(tuple_iter,/, "(#{idenF.chomp(".")},")
+          ap_copyF.gsub!(/\(tuple_iter\)/, "(#{idenF.chomp(".")})")
+          ap_copyF.gsub!(/tuple_iter\)/, "#{idenF.chomp(".")})")
         elsif idenF.end_with?("->")
-          ap_copyF.gsub!(/\(this,/, "(#{idenF.chomp("->")},")
-          ap_copyF.gsub!(/\(this\)/, "(#{idenF.chomp("->")})")
-          ap_copyF.gsub!(/this\)/, "#{idenF.chomp("->")})")
+          ap_copyF.gsub!(/\(tuple_iter,/, "(#{idenF.chomp("->")},")
+          ap_copyF.gsub!(/\(tuple_iter\)/, "(#{idenF.chomp("->")})")
+          ap_copyF.gsub!(/tuple_iter\)/, "#{idenF.chomp("->")})")
         end
         if idenN.end_with?(".")
-          ap_copyN.gsub!(/\(this,/, "(#{idenN.chomp(".")},")
-          ap_copyN.gsub!(/\(this\)/, "(#{idenN.chomp(".")})")
-          ap_copyN.gsub!(/this\)/, "#{idenN.chomp(".")})")
+          ap_copyN.gsub!(/\(tuple_iter,/, "(#{idenN.chomp(".")},")
+          ap_copyN.gsub!(/\(tuple_iter\)/, "(#{idenN.chomp(".")})")
+          ap_copyN.gsub!(/tuple_iter\)/, "#{idenN.chomp(".")})")
         elsif idenN.end_with?("->")
-          ap_copyN.gsub!(/\(this,/, "(#{idenN.chomp("->")},")
-          ap_copyN.gsub!(/\(this\)/, "(#{idenN.chomp("->")})")
-          ap_copyN.gsub!(/this\)/, "#{idenN.chomp("->")})")
+          ap_copyN.gsub!(/\(tuple_iter,/, "(#{idenN.chomp("->")},")
+          ap_copyN.gsub!(/\(tuple_iter\)/, "(#{idenN.chomp("->")})")
+          ap_copyN.gsub!(/tuple_iter\)/, "#{idenN.chomp("->")})")
         end
       end
       if $argD == "DEBUG"
-        puts "configure_search: substituting \"this\" in access path:"
+        puts "configure_search: substituting \"tuple_iter\" in access path:"
         puts "  F-#{idenF}, #{ap_copyF}"
         puts "  N-#{idenN}, #{ap_copyN}"
       end
@@ -1261,15 +1261,15 @@ class VirtualTable
           iterationF = "<space>#{loop} {"
         end
         #Hard-coded NULL check for container elements.
-        iterationF.concat("\n<space>  if (iter == NULL) continue;")
+        iterationF.concat("\n<space>  if (tuple_iter == NULL) continue;")
       else
-        iterationF = "<space>for (iter = any_dstr->begin(); iter != any_dstr->end(); iter++) {"
+        iterationF = "<space>for (tuple_iter = any_dstr->begin(); tuple_iter != any_dstr->end(); tuple_iter++) {"
         if @pointer.length > 0 && !@pointer.match(/,/)
           #Hard-coded NULL check for container elements.
           #If '.' matches accessors [first,second] will
           #checked as part of the access path. Nothing
           #to do here.
-          iterationF.concat("\n<space>  if (*iter == NULL) continue;")
+          iterationF.concat("\n<space>  if (*tuple_iter == NULL) continue;")
         end
       end
       if $argLB == "CPP"
@@ -1354,22 +1354,22 @@ class VirtualTable
     fw.puts "        return SQLITE_OK;" 
     fw.puts "      }"
     if !@@C_container_types.include?(@container_class)
-      fw.puts "      iter = any_dstr->begin();"
+      fw.puts "      tuple_iter = any_dstr->begin();"
       fw.puts "      for (int i = 0; i < rowNum; i++)"
-      fw.puts "        iter++;"
+      fw.puts "        tuple_iter++;"
     end
     fw.puts "      if (first_constr == 1) {"
     if @@C_container_types.include?(@container_class)
       fw.puts "#{$s}rs->resBts.resize(rowNum + 1, 0);"
     end
-    fw.puts "#{$s}rs->res.push_back(iter);"
+    fw.puts "#{$s}rs->res.push_back(tuple_iter);"
     fw.puts "#{$s}rs->resBts.set(rowNum, 1);"
     fw.puts "      } else {"
     fw.puts "#{$s}if (rs->resBts.test(rowNum)) {"
     fw.puts "#{$s}  rs->resBts.reset();"
     fw.puts "#{$s}  rs->resBts.set(rowNum, 1);"
     fw.puts "#{$s}  rs->res.clear();"
-    fw.puts "#{$s}  rs->res.push_back(iter);"
+    fw.puts "#{$s}  rs->res.push_back(tuple_iter);"
     fw.puts "#{$s}  rs->resIter = rs->res.begin();"
     fw.puts "#{$s}} else {"
     fw.puts "#{$s}  rs->resBts.clear();"
@@ -2222,11 +2222,10 @@ class VirtualTable
     end
     $table_index[@name] = @signature
     if @base_var.length == 0        # base column for embedded structs.
-      @columns.push(Column.new("")).last.set("base INT FROM self") 
-# perhaps PRIMARY KEY(base)
-    end
+      @columns.push(Column.new("")).last.set("base INT FROM base")
+    end  			    # access path is just a placeholder; never used
     if @container_class.length > 0 && $argLB == "CPP"
-      @columns.push(Column.new("")).last.set("rownum INT FROM self") 
+      @columns.push(Column.new("")).last.set("rownum INT FROM rownum") # ditto
     end
     @include_text_col = @struct_view.include_text_col
     @columns = @columns | @struct_view.columns
