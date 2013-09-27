@@ -11,12 +11,19 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
 <%      else %>
 <%        type_retype = "#{@type}" %>
 <%      end %>
+<%      if /\*/.match(@signature_pointer) == nil %>
+<%        sign_retype = "#{@signature}*" %>
+<%        sign_untype = "#{@signature}" %>
+<%      else %>
+<%        sign_retype = "#{@signature}" %>
+<%        sign_untype = "#{@signature.rstrip.chomp("*")}" %>
+<%      end %>
   if (cursors.find(cur) == cursors.end()) {
     printf("Cursor %lx not registered. Exiting now.\n", (long)cur);
     return SQLITE_ERROR;
   }
 <%      if @container_class.length > 0 %>
-    ResultSet *rs = &cursors[cur];
+  ResultSet *rs = &cursors[cur];
 <%      end %>
   if (struct_empty_null(cur, val, picoQL->embedded, nCol)) {
 <%      if @container_class.length == 0 %>
@@ -28,7 +35,12 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
     <%= type_retype %> dummy;
     rs->res.push_back(dummy);
 <%	  else %>
-    rs->res.push_back(<%= @signature.chomp('*') %>::iterator());
+<%          if /\[/.match(@signature) %>
+    <%= @assignable_signature.gsub("<variable_name>", "any_dstr") %>;
+<%          else %>
+    <%= sign_untype %> dummy;
+<%          end %>
+    rs->res.push_back(dummy.begin());
 <%        end %>
     rs->resIter = rs->res.begin();
 <%      end %>
@@ -81,11 +93,6 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
 <%        if @loop.match(/\Wtuple_iter\W/) %>
   <%= @name %>_decl(tuple_iter);
 <%        end %>
-<%      end %>
-<%      if /\*/.match(@signature_pointer) == nil %>
-<%        sign_retype = "#{@signature}*" %>
-<%      else %>
-<%        sign_retype = @signature %>
 <%      end %>
 <%      if /\[/.match(@signature) %>
   <%= @assignable_signature.gsub("<variable_name>", "any_dstr") %>;
@@ -195,7 +202,12 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
             <%= type_retype %> dummy;
             rs->res.push_back(dummy);
 <%	    else %>
-            rs->res.push_back(<%= @signature.chomp('*') %>::iterator());
+<%            if /\[/.match(@signature) %>
+            <%= @assignable_signature.gsub("<variable_name>", "any_dstr") %>;
+<%            else %>
+            <%= sign_untype %> dummy;
+<%            end %>
+            rs->res.push_back(dummy.begin());
 <%	    end %>
 <%        end %>
             return SQLITE_OK;
@@ -232,7 +244,12 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
             <%= type_retype %> dummy;
             rs->res.push_back(dummy);
 <%	    else %>
-            rs->res.push_back(<%= @signature.chomp('*') %>::iterator());
+<%            if /\[/.match(@signature) %>
+            <%= @assignable_signature.gsub("<variable_name>", "any_dstr") %>;
+<%            else %>
+            <%= sign_untype %> dummy;
+<%            end %>
+            rs->res.push_back(dummy.begin());
 <%	    end %>
             return SQLITE_OK;
           } else {

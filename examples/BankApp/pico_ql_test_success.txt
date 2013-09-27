@@ -56,6 +56,16 @@ rownum balance account_no rate isbn isbn_root type
 Done
 
 Query 4:
+ select * from AccountsNULL;
+
+Statement prepared.
+rownum balance account_no rate isbn isbn_root type 
+
+(null) (null) (null) (null) (null) (null) (null) 
+
+Done
+
+Query 5:
  select * from Accounts where rate >10 and balance<20000 order by account_no;
 
 Statement prepared.
@@ -64,7 +74,17 @@ rownum balance account_no rate isbn isbn_root type
 
 Done
 
-Query 5:
+Query 6:
+ select * from AccountsNULL where rate >10 and balance<20000 order by account_no;
+
+Statement prepared.
+rownum balance account_no rate isbn isbn_root type 
+
+(null) (null) (null) (null) (null) (null) (null) 
+
+Done
+
+Query 7:
  select * from SpecialAccounts;
 
 Statement prepared.
@@ -79,7 +99,7 @@ rownum balance account_no rate isbn isbn_root bonus
 
 Done
 
-Query 6:
+Query 8:
  select * from SpecialAccounts where bonus > 20 and rate >15 order by account_no;
 
 Statement prepared.
@@ -91,7 +111,7 @@ rownum balance account_no rate isbn isbn_root bonus
 
 Done
 
-Query 7:
+Query 9:
  select * from Myaccounts;
 
 Statement prepared.

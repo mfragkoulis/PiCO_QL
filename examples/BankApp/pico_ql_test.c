@@ -102,7 +102,15 @@ int call_test(sqlite3 *db) {
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);
 
+  q = "select * from AccountsNULL;";
+  fprintf(f, "Query %i:\n %s\n\n", i++, q);
+  result = test_prep_exec(f, db, q);
+
   q = "select * from Accounts where rate >10 and balance<20000 order by account_no;";
+  fprintf(f, "Query %i:\n %s\n\n", i++, q);
+  result = test_prep_exec(f, db, q);
+
+  q = "select * from AccountsNULL where rate >10 and balance<20000 order by account_no;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);
 

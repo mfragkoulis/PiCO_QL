@@ -39,6 +39,7 @@ int main() {
     map<string,SuperAccount> superaccounts;
     list<SpecialAccount> specialaccounts;
     vector<Account> accounts;
+    vector<Account> *accountsNULL = NULL;
     
     Account acc1("10068", 500.0, 478923743, "credit");
     Account acc2("10234", 394.28, 692346729, 
@@ -103,6 +104,7 @@ int main() {
     superaccounts.insert(make_pair("21", sa6));
 
     pico_ql_register((const void *)&accounts, "accounts");
+    pico_ql_register((const void *)accountsNULL, "accountsNULL");
     pico_ql_register((const void *)&superaccounts, "superaccounts");
     pico_ql_register((const void *)&specialaccounts, "specialaccounts");
     pico_ql_serve(8081);
