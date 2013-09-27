@@ -13,7 +13,7 @@ CREATE VIRTUAL TABLE Matrix
 USING STRUCT VIEW Matrix
 WITH REGISTERED C NAME denseMatrix
 WITH REGISTERED C TYPE struct denseMatrix:struct matrixElement *
-USING LOOP for(iter = &base->me[record]; record != base->size; Matrix_advance(iter,base->me,++record))$
+USING LOOP for(tuple_iter = &base->me[record]; record != base->size; Matrix_advance(tuple_iter,base->me,++record))$
 
 CREATE VIEW RowWiseA AS 
 SELECT mval, mcol 

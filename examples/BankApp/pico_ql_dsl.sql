@@ -15,7 +15,7 @@ CREATE STRUCT VIEW SuperAccount (
        rate DOUBLE FROM get_rate(),
        isbn BIGINT FROM get_isbn(),
        // Column delimeter is",\n". Comments should occupy a separate line
-       isbn_root DOUBLE FROM get_math_root(this.get_isbn())
+       isbn_root DOUBLE FROM get_math_root(tuple_iter.get_isbn())
 )$
 
 CREATE STRUCT VIEW SuperAccounts (

@@ -61,14 +61,14 @@ CREATE VIRTUAL TABLE Money
 USING STRUCT VIEW Money
 //WITH REGISTERED C NAME money
 WITH REGISTERED C TYPE struct Money*
-USING LOOP for(iter = base; iter != NULL; iter = iter->next)$
+USING LOOP for(tuple_iter = base; tuple_iter != NULL; tuple_iter = tuple_iter->next)$
 //.cpp C TYPE vector<Money>;
 
 CREATE VIRTUAL TABLE MoneyList
 USING STRUCT VIEW Money
 WITH REGISTERED C NAME money
 WITH REGISTERED C TYPE struct Money*
-USING LOOP for(iter = base; iter != NULL; iter = iter->next)$ 
+USING LOOP for(tuple_iter = base; tuple_iter != NULL; tuple_iter = tuple_iter->next)$ 
 //.cpp C TYPE vector<Money>;
 
 CREATE STRUCT VIEW MonetarySystem (
@@ -85,21 +85,21 @@ CREATE VIRTUAL TABLE MoneyArray
 USING STRUCT VIEW Money
 WITH REGISTERED C NAME money_array
 WITH REGISTERED C TYPE MoneyArray:struct Money *
-USING LOOP for(iter = base->mArray[mar]; mar < base->mArraySize; MoneyArray_advance(iter, base->mArray, ++mar))$
+USING LOOP for(tuple_iter = base->mArray[mar]; mar < base->mArraySize; MoneyArray_advance(tuple_iter, base->mArray, ++mar))$
 
 CREATE STRUCT VIEW Number (
-	number INT FROM self
+	number INT FROM tuple_iter
 )$
 
 CREATE VIRTUAL TABLE Number
 USING STRUCT VIEW Number
 WITH REGISTERED C NAME numbers
 WITH REGISTERED C TYPE int*
-USING LOOP for(iter = &base[num]; num < 8; Number_advance(iter, base, ++num))$
+USING LOOP for(tuple_iter = &base[num]; num < 8; Number_advance(tuple_iter, base, ++num))$
 
 
 CREATE VIRTUAL TABLE ENumber
 USING STRUCT VIEW Number
 WITH REGISTERED C NAME int_array
 WITH REGISTERED C TYPE MoneyArray:int*
-USING LOOP for(iter = &base->intArray[enm]; enm < base->iArraySize; Number_advance(iter, base->intArray, ++enm))$
+USING LOOP for(tuple_iter = &base->intArray[enm]; enm < base->iArraySize; Number_advance(tuple_iter, base->intArray, ++enm))$
