@@ -191,9 +191,9 @@ class Column
       statements.each{ |s|
         s.lstrip!
         s.rstrip!
-        if !s.match(/tuple_iter/)  # {pre,post} shouldn't contain "tuple_iter".
+        if !s.match(/tuple_iter/)  # {pre,post} shouldn't contain "tuple_iter"..for now;
           bare_access_path.empty? ? @pre_access_path << "#{s};" : @post_access_path << "#{s};"
-        else
+        else                       # if use cases dictate we will redesign.
           bare_access_path << s
         end
       }
