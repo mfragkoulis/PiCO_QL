@@ -803,6 +803,7 @@ CREATE VIRTUAL TABLE EFile_VT
 USING STRUCT VIEW File_SV
 WITH REGISTERED C TYPE struct fdtable:struct file*
 USING LOOP for (EFile_VT_begin(tuple_iter, base->fd, (bit = find_first_bit((unsigned long *)base->open_fds, base->max_fds))); bit < base->max_fds; EFile_VT_advance(tuple_iter, base->fd, (bit = find_next_bit((unsigned long *)base->open_fds, base->max_fds, bit + 1))))
+USING LOCK RCU
 $
 
 CREATE STRUCT VIEW FilesStruct_SV (
