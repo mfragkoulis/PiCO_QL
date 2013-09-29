@@ -208,7 +208,11 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
 #else
           stcsr->source = (void *)sqlite3_value_int(val);
 #endif
+<%        if $argK == "KERNEL" %>
+          if ((stcsr->source == NULL) || (!virt_addr_valid(stcsr->source))) {
+<%        else %>
           if (stcsr->source == NULL) {
+<%        end %>
 <%        if @container_class.length == 0 %>
             stcsr->size = 1;
 <%	  else %>
