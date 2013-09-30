@@ -42,8 +42,10 @@ class Column
     @saved_results_index = -1 # Required for naming the particular 
                               # saved results instance.
     @pre_access_path = ""     # Pre-access path statements in code block format.
+			      # No DSL keywords are allowed (for now).
     @access_path = ""         # The access statement for the column value.
     @post_access_path = ""    # Post-access path statements in code block format.
+			      # No DSL keywords are allowed (for now).
     @tokenized_access_path = Array.new # Access path tokens to check for 
                                        # NULLs.
     @col_type = "object"      # Record type (pointer or reference) for 
@@ -74,7 +76,8 @@ class Column
   def construct(name, data_type, cpp_data_type, 
                 related_to, fk_method_ret, 
       		fk_col_type, saved_results_index,
-                access_path, 
+                pre_access_path, access_path,
+		post_access_path,
 		type, line, ucase)
     @name = name
     @data_type = data_type
@@ -83,8 +86,10 @@ class Column
     @fk_method_ret = fk_method_ret
     @fk_col_type = fk_col_type
     @saved_results_index = saved_results_index
+    @pre_access_path = pre_access_path
     @access_path = access_path
     process_access_path() 
+    @post_access_path = post_access_path
     @col_type = type
     @line = line
     @case = ucase
@@ -227,10 +232,10 @@ class Column
            @access_path.match(/tuple_iter\.(.+)->(.+),/) ||
            @access_path.match(/tuple_iter\.(.+)->(.+)\)/)
           case @access_path
-          when /tuple_iter->(.+?),(.+)\)/
+          when /tuple_iter->(.+?),(.+)\)/    # Skipping checks here; not good.
             matchdata = @access_path.match(/tuple_iter->(.+?),(.+)\)/)
-          when /tuple_iter->(.+?)\)/
-            matchdata = @access_path.match(/tuple_iter->(.+?)\)/)
+          when /tuple_iter->(.+)\)/
+            matchdata = @access_path.match(/tuple_iter->(.+)\)/)
           when /tuple_iter->(.+)/			# Introduced with code block
             matchdata = @access_path.match(/tuple_iter->(.+)/)
           when /tuple_iter\.(.+)->(.+),/
@@ -324,7 +329,9 @@ class Column
                                       coln.fk_method_ret,
                                       coln.fk_col_type.clone,
                                       coln.saved_results_index,
+                                      coln.pre_access_path.clone, 
                                       access_path, 
+                                      coln.post_access_path.clone, 
                                       coln.col_type.clone,
                                       coln.line,
                                       coln.case)
