@@ -1319,18 +1319,14 @@ class VirtualTable
     root = String.new(iden)
     root.gsub!(/^&/, "")
     token_ac_p.each_index {|tap|
-      tapc = String.new(token_ac_p[tap])
-      if tapc.match(/(^[^\.])(.+)\.(\w+)$/)    # tuple_iter->arch.vpit == NULL
-        tapc.gsub!(/(^[^\.])\.(\w+)$/, "")
-      end
       if token_ac_p.length == 1
-        fw.print "#{space}if (#{root}#{tapc} == NULL) "
+        fw.print "#{space}if (#{root}#{token_ac_p[0]} == NULL) "
       elsif token_ac_p.length > 1 && tap == 0
-        fw.print "#{space}if ((#{root}#{tapc} == NULL) "
+        fw.print "#{space}if ((#{root}#{token_ac_p[0]} == NULL) "
       elsif token_ac_p.length > 1 && tap > 0 && tap < token_ac_p.length - 1
-        fw.print "|| (#{root}#{tapc} == NULL) "
+        fw.print "|| (#{root}#{token_ac_p[tap]} == NULL) "
       elsif token_ac_p.length > 1 && tap == token_ac_p.length - 1
-        fw.print "|| (#{root}#{tapc} == NULL)) "
+        fw.print "|| (#{root}#{token_ac_p[tap]} == NULL)) "
       end
     }
     if token_ac_p.length > 0
