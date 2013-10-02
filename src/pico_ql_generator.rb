@@ -570,7 +570,8 @@ class VirtualTable
 # from user?
     columns.each_index { |col|
       fw.puts "#{space}    case #{columns[col].case}:"
-      space.concat("  ")
+      fw.puts "#{space}      {"
+      space.concat("    ")
       sqlite3_type = "retrieve"
       column_cast = ""
       sqlite3_parameters = ""
@@ -631,7 +632,8 @@ class VirtualTable
                        tokenized_access_path_col, 
                        space)
       end
-      space.chomp!("  ")
+      space.chomp!("    ")
+      fw.puts "#{space}      }"     # close case
     }
     fw.puts "#{space}    }"
     fw.puts "#{space}    break;"
@@ -677,7 +679,7 @@ class VirtualTable
     sub_keywords(pre_ap, nil, iden_block)
     post_ap = String.new(post_access_path)
     sub_keywords(post_ap, nil, iden_block)
-    null_check_action = "{\n#{space}      sqlite3_result_null(con);\n#{space}      break;\n#{space}      }"
+    null_check_action = "{\n#{space}        sqlite3_result_null(con);\n#{space}        break;\n#{space}      }"
     display_null_check(tokenized_access_path,
                        iden,
                        null_check_action,
@@ -789,7 +791,6 @@ class VirtualTable
     sub_keywords(pre_ap, nil, iden_block)
     post_ap = String.new(post_access_path)
     sub_keywords(post_ap, nil, iden_block)
-    fw.puts "#{space}    {"
     fw.puts "#{space}      long base_prov = 0;"
     if $argLB == "CPP"
       fw.puts "#ifdef PICO_QL_HANDLE_POLYMORPHISM"
@@ -834,7 +835,7 @@ class VirtualTable
       fw.puts "#{space}      int j = 0;"
       fw.puts "#{space}      struct Vtbl *chargeVT#{col};"
     end
-    null_check_action = "{\n#{space}      sqlite3_result_null(con);\n#{space}      break;\n#{space}      }"
+    null_check_action = "{\n#{space}        sqlite3_result_null(con);\n#{space}        break;\n#{space}      }"
     display_null_check(tokenized_access_path,
                        iden,
                        null_check_action,
@@ -903,7 +904,6 @@ class VirtualTable
       end
     end
     fw.puts "#{space}      break;"
-    fw.puts "#{space}    }"
   end
 
 # Method performs case analysis to generate 
@@ -982,6 +982,7 @@ class VirtualTable
     fw.puts "  switch (nCol) {"
     @columns.each_index { |col|
       fw.puts "  case #{col}:"
+      fw.puts "    {"
       sqlite3_type = "retrieve"
       column_cast = ""
       sqlite3_parameters = ""
@@ -1008,15 +1009,15 @@ class VirtualTable
       when "base"
         fw.puts "#ifdef ENVIRONMENT64"
         # sqlite3_type = "int64" always in this case.
-        fw.puts "    sqlite3_result_#{sqlite3_type}(con, #{column_cast}any_dstr);"
+        fw.puts "      sqlite3_result_#{sqlite3_type}(con, #{column_cast}any_dstr);"
         fw.puts "#else"
         # sqlite3_parameters = "int" always in this case.
-        fw.puts "    sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}any_dstr);"
+        fw.puts "      sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}any_dstr);"
         fw.puts "#endif"
-        fw.puts "    break;"
+        fw.puts "      break;"
       when "rownum"
-        fw.puts "    sqlite3_result_#{sqlite3_type}(con, rs->offset);"
-        fw.puts "    break;"
+        fw.puts "      sqlite3_result_#{sqlite3_type}(con, rs->offset);"
+        fw.puts "      break;"
       when "fk"
         fk_retrieve(fw, access_path, 
                     pre_access_path,
@@ -1037,13 +1038,14 @@ class VirtualTable
                      column_cast_back, 
                      sqlite3_parameters, 
                      column_cast,
-                     line, "")
+                     line, "  ")
       when "union"
         union_view_name = fk_col_name
         union_retrieve(fw, union_view_name, iden, 
                        access_path, 
-                       token_ac_p, "")
+                       token_ac_p, "  ")
       end
+      fw.puts "    }"  # close case
     }
   end
 
@@ -1336,62 +1338,62 @@ class VirtualTable
 
 # Generate code for rownum column
   def gen_rownum(fw)
-    fw.puts "      rowNum = sqlite3_value_int(val);"
+    fw.puts "        rowNum = sqlite3_value_int(val);"
     if !@@C_container_types.include?(@container_class)
-      fw.puts "      if (rowNum > (int)rs->resBts.size()) {"
+      fw.puts "        if (rowNum > (int)rs->resBts.size()) {"
     else
-      fw.puts "      #{display_loop("any_dstr")} {"
-      fw.puts "#{$s}if (rowNum == i) {"
+      fw.puts "        #{display_loop("any_dstr")} {"
+      fw.puts "#{$s}  if (rowNum == i) {"
       if $argLB == "CPP"
-        fw.puts "#{$s}  found = true;"
+        fw.puts "#{$s}    found = true;"
       else
-        fw.puts "#{$s}  found = 1;"
+        fw.puts "#{$s}    found = 1;"
       end
-      fw.puts "#{$s}  break;"
-      fw.puts "#{$s}}"
-      fw.puts "#{$s}i++;"
-      fw.puts "      }"
+      fw.puts "#{$s}    break;"
+      fw.puts "#{$s}  }"
+      fw.puts "#{$s}  i++;"
+      fw.puts "        }"
       for i in 0..@nloops-1    # Generate closing curly braces for nested loops
-        fw.puts "      }"
+        fw.puts "        }"
       end
-      fw.puts "      if (!found) {"
+      fw.puts "        if (!found) {"
     end
-    fw.puts "        rs->res.clear();"
-    fw.puts "        rs->resBts.clear();"
-    fw.puts "        return SQLITE_OK;" 
-    fw.puts "      }"
+    fw.puts "          rs->res.clear();"
+    fw.puts "          rs->resBts.clear();"
+    fw.puts "          return SQLITE_OK;" 
+    fw.puts "        }"
     if !@@C_container_types.include?(@container_class)
-      fw.puts "      tuple_iter = any_dstr->begin();"
-      fw.puts "      for (int i = 0; i < rowNum; i++)"
-      fw.puts "        tuple_iter++;"
+      fw.puts "        tuple_iter = any_dstr->begin();"
+      fw.puts "        for (int i = 0; i < rowNum; i++)"
+      fw.puts "          tuple_iter++;"
     end
-    fw.puts "      if (first_constr == 1) {"
+    fw.puts "        if (first_constr == 1) {"
     if @@C_container_types.include?(@container_class)
-      fw.puts "#{$s}rs->resBts.resize(rowNum + 1, 0);"
+      fw.puts "#{$s}  rs->resBts.resize(rowNum + 1, 0);"
     end
-    fw.puts "#{$s}rs->res.push_back(tuple_iter);"
-    fw.puts "#{$s}rs->resBts.set(rowNum, 1);"
-    fw.puts "      } else {"
-    fw.puts "#{$s}if (rs->resBts.test(rowNum)) {"
-    fw.puts "#{$s}  rs->resBts.reset();"
-    fw.puts "#{$s}  rs->resBts.set(rowNum, 1);"
-    fw.puts "#{$s}  rs->res.clear();"
     fw.puts "#{$s}  rs->res.push_back(tuple_iter);"
-    fw.puts "#{$s}  rs->resIter = rs->res.begin();"
-    fw.puts "#{$s}} else {"
-    fw.puts "#{$s}  rs->resBts.clear();"
-    fw.puts "#{$s}  rs->res.clear();"
-    fw.puts "#{$s}}"
-    fw.puts "      }"
-    fw.puts "      break;"
+    fw.puts "#{$s}  rs->resBts.set(rowNum, 1);"
+    fw.puts "        } else {"
+    fw.puts "#{$s}  if (rs->resBts.test(rowNum)) {"
+    fw.puts "#{$s}    rs->resBts.reset();"
+    fw.puts "#{$s}    rs->resBts.set(rowNum, 1);"
+    fw.puts "#{$s}    rs->res.clear();"
+    fw.puts "#{$s}    rs->res.push_back(tuple_iter);"
+    fw.puts "#{$s}    rs->resIter = rs->res.begin();"
+    fw.puts "#{$s}  } else {"
+    fw.puts "#{$s}    rs->resBts.clear();"
+    fw.puts "#{$s}    rs->res.clear();"
+    fw.puts "#{$s}  }"
+    fw.puts "        }"
+    fw.puts "        break;"
   end
 
   def gen_base(fw)
-    fw.puts "      if (first_constr == 1) {"
+    fw.puts "        if (first_constr == 1) {"
     iterationF, useless = configure_iteration("")
     add_to_result_setF, useless = configure_result_set
     if @container_class.length > 0
-      fw.puts "#{iterationF.gsub(/<space>/, "#{$s}")}"
+      fw.puts "#{iterationF.gsub(/<space>/, "#{$s}  ")}"
     end
 # Customizing..each gsub targets a single case so safe.
 # CPP, C_containers
@@ -1410,12 +1412,12 @@ class VirtualTable
 # CPP, CPP_containers
     add_to_result_setF.gsub!(/\n<space>  index\+\+;/, "")
     add_to_result_setF.gsub!(/index/, "index++")
-    fw.puts "#{add_to_result_setF.gsub("<space>", "      ")}"
-    fw.puts "      } else {"
-    fw.puts "#{$s}printf(\"Constraint for BASE column on embedded data structure has not been placed first. Exiting now.\\n\");"
-    fw.puts "#{$s}return SQLITE_MISUSE;"
-    fw.puts "      }"
-    fw.puts "      break;"
+    fw.puts "#{add_to_result_setF.gsub("<space>", "        ")}"
+    fw.puts "        } else {"
+    fw.puts "#{$s}  printf(\"Constraint for BASE column on embedded data structure has not been placed first. Exiting now.\\n\");"
+    fw.puts "#{$s}  return SQLITE_MISUSE;"
+    fw.puts "        }"
+    fw.puts "        break;"
   end
   
   def gen_union_col_constr(fw, union_view_name, 
@@ -1437,7 +1439,7 @@ class VirtualTable
       end 
     }
     space = ""
-    space.replace($s)
+    space.replace("#{$s}  ")
     if @container_class.length > 0
       space.concat("  ")
     end
@@ -1460,7 +1462,8 @@ class VirtualTable
     fw.puts "#{space}switch (#{root_access_path}#{switch}) {"
     columns.each { |col|
       fw.puts "#{space}case #{col.case}:"
-      space.concat("  ")
+      fw.puts "#{space}  {"
+      space.concat("    ")
       sqlite3_type = "search"
       column_cast = ""
       sqlite3_parameters = ""
@@ -1546,6 +1549,8 @@ class VirtualTable
       end
       fw.puts "#{space}break;"
       space.chomp!("  ")
+      fw.puts "#{space}}"   # close case
+      space.chomp!("  ")
     }
     fw.puts "#{space}}"
   end
@@ -1556,8 +1561,8 @@ class VirtualTable
     full_union_access_pathF, full_union_access_pathN, idenF, idenN = configure_search("union", union_access_path, col_type)
     add_to_result_setF, add_to_result_setN = configure_result_set()
     iterationF, iterationN = configure_iteration("")
-    fw.puts "      if (first_constr == 1) {"
-    space = "#{$s}"
+    fw.puts "        if (first_constr == 1) {"
+    space = "#{$s}  "
     if @container_class.length > 0
       add_to_result_setF.chomp!("\n<space>}")
       add_to_result_setN.chomp!("\n<space>}")
@@ -1575,12 +1580,12 @@ class VirtualTable
                          add_to_result_setF, 
                          iteration, notC)
     if @container_class.length > 0
-      fw.puts "#{$s}}"
-      fw.puts "      } else {"
+      fw.puts "#{$s}  }"
+      fw.puts "        } else {"
       fw.puts "#{iterationN.gsub(/<space>/, "#{space}")}"
 #      space.concat("  ")
     else
-      fw.puts "      } else if (stcsr->size == 1) {"
+      fw.puts "        } else if (stcsr->size == 1) {"
     end
     notC = "!"
     un_ac_t.clear
@@ -1592,10 +1597,10 @@ class VirtualTable
                          add_to_result_setN, 
                          iteration, notC)
     if @container_class.length > 0
-      fw.puts "#{$s}}"
+      fw.puts "#{$s}  }"
     end
-    fw.puts "      }"
-    fw.puts "      break;"
+    fw.puts "        }"
+    fw.puts "        break;"
   end
 
   def gen_all_constr(fw, column_cast, access_path, 
@@ -1649,11 +1654,11 @@ class VirtualTable
     iterationF = ""
     iterationN = ""
     space = ""
-    space.replace($s)
+    space.replace("#{$s}  ")
     access_pathF, access_pathN, idenF, idenN = configure_search("all", access_path, "")
     add_to_result_setF, add_to_result_setN = configure_result_set()
     iterationF, iterationN = configure_iteration(access_path)
-    fw.puts "      if (first_constr == 1) {"
+    fw.puts "        if (first_constr == 1) {"
     notC = ""
     token_ac_p = Array.new
     array_string_copy_deep(tokenized_access_path, token_ac_p)
@@ -1666,9 +1671,9 @@ class VirtualTable
                    add_to_result_setF, 
                    line, space)
     if @container_class.length > 0
-      fw.puts "      } else {"
+      fw.puts "        } else {"
     else
-      fw.puts "      } else if (stcsr->size == 1) {"
+      fw.puts "        } else if (stcsr->size == 1) {"
     end
     notC = "!"
     token_ac_p.clear
@@ -1681,8 +1686,8 @@ class VirtualTable
                    sqlite3_type, notC, iterationN, 
                    add_to_result_setN, 
                    line, space)
-    fw.puts "      }"
-    fw.puts "      break;"    
+    fw.puts "        }"
+    fw.puts "        break;"    
   end
 
   def temp_support(access_path)
@@ -1714,10 +1719,6 @@ class VirtualTable
     sub_keywords(pre_ap, nil, nil)
     post_ap = String.new(post_access_path_col)
     sub_keywords(post_ap, nil, nil)
-    if $argM == "MEM_MGT" && fk_method_ret == 1
-      fw.puts "#{space}{"
-      space.concat("  ")
-    end
     if @container_class.length > 0
       if iteration.length > 0
         fw.puts "#{iteration.gsub("<space>", "#{space}")}"
@@ -1777,10 +1778,6 @@ class VirtualTable
     if @container_class.length == 0
       space.chomp!("  ")
     end
-    if $argM == "MEM_MGT" && fk_method_ret == 1
-      fw.puts "#{space}}"
-      space.chomp!("  ")
-    end
   end
 
   def gen_fk(fw, fk_type, fk_method_ret, 
@@ -1799,8 +1796,8 @@ class VirtualTable
     access_pathF, access_pathN, idenF, idenN = configure_search("fk", access_path, fk_type)
     add_to_result_setF, add_to_result_setN = configure_result_set()
     iterationF, iterationN = configure_iteration(access_path)
-    fw.puts "      if (first_constr) {"
-    space.replace($s)
+    fw.puts "        if (first_constr) {"
+    space.replace("#{$s}  ")
     notC = ""
     token_ac_p = Array.new
     array_string_copy_deep(tokenized_access_path, token_ac_p)
@@ -1817,9 +1814,9 @@ class VirtualTable
                       add_to_result_setF, 
                       space, notC, iterationF)
     if @container_class.length > 0
-      fw.puts "      } else {"
+      fw.puts "        } else {"
     else
-      fw.puts "      } else if (stcsr->size == 1) {"
+      fw.puts "        } else if (stcsr->size == 1) {"
     end
     space.concat("  ")
     notC = "!"
@@ -1837,8 +1834,8 @@ class VirtualTable
                       sqlite3_parameters, line, 
                       add_to_result_setN, 
                       space, notC, iterationN)
-    fw.puts "      }"
-    fw.puts "      break;"
+    fw.puts "        }"
+    fw.puts "        break;"
   end
 
 # Generates code to search each VT struct.
@@ -1847,6 +1844,7 @@ class VirtualTable
     fw.puts "    switch (nCol) {"
     @columns.each_index { |col|
       fw.puts "    case #{col}:"
+      fw.puts "      {"
       sqlite3_type = "search"
       column_cast = ""
       sqlite3_parameters = ""
@@ -1900,6 +1898,7 @@ class VirtualTable
       when "rownum"
         gen_rownum(fw)
       end
+      fw.puts "      }"   # close case 
     }
     fw.puts "    }"
   end
