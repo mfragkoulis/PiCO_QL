@@ -893,7 +893,7 @@ class VirtualTable
     else
       fw.puts "#{space}      while ((j < (int)vtAll.size) && (strcmp(vtAll.instanceNames[j], \"#{fk_col_name}\"))) {j++;}"
       fw.puts "#{space}      if (j == (int)vtAll.size) {"
-      fw.puts "#{space}        printf(\"In search: VT %s not registered.\\nExiting now.\\n\", ((picoQLTable *)cur->pVtab)->zName);"
+      fw.puts "#{space}        printf(\"In #{@name}_vt_retrieve(): VT #{fk_col_name} not registered.\\nExiting now.\\n\");"
       fw.puts "#{space}        return SQLITE_ERROR;"
       fw.puts "#{space}      }"
       fw.puts "#{space}      chargeVT#{col} = vtAll.instances[j];"

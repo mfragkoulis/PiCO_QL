@@ -20,7 +20,7 @@ int <%= @name %>_vt_retrieve (sqlite3_vtab_cursor *cur, int nCol, sqlite3_contex
 <%    end %>
   while ((cr < (int)cursorsSize) && (cursors[cr]->cur != cur)) {cr++;}
   if (cr == (int)cursorsSize) {
-    printf("In <%= @name %>_vt_next_resultSet: Cursor %li not registered.\nExiting now.\n", (long int)cur);
+    printf("In <%= @name %>_vt_retrieve: Cursor %li not registered.\nExiting now.\n", (long int)cur);
     return SQLITE_ERROR;
   }
 <%    if @container_class.length > 0 %>
