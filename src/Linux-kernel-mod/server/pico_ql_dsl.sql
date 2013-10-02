@@ -171,7 +171,6 @@ int check_vmx(void *dummy) {
   return cpu_has_vmx();
 }
 
-char *msg;
 char *check_svm(void *dummy, char *msg) {
   (void)dummy;
   if (cpu_has_svm((const char **)&msg))
@@ -981,7 +980,7 @@ $
 
 CREATE STRUCT VIEW KVMVCPU_SV (
         cpu_has_vmx INT FROM check_vmx(tuple_iter),
-        cpu_has_svm TEXT FROM {msg = (char *)sqlite3_malloc(sizeof(char) * PAGE_SIZE/4);  // defined globally on top
+        cpu_has_svm TEXT FROM {char *msg = (char *)sqlite3_malloc(sizeof(char) * PAGE_SIZE/4);  // defined globally on top
                                check_svm(tuple_iter, msg);
                                sqlite3_free(msg);},
         cpu INT FROM cpu,
@@ -1045,7 +1044,7 @@ $
 #if KERNEL_VERSION >= 3.2.0
 CREATE STRUCT VIEW XenStats_SV (
         cpu_has_vmx INT FROM check_vmx(tuple_iter),
-        cpu_has_svm TEXT FROM {msg = (char *)sqlite3_malloc(sizeof(char) * PAGE_SIZE/4);  // defined globally on top
+        cpu_has_svm TEXT FROM {char *msg = (char *)sqlite3_malloc(sizeof(char) * PAGE_SIZE/4);  // defined globally on top
                                check_svm(tuple_iter, msg);
                                sqlite3_free(msg);},
         cur_pages BIGINT FROM current_pages,
