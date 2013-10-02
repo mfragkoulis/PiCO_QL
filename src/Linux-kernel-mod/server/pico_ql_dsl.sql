@@ -17,9 +17,9 @@
 #include <linux/net.h>
 #include <net/ip_vs.h>
 #include <net/net_namespace.h>
-#include <linux/skbuff.h>
-#include <xen/balloon.h>
-#include <asm/virtext.h>    // cpu_has_vmx(), cpu_has svm()
+#include <linux/skbuff.h>   // Network data
+#include <xen/balloon.h>    /* Xen balloon stats */
+#include <asm/virtext.h>    /* cpu_has_vmx(), cpu_has svm() */
 #include <linux/kvm_host.h>
 #define __NO_VERSION__      
 #define EIpVsStatsEstim_VT_decl(X) struct ip_vs_estimator *X
@@ -363,14 +363,15 @@ CREATE STRUCT VIEW VirtualMem_SV (
        arg_end BIGINT FROM arg_end,
        env_start BIGINT FROM env_start,
        env_end BIGINT FROM env_end,
-//       FOREIGN KEY(rss_stat_id) FROM rss_stat REFERENCES ,
-//       faultstamp INT FROM faultstamp,
-//       token_priority INT FROM token_priority,
-//       last_interval INT FROM last_interval,
+/*       FOREIGN KEY(rss_stat_id) FROM rss_stat REFERENCES ,
+         faultstamp INT FROM faultstamp,
+         token_priority INT FROM token_priority,
+         last_interval INT FROM last_interval,
+*/
        flags BIGINT FROM flags,
-//     FOREIGN KEY(process_owner_id) FROM owner REFERENCES EProcess_VT POINTER, CONFIG_MM_OWNER 
-//     FOREIGN KEY(exe_file_id) FROM exe_file REFERENCES FILE POINTER,  
-//       num_exe_file_vmas BIGINT FROM num_exe_file_vmas,
+/*     FOREIGN KEY(process_owner_id) FROM owner REFERENCES EProcess_VT POINTER, CONFIG_MM_OWNER 
+       FOREIGN KEY(exe_file_id) FROM exe_file REFERENCES FILE POINTER,  
+       num_exe_file_vmas BIGINT FROM num_exe_file_vmas, */
        locked INT FROM mmap_sem.count
 )
 $
@@ -579,10 +580,11 @@ WITH REGISTERED C TYPE struct net$
 
 CREATE STRUCT VIEW Nsproxy_SV (
        count INT FROM count.counter,
-//      FOREIGN KEY(uts_ns_id) FROM uts_ns REFERENCES EUtsNs POINTER,
-//       FOREIGN KEY(ipc_ns_id) FROM ipc_ns REFERENCES EIpcNs POINTER,
-//       FOREIGN KEY(mount_ns_id) FROM mnt_ns REFERENCES EMountNs POINTER,
-//       FOREIGN KEY(pid_ns_id) FROM pid_ns REFERENCES EPidNs POINTER,
+/*      FOREIGN KEY(uts_ns_id) FROM uts_ns REFERENCES EUtsNs POINTER,
+        FOREIGN KEY(ipc_ns_id) FROM ipc_ns REFERENCES EIpcNs POINTER,
+        FOREIGN KEY(mount_ns_id) FROM mnt_ns REFERENCES EMountNs POINTER,
+        FOREIGN KEY(pid_ns_id) FROM pid_ns REFERENCES EPidNs POINTER,
+*/
        FOREIGN KEY(net_ns_id) FROM net_ns REFERENCES ENetNamespace_VT POINTER,
 )
 $

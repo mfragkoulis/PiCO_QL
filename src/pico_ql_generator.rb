@@ -2570,7 +2570,7 @@ class InputDescription
     token_d = @description
     token_d = token_d.select { |x| x =~ /(\S+)/ }
     token_d[0].lstrip!
-    if token_d[0].start_with?("#include")
+    if token_d[0].start_with?("#include") # Perhaps .match
       @directives = token_d[0]
       token_d.delete_at(0)
       if $argD == "DEBUG"
@@ -2583,8 +2583,11 @@ class InputDescription
         puts "Directives: #{@directives}"
       end
     end
-    token_d.each { |x|            # Cleaning white space.
-      if /\n|\t|\r|\f/.match(x)
+    token_d.each { |x|            
+      if /\/\*(.+?)\*\//m.match(x)   # Cleaning multi-line comments.
+        x.gsub!(/\/\*(.+?)\*\//m, "") 
+      end
+      if /\n|\t|\r|\f/.match(x)   # Cleaning white space.
         x.gsub!(/\n|\t|\r|\f/, " ") 
       end
       x.lstrip!
@@ -2717,9 +2720,8 @@ if __FILE__ == $0
   }
   begin
     $lined_description = File.open($argF, "r") { |fw| 
-      fw.readlines.each{ |line| 
-        # Drop single-line comments, multi-line comments not supported.
-        if line.match(/\/\/(.+)/)
+      fw.readlines.each{ |line|   # Drop single-line comments, but
+        if line.match(/\/\/(.+)/) # multi-line comments retained in upper part.
           line.gsub!(/\/\/(.+)/, "")
         end
       }
