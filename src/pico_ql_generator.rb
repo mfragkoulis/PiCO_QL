@@ -2570,11 +2570,11 @@ class InputDescription
     token_d = @description
     token_d = token_d.select { |x| x =~ /(\S+)/ }
     token_d[0].lstrip!
-    if token_d[0].start_with?("#include") # Perhaps .match
-      @directives = token_d[0]
-      token_d.delete_at(0)
+    if token_d[0].match(/#include|#ifndef|#define/) # Acknowledge boilerplate C
+      @directives = token_d[0]			     # code section in the upper
+      token_d.delete_at(0)			     # part of the DSL description.
       if $argD == "DEBUG"
-        line = 0              # Put line directives in include directives.
+        line = 0        	      # Put line directives in include directives.
         if @directives.match(/\n/)
           @directives.gsub!(/\n/){ |nl|
             "\n#line #{(line += 1).to_s} \"#{$argF}\"" + nl
@@ -2584,10 +2584,10 @@ class InputDescription
       end
     end
     token_d.each { |x|            
-      if /\/\*(.+?)\*\//m.match(x)   # Cleaning multi-line comments.
-        x.gsub!(/\/\*(.+?)\*\//m, "") 
+      if /\/\*(.+?)\*\//m.match(x)  		 # Cleaning multi-line comments
+        x.gsub!(/\/\*(.+?)\*\//m, "") 		 # from the body of the DSL description.
       end
-      if /\n|\t|\r|\f/.match(x)   # Cleaning white space.
+      if /\n|\t|\r|\f/.match(x)   		# Cleaning white space.
         x.gsub!(/\n|\t|\r|\f/, " ") 
       end
       x.lstrip!
@@ -2731,8 +2731,7 @@ if __FILE__ == $0
     puts e.message
     exit(1)
   end
-  # Strip white-space.
-  $lined_description.each { |line|
+  $lined_description.each { |line|  # Strip white-space.
     line.squeeze!(" ")
     if / ,|, /.match(line)
       line.gsub!(/ ,|, /, ",") 
@@ -2760,7 +2759,7 @@ if __FILE__ == $0
       if $argD == "DEBUG"
         puts "Result of condition is: #{m}\n"
       end
-      "#{m}"
+      "#{m}"   # The actual substitution.
     }
   end
   begin
@@ -2769,7 +2768,7 @@ if __FILE__ == $0
     puts "Invalid description..delimeter '$' not used."
     exit(1)
   end
-  $s = "        "
+  $s = "        "    # Global variable for space abbreviation.
   ip = InputDescription.new(token_description)
   ip.register_datastructures()
   ip.generate()
