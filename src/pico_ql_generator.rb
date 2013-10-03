@@ -451,15 +451,15 @@ class VirtualTable
                           # identifier is defined.
     @signature_line = 0   # Line in DSL description that the C TYPE 
                           # identifier is defined.
-    @base_var = ""        # Name of the base variable alive at C++ app.
+    @base_var = ""        # Base variable registration id provided 
+			  # at DSL description and at application code.
     @struct_view          # Reference to the respective 
                           # struct_view definition.
     @signature = ""       # The C/C++ signature of the (base) struct.
     @assignable_signature = ""  # The C/C++assignable signature of the (base) struct.
                                 # Different only for multi-dimensional C arrays.
     @signature_pointer = "" # Signature is of type pointer? ("*")
-    @container_class = "" # If a container instance as per 
-                          # the SGI container concept.
+    @container_class = "" # A C/C++ container instance. 
     @type = ""            # The record type for the VT. 
                           # Use @type for management. It is active for 
                           # both container and object.
@@ -510,7 +510,7 @@ class VirtualTable
     @@C_container_types
   end
 
-# Support templating of member data
+# Get the context of code evaluation.
   def get_binding
     binding
   end
@@ -1940,7 +1940,7 @@ class VirtualTable
       if $lined_description[line].match(/with registered c type #{Regexp.escape(@signature)}/i)
         @signature_line = line
         if $argD == "DEBUG"
-          puts"LINE is #{$lined_description[line]}"
+          puts "LINE is #{$lined_description[line]}"
           puts "Virtual table's C TYPE found at line #{@signature_line + 1} of #{$argF}"
         end
         break
@@ -1956,10 +1956,8 @@ class VirtualTable
   def verify_signature()
     begin
       case @signature
-      when /(\w+)<(.+)>(\**):(.+)/m
-# Negative lookahead does not work for ':(?!:). 
-# So hacking it non-elegantly. Seek alternative.'
-        @signature.gsub!(/:{3}/, "[DDD]")
+      when /(\w+)<(.+)>(\**):(.+)/m       # Negative lookahead does not work for ':(?!:). 
+        @signature.gsub!(/:{3}/, "[DDD]") # So hacking it non-elegantly. Seek alternative.'
         @signature.gsub!(/:{2}/, "[DD]")
         if @signature.match(/(.+):(.+)/)
           matchdata = @signature.match(/(.+):(.+)/)
@@ -2009,13 +2007,13 @@ class VirtualTable
         end
       when /(\w+)\*|(\w+)/
         if @signature.match(/(.+):(.+)/) && !@signature.match(/::/)
-          matchdata = @signature.match(/(.+):(.+)/)
+          matchdata = @signature.match(/(.+):(.+)/) # C container.
           @signature = matchdata[1]
           @type = matchdata[2]
           @signature.rstrip!
           @type.rstrip!
-          if !@signature.end_with?("*")
-            if !@signature.end_with?("]")   # Not an array
+          if !@signature.end_with?("*")     # How sound is this block?
+            if !@signature.end_with?("]")   # Not an array.
               @signature.concat("*")
             else
               if !@signature.match(/\(\*\)(\s*)\[/)
@@ -2036,7 +2034,7 @@ class VirtualTable
           @type = @signature
           @pointer = @signature_pointer
         end
-        if @loop.length > 0
+        if @loop.length > 0                # C style container.
           @container_class = "c_container"
         else
           @object_class = @signature
@@ -2048,13 +2046,13 @@ class VirtualTable
         @assignable_signature = @signature
       end
       if $argD == "DEBUG"
-        puts "Table object class name : " + @object_class
-        puts "Table container class name : " + @container_class
-        puts "Table base is of type : " + @signature
-        puts "Table assignable base is of type : " + @assignable_signature
-        puts "Table base is pointer: " + @signature_pointer
-        puts "Table record is of type: " + @type
-        puts "Table type is of type pointer: " + @pointer
+        puts "Table object class name : #{@object_class}"
+        puts "Table container class name : #{@container_class}"
+        puts "Table base is of type : #{@signature}"
+        puts "Table assignable base is of type : #{@assignable_signature}"
+        puts "Table base is pointer: #{@signature_pointer}"
+        puts "Table record is of type: #{@type}"
+        puts "Table type is of type pointer: #{@pointer}"
       end
     rescue
       puts "Template instantiation faulty: #{@signature}.\n"
@@ -2435,7 +2433,7 @@ class InputDescription
   end
   attr_accessor(:description,:tables,:views,:directives)
 
-# Support templating of member data
+# Get the context of code evaluation.
   def get_binding
     binding
   end
