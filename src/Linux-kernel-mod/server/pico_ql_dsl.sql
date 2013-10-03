@@ -1,3 +1,4 @@
+#define __NO_VERSION__      
 #include <linux/version.h>
 #include <linux/sched.h>
 #include <linux/fdtable.h>
@@ -21,7 +22,6 @@
 #include <xen/balloon.h>    /* Xen balloon stats */
 #include <asm/virtext.h>    /* cpu_has_vmx(), cpu_has svm() */
 #include <linux/kvm_host.h>
-#define __NO_VERSION__      
 #define EIpVsStatsEstim_VT_decl(X) struct ip_vs_estimator *X
 #define Process_VT_decl(X) struct task_struct *X
 #define EProcessChild_VT_decl(X) struct task_struct *X
