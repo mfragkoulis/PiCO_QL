@@ -38,28 +38,23 @@ size_t <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, sqlite3_vtab *vtab
 int <%= @name %>_vt::operator() (sqlite3_vtab *vtab, sqlite3_vtab_cursor *cur) {
   picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
 <%      if !@lock.empty? %>
-<%        $locks.each { |l| %>
-<%          if l.name == @lock_name %>
   picoQLTable *picoQL = (picoQLTable *)vtab;
   if (!picoQL->locked) {
-<%            if !@lock_argument.empty? %>
-<%              if /\*/.match(@signature_pointer) == nil %>
+<%        if !@lock_argument.empty? %>
+<%          if /\*/.match(@signature_pointer) == nil %>
 <%                sign_retype = "#{@signature}*" %>
-<%              else %>
+<%          else %>
 <%                sign_retype = "#{@signature}" %>
-<%              end %>
-<%              if !@base_var.empty? %>
+<%          end %>
+<%          if !@base_var.empty? %>
     <%= sign_retype %> any_dstr = (<%= sign_retype %>)stcsr->source;
-    <%= l.lock_function %>(<%= @lock_argument %>);
-<%              end %>
-<%            else %>
-    <%= l.lock_function %>();
-<%            end %>
+    <%= @lock_class.lock_function %>(<%= @lock_argument %>);
+<%          end %>
+<%        else %>
+    <%= @lock_class.lock_function %>();
+<%        end %>
   }
   picoQL->locked += 1;
-<%            break %>
-<%          end %>
-<%        } %>
 <%      else %>
   (void)vtab;
 <%      end %>
@@ -160,29 +155,24 @@ void <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, void *shadowRes) {
   } else
     printf("No such cursor %li inserted\n", (long int)cur);
 <%      if !@lock.empty? %>
-<%        $locks.each { |l| %>
-<%          if l.name == @lock_name %>
   picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
   if (picoQL->locked == 1) {
-<%            if !@lock_argument.empty? %>
-<%              if /\*/.match(@signature_pointer) == nil %>
+<%        if !@lock_argument.empty? %>
+<%          if /\*/.match(@signature_pointer) == nil %>
 <%                sign_retype = "#{@signature}*" %>
-<%              else %>
+<%          else %>
 <%                sign_retype = "#{@signature}" %>
-<%              end %>
+<%          end %>
     picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
     if (!stcsr->isInstanceNULL) {
       <%= sign_retype %> any_dstr = (<%= sign_retype %>)stcsr->source;
-      <%= l.unlock_function %>(<%= @lock_argument %>);
+      <%= @lock_class.unlock_function %>(<%= @lock_argument %>);
     }
-<%            else %>
-    <%= l.unlock_function %>();
-<%            end %>
+<%        else %>
+    <%= @lock_class.unlock_function %>();
+<%        end %>
   }
   picoQL->locked -= 1;
-<%            break %>
-<%          end %>
-<%        } %>
 <%      end %>
 }
 
