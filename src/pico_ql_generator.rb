@@ -464,25 +464,27 @@ class VirtualTable
                           # Use @type for management. It is active for 
                           # both container and object.
     @pointer = ""         # Is the record type pointer? ("*").
-    @iterator = ""        # Iterator name in app to use for C containers (not used). 
-    @loop = ""            # Custom loop to use for iterating custom containers
+    @loop = ""            # Custom loop to use for iterating custom containers;
                           # A uniform abstraction is defined.
-                          # generic_clist.
     @nloops = 0           # Counts nested loops
     @loop_root = ""       # Holds starting address of C array for NULL 
                           # checking C containers (linked lists, arrays etc)
                           # A uniform abstraction is defined.
-    @lock = ""            # Custom loop to use for iterating C containers
+    @lock = ""            # Custom lock to use for iterating C containers
                           # (linked lists, arrays, etc.)
                           # A uniform abstraction is defined.
-                          # generic_clist.
-    @lock_name = ""       # Lock class name.
+    @lock_class		  # Reference to Lock template class.
     @lock_argument = ""   # Actual lock to hold/release, if any.
-    @lock_root = ""       # Holds starting address of C array for NULL 
-                          # checking C containers (linked lists, arrays etc)
+    @lock_root = ""       # Holds starting address of C array for locking 
+                          # C containers (linked lists, arrays etc)
                           # A uniform abstraction is defined.
     @object_class = ""    # If an object instance.
     @columns = Array.new  # References to the VT columns.
+			  # A struct view may be used by many VTs.
+			  # A VT's set of columns includes its respective
+			  # struct view's set of columns but the sets are
+			  # not necessarily same (e.g. Process_VT and
+			  # EProcess_VT).
     @include_text_col = 0 # True if VirtualTable includes column
     		      	  # of text data type. Required for
 			  # generating code for
@@ -500,7 +502,7 @@ class VirtualTable
                 :object_class,:columns,
                 :include_text_col,
                 :C_container_types, :loop, :nloops,
-                :loop_root, :lock, :lock_name,
+                :loop_root, :lock, :lock_class,
                 :lock_argument)
 
 # Getter for static member C_container_types at class level
@@ -2064,7 +2066,7 @@ class VirtualTable
   def process_lock()
     if @lock.match(/\(/)
       matchdata = @lock.split(/\(|\)/)
-      @lock_name = matchdata[0]
+      lock_name = matchdata[0]
       if matchdata[1]
         @lock_argument = matchdata[1]
       end
@@ -2075,11 +2077,17 @@ class VirtualTable
          end
       end
     else
-      @lock_name = @lock
+      lock_name = @lock
     end
+    $locks.each { |l|
+      if l.name == "#{lock_name}"
+        @lock_class = l 
+        break
+      end
+    }
     if $argD == "DEBUG"
       puts "Processed lock is #{@lock}"
-      puts "Processed lock name is #{@lock_name}"
+      puts "Processed lock name is #{@lock_class.name}"
       puts "Processed lock argument is #{@lock_argument}"
     end
 #TODO: NULL checking
@@ -2093,15 +2101,12 @@ class VirtualTable
     @loop.chomp!("{")
     @nloops = @loop.count("{")
     if @nloops > 0
-      @loop.gsub!(/\{ /, "{\n<space>")
-# Configure spacing for nested loop.
-# Opening curly braces required.
-    end
-    if !@signature.match(/<|>/) &&
-# C container
-       @signature.match(":")
-      matchdata = @loop.split(/,|;/)
-      matchdata.each { |m|
+      @loop.gsub!(/\{ /, "{\n<space>") # Configure spacing for nested loop.
+    end 			       # Opening curly braces required.
+    if !@signature.match(/<|>/) &&     # C container.
+       @signature.match(":")           # C array possibly.
+      matchdata = @loop.split(/,|;/)   # Too loose (wide) a match
+      matchdata.each { |m|             # perhaps?
         if $argD == "DEBUG"
           puts "Matching #{m}"
         end
@@ -2119,25 +2124,18 @@ class VirtualTable
         when /base->(.+)/
           matchdata2 = m.match(/base->(.+)/)
         when /base/
-          matchdata2 = m.match(/base/)
-# see for example skb_queue_walk_safe for Linux kernel
-        end
+          matchdata2 = m.match(/base/)  # see for example skb_queue_walk_safe 
+        end			        # for Linux kernel.
         if matchdata2
-          matched = 1
-# We are insterested to catch the C container's start address.
-# Most probably it will be an array. Therefore, we hard-code '&'.
-# For arrays of primitive types, '&' will probably precede base.
-# It is discarded in the patterns and refit here.
-# Otherwise, it will probably not be there (in order to
-# talk abou the array's first element) but we want it there.
-          if matchdata2[1]
-            @loop_root = "&any_dstr->#{matchdata2[1]}"
-            if $argD == "DEBUG"
-              puts "@loop = #{@loop}"
-              puts "@nloops = #{@nloops.to_s}"
-              puts "@loop_root = #{@loop_root}"
-              puts "matchdata[0] = #{matchdata2[0]}"
-              puts "matchdata[1] = #{matchdata2[1]}"
+          matched = 1 			# We are insterested to catch the C 
+          if matchdata2[1] 		# container's start address. Most probably 
+            @loop_root = "&any_dstr->#{matchdata2[1]}" # it will be an array. Therefore, 
+            if $argD == "DEBUG" 	# we hard-code '&'. For arrays of primitive types,
+              puts "@loop = #{@loop}" 	# '&' will probably preceded 'base'. It is discarded
+              puts "@nloops = #{@nloops.to_s}"   # in the patterns and refit here. Otherwise, 
+              puts "@loop_root = #{@loop_root}"  # it will probably not be there (in order to
+              puts "matchdata[0] = #{matchdata2[0]}"   # talk about the array's first element)
+              puts "matchdata[1] = #{matchdata2[1]}"   # but we want it there.
             end
           end
           break
@@ -2234,15 +2232,15 @@ class VirtualTable
       @columns.push(Column.new("")).last.set("rownum INT FROM rownum") # ditto
     end
     @include_text_col = @struct_view.include_text_col
-    @columns = @columns | @struct_view.columns
+    @columns = @columns | @struct_view.columns  # A struct view may be used by many VTs
     register_line()
     if $argD == "DEBUG"
-      puts "Table name is: " + @name
+      puts "Table name is: #{@name}"
       puts "Table's C NAME defined at line #{@base_var_line + 1} of #{$argF}"
       puts "Table's C TYPE defined at line #{@signature_line + 1} of #{$argF}"
-      puts "Table base variable name is: " + @base_var
-      puts "Table signature name is: " + @signature
-      puts "Table follows struct_view: " + @struct_view.name
+      puts "Table base variable name is: #{@base_var}"
+      puts "Table signature name is: #{@signature}"
+      puts "Table follows struct_view: #{@struct_view.name}"
     end
   end
 
@@ -2267,12 +2265,9 @@ class StructView
     end
     pattern = /^create struct view (\w+)(\s*)\((.+)(\s*)\)/im
     matchdata = pattern.match(struct_view_description)
-    if matchdata
-      # First record of table_data contains the whole description of the 
-      # structview.
-      # Second record contains the struct view's name
-      @name = matchdata[1]
-      all_columns = String.new(matchdata[3])
+    if matchdata                     # First record of table_data contains the whole 
+      @name = matchdata[1]           # description of the structview.
+      all_columns = String.new(matchdata[3]) 
       columns_str = Array.new
       if all_columns.match(/\{(.+?)\}/)       # For access paths in code block format
         all_columns.gsub!(/\{(.+?)\}/) { |m|  # we need to substitute "," in the code
@@ -2287,7 +2282,7 @@ class StructView
       end
     end
     begin
-      columns_str.each { |x| @include_text_col += @columns.push(Column.new("")).last.set(x) }
+      columns_str.each { |c| @include_text_col += @columns.push(Column.new("")).last.set(c) }
     rescue Exception => e
       puts e.message
       exit(1)
@@ -2574,7 +2569,7 @@ class InputDescription
       @directives = token_d[0]			     # code section in the upper
       token_d.delete_at(0)			     # part of the DSL description.
       if $argD == "DEBUG"
-        line = 0        	      # Put line directives in include directives.
+        line = 0        	      # Put compiler line directives in include directives.
         if @directives.match(/\n/)
           @directives.gsub!(/\n/){ |nl|
             "\n#line #{(line += 1).to_s} \"#{$argF}\"" + nl
@@ -2584,10 +2579,10 @@ class InputDescription
       end
     end
     token_d.each { |x|            
-      if /\/\*(.+?)\*\//m.match(x)  		 # Cleaning multi-line comments
+      if /\/\*(.+?)\*\//m.match(x)  		 # Clean multi-line comments
         x.gsub!(/\/\*(.+?)\*\//m, "") 		 # from the body of the DSL description.
       end
-      if /\n|\t|\r|\f/.match(x)   		# Cleaning white space.
+      if /\n|\t|\r|\f/.match(x)   		# Clean white space.
         x.gsub!(/\n|\t|\r|\f/, " ") 
       end
       x.lstrip!
