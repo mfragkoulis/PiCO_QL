@@ -96,14 +96,188 @@ class Column
   end
 
 #
+  def temp_support(access_path)
+    if access_path.match(/^&/)
+      access_path.gsub!(/^&/ , "")
+    else
+      access_path = "*#{access_path}"
+    end
+  end
+  
+
+# Array of strings deep copy
+  def array_string_copy_deep(array, copyArray)
+    array.each { |el| copyArray.push(el.clone) }
+  end
+
+# Configure tokens to be standalone access paths.
+  def configure_token_access_checks(token_ac_p, iden)
+    root = String.new(iden)
+    root.gsub!(/^&/, "")
+    token_ac_p.each_index { |tap|
+      if $argD == "DEBUG"
+        puts "tap is #{tap.to_s}, token to check is: #{token_ac_p[tap]}"
+      end
+      if tap > 0
+        token_ac_p[tap].insert(0, "#{token_ac_p[tap-1]}->")
+      else
+        token_ac_p[0].insert(0, root)
+      end
+      if $argD == "DEBUG"
+        puts "After tapping token is: #{token_ac_p[tap]}"
+      end
+    }
+    return token_ac_p
+  end
+
+# Print line directive
+  def print_line_directive(fw, line)
+    if line != nil
+      if $argD == "DEBUG"
+        fw.puts "#line #{line + 1} \"#{$argF}\""
+      end
+    end
+  end
+
+
+# Display NULL checks
+  def display_null_check(token_ac_p, iden, action, fw, space)
+    root = String.new(iden)
+    root.gsub!(/^&/, "")
+    token_ac_p.each_index {|tap|
+      if token_ac_p.length == 1
+        fw.print "#{space}if (#{root}#{token_ac_p[0]} == NULL) "
+      elsif token_ac_p.length > 1 && tap == 0
+        fw.print "#{space}if ((#{root}#{token_ac_p[0]} == NULL) "
+      elsif token_ac_p.length > 1 && tap > 0 && tap < token_ac_p.length - 1
+        fw.print "|| (#{root}#{token_ac_p[tap]} == NULL) "
+      elsif token_ac_p.length > 1 && tap == token_ac_p.length - 1
+        fw.print "|| (#{root}#{token_ac_p[tap]} == NULL)) "
+      end
+    }
+    if token_ac_p.length > 0
+      fw.puts "\n#{space}  #{action}"
+    end
+  end
+
+# Substitute special keywords in access paths.
+# For pre, post access paths we don't want to substitute
+# accessors. In access paths we do.
+# Refactor to include 'tuple_iter' substitutions in here too.
+  def sub_keywords(pre_post_ap, access_path, iter)
+    if access_path
+      if iter != nil &&
+         access_path.match(/tuple_iter->|tuple_iter\.|tuple_iter,|tuple_iter\)/)
+        access_path.gsub!(/tuple_iter/, "#{iter}") 
+      end
+      if access_path.match(/base->|base\.|base,|base\)/)
+        access_path.gsub!(/base(\.|->)/, "any_dstr->")
+        access_path.gsub!(/base/, "any_dstr") 
+      end
+    elsif pre_post_ap
+      if iter != nil &&
+         pre_post_ap.match(/tuple_iter->|tuple_iter\.|tuple_iter,|tuple_iter\)/)
+        pre_post_ap.gsub!(/tuple_iter/, "#{iter}")
+      end
+      if pre_post_ap.match(/base->|base\.|base,|base\)/)
+        pre_post_ap.gsub!(/base/, "any_dstr")
+      end
+    end
+  end
+
+#
+  def search_data_constr(fw, container_class, 
+		         access_path, 
+                         tokenized_access_path,
+			 sqlite3_type,
+                         column_cast, column_cast_back, 
+                         add_to_result_set,
+                         iteration, 
+                         notC, space)
+    null_check_action = "break;"
+    if !container_class.empty?
+      null_check_action = "continue;"
+      if !iteration.empty?
+        fw.puts "#{iteration.gsub(/<space>/, "#{space}")}"
+        space.concat("  ")
+      end
+# not for union
+    end
+    sub_keywords(nil, access_path, nil)
+    pre_ap = String.new(@pre_access_path)
+    sub_keywords(pre_ap, nil, nil)
+    post_ap = String.new(@post_access_path)
+    sub_keywords(post_ap, nil, nil)
+    display_null_check(tokenized_access_path, "",
+                       null_check_action,
+                       fw, space)
+    if !pre_ap.empty?
+      fw.puts "#{space}#{pre_ap}"
+    end
+    fw.puts "#{space}if (#{notC}compare_#{sqlite3_type}(#{column_cast}#{access_path}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val))) {"
+    print_line_directive(fw, @line)
+    if !container_class.empty?
+      space.chomp!("  ")
+    end
+    if !post_ap.empty?
+      fw.puts "#{add_to_result_set.gsub(/\}\Z/,  # Generate post-access path within loop
+                 "  #{post_ap}\n<space>}").gsub("<space>", "#{space}")}"
+    else
+      fw.puts "#{add_to_result_set.gsub("<space>", "#{space}")}"
+    end
+  end
+
+#
+  def search_data(fw, vt, sqlite3_type,
+                  column_cast, column_cast_back)
+    space = "#{$s}  "
+    access_pathF, access_pathN, 
+    idenF, idenN = vt.configure_search("all", @access_path, "")
+    add_to_result_setF, add_to_result_setN = vt.configure_result_set()
+    iterationF, iterationN = vt.configure_iteration(@access_path)
+    fw.puts "        if (first_constr == 1) {"
+    token_ac_p = Array.new
+    array_string_copy_deep(@tokenized_access_path, token_ac_p)
+    configure_token_access_checks(token_ac_p, idenF)
+    search_data_constr(fw, vt.container_class, 
+		       access_pathF,
+                       token_ac_p,
+		       sqlite3_type,
+                       column_cast, column_cast_back, 
+                       add_to_result_setF, 
+                       iterationF, 
+                       notC, space)
+    if !container_class.empty?
+      fw.puts "        } else {"
+    else
+      fw.puts "        } else if (stcsr->size == 1) {"
+    end
+    notC = "!"
+    token_ac_p.clear
+    array_string_copy_deep(@tokenized_access_path, token_ac_p)
+    configure_token_access_checks(token_ac_p, idenN)
+    search_data_constr(fw, vt.container_class,
+		       access_pathN, 
+                       token_ac_p,
+		       sqlite3_type,
+                       column_cast, column_cast_back, 
+                       add_to_result_setN, 
+                       iterationN, 
+                       notC, space)
+    fw.puts "        }"
+    fw.puts "        break;"    
+  end
+
+#
   def search_fk_constr(fw, container_class, 
-			access_path, 
-                        tokenized_access_path,
-                        column_cast, 
-                        sqlite3_type, 
-                        sqlite3_parameters, 
-                        add_to_result_set, 
-                        space, notC, iteration)
+		       access_path, 
+                       tokenized_access_path,
+                       sqlite3_type, 
+                       sqlite3_parameters, 
+                       column_cast, 
+                       add_to_result_set, 
+                       iteration,
+		       notC, space)
     null_check_action = "break;"
     if !container_class.empty?
       null_check_action = "continue;"
@@ -124,7 +298,7 @@ class Column
                        null_check_action,
                        fw, space) 
     if $argM == "MEM_MGT" && @fk_method_ret == 1    # Returning from a method.
-      temp_support(access_path) # Called once; it suffices.
+      temp_support(access_path) 		    # Called once; it suffices.
       if !pre_ap.empty?
         fw.puts "#{space}#{pre_ap}"
       end
@@ -175,7 +349,7 @@ class Column
   end
 
 #
-  def search_fk(fw, container_class, 
+  def search_fk(fw, vt, 
 		sqlite3_type, 
                 sqlite3_parameters, 
                 column_cast)
@@ -186,24 +360,25 @@ class Column
     iterationF = ""
     iterationN = ""
     space = ""
-    access_pathF, access_pathN, idenF, idenN = configure_search("fk", @access_path, @col_type)
-    add_to_result_setF, add_to_result_setN = configure_result_set()
-    iterationF, iterationN = configure_iteration(@access_path)
+    access_pathF, access_pathN, idenF, idenN = vt.configure_search("fk", @access_path, @col_type)
+    add_to_result_setF, add_to_result_setN = vt.configure_result_set()
+    iterationF, iterationN = vt.configure_iteration(@access_path)
     fw.puts "        if (first_constr) {"
     space.replace("#{$s}  ")
     notC = ""
     token_ac_p = Array.new
-    array_string_copy_deep(@tokenized_access_path.clone, token_ac_p)
+    array_string_copy_deep(@tokenized_access_path, token_ac_p)
     configure_token_access_checks(token_ac_p, idenF)
     search_fk_constr(fw, container_class, 
                       access_pathF, 
                       token_ac_p,
-                      column_cast, 
                       sqlite3_type, 
                       sqlite3_parameters, 
+                      column_cast, 
                       add_to_result_setF, 
-                      space, notC, iterationF)
-    if @container_class.length > 0
+                      iterationF,
+		      notC, space)
+    if !vt.container_class.empty?
       fw.puts "        } else {"
     else
       fw.puts "        } else if (stcsr->size == 1) {"
@@ -211,16 +386,17 @@ class Column
     space.concat("  ")
     notC = "!"
     token_ac_p.clear
-    array_string_copy_deep(@tokenized_access_path.clone, token_ac_p)
+    array_string_copy_deep(@tokenized_access_path, token_ac_p)
     configure_token_access_checks(token_ac_p, idenN)
-    search_fk_constr(fw, container_class, 
+    search_fk_constr(fw, vt.container_class, 
                       access_pathN, 
                       token_ac_p,
-                      column_cast, 
                       sqlite3_type, 
                       sqlite3_parameters, 
+                      column_cast, 
                       add_to_result_setN, 
-                      space, notC, iterationN)
+                      iterationN,
+		      notC, space)
     fw.puts "        }"
     fw.puts "        break;"
   end
@@ -237,11 +413,9 @@ class Column
       return "base", "int64", "int",
              "(long int)", nil
     elsif @name == "rownum"           # 'rownum'column
-      sqlite3_type.replace("int")
       return "rownum", "int", nil,
              nil, nil
     elsif @cpp_data_type == "union"
-      access_path.replace(@access_path)
       return "union", nil, nil,
 	     nil, nil 
     else
@@ -283,11 +457,179 @@ class Column
     end
   end
 
-  def search(fw, container_class, col)
+
+#
+  def search_union_constr(fw, container_class,
+                          root_access_path, 
+                          union_access_path, 
+                          tokenized_access_path,
+                          add_to_result_set, 
+                          iteration, notC)
+    null_check_action = "break;"
+    if !container_class.empty?
+      null_check_action = "continue;"
+    end
+    u = UnionView.new
+    $union_views.each { |uv| 
+      if uv.name == @union_view_name
+         u = uv
+      end 
+    }
+    space = "#{$s}  "
+    if !container_class.empty?
+      space.concat("  ")
+    end
+    display_null_check(tokenized_access_path, "",
+                       null_check_action,
+                       fw, space)
+# Imitating Column::process_access_path(). Not able to access from here. 
+    if u.switch.match(/->/)
+      tokenized_switch_path = u.switch.split(/->/)
+      tokenized_switch_path.pop
+      if $argD == "DEBUG"
+        tokenized_switch_path.each { |t| p t}
+      end
+      configure_token_access_checks(tokenized_switch_path, 
+                                    root_access_path)
+      display_null_check(tokenized_switch_path, "",
+                         null_check_action,
+                         fw, space)
+    end
+    fw.puts "#{space}switch (#{root_access_path}#{u.switch}) {"
+    u.columns.each { |col|
+      fw.puts "#{space}case #{col.case}:"
+      fw.puts "#{space}  {"
+      space.concat("    ")
+      col_class, sqlite3_type,
+      sqlite3_parameters,
+      column_cast,
+      column_cast_back = col.bind_datatypes("search") 
+      total_access_path = "#{union_access_path}#{access_path_col}"
+      if op == "fk" && col.col_type == "object"
+        total_access_path = "&#{total_access_path}"
+      elsif col_class == "union"
+        if col.col_type == "pointer"
+          total_access_path.concat("->")
+        else
+          total_access_path.concat(".")
+        end
+      end
+      un_col_ac_t = Array.new
+      array_string_copy_deep(tokenized_access_path, un_col_ac_t)
+      configure_token_access_checks(un_col_ac_t, total_access_path)
+      if $argD == "DEBUG"
+        puts "sqlite3_type: #{sqlite3_type}"
+        puts "column_cast: #{column_cast}"
+        puts "sqlite3_parameters: #{sqlite3_parameters}"
+        puts "column_cast_back: #{column_cast_back}"
+        puts "access_path: #{access_path_col}"
+        puts "col_type: #{col.col_type}"
+        if col_class == "union"
+          puts "Union: #{union_view_embedded}"
+        end
+        if line != nil
+          puts "line: #{(line + 1).to_s}"
+        else 
+          puts "line: nil"
+        end
+      end
+      case col_class
+      when "fk"
+        search_fk_constr(fw, container_class, 
+                         total_access_path, 
+                         un_col_ac_t,
+                         sqlite3_type, 
+                         sqlite3_parameters, 
+                         column_cast, 
+                         add_to_result_set,
+			 iteration, 
+                         notC, space)
+      when "data"
+        search_data_constr(fw, container_class, 
+                           total_access_path,
+                           un_col_ac_t,
+		           sqlite3_type, 
+                           column_cast, column_cast_back, 
+                           add_to_result_set, 
+                           iteration, 
+                           notC, space)
+      when "union"
+# Not tested. In fact, it would probably make sense
+# to call gen_union and not gen_union_col_constr in
+# such a case.
+        search_union_constr(fw, container_class,
+                            union_access_path, 
+                            total_access_path, 
+                            un_col_ac_t,
+                            add_to_result_set, 
+                            iteration, notC)
+      end
+      if !container_class.empty?
+        space.concat("  ")
+      end
+      fw.puts "#{space}break;"
+      space.chomp!("  ")
+      fw.puts "#{space}}"   # close case
+      space.chomp!("  ")
+    }
+    fw.puts "#{space}}"
+  end
+
+#
+  def search_union(fw, vt) 
+    full_union_access_pathF, 
+    full_union_access_pathN, 
+    idenF, idenN = vt.configure_search("union", @union_access_path, @col_type)
+    add_to_result_setF, add_to_result_setN = vt.configure_result_set()
+    iterationF, iterationN = vt.configure_iteration("")
+    fw.puts "        if (first_constr == 1) {"
+    space = "#{$s}  "
+    if !vt.container_class.empty?
+      add_to_result_setF.chomp!("\n<space>}")
+      add_to_result_setN.chomp!("\n<space>}")
+      fw.puts "#{iterationF.gsub(/<space>/, "#{space}")}"
+#      space.concat("  ")
+    end
+    notC = ""
+    iteration = ""
+    un_ac_t = Array.new
+    array_string_copy_deep(@tokenized_access_path, un_ac_t)
+    configure_token_access_checks(un_ac_t, idenF)
+    search_union_constr(fw, vt.container_class, idenF,
+                        full_union_access_pathF, 
+                        un_ac_t,
+                        add_to_result_setF, 
+                        iteration, notC)
+    if !container_class.empty?
+      fw.puts "#{$s}  }"
+      fw.puts "        } else {"
+      fw.puts "#{iterationN.gsub(/<space>/, "#{space}")}"
+#      space.concat("  ")
+    else
+      fw.puts "        } else if (stcsr->size == 1) {"
+    end
+    notC = "!"
+    un_ac_t.clear
+    array_string_copy_deep(@tokenized_access_path, un_ac_t)
+    configure_token_access_checks(un_ac_t, idenN)
+    search_union_constr(fw, vt.container_class, idenN, 
+                        full_union_access_pathN, 
+                        un_ac_t,
+                        add_to_result_setN, 
+                        iteration, notC)
+    if !vt.container_class.empty?
+      fw.puts "#{$s}  }"
+    end
+    fw.puts "        }"
+    fw.puts "        break;"
+  end
+
+#
+  def search(fw, vt, col)
     fw.puts "    case #{col}:"
     fw.puts "      {"
     space = "      "
-    col_type, sqlite3_type,
+    col_class, sqlite3_type,
     sqlite3_parameters, column_cast,
     column_cast_back = bind_datatypes("search") 
     if $argD == "DEBUG"
@@ -296,7 +638,7 @@ class Column
       puts "sqlite3_parameters: #{sqlite3_parameters}"
       puts "column_cast_back: #{column_cast_back}"
       puts "access_path: #{access_path}"
-      if op == "union"
+      if col_class == "union"
         puts "Union: #{union_view_name}"
       end
       if line != nil
@@ -305,26 +647,22 @@ class Column
         puts "line: nil"
       end
     end
-    case op
+    case col_class
     when "fk"
-      search_fk(fw, container_class,
+      search_fk(fw, vt,
                sqlite3_type, sqlite3_parameters, 
                column_cast)
     when "data"
-      gen_all(fw, column_cast, @access_path,
-                @pre_access_path, @post_access_path,
-                @tokenized_access_path.clone,
-                column_cast_back, sqlite3_type, 
-                @line)
-      when "union"
-        gen_union(fw, @union_view_name, @access_path, 
-                  @tokenized_access_path.clone, @col_type)
-      when "base"
-        gen_base(fw)
-      when "rownum"
-        gen_rownum(fw)
-      end
-      fw.puts "      }"   # close case 
+      search_data(fw, vt, sqlite3_type,
+		  column_cast, column_cast_back)
+    when "union"
+      search_union(fw, vt) 
+    when "base"
+      vt.search_base(fw)
+    when "rownum"
+      vt.search_rownum(fw)
+    end
+    fw.puts "      }"   # close case 
   end
 
 #
@@ -746,30 +1084,6 @@ class VirtualTable
     fw.puts post_retrieve.result(get_binding)
   end
 
-# Substitute special keywords in access paths.
-# For pre, post access paths we don't want to substitute
-# accessors. In access paths we do.
-# Refactor to include 'tuple_iter' substitutions in here too.
-  def sub_keywords(pre_post_ap, access_path, iter)
-    if access_path
-      if iter != nil &&
-         access_path.match(/tuple_iter->|tuple_iter\.|tuple_iter,|tuple_iter\)/)
-        access_path.gsub!(/tuple_iter/, "#{iter}") 
-      end
-      if access_path.match(/base->|base\.|base,|base\)/)
-        access_path.gsub!(/base(\.|->)/, "any_dstr->")
-        access_path.gsub!(/base/, "any_dstr") 
-      end
-    elsif pre_post_ap
-      if iter != nil &&
-         pre_post_ap.match(/tuple_iter->|tuple_iter\.|tuple_iter,|tuple_iter\)/)
-        pre_post_ap.gsub!(/tuple_iter/, "#{iter}")
-      end
-      if pre_post_ap.match(/base->|base\.|base,|base\)/)
-        pre_post_ap.gsub!(/base/, "any_dstr")
-      end
-    end
-  end
     
     
 
@@ -1191,14 +1505,6 @@ class VirtualTable
     return iden
   end
 
-# Print line directive
-  def print_line_directive(fw, line)
-    if line != nil
-      if $argD == "DEBUG"
-        fw.puts "#line #{line + 1} \"#{$argF}\""
-      end
-    end
-  end
 
 # Generates code to retrieve each VT struct.
 # Each retrieve case matches a specific column of the VT.
@@ -1450,53 +1756,10 @@ class VirtualTable
     return "", ""
   end
 
-# Array of strings deep copy
-  def array_string_copy_deep(array, copyArray)
-    array.each { |el| copyArray.push(el.clone) }
-  end
 
-# Configure tokens to be standalone access paths.
-  def configure_token_access_checks(token_ac_p, iden)
-    root = String.new(iden)
-    root.gsub!(/^&/, "")
-    token_ac_p.each_index { |tap|
-      if $argD == "DEBUG"
-        puts "tap is #{tap.to_s}, token to check is: #{token_ac_p[tap]}"
-      end
-      if tap > 0
-        token_ac_p[tap].insert(0, "#{token_ac_p[tap-1]}->")
-      else
-        token_ac_p[0].insert(0, root)
-      end
-      if $argD == "DEBUG"
-        puts "After tapping token is: #{token_ac_p[tap]}"
-      end
-    }
-    return token_ac_p
-  end
-
-# Display NULL checks
-  def display_null_check(token_ac_p, iden, action, fw, space)
-    root = String.new(iden)
-    root.gsub!(/^&/, "")
-    token_ac_p.each_index {|tap|
-      if token_ac_p.length == 1
-        fw.print "#{space}if (#{root}#{token_ac_p[0]} == NULL) "
-      elsif token_ac_p.length > 1 && tap == 0
-        fw.print "#{space}if ((#{root}#{token_ac_p[0]} == NULL) "
-      elsif token_ac_p.length > 1 && tap > 0 && tap < token_ac_p.length - 1
-        fw.print "|| (#{root}#{token_ac_p[tap]} == NULL) "
-      elsif token_ac_p.length > 1 && tap == token_ac_p.length - 1
-        fw.print "|| (#{root}#{token_ac_p[tap]} == NULL)) "
-      end
-    }
-    if token_ac_p.length > 0
-      fw.puts "\n#{space}  #{action}"
-    end
-  end
 
 # Generate code for rownum column
-  def gen_rownum(fw)
+  def search_rownum(fw)
     fw.puts "        rowNum = sqlite3_value_int(val);"
     if !@@C_container_types.include?(@container_class)
       fw.puts "        if (rowNum > (int)rs->resBts.size()) {"
@@ -1547,10 +1810,10 @@ class VirtualTable
     fw.puts "        break;"
   end
 
-  def gen_base(fw)
+  def search_base(fw)
     fw.puts "        if (first_constr == 1) {"
     iterationF, useless = configure_iteration("")
-    add_to_result_setF, useless = configure_result_set
+    add_to_result_setF, useless = configure_result_set()
     if @container_class.length > 0
       fw.puts "#{iterationF.gsub(/<space>/, "#{$s}  ")}"
     end
@@ -1579,290 +1842,14 @@ class VirtualTable
     fw.puts "        break;"
   end
   
-  def gen_union_col_constr(fw, union_view_name, 
-                           root_access_path, 
-                           union_access_path, 
-                           tokenized_access_path,
-                           add_to_result_set, 
-                           iteration, notC)
-    null_check_action = "break;"
-    if @container_class.length > 0
-      null_check_action = "continue;"
-    end
-    columns = Array.new
-    switch = ""
-    $union_views.each { |uv| 
-      if uv.name == union_view_name
-        columns = uv.columns 
-        switch = uv.switch
-      end 
-    }
-    space = ""
-    space.replace("#{$s}  ")
-    if @container_class.length > 0
-      space.concat("  ")
-    end
-    display_null_check(tokenized_access_path, "",
-                       null_check_action,
-                       fw, space)
-# Imitating Column::process_access_path(). Not able to access from here. 
-    if switch.match(/->/)
-      tokenized_switch_path = switch.split(/->/)
-      tokenized_switch_path.pop
-      if $argD == "DEBUG"
-        tokenized_switch_path.each { |t| p t}
-      end
-      configure_token_access_checks(tokenized_switch_path, 
-                                    root_access_path)
-      display_null_check(tokenized_switch_path, "",
-                         null_check_action,
-                         fw, space)
-    end
-    fw.puts "#{space}switch (#{root_access_path}#{switch}) {"
-    columns.each { |col|
-      fw.puts "#{space}case #{col.case}:"
-      fw.puts "#{space}  {"
-      space.concat("    ")
-      sqlite3_type = "search"
-      column_cast = ""
-      sqlite3_parameters = ""
-      column_cast_back = ""
-      access_path_col = ""
-      total_access_path = ""
-      op, union_view_embedded, col_type, line, 
-      fk_method_ret, tokenized_access_path, 
-      pre_access_path_col, post_access_path_col, # Placeholder: extension for unions later on.
-      useless3, useless4 = 
-      col.bind_datatypes(sqlite3_type, 
-                         column_cast, 
-                         sqlite3_parameters, 
-                         column_cast_back, 
-                         access_path_col)
-      total_access_path.replace(union_access_path).concat(access_path_col)
-      if op == "fk" && col_type == "object"
-        total_access_path = "&#{total_access_path}"
-      elsif op == "union"
-        if fk_type == "pointer"
-          total_access_path.concat("->")
-        else
-          total_access_path.concat(".")
-        end
-      end
-      un_col_ac_t = Array.new
-      array_string_copy_deep(tokenized_access_path, un_col_ac_t)
-      configure_token_access_checks(un_col_ac_t, total_access_path)
-      if $argD == "DEBUG"
-        puts "sqlite3_type: " + sqlite3_type
-        puts "column_cast: " + column_cast
-        puts "sqlite3_parameters: " + sqlite3_parameters
-        puts "column_cast_back: " + column_cast_back
-        puts "access_path: " + access_path_col
-        puts "col_type: " + col_type
-        if op == "union"
-          puts "Union: " + union_view_embedded
-        end
-        if line != nil
-          puts "line: " + (line + 1).to_s
-        else 
-          puts "line: nil"
-        end
-      end
-      case op
-      when "fk"
-        gen_fk_col_constr(fw, fk_method_ret, 
-                          total_access_path, 
-                          pre_access_path_col,  # Placeholder to allow compiling.
-                          post_access_path_col, # Ditto 
-                          un_col_ac_t,
-                          col_type, 
-                          column_cast, 
-                          column_cast_back, 
-                          sqlite3_type, 
-                          sqlite3_parameters, 
-                          line, add_to_result_set, 
-                          space, notC, iteration)
-      when "gen_all"
-        gen_all_constr(fw, column_cast, 
-                       total_access_path,
-                       pre_access_path_col,  # Placeholder to allow compiling.
-                       post_access_path_col, # Ditto 
-                       un_col_ac_t, 
-                       column_cast_back, 
-                       sqlite3_type, notC, 
-                       iteration, add_to_result_set, 
-                       line, space)
-      when "union"
-# Not tested. In fact, it would probably make sense
-# to call gen_union and not gen_union_col_constr in
-# such a case.
-        gen_union_col_constr(fw, 
-                             union_view_embedded, 
-                             union_access_path, 
-                             total_access_path, 
-                             un_col_ac_t,
-                             add_to_result_set, 
-                             iteration, notC)
-      end
-      if @container_class.length > 0
-        space.concat("  ")
-      end
-      fw.puts "#{space}break;"
-      space.chomp!("  ")
-      fw.puts "#{space}}"   # close case
-      space.chomp!("  ")
-    }
-    fw.puts "#{space}}"
-  end
 
-  def gen_union(fw, union_view_name, 
-                union_access_path, 
-                union_access_tokens, col_type)
-    full_union_access_pathF, full_union_access_pathN, idenF, idenN = configure_search("union", union_access_path, col_type)
-    add_to_result_setF, add_to_result_setN = configure_result_set()
-    iterationF, iterationN = configure_iteration("")
-    fw.puts "        if (first_constr == 1) {"
-    space = "#{$s}  "
-    if @container_class.length > 0
-      add_to_result_setF.chomp!("\n<space>}")
-      add_to_result_setN.chomp!("\n<space>}")
-      fw.puts "#{iterationF.gsub(/<space>/, "#{space}")}"
-#      space.concat("  ")
-    end
-    notC = ""
-    iteration = ""
-    un_ac_t = Array.new
-    array_string_copy_deep(union_access_tokens, un_ac_t)
-    configure_token_access_checks(un_ac_t, idenF)
-    gen_union_col_constr(fw, union_view_name, idenF,
-                         full_union_access_pathF, 
-                         un_ac_t,
-                         add_to_result_setF, 
-                         iteration, notC)
-    if @container_class.length > 0
-      fw.puts "#{$s}  }"
-      fw.puts "        } else {"
-      fw.puts "#{iterationN.gsub(/<space>/, "#{space}")}"
-#      space.concat("  ")
-    else
-      fw.puts "        } else if (stcsr->size == 1) {"
-    end
-    notC = "!"
-    un_ac_t.clear
-    array_string_copy_deep(union_access_tokens, un_ac_t)
-    configure_token_access_checks(un_ac_t, idenN)
-    gen_union_col_constr(fw, union_view_name, idenN, 
-                         full_union_access_pathN, 
-                         un_ac_t,
-                         add_to_result_setN, 
-                         iteration, notC)
-    if @container_class.length > 0
-      fw.puts "#{$s}  }"
-    end
-    fw.puts "        }"
-    fw.puts "        break;"
-  end
 
-  def gen_all_constr(fw, column_cast, access_path, 
-                     pre_access_path, post_access_path, 
-                     tokenized_access_path,
-                     column_cast_back, 
-                     sqlite3_type, notC, iteration, 
-                     add_to_result_set,
-                     line, space)
-    null_check_action = "break;"
-    if @container_class.length > 0
-      null_check_action = "continue;"
-      if iteration.length > 0
-        fw.puts "#{iteration.gsub(/<space>/, "#{space}")}"
-        space.concat("  ")
-      end
-# not for union
-    end
-    sub_keywords(nil, access_path, nil)
-    pre_ap = String.new(pre_access_path)
-    sub_keywords(pre_ap, nil, nil)
-    post_ap = String.new(post_access_path)
-    sub_keywords(post_ap, nil, nil)
-    display_null_check(tokenized_access_path, "",
-                       null_check_action,
-                       fw, space)
-    if !pre_ap.empty?
-      fw.puts "#{space}#{pre_ap}"
-    end
-    fw.puts "#{space}if (#{notC}compare_#{sqlite3_type}(#{column_cast}#{access_path}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val))) {"
-    print_line_directive(fw, line)
-    if @container_class.length > 0
-      space.chomp!("  ")
-    end
-    if !post_ap.empty?
-      fw.puts "#{add_to_result_set.gsub(/\}\Z/,  # Generate post-access path within loop
-                 "  #{post_ap}\n<space>}").gsub("<space>", "#{space}")}"
-    else
-      fw.puts "#{add_to_result_set.gsub("<space>", "#{space}")}"
-    end
-  end
-
-  def gen_all(fw, column_cast, access_path,
-              pre_access_path, post_access_path, 
-              tokenized_access_path,
-              column_cast_back, sqlite3_type, line)
-    access_pathF = ""
-    access_pathN = ""
-    add_to_result_setF = ""
-    add_to_result_setN = ""
-    iterationF = ""
-    iterationN = ""
-    space = ""
-    space.replace("#{$s}  ")
-    access_pathF, access_pathN, idenF, idenN = configure_search("all", access_path, "")
-    add_to_result_setF, add_to_result_setN = configure_result_set()
-    iterationF, iterationN = configure_iteration(access_path)
-    fw.puts "        if (first_constr == 1) {"
-    notC = ""
-    token_ac_p = Array.new
-    array_string_copy_deep(tokenized_access_path, token_ac_p)
-    configure_token_access_checks(token_ac_p, idenF)
-    gen_all_constr(fw, column_cast, access_pathF,
-                   pre_access_path, post_access_path, 
-                   token_ac_p,
-                   column_cast_back, 
-                   sqlite3_type, notC, iterationF, 
-                   add_to_result_setF, 
-                   line, space)
-    if @container_class.length > 0
-      fw.puts "        } else {"
-    else
-      fw.puts "        } else if (stcsr->size == 1) {"
-    end
-    notC = "!"
-    token_ac_p.clear
-    array_string_copy_deep(tokenized_access_path, token_ac_p)
-    configure_token_access_checks(token_ac_p, idenN)
-    gen_all_constr(fw, column_cast, access_pathN, 
-                   pre_access_path, post_access_path, 
-                   token_ac_p,
-                   column_cast_back, 
-                   sqlite3_type, notC, iterationN, 
-                   add_to_result_setN, 
-                   line, space)
-    fw.puts "        }"
-    fw.puts "        break;"    
-  end
-
-  def temp_support(access_path)
-    if access_path.match(/^&/)
-      access_path.gsub!(/^&/ , "")
-    else
-      access_path = "*#{access_path}"
-    end
-  end
-  
 
 # Generates code to search each VT struct.
 # Each search case matches a specific column of the VT.
   def search_columns(fw)
     fw.puts "    switch (nCol) {"
-    @columns.each_index { |col| col.search(fw, @container_class, col) }
+    @columns.each_index { |col| col.search(fw, self, col) }
     fw.puts "    }"
   end
 
