@@ -185,6 +185,326 @@ class Column
     end
   end
 
+
+#
+  def union_retrieve(fw, vt, iden, space)
+    u = UnionView.new
+    $union_views.each { |uv| 
+      if uv.name == @name
+        u = uv
+      end 
+    }
+    union_access_path = String.new(@access_path)
+    if !@access_path.end_with?(".") && !@access_path.end_with?("->")
+      union_access_path.concat(".")
+    end
+    fw.puts "#{space}    switch (#{iden}#{u.switch}) {"
+# Will not work for union in struct1 in struct2 (user responsibility?)
+# if struct1.struct2.union then access path would be 
+# (any_dstr->)struct2.union . reasonable to await struct2.union_mode
+# from user?
+    u.columns.each_index { |col|
+      c = Column.new(u.columns[col])
+      fw.puts "#{space}    case #{u.case}:"
+      fw.puts "#{space}      {"
+      space.concat("    ")
+      col_class, sqlite3_type,
+      sqlite3_parameters,
+      column_cast, 
+      column_cast_back = c.bind_datatypes("retrieve") 
+      if $argD == "DEBUG"
+        puts "sqlite3_type: #{sqlite3_type}"
+        puts "column_cast: #{column_cast}"
+        puts "sqlite3_parameters: #{sqlite3_parameters}"
+        puts "column_cast_back: #{column_cast_back}"
+        puts "access_path: #{access_path_col}"
+        if col_class == "union"
+          puts "Union: #{c.name}"
+        end
+        if u.line != nil
+          puts "line: #{(u.line + 1).to_s}"
+        else 
+          puts "line: nil"
+        end
+      end
+      case col_class
+      when "fk"
+        c.fk_retrieve(fw, vt, iden, sqlite3_type,
+                      sqlite3_parameters, column_cast, 
+                      col, space)
+      when "gen_all"
+        c.all_retrieve(fw, iden, sqlite3_type, 
+                       sqlite3_parameters, 
+                       column_cast, column_cast_back, 
+                       space)
+      when "union"
+        iden.concat(union_access_path)
+        c.union_retrieve(fw, vt, iden, space)
+      end
+      space.chomp!("    ")
+      fw.puts "#{space}      }"     # close case
+    }
+    fw.puts "#{space}    }"
+    fw.puts "#{space}    break;"
+  end
+
+#
+  def data_retrieve(fw, iden, sqlite3_type,
+		   sqlite3_parameters,
+                   column_cast, column_cast_back, 
+                   space)
+    ap_copy = String.new(@access_path)
+    if @access_path.match(/tuple_iter\.|tuple_iter->|\(tuple_iter,|\(tuple_iter\)|tuple_iter\)/)
+      if @access_path.match(/tuple_iter\.|tuple_iter->/)
+        ap_copy.gsub!(/tuple_iter\.|tuple_iter->/, "#{iden}")
+      end
+      if @access_path.match(/\(tuple_iter,|\(tuple_iter\)|tuple_iter\)/)
+        if iden.end_with?(".")
+          ap_copy.gsub!(/\(tuple_iter,/, "(#{iden.chomp(".")},")
+          ap_copy.gsub!(/\(tuple_iter\)/, "(#{iden.chomp(".")})")
+          ap_copy.gsub!(/tuple_iter\)/, "#{iden.chomp(".")})")
+        elsif iden.end_with?("->")
+          ap_copy.gsub!(/\(tuple_iter,/, "(#{iden.chomp("->")},")
+          ap_copy.gsub!(/\(tuple_iter\)/, "(#{iden.chomp("->")})")
+          ap_copy.gsub!(/tuple_iter\)/, "#{iden.chomp("->")})")
+        end
+      end
+      if $argD == "DEBUG"
+        puts "data_retrieve: substituting \"tuple_iter\" in access path:"
+        puts "  #{iden}, #{ap_copy}"
+      end
+    else
+      ap_copy = "#{iden}#{ap_copy}"
+    end
+    iden_block = String.new(iden) # Used for code block access path {pre, post}
+    iden_block.chomp!("->")       # Chomping accessor because it is configured
+    iden_block.chomp!(".")        # from user in code block.
+    sub_keywords(nil, ap_copy, iden_block)
+    pre_ap = String.new(@pre_access_path)
+    sub_keywords(pre_ap, nil, iden_block)
+    post_ap = String.new(@post_access_path)
+    sub_keywords(post_ap, nil, iden_block)
+    null_check_action = "{\n#{space}        sqlite3_result_null(con);\n#{space}        break;\n#{space}      }"
+    display_null_check(@tokenized_access_path,
+                       iden,
+                       null_check_action,
+                       fw, "#{space}    ")
+    if sqlite3_type == "text"
+      if column_cast_back == ".c_str()"
+        string_construct_cast = ""
+      else
+        string_construct_cast = "(const char *)"
+      end
+      if $argLB == "CPP"
+        fw.puts "#ifdef PICO_QL_HANDLE_TEXT_ARRAY"
+        if !pre_ap.empty? 
+          fw.puts "#{space}    #{pre_ap}"
+        end
+        fw.puts "#{space}    textVector.push_back(#{string_construct_cast}#{ap_copy});"
+        if !post_ap.empty?
+          fw.puts "#{space}    #{post_ap}"
+        end
+        print_line_directive(fw, @line)
+        fw.puts "#{space}    sqlite3_result_text(con, (const char *)textVector.back().c_str()#{sqlite3_parameters});"
+        fw.puts "#else"
+      end
+    end
+    if !pre_ap.empty? 
+      fw.puts "#{space}    #{pre_ap}"
+    end
+    fw.puts "#{space}    sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{ap_copy}#{column_cast_back}#{sqlite3_parameters});"
+    if !post_ap.empty?
+      fw.puts "#{space}    #{post_ap}"
+    end
+    print_line_directive(fw, @line)
+    if sqlite3_type == "text" && $argLB == "CPP"
+      fw.puts "#endif"
+    end
+    fw.puts "#{space}    break;"
+  end
+
+#
+  def fk_retrieve(fw, vt, iden, sqlite3_type,
+                  sqlite3_parameters, column_cast, 
+                  col, space)
+    record_type = ""
+    p_type = ""
+    if @access_path.empty?    # Access with (*iter) .
+      if vt.type.match(/\*/)
+        record_type = "*"
+        p_type = ""
+      else
+        record_type = ""
+        p_type = "&"
+      end
+    else                        # Access with (*iter)[.|->]access .
+      if @col_type == "pointer" 
+        record_type = "*" 
+        p_type = ""
+      else 
+        record_type = ""
+        p_type = "&"
+      end
+    end
+    r_ap_copy = String.new(@access_path)
+    p_ap_copy = String.new(@access_path)
+    if access_path.match(/tuple_iter\.|tuple_iter->|\(tuple_iter,|\(tuple_iter\)|tuple_iter\)/)
+      if access_path.match(/tuple_iter\.|tuple_iter->/)
+        r_ap_copy.gsub!(/tuple_iter\.|tuple_iter->/, "#{record_type}#{iden}")
+        p_ap_copy.gsub!(/tuple_iter\.|tuple_iter->/, "#{p_type}#{iden}")
+      end
+      if @access_path.match(/\(tuple_iter,|\(tuple_iter\)|tuple_iter\)/)
+        if iden.end_with?(".")
+          r_ap_copy.gsub!(/\(tuple_iter,/, "(#{record_type}#{iden.chomp(".")},")
+          r_ap_copy.gsub!(/\(tuple_iter\)/, "(#{record_type}#{iden.chomp(".")})")
+          r_ap_copy.gsub!(/tuple_iter\)/, "#{record_type}#{iden.chomp(".")})")
+          p_ap_copy.gsub!(/\(tuple_iter,/, "(#{p_type}#{iden.chomp(".")},")
+          p_ap_copy.gsub!(/\(tuple_iter\)/, "(#{p_type}#{iden.chomp(".")})")
+          p_ap_copy.gsub!(/tuple_iter\)/, "#{p_type}#{iden.chomp(".")})")
+        elsif iden.end_with?("->")
+          r_ap_copy.gsub!(/\(tuple_iter,/, "(#{record_type}#{iden.chomp("->")},")
+          r_ap_copy.gsub!(/\(tuple_iter\)/, "(#{record_type}#{iden.chomp("->")})")
+          r_ap_copy.gsub!(/tuple_iter\)/, "#{record_type}#{iden.chomp("->")})")
+          p_ap_copy.gsub!(/\(tuple_iter,/, "(#{p_type}#{iden.chomp("->")},")
+          p_ap_copy.gsub!(/\(tuple_iter\)/, "(#{p_type}#{iden.chomp("->")})")
+          p_ap_copy.gsub!(/tuple_iter\)/, "#{p_type}#{iden.chomp("->")})")
+        end
+      end
+      if $argD == "DEBUG"
+        puts "fk_retrieve: substituting \"tuple_iter\" in access path:"
+        puts "  #{record_type}, #{iden}, #{r_ap_copy}"
+        puts "  #{p_type}, #{iden}, #{p_ap_copy}"
+      end
+      r_access_path = "#{r_ap_copy}"
+      p_access_path = "#{p_ap_copy}"
+    else
+      r_access_path = "#{record_type}#{iden}#{r_ap_copy}"
+      p_access_path = "#{p_type}#{iden}#{p_ap_copy}"
+    end
+    iden_block = String.new(iden) # Used for code block access path {pre, post}
+    iden_block.chomp!("->")       # Chomping accessor because it is configured
+    iden_block.chomp!(".")        # from user in code block.
+    sub_keywords(nil, r_access_path, iden_block)
+    sub_keywords(nil, p_access_path, iden_block)
+    pre_ap = String.new(@pre_access_path)
+    sub_keywords(pre_ap, nil, iden_block)
+    post_ap = String.new(@post_access_path)
+    sub_keywords(post_ap, nil, iden_block)
+    fw.puts "#{space}      long base_prov = 0;"
+    if $argLB == "CPP"
+      fw.puts "#ifdef PICO_QL_HANDLE_POLYMORPHISM"
+      def_nop = "*"
+      if @fk_col_type.match(/(.+)\*/)
+        def_nop = ""
+      end
+      if !pre_ap.empty? 
+        fw.puts "#{space}    #{pre_ap}"
+      end
+      fw.puts "#{space}      #{@fk_col_type}#{def_nop} cast = dynamic_cast<#{@fk_col_type}#{def_nop}>(#{p_access_path});"
+      if !post_ap.empty?
+        fw.puts "#{space}    #{post_ap}"
+      end
+      if $argM == "MEM_MGT" && @fk_method_ret == 1
+        fw.puts "#{space}      if (cast != NULL) {"
+        fw.puts "#{space}        saved_results_#{@saved_results_index}.push_back(*cast);"
+        print_line_directive(fw, line)
+        fw.puts "#ifdef ENVIRONMENT64"
+        fw.puts "#{space}        sqlite3_result_#{sqlite3_type}(con, (base_prov = #{column_cast}&(saved_results_#{@saved_results_index}.back())));"
+        fw.puts "#else"
+        fw.puts "#{space}        sqlite3_result_#{sqlite3_parameters}(con, (base_prov = #{column_cast}&(saved_results_#{@saved_results_index}.back())));"
+        fw.puts "#endif"
+        fw.puts "#{space}      } else {"
+        fw.puts "#ifdef ENVIRONMENT64"
+        fw.puts "#{space}        sqlite3_result_#{sqlite3_type}(con, #{column_cast}(0));"
+        fw.puts "#else"
+        fw.puts "#{space}        sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}(0));"
+        fw.puts "#endif"
+        fw.puts "#{space}      }"
+      else
+        fw.puts "#ifdef ENVIRONMENT64"
+        fw.puts "#{space}      sqlite3_result_#{sqlite3_type}(con, (base_prov = #{column_cast}cast));"
+        print_line_directive(fw, @line)
+        fw.puts "#else"
+        fw.puts "#{space}      sqlite3_result_#{sqlite3_parameters}(con, (base_prov = #{column_cast}cast));"
+        print_line_directive(fw, @line)
+        fw.puts "#endif"
+      end
+      fw.puts "#else"
+    else # if $argLB == "C"
+      fw.puts "#{space}      int j = 0;"
+      fw.puts "#{space}      struct Vtbl *chargeVT#{col};"
+    end
+    null_check_action = "{\n#{space}        sqlite3_result_null(con);\n#{space}        break;\n#{space}      }"
+    display_null_check(@tokenized_access_path,
+                       iden,
+                       null_check_action,
+                       fw, "#{space}    ")
+    if $argM == "MEM_MGT" && @fk_method_ret == 1
+      if !pre_ap.empty? 
+        fw.puts "#{space}    #{pre_ap}"
+      end
+      fw.puts "#{space}      saved_results_#{@saved_results_index}.push_back(#{r_access_path});"
+      if !post_ap.empty?
+        fw.puts "#{space}    #{post_ap}"
+      end
+      print_line_directive(fw, @line)
+      fw.puts "#ifdef ENVIRONMENT64"
+      fw.puts "#{space}      sqlite3_result_#{sqlite3_type}(con, (base_prov = #{column_cast}&(saved_results_#{@saved_results_index}.back())));"
+      fw.puts "#else"
+      fw.puts "#{space}      sqlite3_result_#{sqlite3_parameters}(con, (base_prov = #{column_cast}&(saved_results_#{@saved_results_index}.back())));"
+      fw.puts "#endif"
+    else
+      fw.puts "#ifdef ENVIRONMENT64"
+      if !pre_ap.empty? 
+        fw.puts "#{space}    #{pre_ap}"
+      end
+      fw.puts "#{space}      sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{p_access_path});"
+      fw.puts "#{space}      base_prov = #{column_cast}#{p_access_path};"
+      if !post_ap.empty?
+        fw.puts "#{space}    #{post_ap}"
+      end
+      print_line_directive(fw, @line)
+      fw.puts "#else"
+      if !pre_ap.empty? 
+        fw.puts "#{space}    #{pre_ap}"
+      end
+      fw.puts "#{space}      sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}#{p_access_path});"
+      fw.puts "#{space}      base_prov = #{column_cast}#{p_access_path};"
+      if !post_ap.empty?
+        fw.puts "#{space}    #{post_ap}"
+      end
+      print_line_directive(fw, @line)
+      fw.puts "#endif"
+      fw.puts "#ifdef PICO_QL_DEBUG"
+      fw.puts "#{space}      printf(\"Sending base_prov %lx.\\n\", base_prov);"
+      fw.puts "#endif"
+    end
+    if $argLB == "CPP"
+      fw.puts "#endif"
+      fw.puts "#{space}      VtblImpl *chargeVT#{col} = selector_vt[\"#{@related_to}\"];"
+      if vt.base_var.empty?
+        fw.puts "#{space}      return (*chargeVT#{col})(&c_map[cur], 1, &charged, base_prov);"
+      else
+        fw.puts "#{space}      map<Cursor *, bool> *map#{vt.name}#{col};"
+        fw.puts "#{space}      map#{vt.name}#{col} = NULL;"
+        fw.puts "#{space}      return (*chargeVT#{col})(&c_map[cur], 1, map#{vt.name}#{col}, base_prov);"
+      end
+    else
+      fw.puts "#{space}      while ((j < (int)vtAll.size) && (strcmp(vtAll.instanceNames[j], \"#{@related_to}\"))) {j++;}"
+      fw.puts "#{space}      if (j == (int)vtAll.size) {"
+      fw.puts "#{space}        printf(\"In #{vt.name}_vt_retrieve(): VT #{@related_to} not registered.\\nExiting now.\\n\");"
+      fw.puts "#{space}        return SQLITE_ERROR;"
+      fw.puts "#{space}      }"
+      fw.puts "#{space}      chargeVT#{col} = vtAll.instances[j];"
+      if vt.base_var.empty?
+        fw.puts "#{space}      return chargeVT#{col}->report_charge(cursors[cr], 1, &((#{vt.name}_vt *)vtbl)->charged, &((#{vt.name}_vt *)vtbl)->chargedSize, base_prov, chargeVT#{col});"
+      else
+        fw.puts "#{space}      return chargeVT#{col}->report_charge(cursors[cr], 1, NULL, NULL, base_prov, chargeVT#{col});"
+      end
+    end
+    fw.puts "#{space}      break;"
+  end
+
 #
   def search_data_constr(fw, container_class, 
 		         access_path, 
@@ -353,18 +673,11 @@ class Column
 		sqlite3_type, 
                 sqlite3_parameters, 
                 column_cast)
-    access_pathF = ""
-    access_pathN = ""
-    add_to_result_setF = ""
-    add_to_result_setN = ""
-    iterationF = ""
-    iterationN = ""
-    space = ""
     access_pathF, access_pathN, idenF, idenN = vt.configure_search("fk", @access_path, @col_type)
     add_to_result_setF, add_to_result_setN = vt.configure_result_set()
     iterationF, iterationN = vt.configure_iteration(@access_path)
     fw.puts "        if (first_constr) {"
-    space.replace("#{$s}  ")
+    space = "#{$s}  "
     notC = ""
     token_ac_p = Array.new
     array_string_copy_deep(@tokenized_access_path, token_ac_p)
@@ -471,7 +784,7 @@ class Column
     end
     u = UnionView.new
     $union_views.each { |uv| 
-      if uv.name == @union_view_name
+      if uv.name == @name
          u = uv
       end 
     }
@@ -505,7 +818,7 @@ class Column
       column_cast,
       column_cast_back = col.bind_datatypes("search") 
       total_access_path = "#{union_access_path}#{access_path_col}"
-      if op == "fk" && col.col_type == "object"
+      if col_class == "fk" && col.col_type == "object"
         total_access_path = "&#{total_access_path}"
       elsif col_class == "union"
         if col.col_type == "pointer"
@@ -527,42 +840,42 @@ class Column
         if col_class == "union"
           puts "Union: #{union_view_embedded}"
         end
-        if line != nil
-          puts "line: #{(line + 1).to_s}"
+        if @line != nil
+          puts "line: #{(@line + 1).to_s}"
         else 
           puts "line: nil"
         end
       end
       case col_class
       when "fk"
-        search_fk_constr(fw, container_class, 
-                         total_access_path, 
-                         un_col_ac_t,
-                         sqlite3_type, 
-                         sqlite3_parameters, 
-                         column_cast, 
-                         add_to_result_set,
-			 iteration, 
-                         notC, space)
+        col.search_fk_constr(fw, container_class, 
+                             total_access_path, 
+                             un_col_ac_t,
+                             sqlite3_type, 
+                             sqlite3_parameters, 
+                             column_cast, 
+                             add_to_result_set,
+			     iteration, 
+                             notC, space)
       when "data"
-        search_data_constr(fw, container_class, 
-                           total_access_path,
-                           un_col_ac_t,
-		           sqlite3_type, 
-                           column_cast, column_cast_back, 
-                           add_to_result_set, 
-                           iteration, 
-                           notC, space)
+        col.search_data_constr(fw, container_class, 
+                               total_access_path,
+                               un_col_ac_t,
+		               sqlite3_type, 
+                               column_cast, column_cast_back, 
+                               add_to_result_set, 
+                               iteration, 
+                               notC, space)
       when "union"
 # Not tested. In fact, it would probably make sense
 # to call gen_union and not gen_union_col_constr in
 # such a case.
-        search_union_constr(fw, container_class,
-                            union_access_path, 
-                            total_access_path, 
-                            un_col_ac_t,
-                            add_to_result_set, 
-                            iteration, notC)
+        col.search_union_constr(fw, container_class,
+                                union_access_path, 
+                                total_access_path, 
+                                un_col_ac_t,
+                                add_to_result_set, 
+                                iteration, notC)
       end
       if !container_class.empty?
         space.concat("  ")
@@ -666,13 +979,13 @@ class Column
   end
 
 #
-  def retrieve(fw, col)
+  def retrieve(fw, vt, col)
     fw.puts "  case #{col}:"
     fw.puts "    {"
     col_type, sqlite3_type,
     sqlite3_parameters, column_cast,
     column_cast_back = bind_datatypes("retrieve") 
-    iden = configure_retrieve(access_path, op)
+    iden = vt.configure_retrieve(@access_path, op)
     token_ac_p = Array.new
     if op == "fk" || op == "gen_all" ||
        op == "union"
@@ -693,31 +1006,16 @@ class Column
         fw.puts "      sqlite3_result_#{sqlite3_type}(con, rs->offset);"
         fw.puts "      break;"
       when "fk"
-        fk_retrieve(fw, @access_path, 
-                    @pre_access_path,
-                    @post_access_path,
-                    @token_ac_p,
-                    @column_type, @fk_method_ret,
-                    @line, iden, @saved_results_index, 
-                    sqlite3_type,
-                    column_cast, sqlite3_parameters, 
-                    @fk_col_name, 
-                    @fk_col_type, col, "")
-      when "gen_all"
-        all_retrieve(fw, iden, @access_path, 
-                     @pre_access_path,
-                     @post_access_path,
-                     @token_ac_p,
-                     sqlite3_type,
-                     column_cast_back, 
+        fk_retrieve(fw, vt, iden, sqlite3_type,
+                    sqlite3_parameters, column_cast 
+                    col, "")
+      when "data"
+        data_retrieve(fw, iden, sqlite3_type,
                      sqlite3_parameters, 
-                     column_cast,
-                     @line, "  ")
+                     column_cast, column_cast_back, 
+                     "  ")
       when "union"
-        union_view_name = fk_col_name
-        union_retrieve(fw, @union_view_name, iden, 
-                       @access_path, 
-                       @token_ac_p, "  ")
+        union_retrieve(fw, vt, iden, "  ")
       end
       fw.puts "    }"  # close case
   end
@@ -1087,362 +1385,8 @@ class VirtualTable
     
     
 
-  def union_retrieve(fw, union_view_name, iden, 
-                     union_access_path, 
-                     tokenized_access_path, space)
-    columns = Array.new
-    switch = ""
-    $union_views.each { |uv| 
-      if uv.name == union_view_name
-        columns = uv.columns 
-        switch = uv.switch
-      end 
-    }
-    if !union_access_path.end_with?(".") && !union_access_path.end_with?("->")
-      union_access_path.concat(".")
-    end
-    fw.puts "#{space}    switch (#{iden}#{switch}) {"
-# Will not work for union in struct1 in struct2 (user responsibility?)
-# if struct1.struct2.union then access path would be 
-# (any_dstr->)struct2.union . reasonable to await struct2.union_mode
-# from user?
-    columns.each_index { |col|
-      fw.puts "#{space}    case #{columns[col].case}:"
-      fw.puts "#{space}      {"
-      space.concat("    ")
-      sqlite3_type = "retrieve"
-      column_cast = ""
-      sqlite3_parameters = ""
-      column_cast_back = ""
-      total_access_path = ""
-      access_path_col = ""
-      op, fk_col_name, column_type, line, 
-      fk_method_ret, tokenized_access_path_col,
-      pre_access_path_col, post_access_path_col, # Used only in data columns for now. 
-      saved_results_index, fk_col_type = 
-      columns[col].bind_datatypes(sqlite3_type, 
-                                  column_cast, 
-                                  sqlite3_parameters, 
-                                  column_cast_back, 
-                                  access_path_col)
-      if $argD == "DEBUG"
-        puts "sqlite3_type: " + sqlite3_type
-        puts "column_cast: " + column_cast
-        puts "sqlite3_parameters: " + sqlite3_parameters
-        puts "column_cast_back: " + column_cast_back
-        puts "access_path: " + access_path_col
-        if op == "union"
-          fk_col_name  = union_view_embedded
-          puts "Union: " + union_view_embedded
-        end
-        if line != nil
-          puts "line: " + (line + 1).to_s
-        else 
-          puts "line: nil"
-        end
-      end
-      case op
-      when "fk"
-        access_path_col.insert(0, union_access_path)
-        fk_retrieve(fw, access_path_col, 
-                    pre_access_path_col,  # Placeholder to allow compiling
-                    post_access_path_col, # ditto
-                    tokenized_access_path_col, 
-                    column_type, fk_method_ret,
-                    line, iden, saved_results_index, sqlite3_type,
-                    column_cast, sqlite3_parameters, fk_col_name, 
-                    fk_col_type, col, space)
-      when "gen_all"
-        access_path_col.insert(0, union_access_path)
-        all_retrieve(fw, iden, access_path_col, 
-                     pre_access_path_col,  # Placeholder to allow compiling
-		     post_access_path_col, # ditto
-                     tokenized_access_path_col,
-                     sqlite3_type, column_cast_back, 
-                     sqlite3_parameters, 
-                     column_cast,
-                     line, space)
-      when "union"
-        union_view_embedded = fk_col_name
-        iden.concat(union_access_path)
-        union_retrieve(fw, union_view_embedded, 
-                       iden, access_path_col,
-                       tokenized_access_path_col, 
-                       space)
-      end
-      space.chomp!("    ")
-      fw.puts "#{space}      }"     # close case
-    }
-    fw.puts "#{space}    }"
-    fw.puts "#{space}    break;"
-  end
 
-  def all_retrieve(fw, iden, access_path, 
-                   pre_access_path,
-                   post_access_path,
-                   tokenized_access_path,
-                   sqlite3_type,
-                   column_cast_back, 
-                   sqlite3_parameters, column_cast,
-                   line, space)
-    ap_copy = String.new(access_path)
-    if access_path.match(/tuple_iter\.|tuple_iter->|\(tuple_iter,|\(tuple_iter\)|tuple_iter\)/)
-      if access_path.match(/tuple_iter\.|tuple_iter->/)
-        ap_copy.gsub!(/tuple_iter\.|tuple_iter->/, "#{iden}")
-      end
-      if access_path.match(/\(tuple_iter,|\(tuple_iter\)|tuple_iter\)/)
-        if iden.end_with?(".")
-          ap_copy.gsub!(/\(tuple_iter,/, "(#{iden.chomp(".")},")
-          ap_copy.gsub!(/\(tuple_iter\)/, "(#{iden.chomp(".")})")
-          ap_copy.gsub!(/tuple_iter\)/, "#{iden.chomp(".")})")
-        elsif iden.end_with?("->")
-          ap_copy.gsub!(/\(tuple_iter,/, "(#{iden.chomp("->")},")
-          ap_copy.gsub!(/\(tuple_iter\)/, "(#{iden.chomp("->")})")
-          ap_copy.gsub!(/tuple_iter\)/, "#{iden.chomp("->")})")
-        end
-      end
-      if $argD == "DEBUG"
-        puts "all_retrieve: substituting \"tuple_iter\" in access path:"
-        puts "  #{iden}, #{ap_copy}"
-      end
-      access_path = "#{ap_copy}"
-    else
-      access_path = "#{iden}#{ap_copy}"
-    end
-    iden_block = String.new(iden) # Used for code block access path {pre, post}
-    iden_block.chomp!("->")       # Chomping accessor because it is configured
-    iden_block.chomp!(".")        # from user in code block.
-    sub_keywords(nil, access_path, iden_block)
-    pre_ap = String.new(pre_access_path)
-    sub_keywords(pre_ap, nil, iden_block)
-    post_ap = String.new(post_access_path)
-    sub_keywords(post_ap, nil, iden_block)
-    null_check_action = "{\n#{space}        sqlite3_result_null(con);\n#{space}        break;\n#{space}      }"
-    display_null_check(tokenized_access_path,
-                       iden,
-                       null_check_action,
-                       fw, "#{space}    ")
-    if sqlite3_type == "text"
-      if column_cast_back == ".c_str()"
-        string_construct_cast = ""
-      else
-        string_construct_cast = "(const char *)"
-      end
-      if $argLB == "CPP"
-        fw.puts "#ifdef PICO_QL_HANDLE_TEXT_ARRAY"
-        if !pre_ap.empty? 
-          fw.puts "#{space}    #{pre_ap}"
-        end
-        fw.puts "#{space}    textVector.push_back(#{string_construct_cast}#{access_path});"
-        if !post_ap.empty?
-          fw.puts "#{space}    #{post_ap}"
-        end
-        print_line_directive(fw, line)
-        fw.puts "#{space}    sqlite3_result_text(con, (const char *)textVector.back().c_str()#{sqlite3_parameters});"
-        fw.puts "#else"
-      end
-    end
-    if !pre_ap.empty? 
-      fw.puts "#{space}    #{pre_ap}"
-    end
-    fw.puts "#{space}    sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{access_path}#{column_cast_back}#{sqlite3_parameters});"
-    if !post_ap.empty?
-      fw.puts "#{space}    #{post_ap}"
-    end
-    print_line_directive(fw, line)
-    if sqlite3_type == "text" && $argLB == "CPP"
-      fw.puts "#endif"
-    end
-    fw.puts "#{space}    break;"
-  end
 
-  def fk_retrieve(fw, access_path, 
-                  pre_access_path,
-                  post_access_path,
-                  tokenized_access_path,
-                  column_type, fk_method_ret,
-                  line, iden, saved_results_index, 
-                  sqlite3_type,
-                  column_cast, sqlite3_parameters, 
-                  fk_col_name, 
-                  fk_col_type, col, space)
-    record_type = ""
-    p_type = ""
-    if access_path.length == 0    # Access with (*iter) .
-      if @type.match(/\*/)
-        record_type = "*"
-        p_type = ""
-      else
-        record_type = ""
-        p_type = "&"
-      end
-    else                        # Access with (*iter)[.|->]access .
-      if column_type == "pointer" 
-        record_type = "*" 
-        p_type = ""
-      else 
-        record_type = ""
-        p_type = "&"
-      end
-    end
-    r_ap_copy = String.new(access_path)
-    p_ap_copy = String.new(access_path)
-    if access_path.match(/tuple_iter\.|tuple_iter->|\(tuple_iter,|\(tuple_iter\)|tuple_iter\)/)
-      if access_path.match(/tuple_iter\.|tuple_iter->/)
-        r_ap_copy.gsub!(/tuple_iter\.|tuple_iter->/, "#{record_type}#{iden}")
-        p_ap_copy.gsub!(/tuple_iter\.|tuple_iter->/, "#{p_type}#{iden}")
-      end
-      if access_path.match(/\(tuple_iter,|\(tuple_iter\)|tuple_iter\)/)
-        if iden.end_with?(".")
-          r_ap_copy.gsub!(/\(tuple_iter,/, "(#{record_type}#{iden.chomp(".")},")
-          r_ap_copy.gsub!(/\(tuple_iter\)/, "(#{record_type}#{iden.chomp(".")})")
-          r_ap_copy.gsub!(/tuple_iter\)/, "#{record_type}#{iden.chomp(".")})")
-          p_ap_copy.gsub!(/\(tuple_iter,/, "(#{p_type}#{iden.chomp(".")},")
-          p_ap_copy.gsub!(/\(tuple_iter\)/, "(#{p_type}#{iden.chomp(".")})")
-          p_ap_copy.gsub!(/tuple_iter\)/, "#{p_type}#{iden.chomp(".")})")
-        elsif iden.end_with?("->")
-          r_ap_copy.gsub!(/\(tuple_iter,/, "(#{record_type}#{iden.chomp("->")},")
-          r_ap_copy.gsub!(/\(tuple_iter\)/, "(#{record_type}#{iden.chomp("->")})")
-          r_ap_copy.gsub!(/tuple_iter\)/, "#{record_type}#{iden.chomp("->")})")
-          p_ap_copy.gsub!(/\(tuple_iter,/, "(#{p_type}#{iden.chomp("->")},")
-          p_ap_copy.gsub!(/\(tuple_iter\)/, "(#{p_type}#{iden.chomp("->")})")
-          p_ap_copy.gsub!(/tuple_iter\)/, "#{p_type}#{iden.chomp("->")})")
-        end
-      end
-      if $argD == "DEBUG"
-        puts "fk_retrieve: substituting \"tuple_iter\" in access path:"
-        puts "  #{record_type}, #{iden}, #{r_ap_copy}"
-        puts "  #{p_type}, #{iden}, #{p_ap_copy}"
-      end
-      r_access_path = "#{r_ap_copy}"
-      p_access_path = "#{p_ap_copy}"
-    else
-      r_access_path = "#{record_type}#{iden}#{r_ap_copy}"
-      p_access_path = "#{p_type}#{iden}#{p_ap_copy}"
-    end
-    iden_block = String.new(iden) # Used for code block access path {pre, post}
-    iden_block.chomp!("->")       # Chomping accessor because it is configured
-    iden_block.chomp!(".")        # from user in code block.
-    sub_keywords(nil, r_access_path, iden_block)
-    sub_keywords(nil, p_access_path, iden_block)
-    pre_ap = String.new(pre_access_path)
-    sub_keywords(pre_ap, nil, iden_block)
-    post_ap = String.new(post_access_path)
-    sub_keywords(post_ap, nil, iden_block)
-    fw.puts "#{space}      long base_prov = 0;"
-    if $argLB == "CPP"
-      fw.puts "#ifdef PICO_QL_HANDLE_POLYMORPHISM"
-      def_nop = "*"
-      if fk_col_type.match(/(.+)\*/)
-        def_nop = ""
-      end
-      if !pre_ap.empty? 
-        fw.puts "#{space}    #{pre_ap}"
-      end
-      fw.puts "#{space}      #{fk_col_type}#{def_nop} cast = dynamic_cast<#{fk_col_type}#{def_nop}>(#{p_access_path});"
-      if !post_ap.empty?
-        fw.puts "#{space}    #{post_ap}"
-      end
-      if $argM == "MEM_MGT" && fk_method_ret == 1
-        fw.puts "#{space}      if (cast != NULL) {"
-        fw.puts "#{space}        saved_results_#{saved_results_index}.push_back(*cast);"
-        print_line_directive(fw, line)
-        fw.puts "#ifdef ENVIRONMENT64"
-        fw.puts "#{space}        sqlite3_result_#{sqlite3_type}(con, (base_prov = #{column_cast}&(saved_results_#{saved_results_index}.back())));"
-        fw.puts "#else"
-        fw.puts "#{space}        sqlite3_result_#{sqlite3_parameters}(con, (base_prov = #{column_cast}&(saved_results_#{saved_results_index}.back())));"
-        fw.puts "#endif"
-        fw.puts "#{space}      } else {"
-        fw.puts "#ifdef ENVIRONMENT64"
-        fw.puts "#{space}        sqlite3_result_#{sqlite3_type}(con, #{column_cast}(0));"
-        fw.puts "#else"
-        fw.puts "#{space}        sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}(0));"
-        fw.puts "#endif"
-        fw.puts "#{space}      }"
-      else
-        fw.puts "#ifdef ENVIRONMENT64"
-        fw.puts "#{space}      sqlite3_result_#{sqlite3_type}(con, (base_prov = #{column_cast}cast));"
-        print_line_directive(fw, line)
-        fw.puts "#else"
-        fw.puts "#{space}      sqlite3_result_#{sqlite3_parameters}(con, (base_prov = #{column_cast}cast));"
-        print_line_directive(fw, line)
-        fw.puts "#endif"
-      end
-      fw.puts "#else"
-    else # if $argLB == "C"
-      fw.puts "#{space}      int j = 0;"
-      fw.puts "#{space}      struct Vtbl *chargeVT#{col};"
-    end
-    null_check_action = "{\n#{space}        sqlite3_result_null(con);\n#{space}        break;\n#{space}      }"
-    display_null_check(tokenized_access_path,
-                       iden,
-                       null_check_action,
-                       fw, "#{space}    ")
-    if $argM == "MEM_MGT" && fk_method_ret == 1
-      if !pre_ap.empty? 
-        fw.puts "#{space}    #{pre_ap}"
-      end
-      fw.puts "#{space}      saved_results_#{saved_results_index}.push_back(#{r_access_path});"
-      if !post_ap.empty?
-        fw.puts "#{space}    #{post_ap}"
-      end
-      print_line_directive(fw, line)
-      fw.puts "#ifdef ENVIRONMENT64"
-      fw.puts "#{space}      sqlite3_result_#{sqlite3_type}(con, (base_prov = #{column_cast}&(saved_results_#{saved_results_index}.back())));"
-      fw.puts "#else"
-      fw.puts "#{space}      sqlite3_result_#{sqlite3_parameters}(con, (base_prov = #{column_cast}&(saved_results_#{saved_results_index}.back())));"
-      fw.puts "#endif"
-    else
-      fw.puts "#ifdef ENVIRONMENT64"
-      if !pre_ap.empty? 
-        fw.puts "#{space}    #{pre_ap}"
-      end
-      fw.puts "#{space}      sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{p_access_path});"
-      fw.puts "#{space}      base_prov = #{column_cast}#{p_access_path};"
-      if !post_ap.empty?
-        fw.puts "#{space}    #{post_ap}"
-      end
-      print_line_directive(fw, line)
-      fw.puts "#else"
-      if !pre_ap.empty? 
-        fw.puts "#{space}    #{pre_ap}"
-      end
-      fw.puts "#{space}      sqlite3_result_#{sqlite3_parameters}(con, #{column_cast}#{p_access_path});"
-      fw.puts "#{space}      base_prov = #{column_cast}#{p_access_path};"
-      if !post_ap.empty?
-        fw.puts "#{space}    #{post_ap}"
-      end
-      print_line_directive(fw, line)
-      fw.puts "#endif"
-      fw.puts "#ifdef PICO_QL_DEBUG"
-      fw.puts "#{space}      printf(\"Sending base_prov %lx.\\n\", base_prov);"
-      fw.puts "#endif"
-    end
-    if $argLB == "CPP"
-      fw.puts "#endif"
-      fw.puts "#{space}      VtblImpl *chargeVT#{col} = selector_vt[\"#{fk_col_name}\"];"
-      if @base_var.length == 0
-        fw.puts "#{space}      return (*chargeVT#{col})(&c_map[cur], 1, &charged, base_prov);"
-      else
-        fw.puts "#{space}      map<Cursor *, bool> *map#{@name}#{col};"
-        fw.puts "#{space}      map#{@name}#{col} = NULL;"
-        fw.puts "#{space}      return (*chargeVT#{col})(&c_map[cur], 1, map#{@name}#{col}, base_prov);"
-      end
-    else
-      fw.puts "#{space}      while ((j < (int)vtAll.size) && (strcmp(vtAll.instanceNames[j], \"#{fk_col_name}\"))) {j++;}"
-      fw.puts "#{space}      if (j == (int)vtAll.size) {"
-      fw.puts "#{space}        printf(\"In #{@name}_vt_retrieve(): VT #{fk_col_name} not registered.\\nExiting now.\\n\");"
-      fw.puts "#{space}        return SQLITE_ERROR;"
-      fw.puts "#{space}      }"
-      fw.puts "#{space}      chargeVT#{col} = vtAll.instances[j];"
-      if @base_var.length == 0
-        fw.puts "#{space}      return chargeVT#{col}->report_charge(cursors[cr], 1, &((#{@name}_vt *)vtbl)->charged, &((#{@name}_vt *)vtbl)->chargedSize, base_prov, chargeVT#{col});"
-      else
-        fw.puts "#{space}      return chargeVT#{col}->report_charge(cursors[cr], 1, NULL, NULL, base_prov, chargeVT#{col});"
-      end
-    end
-    fw.puts "#{space}      break;"
-  end
 
 # Method performs case analysis to generate 
 # the correct form of the variable
@@ -1510,7 +1454,7 @@ class VirtualTable
 # Each retrieve case matches a specific column of the VT.
   def retrieve_columns(fw)
     fw.puts "  switch (nCol) {"
-    @columns.each_index { |col| col.retrieve(fw, col) }
+    @columns.each_index { |col| col.retrieve(fw, self, col) }
     fw.puts "  }"
   end
 
