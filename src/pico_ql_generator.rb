@@ -95,8 +95,10 @@ class Column
     @case = ucase
   end
 
-#
-  def temp_support(access_path)
+# If argument contains address of,
+# subtract it and dereference.
+# Used for memory management (MEM_MGT).
+  def deref_address_of(access_path)
     if access_path.match(/^&/)
       access_path.gsub!(/^&/ , "")
     else
@@ -186,8 +188,8 @@ class Column
   end
 
 
-#
-  def union_retrieve(fw, vt, iden, token_access_checks, space)
+# Generate code for column of type UNION in retrieve function.
+  def retrieve_union(fw, vt, iden, token_access_checks, space)
     u = UnionView.new
     $union_views.each { |uv| 
       if uv.name == @name
@@ -231,20 +233,20 @@ class Column
       case col_class
       when "fk"
         union_ap = "#{union_access_path}#{c.access_path}"
-        c.fk_retrieve(fw, vt, iden, union_ap, 
+        c.retrieve_fk(fw, vt, iden, union_ap, 
 		      token_access_checks, sqlite3_type,
                       sqlite3_parameters, column_cast, 
                       col, space)
       when "data"
         union_ap = "#{union_access_path}#{c.access_path}"
-        c.data_retrieve(fw, iden, union_ap, 
+        c.retrieve_data(fw, iden, union_ap, 
 			token_access_checks, sqlite3_type, 
                         sqlite3_parameters, 
                         column_cast, column_cast_back, 
                         space)
       when "union"
         iden.concat(union_access_path)     # iden will hold state;concat+concat..
-        c.union_retrieve(fw, vt, iden, token_access_checks, space)
+        c.retrieve_union(fw, vt, iden, token_access_checks, space)
       end
       space.chomp!("    ")
       fw.puts "#{space}      }"     # close case
@@ -253,8 +255,8 @@ class Column
     fw.puts "#{space}    break;"
   end
 
-#
-  def data_retrieve(fw, iden, access_path,
+# Generate code for data column in retrieve function.
+  def retrieve_data(fw, iden, access_path,
 		    token_access_checks, sqlite3_type,
 		    sqlite3_parameters,
                     column_cast, column_cast_back, 
@@ -276,7 +278,7 @@ class Column
         end
       end
       if $argD == "DEBUG"
-        puts "data_retrieve: substituting \"tuple_iter\" in access path:"
+        puts "retrieve_data: substituting \"tuple_iter\" in access path:"
         puts "  #{iden}, #{ap_copy}"
       end
     else
@@ -329,8 +331,8 @@ class Column
     fw.puts "#{space}    break;"
   end
 
-#
-  def fk_retrieve(fw, vt, iden, access_path,        # access_path argument: for UNION 
+# Generate code for FK column in retrieve function.
+  def retrieve_fk(fw, vt, iden, access_path,        # access_path argument: for UNION 
                   token_access_checks, sqlite3_type,
                   sqlite3_parameters, column_cast, 
                   col, space)
@@ -378,7 +380,7 @@ class Column
         end
       end
       if $argD == "DEBUG"
-        puts "fk_retrieve: substituting \"tuple_iter\" in access path:"
+        puts "retrieve_fk: substituting \"tuple_iter\" in access path:"
         puts "  #{record_type}, #{iden}, #{r_ap_copy}"
         puts "  #{p_type}, #{iden}, #{p_ap_copy}"
       end
@@ -512,7 +514,9 @@ class Column
     fw.puts "#{space}      break;"
   end
 
-#
+# Generate code for evaluating {F}irst constraint
+# and any {N}ext constraint for data column
+# in search function.
   def search_data_constr(fw, container_class, 
 		         access_path, 
                          tokenized_access_path,
@@ -554,7 +558,7 @@ class Column
     end
   end
 
-#
+# Generate code for data column in search function.
   def search_data(fw, vt, sqlite3_type,
                   column_cast, column_cast_back)
     notC = ""
@@ -596,7 +600,9 @@ class Column
     fw.puts "        break;"    
   end
 
-#
+# Generate code for evaluating {F}irst constraint
+# and any {N}ext constraint for FK column
+# in search function.
   def search_fk_constr(fw, container_class, 
 		       access_path, 
                        tokenized_access_path,
@@ -626,7 +632,7 @@ class Column
                        null_check_action,
                        fw, space) 
     if $argM == "MEM_MGT" && @fk_method_ret == 1    # Returning from a method.
-      temp_support(access_path) 		    # Called once; it suffices.
+      deref_address_of(access_path) 		    # Called once; it suffices.
       if !pre_ap.empty?
         fw.puts "#{space}#{pre_ap}"
       end
@@ -676,7 +682,7 @@ class Column
     end
   end
 
-#
+# Generate code for FK column in search function.
   def search_fk(fw, vt, 
 		sqlite3_type, 
                 sqlite3_parameters, 
@@ -779,7 +785,9 @@ class Column
   end
 
 
-#
+# Generate code for evaluating {F}irst constraint
+# and any {N}ext constraint for column of type UNION
+# in search function.
   def search_union_constr(fw, container_class,
                           root_access_path, 
                           union_access_path, 
@@ -897,7 +905,7 @@ class Column
     fw.puts "#{space}}"
   end
 
-#
+# Generate code for column of type UNION in search function.
   def search_union(fw, vt) 
     full_union_access_pathF, 
     full_union_access_pathN, 
@@ -946,7 +954,7 @@ class Column
     fw.puts "        break;"
   end
 
-#
+# Generate code for [vt]'s column [col] in search function.
   def search(fw, vt, col)
     fw.puts "    case #{col}:"
     fw.puts "      {"
@@ -987,7 +995,7 @@ class Column
     fw.puts "      }"   # close case 
   end
 
-#
+# Generate code for a [vt]'s column [col] in retrieve function.
   def retrieve(fw, vt, col)
     fw.puts "  case #{col}:"
     fw.puts "    {"
@@ -1015,18 +1023,18 @@ class Column
         fw.puts "      sqlite3_result_#{sqlite3_type}(con, rs->offset);"
         fw.puts "      break;"
       when "fk"
-        fk_retrieve(fw, vt, iden, @access_path, 
+        retrieve_fk(fw, vt, iden, @access_path, 
 		    token_ac_p, sqlite3_type,
                     sqlite3_parameters, column_cast, 
                     col, "")
       when "data"
-        data_retrieve(fw, iden, @access_path,
+        retrieve_data(fw, iden, @access_path,
  		      token_ac_p, sqlite3_type,
                       sqlite3_parameters, 
                       column_cast, column_cast_back, 
                       "  ")
       when "union"
-        union_retrieve(fw, vt, iden, token_ac_p, "  ")
+        retrieve_union(fw, vt, iden, token_ac_p, "  ")
       end
       fw.puts "    }"  # close case
   end
@@ -1393,11 +1401,6 @@ class VirtualTable
     fw.puts post_retrieve.result(get_binding)
   end
 
-    
-    
-
-
-
 
 # Method performs case analysis to generate 
 # the correct form of the variable
@@ -1713,7 +1716,6 @@ class VirtualTable
   end
 
 
-
 # Generate code for rownum column
   def search_rownum(fw)
     fw.puts "        rowNum = sqlite3_value_int(val);"
@@ -1798,8 +1800,6 @@ class VirtualTable
     fw.puts "        break;"
   end
   
-
-
 
 # Generates code to search each VT struct.
 # Each search case matches a specific column of the VT.
