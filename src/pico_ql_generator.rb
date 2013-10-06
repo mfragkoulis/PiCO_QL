@@ -32,8 +32,8 @@ class Column
                               # (the column's access path to be precise)
                               # is defined in.
     @data_type = ""
-    @cpp_data_type = ""       # Respective C++ data type. Used only 
-                              # for string so far.
+    @data_type_class = ""     # Compound data type. Used 
+                              # for string and UNION so far.
     @related_to = ""          # Reference to other VT's name (FK).
     @fk_col_type = ""         # Reference to other VT's type (FK).
     @fk_method_ret = 0        # True if FK access path is a method
@@ -64,16 +64,15 @@ class Column
                                /nchar/i]
   end
   attr_accessor(:name,:line,:data_type,
-		:cpp_data_type,:related_to,
+		:data_type_class,:related_to,
 		:fk_col_type,:fk_method_ret,
 		:saved_results_index,
 		:pre_access_path,:access_path,
 		:post_access_path,:col_type,
 		:case,:tokenized_access_path)
 
-
 # Used to clone a Column object. Ruby does not support deep copies.
-  def construct(name, data_type, cpp_data_type, 
+  def construct(name, data_type, data_type_class, 
                 related_to, fk_method_ret, 
       		fk_col_type, saved_results_index,
                 pre_access_path, access_path,
@@ -81,7 +80,7 @@ class Column
 		type, line, ucase)
     @name = name
     @data_type = data_type
-    @cpp_data_type = cpp_data_type
+    @data_type_class = data_type_class
     @related_to = related_to
     @fk_method_ret = fk_method_ret
     @fk_col_type = fk_col_type
@@ -105,9 +104,8 @@ class Column
       access_path = "*#{access_path}"
     end
   end
-  
 
-# Array of strings deep copy
+# Array of strings: deep copy
   def array_string_copy_deep(array, copyArray)
     array.each { |el| copyArray.push(el.clone) }
   end
@@ -141,7 +139,6 @@ class Column
     end
   end
 
-
 # Display NULL checks
   def display_null_check(token_ac_p, iden, action, fw, space)
     root = String.new(iden)
@@ -157,7 +154,7 @@ class Column
         fw.print "|| (#{root}#{token_ac_p[tap]} == NULL)) "
       end
     }
-    if token_ac_p.length > 0
+    if !token_ac_p.empty?
       fw.puts "\n#{space}  #{action}"
     end
   end
@@ -186,7 +183,6 @@ class Column
       end
     end
   end
-
 
 # Generate code for column of type UNION in retrieve function.
   def retrieve_union(fw, vt, iden, token_access_checks, space)
@@ -742,7 +738,7 @@ class Column
     elsif @name == "rownum"           # 'rownum'column
       return "rownum", "int", nil,
              nil, nil
-    elsif @cpp_data_type == "union"
+    elsif @data_type_class == "union"
       return "union", nil, nil,
 	     nil, nil 
     else
@@ -773,7 +769,7 @@ class Column
           column_cast = "(const char *)"
         end
         sqlite3_type = "text"
-        if @cpp_data_type == "string"
+        if @data_type_class == "string"
           column_cast_back = ".c_str()" 
         end
         sqlite3_parameters = ", -1, SQLITE_STATIC"
@@ -783,7 +779,6 @@ class Column
 	     column_cast, column_cast_back
     end
   end
-
 
 # Generate code for evaluating {F}irst constraint
 # and any {N}ext constraint for column of type UNION
@@ -1141,7 +1136,6 @@ class Column
     end
   end
 
-
 # Validates a column data type.
 # The following data types are the ones accepted by sqlite.
   def verify_data_type()
@@ -1150,8 +1144,8 @@ class Column
     tmp_text_array.replace(@@text_match_data_types)
     begin
       if dt == "string"
-        @cpp_data_type.replace(dt)
-        @data_type.replace("TEXT")
+        @data_type_class = "#{dt}"
+        @data_type = "TEXT"
         return 1
       elsif @@text_data_types.include?(dt) || 
           tmp_text_array.reject! { |rgx| rgx.match(dt) != nil } != nil
@@ -1162,8 +1156,8 @@ class Column
           /decimal/i.match(dt) != nil
         return 0
       elsif dt == "union"
-        @cpp_data_type.replace(dt)
-        @data_type.replace("NUMERIC")
+        @data_type_class = "#{dt}"
+        @data_type = "NUMERIC"
         return 0
       elsif dt == "enum"
 # union view: union_mode data type possibility (?)
@@ -1201,7 +1195,7 @@ class Column
           name = "#{matchdata[1]}#{coln.name}"
           this_columns.last.construct(name,
                                       coln.data_type.clone,
-                                      coln.cpp_data_type.clone,
+                                      coln.data_type_class.clone,
                                       coln.related_to.clone, 
                                       coln.fk_method_ret,
                                       coln.fk_col_type.clone,
@@ -1218,7 +1212,6 @@ class Column
     }
     return col_type_text
   end
-  
 
 # Matches each column description against a pattern and extracts 
 # column traits.
@@ -1267,11 +1260,11 @@ class Column
       @related_to = matchdata[6]
       @access_path = matchdata[5]
       begin
-        @related_to.length > 0
+        !@related_to.empty?
         if @access_path.match(/(.+)\)/)    # Returning from a method.
           @fk_method_ret = 1
         end
-        if matchdata[8].length == 0
+        if matchdata[8].empty?
           @col_type = "object"
 	elsif matchdata[8].downcase == "pointer"
           @col_type = "pointer"   # In
@@ -1304,21 +1297,22 @@ class Column
     end
     process_access_path()
     if $argD == "DEBUG"
-      puts "Column name is: " + @name
-      puts "Column data type is: " + @data_type
-      puts "Column related to: " + @related_to
-      puts "Column fk_col_type: " + @fk_col_type
-      puts "Column fk_method_ret: " + @fk_method_ret.to_s
-      puts "Column saved_results_index: " + @saved_results_index.to_s
-      puts "Column access path is: " + @access_path
-      puts "Column type is: " + @col_type
-      puts "Column is of text type: " + col_type_text.to_s
-      puts "Column case: " + @case
+      puts "Column name is: #{@name}"
+      puts "Column data type is: #{@data_type}"
+      puts "Column related to: #{@related_to}"
+      puts "Column fk_col_type: #{@fk_col_type}"
+      puts "Column fk_method_ret: #{@fk_method_ret.to_s}"
+      puts "Column saved_results_index: #{@saved_results_index.to_s}"
+      puts "Column access path is: #{@access_path}"
+      puts "Column type is: #{@col_type}"
+      puts "Column is of text type: #{col_type_text.to_s}"
+      puts "Column case: #{@case}"
     end
     return col_type_text
   end
 
 end
+
 
 # Models a virtual table.
 class VirtualTable
@@ -1401,7 +1395,6 @@ class VirtualTable
     fw.puts post_retrieve.result(get_binding)
   end
 
-
 # Method performs case analysis to generate 
 # the correct form of the variable
   def configure_retrieve(access_path, op)
@@ -1411,24 +1404,24 @@ class VirtualTable
       if @@C_container_types.include?(@container_class)
 # that is !@loop.empty?
         if $argLB == "CPP"
-          access_path.length == 0 ? iden =  "*(rs->resIter)" : iden = "(*(rs->resIter))."
+          access_path.empty? ? iden =  "*(rs->resIter)" : iden = "(*(rs->resIter))."
         else
-          access_path.length == 0 ? iden =  "((#{@name}ResultSetImpl *)rs)->res[rs->offset]" : iden = "((#{@name}ResultSetImpl *)rs)->res[rs->offset]."
+          access_path.empty? ? iden =  "((#{@name}ResultSetImpl *)rs)->res[rs->offset]" : iden = "((#{@name}ResultSetImpl *)rs)->res[rs->offset]."
         end
       else
         if @loop.empty?
-          access_path.length == 0 ? iden =  "**(rs->resIter)" : iden = "(**(rs->resIter))."
+          access_path.empty? ? iden =  "**(rs->resIter)" : iden = "(**(rs->resIter))."
         else
-          access_path.length == 0 ? iden =  "*(rs->resIter)" : iden = "(*(rs->resIter))."
+          access_path.empty? ? iden =  "*(rs->resIter)" : iden = "(*(rs->resIter))."
         end
       end
     else
-      access_path.length == 0 ? iden = "any_dstr" : iden = "any_dstr->"
+      access_path.empty? ? iden = "any_dstr" : iden = "any_dstr->"
     end
     case op
     when /data|union/
-      if @container_class.length > 0
-        if access_path.length == 0
+      if !@container_class.empty?
+        if access_path.empty?
           if @type.match(/\*/)
             iden = "*#{iden}"
           end
@@ -1449,8 +1442,8 @@ class VirtualTable
       end
     when "fk"
       # is object after transformations
-      if @container_class.length > 0
-        if access_path.length > 0 &&
+      if !@container_class.empty?
+        if !access_path.empty? &&
            !access_path.match(/first/) &&
            !access_path.match(/second/) &&
            @type.gsub(/ /,"").end_with?("*") &&
@@ -1462,7 +1455,6 @@ class VirtualTable
     end
     return iden
   end
-
 
 # Generates code to retrieve each VT struct.
 # Each retrieve case matches a specific column of the VT.
@@ -1492,7 +1484,7 @@ class VirtualTable
 
   def configure_result_set()
     @pointer.match(/\*/) ? retype = "" : retype = "*"
-    if @container_class.length > 0
+    if !@container_class.empty?
       if @@C_container_types.include?(@container_class)
         if $argLB == "CPP"
           add_to_result_setF = "<space>    rs->res.push_back(tuple_iter);\n<space>    rs->resBts.push_back(1);\n<space>  } else {\n<space>    rs->resBts.push_back(0);\n<space>  }\n<space>}"            
@@ -1570,7 +1562,7 @@ class VirtualTable
         ap.concat(".")
       end
     when "data"
-      if @container_class.length > 0
+      if !@container_class.empty?
         if ap.empty?
 # Dereference what is there for all containers.
           if @type.end_with?("*")
@@ -1664,6 +1656,7 @@ class VirtualTable
     return access_pathF, access_pathN, idenF, idenN
   end
 
+# Configure loop variant for display.
   def display_loop(base)
     loop = String.new(@loop)
     if loop.match(/base/)
@@ -1678,8 +1671,9 @@ class VirtualTable
     return loop
   end
 
+# Configure iteration variant for display.
   def configure_iteration(access_path)
-    if @container_class.length > 0
+    if !@container_class.empty?
       if @@C_container_types.include?(@container_class)
 # for C containers resBts has size 1 to differ from error conditions.
 # Since we don't know size before hand we push_back as in result set.
@@ -1693,15 +1687,15 @@ class VirtualTable
         else
           iterationF = "<space>#{loop} {"
         end
-        #Hard-coded NULL check for container elements.
+        # Hard-coded NULL check for container elements.
         iterationF.concat("\n<space>  if (tuple_iter == NULL) continue;")
       else
         iterationF = "<space>for (tuple_iter = any_dstr->begin(); tuple_iter != any_dstr->end(); tuple_iter++) {"
-        if @pointer.length > 0 && !@pointer.match(/,/)
-          #Hard-coded NULL check for container elements.
-          #If '.' matches accessors [first,second] will
-          #checked as part of the access path. Nothing
-          #to do here.
+        if !@pointer.empty? && !@pointer.match(/,/)
+          # Hard-coded NULL check for container elements.
+          # If '.' matches accessors [first,second] will
+          # be checked as part of the access path. Nothing
+          # to do here. 
           iterationF.concat("\n<space>  if (*tuple_iter == NULL) continue;")
         end
       end
@@ -1715,8 +1709,7 @@ class VirtualTable
     return "", ""
   end
 
-
-# Generate code for rownum column
+# Generate code for rownum column in search function.
   def search_rownum(fw)
     fw.puts "        rowNum = sqlite3_value_int(val);"
     if !@@C_container_types.include?(@container_class)
@@ -1768,29 +1761,26 @@ class VirtualTable
     fw.puts "        break;"
   end
 
+# Generate code for base column in search function.
   def search_base(fw)
     fw.puts "        if (first_constr == 1) {"
     iterationF, useless = configure_iteration("")
     add_to_result_setF, useless = configure_result_set()
-    if @container_class.length > 0
+    if !@container_class.empty?
       fw.puts "#{iterationF.gsub(/<space>/, "#{$s}  ")}"
     end
-# Customizing..each gsub targets a single case so safe.
-# CPP, C_containers
-    add_to_result_setF.gsub!(/\n<space>  \} else \{\n<space>    rs->resBts.push_back\(0\);\n<space>  \}/, "")
-# All cases except CPP, C containers: no compare to close if in base
-    if !@@C_container_types.include?(@container_class)
-      add_to_result_setF.gsub!(/\n<space>\}/, "")
-    else
-# CPP, C containers: configure spacing
+    # Customizing..each gsub targets a single case so safe.
+    add_to_result_setF.gsub!(/\n<space>  \} else \{\n<space>    rs->resBts.push_back\(0\);\n<space>  \}/, 
+                             "") 		       # CPP, C_containers
+    if !@@C_container_types.include?(@container_class) # All cases except CPP, C containers: 
+      add_to_result_setF.gsub!(/\n<space>\}/, "")      # no compare to close if in base.
+    else 					       # CPP, C containers: configure spacing
       add_to_result_setF.gsub!(/\n<space>  \}\n<space>\}/, "\n<space>    }\n<space>  }")
-# C, C containers : remove extra '}'
-      if $argLB == "C"
+      if $argLB == "C" 				       # C, C containers : remove extra '}'
         add_to_result_setF.gsub!(/\n<space>    \}\n<space>  \}/, "\n<space>  }")
       end
     end
-# CPP, CPP_containers
-    add_to_result_setF.gsub!(/\n<space>  index\+\+;/, "")
+    add_to_result_setF.gsub!(/\n<space>  index\+\+;/, "") # CPP, CPP_containers
     add_to_result_setF.gsub!(/index/, "index++")
     fw.puts "#{add_to_result_setF.gsub("<space>", "        ")}"
     fw.puts "        } else {"
@@ -1800,7 +1790,6 @@ class VirtualTable
     fw.puts "        break;"
   end
   
-
 # Generates code to search each VT struct.
 # Each search case matches a specific column of the VT.
   def search_columns(fw)
@@ -1885,7 +1874,7 @@ class VirtualTable
         end
       when /(\w+)<(.+)>(\**)/m
         matchdata = /(\w+)<(.+)>(\**)/m.match(@signature)
-        if matchdata[3].length == 0
+        if matchdata[3].empty?
           @signature.concat("*")
         end
         @signature_pointer = "*"
@@ -1905,9 +1894,9 @@ class VirtualTable
           @pointer = "*"
         end
         if $argD == "DEBUG"
-          puts "Virtual table container class name is: " + @container_class
-          puts "Virtual table record is of type: " + @type
-          puts "Virtual table type is of type pointer: " + @pointer
+          puts "Virtual table container class name is: #{@container_class}."
+          puts "Virtual table record is of type: #{@type}"
+          puts "Virtual table type is of type pointer: #{@pointer}"
         end
       when /(\w+)\*|(\w+)/
         if @signature.match(/(.+):(.+)/) && !@signature.match(/::/)
@@ -1938,7 +1927,7 @@ class VirtualTable
           @type = @signature
           @pointer = @signature_pointer
         end
-        if @loop.length > 0                # C style container.
+        if !@loop.empty?                # C style container.
           @container_class = "c_container"
         else
           @object_class = @signature
@@ -2119,7 +2108,7 @@ class VirtualTable
         raise "Cannot match struct_view for table #{@name}.\\n"
       end
     rescue
-      if @name.length == 0 
+      if @name.empty? 
         @name = "<empty_name>" 
         puts "Perhaps you have forgotten to type the database name, e.g. CREATE VIRTUAL TABLE DB_NAME.TABLE_NAME"
       end
@@ -2127,10 +2116,10 @@ class VirtualTable
       exit(1)
     end
     $table_index[@name] = @signature
-    if @base_var.length == 0        # base column for embedded structs.
+    if @base_var.empty?             # base column for embedded structs.
       @columns.push(Column.new("")).last.set("base INT FROM base")
     end  			    # access path is just a placeholder; never used
-    if @container_class.length > 0 && $argLB == "CPP"
+    if !@container_class.empty? && $argLB == "CPP"
       @columns.push(Column.new("")).last.set("rownum INT FROM rownum") # ditto
     end
     @include_text_col = @struct_view.include_text_col
@@ -2148,6 +2137,7 @@ class VirtualTable
 
 end
 
+
 class StructView
   def initialize()
     @name = ""
@@ -2159,8 +2149,8 @@ class StructView
   end
   attr_accessor(:name,:columns,:include_text_col)
 
-  # Matches a struct view definition against the prototype pattern and 
-  # extracts the characteristics.
+# Matches a struct view definition against the prototype pattern and 
+# extracts the characteristics.
   def match_struct_view(struct_view_description)
     if $argD == "DEBUG"
       puts "Struct view description is: #{struct_view_description}"
@@ -2197,9 +2187,9 @@ class StructView
     end
   end
 
-  # Removes the last entry in the columns table and returns the table 
-  # itself. Useful when including a struct_view definition to remove the 
-  # entry left empty.
+# Removes the last entry in the columns table and returns the table 
+# itself. Useful when including a struct_view definition to remove the 
+# entry left empty.
   def columns_delete_last()
     @columns.delete(@columns.last)
     return @columns
@@ -2217,6 +2207,7 @@ class RelationalView
   end
   attr_accessor(:stmt,:name)
 
+# Extract the relational view's name.
   def extract_name()
     pattern = /^create view (\w+) as/im
     matchdata = pattern.match(@stmt)
@@ -2229,6 +2220,7 @@ class RelationalView
   end
 
 end
+
 
 class UnionView
 
@@ -2243,6 +2235,7 @@ class UnionView
   end
   attr_accessor(:name,:switch,:columns,:include_text_col)
 
+# Match union view definition to DSL specification.
   def match_union_view(union_view_description)
     if $argD == "DEBUG"
       puts "Union view description is: #{union_view_description}"
@@ -2294,6 +2287,7 @@ class UnionView
 
 end
 
+
 class Lock
   def initialize
     @name = ""
@@ -2325,6 +2319,7 @@ class Lock
   
 end
 
+
 # Models the input description.
 class InputDescription
   def initialize(description)
@@ -2351,7 +2346,6 @@ class InputDescription
     fw.puts wrapper_retrieve.result(get_binding)
   end
 
-
 # Calls the family of methods that generate the application-specific 
 # retrieve method for each VT struct.
   def print_retrieve_functions(fw)
@@ -2363,7 +2357,6 @@ class InputDescription
     wrap_retrieve(fw)
   end
 
-
 # Calls template to generate code in search method. 
 # Code makes the necessary arrangements for retrieve to happen successfully 
 # (condition checks, reallocation)
@@ -2372,7 +2365,6 @@ class InputDescription
     wrapper_search = ERB.new(file, 0, '>')
     fw.puts wrapper_search.result(get_binding)
   end
-
 
 # Calls the family of methods that generate the application-specific 
 # search method for each VT struct.
@@ -2454,7 +2446,6 @@ class InputDescription
     end
   end
 
-
 # The method cleans the user description from duplicate 
 # and unnecessary spaces and conducts case analysis 
 # according to which, the description is promoted to the 
@@ -2531,6 +2522,7 @@ class InputDescription
   end
   
 end
+
 
 # Compare kernel version numbers
 def cmp_v(condition, lhs, rhs)

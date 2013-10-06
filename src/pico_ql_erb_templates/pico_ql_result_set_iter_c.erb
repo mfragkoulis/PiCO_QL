@@ -200,7 +200,7 @@ int <%= @name %>_report_charge (cursor *c, int offset, cursorCharged ***oCharged
   cursorCharged **charged = ((<%= @name %>_vt *)vtbl)->charged;
   size_t chargedSize = ((<%= @name %>_vt *)vtbl)->chargedSize;
   int i = 0;
-  sqlite3_vtab_cursor *joining_cur;
+  sqlite3_vtab_cursor *joining_cur = NULL;
   int joining = 0;
   if (!picoQL) return SQLITE_OK; // VT not participating in this query.
   if (offset) {
