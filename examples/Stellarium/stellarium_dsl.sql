@@ -54,7 +54,7 @@ CREATE STRUCT VIEW Planet (
        screenPosd0 DOUBLE FROM data()->screenPos[0],
        screenPosd1 DOUBLE FROM data()->screenPos[1],
        screenPosd2 DOUBLE FROM data()->screenPos[2],
-       onScreen BOOL FROM StelApp::getInstance().getCore()->getProjection(StelApp::getInstance().getCore()->getHeliocentricEclipticModelViewTransform())->checkInViewport(this->data()->screenPos),
+       onScreen BOOL FROM StelApp::getInstance().getCore()->getProjection(StelApp::getInstance().getCore()->getHeliocentricEclipticModelViewTransform())->checkInViewport(tuple_iter->data()->screenPos),
 //       FOREIGN KEY(parentPlanet_id) FROM parent.data() REFERENCES Planet POINTER,
        FOREIGN KEY(satellites_id) FROM data()->satellites REFERENCES SatellitePlanet
 )$
