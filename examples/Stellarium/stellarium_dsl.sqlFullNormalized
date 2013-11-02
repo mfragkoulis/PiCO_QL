@@ -1,6 +1,6 @@
 #include <vector>
 #include <QString>
-#include <list>
+#include <QList>
 #include "Meteor.hpp"
 #include "Constellation.hpp"
 #include "StelObject.hpp"
@@ -9,7 +9,7 @@
 $
 
 CREATE STRUCT VIEW AllMeteors (
-       FOREIGN KEY(meteor_id) FROM self references Meteor POINTER
+       FOREIGN KEY(meteor_id) FROM tuple_iter references Meteor POINTER
 )$
 
 CREATE VIRTUAL TABLE AllMeteors 
@@ -38,22 +38,22 @@ CREATE STRUCT VIEW AllPlanets (
 CREATE VIRTUAL TABLE AllPlanets 
        USING STRUCT VIEW AllPlanets
        WITH REGISTERED C NAME allPlanets
-       WITH REGISTERED C TYPE list<PlanetP>$
+       WITH REGISTERED C TYPE QList<PlanetP>$
 
 CREATE STRUCT VIEW Planet (
-       name STRING FROM getNameI18n().toStdString(),       
-       hasAtmosphere BOOL FROM hasAtmosphere(),
-       radius DOUBLE FROM getRadius(),
-       period DOUBLE FROM getSiderealDay(),
-       rotObliquity DOUBLE FROM getRotObliquity(),
-       distance DOUBLE FROM getDistance(),
-       cloudDensity DOUBLE FROM cloudDensity,
-       cloudScale FLOAT FROM cloudScale,
-       cloudSharpness FLOAT FROM cloudSharpness,
-       albedo FLOAT FROM albedo,
-       axisRotation FLOAT FROM axisRotation,
+       name STRING FROM data()->getNameI18n().toStdString(),       
+       hasAtmosphere BOOL FROM data()->hasAtmosphere(),
+       radius DOUBLE FROM data()->getRadius(),
+       period DOUBLE FROM data()->getSiderealDay(),
+       rotObliquity DOUBLE FROM data()->getRotObliquity(),
+       distance DOUBLE FROM data()->getDistance(),
+       cloudDensity DOUBLE FROM data()->cloudDensity,
+       cloudScale FLOAT FROM data()->cloudScale,
+       cloudSharpness FLOAT FROM data()->cloudSharpness,
+       albedo FLOAT FROM data()->albedo,
+       axisRotation FLOAT FROM data()->axisRotation,
 //       FOREIGN KEY(parentPlanet_id) FROM parent.data() REFERENCES Planet POINTER,
-       FOREIGN KEY(satellites_id) FROM satellites.toStdList() REFERENCES SatellitePlanets
+       FOREIGN KEY(satellites_id) FROM data()->satellites REFERENCES SatellitePlanets
 )$
 
 CREATE VIRTUAL TABLE Planet 
@@ -66,10 +66,10 @@ CREATE STRUCT VIEW SatellitePlanets (
 
 CREATE VIRTUAL TABLE SatellitePlanets 
        USING STRUCT VIEW SatellitePlanets
-       WITH REGISTERED C TYPE list<QSharedPointer<Planet> >*$
+       WITH REGISTERED C TYPE QList<QSharedPointer<Planet> >$
 
 CREATE STRUCT VIEW AllConstellations (
-       FOREIGN KEY(constellation_id) FROM self REFERENCES Constellation POINTER
+       FOREIGN KEY(constellation_id) FROM tuple_iter REFERENCES Constellation POINTER
 )$
 
 CREATE VIRTUAL TABLE AllConstellations 

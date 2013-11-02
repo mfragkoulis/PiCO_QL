@@ -158,12 +158,14 @@ int init_vtable(int iscreate,
     if (output == 1) {
       *pzErr = sqlite3_mprintf("Error while declaring virtual table %s.\n", picoQL->zName);
       printf("%s \n", *pzErr);
+      sqlite3_free(*pzErr);
       return SQLITE_ERROR;
     } else if (output == 0) {
       *ppVtab = &picoQL->vtab;
       if (register_vt(picoQL) == SQLITE_ERROR) {
 	*pzErr = sqlite3_mprintf("WARNING: Virtual table %s is NULL at the time of registration.\n", picoQL->zName);
 	printf("%s \n", *pzErr);
+        sqlite3_free(*pzErr);
 	//	return SQLITE_ERROR;
       }
 #ifdef PICO_QL_DEBUG
@@ -174,6 +176,7 @@ int init_vtable(int iscreate,
   } else {
     *pzErr = sqlite3_mprintf("Unknown error");
     printf("%s \n", *pzErr);
+    sqlite3_free(*pzErr);
     return SQLITE_ERROR;
   } 
   return SQLITE_INTERNAL;

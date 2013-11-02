@@ -439,11 +439,11 @@ class Column
       fw.puts "#{space}      int j = 0;"
       fw.puts "#{space}      struct Vtbl *chargeVT#{col};"
     end
-    null_check_action = "{\n#{space}        sqlite3_result_null(con);\n#{space}        break;\n#{space}      }"
+    null_check_action = "{\n#{space}          sqlite3_result_null(con);\n#{space}          break;\n#{space}        }"
     display_null_check(token_access_checks,
                        iden,
                        null_check_action,
-                       fw, "#{space}    ")
+                       fw, "#{space}      ")
     if $argM == "MEM_MGT" && @fk_method_ret == 1
       if !pre_ap.empty? 
         fw.puts "#{space}    #{pre_ap}"
