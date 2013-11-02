@@ -6,6 +6,11 @@
 #include <vector>
 #include <string>
 
+#define Specialaccounts_decl(X) list<SpecialAccount>::iterator X
+#define Specialaccounts_begin(X, Y) X = Y->begin()
+#define Specialaccounts_end(X, Y) X != Y->end()
+#define Specialaccounts_advance(X) (X)++
+
 using namespace std;
 $
 // SuperAccount description
@@ -48,7 +53,8 @@ CREATE STRUCT VIEW SpecialAccount (
 CREATE VIRTUAL TABLE Specialaccounts 
 USING STRUCT VIEW SpecialAccount
 WITH REGISTERED C NAME specialaccounts 
-WITH REGISTERED C TYPE list<SpecialAccount>$
+WITH REGISTERED C TYPE list<SpecialAccount>:list<SpecialAccount>::iterator
+USING LOOP for(Specialaccounts_begin(tuple_iter, base); Specialaccounts_end(tuple_iter, base); Specialaccounts_advance(tuple_iter))$
 
 CREATE VIEW Myaccounts AS 
 SELECT balance,type

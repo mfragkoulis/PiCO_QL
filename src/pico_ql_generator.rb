@@ -618,7 +618,7 @@ class Column
     post_ap = String.new(@post_access_path)
     sub_keywords(post_ap, nil, nil)
     if !container_class.empty?
-      if iteration.length > 0
+      if !iteration.empty?
         fw.puts "#{iteration.gsub("<space>", "#{space}")}"
         space.concat("  ")
       end
@@ -1335,6 +1335,8 @@ class VirtualTable
                           # Use @type for management. It is active for 
                           # both container and object.
     @pointer = ""         # Is the record type pointer? ("*").
+#    @iter_type = ""       # The type of the iterator, which is used for iterating
+                          # over a container's elements
     @loop = ""            # Custom loop to use for iterating custom containers;
                           # A uniform abstraction is defined.
     @nloops = 0           # Counts nested loops
@@ -1369,7 +1371,7 @@ class VirtualTable
                 :signature,:signature_pointer,
                 :assignable_signature,
                 :container_class,:type,
-                :pointer,:iterator,
+                :pointer,
                 :object_class,:columns,
                 :include_text_col,
                 :C_container_types, :loop, :nloops,
@@ -1400,19 +1402,14 @@ class VirtualTable
   def configure_retrieve(access_path, op)
     iden = ""
     type_check = ""
-    if @container_class.length > 0
-      if @@C_container_types.include?(@container_class)
-# that is !@loop.empty?
+    if !@container_class.empty?
+      if @type.end_with?("iterator")  # iteration-based abstraction
+        access_path.empty? ? iden = "**(rs->resIter)" : iden = "(**(rs->resIter))."
+      else    # pointer-based abstraction 
         if $argLB == "CPP"
-          access_path.empty? ? iden =  "*(rs->resIter)" : iden = "(*(rs->resIter))."
+          access_path.empty? ? iden = "*(rs->resIter)" : iden = "(*(rs->resIter))."
         else
-          access_path.empty? ? iden =  "((#{@name}ResultSetImpl *)rs)->res[rs->offset]" : iden = "((#{@name}ResultSetImpl *)rs)->res[rs->offset]."
-        end
-      else
-        if @loop.empty?
-          access_path.empty? ? iden =  "**(rs->resIter)" : iden = "(**(rs->resIter))."
-        else
-          access_path.empty? ? iden =  "*(rs->resIter)" : iden = "(*(rs->resIter))."
+          access_path.empty? ? iden = "((#{@name}ResultSetImpl *)rs)->res[rs->offset]" : iden = "((#{@name}ResultSetImpl *)rs)->res[rs->offset]."
         end
       end
     else
@@ -1422,18 +1419,18 @@ class VirtualTable
     when /data|union/
       if !@container_class.empty?
         if access_path.empty?
-          if @type.match(/\*/)
+          if @pointer.end_with?("*")
             iden = "*#{iden}"
           end
         else
           if (access_path == "first" && 
-              @type.gsub(/ /,"").match(/\*,/)) ||
+              @pointer.match(/\*,/)) ||
               (access_path == "second" &&
-               @type.gsub(/ /,"").match(/(.+)\*/))
+               @pointer.end_with?("*"))
             iden = "*#{iden}"
           elsif !access_path.match(/first/) &&
                  !access_path.match(/second/) &&
-                 @type.gsub(/ /,"").end_with?("*") &&
+                 @pointer.end_with?("*") &&
                  iden.end_with?(".")
             iden.chomp!(".")
             iden.concat("->")
@@ -1446,7 +1443,7 @@ class VirtualTable
         if !access_path.empty? &&
            !access_path.match(/first/) &&
            !access_path.match(/second/) &&
-           @type.gsub(/ /,"").end_with?("*") &&
+           @pointer.end_with?("*") &&
            iden.end_with?(".")
           iden.chomp!(".")
           iden.concat("->")
@@ -1517,21 +1514,15 @@ class VirtualTable
     access_pathN = ""
     ap = String.new(access_path)
     if !@container_class.empty?
-      if @@C_container_types.include?(@container_class)
-# that is !@loop.empty?
+      if @type.end_with?("iterator")  # iteration-based abstraction
+        ap.empty? ? idenF = "(*tuple_iter)" : idenF = "(*tuple_iter)."
+        ap.empty? ? idenN = "(**resIterC)" : idenN = "(**resIterC)."
+      else    # pointer-based abstraction 
         ap.empty? ? idenF = "tuple_iter" : idenF = "tuple_iter."
         if $argLB == "CPP"
           ap.empty? ? idenN = "(*resIterC)" : idenN = "(*resIterC)."
         else
           ap.empty? ? idenN = "((#{@name}ResultSetImpl *)rs)->res[index]" : idenN = "((#{@name}ResultSetImpl *)rs)->res[index]."
-        end
-      else
-        if @loop.empty?
-          ap.empty? ? idenF = "(*tuple_iter)" : idenF = "(*tuple_iter)."
-          ap.empty? ? idenN = "(**resIterC)" : idenN = "(**resIterC)."
-        else
-          ap.empty? ? idenF = "tuple_iter" : idenF = "tuple_iter."
-          ap.empty? ? idenN = "(*resIterC)" : idenN = "(*resIterC)."
         end
       end
     else
@@ -1565,20 +1556,20 @@ class VirtualTable
       if !@container_class.empty?
         if ap.empty?
 # Dereference what is there for all containers.
-          if @type.end_with?("*")
+          if @pointer.end_with?("*")
             idenF = "*#{idenF}"
             idenN = "*#{idenN}"
           end
         else
           if (ap == "first" && 
-              @type.gsub(/ /,"").match(/\*,/)) ||
+              @pointer.match(/\*,/)) ||  # why OR ?
               (ap == "second" &&
-               @type.gsub(/ /,"").match(/(.+)\*/))
+               @pointer.end_with("*"))
             idenF = "*#{idenF}"
             idenN = "*#{idenN}"
           elsif !ap.match(/first/) &&
               !ap.match(/second/) &&
-              @type.gsub(/ /,"").end_with?("*")
+              @pointer.end_with?("*")
             if idenF.end_with?(".")
               idenF.chomp!(".")
               idenF.concat("->")
@@ -1592,11 +1583,11 @@ class VirtualTable
       end
     when "fk"
 # is object after transformations
-      if @container_class.length > 0
+      if !@container_class.empty?
         if !ap.empty? &&
             !ap.match(/first/) &&
             !ap.match(/second/) &&
-            @type.gsub(/ /,"").end_with?("*")
+            @pointer.end_with?("*")
           if idenF.end_with?(".")
             idenF.chomp!(".")
             idenF.concat("->")
@@ -1608,7 +1599,7 @@ class VirtualTable
         end
       end
       if (ap.empty? && 
-          !@type.gsub(/ /,"").end_with?("*")) ||
+          !@pointer.end_with?("*")) ||
           (!ap.empty? && 
            fk_type == "object")
         idenF = "&#{idenF}"
@@ -1674,7 +1665,7 @@ class VirtualTable
 # Configure iteration variant for display.
   def configure_iteration(access_path)
     if !@container_class.empty?
-      if @@C_container_types.include?(@container_class)
+      if !@loop.empty?
 # for C containers resBts has size 1 to differ from error conditions.
 # Since we don't know size before hand we push_back as in result set.
 # We need to start pushing from scratch.
@@ -1682,13 +1673,19 @@ class VirtualTable
 # Passing base as argument to display_loop:
 # base is always "any_dstr".
         loop = display_loop("any_dstr")
-        if $argLB == "CPP"
+        if @@C_container_types.include?(@container_class) && $argLB == "CPP"
           iterationF = "<space>rs->resBts.clear();\n<space>#{loop} {"
         else
           iterationF = "<space>#{loop} {"
         end
         # Hard-coded NULL check for container elements.
-        iterationF.concat("\n<space>  if (tuple_iter == NULL) continue;")
+        if !@pointer.empty? 
+          if @type.end_with?("iterator")  # C++ iterator over pointer type
+            iterationF.concat("\n<space>  if (*tuple_iter == NULL) continue;")
+          else                            # iterator is a pointer to the contained elements
+            iterationF.concat("\n<space>  if (tuple_iter == NULL) continue;")
+          end
+        end
       else
         iterationF = "<space>for (tuple_iter = any_dstr->begin(); tuple_iter != any_dstr->end(); tuple_iter++) {"
         if !@pointer.empty? && !@pointer.match(/,/)
@@ -1852,7 +1849,7 @@ class VirtualTable
       when /(\w+)<(.+)>(\**):(.+)/m       # Negative lookahead does not work for ':(?!:). 
         @signature.gsub!(/:{3}/, "[DDD]") # So hacking it non-elegantly. Seek alternative.'
         @signature.gsub!(/:{2}/, "[DD]")
-        if @signature.match(/(.+):(.+)/)
+        if @signature.match(/(.+):(.+)/)  # USING LOOP implied
           matchdata = @signature.match(/(.+):(.+)/)
           @signature = matchdata[1]
           @type = matchdata[2]
@@ -1868,29 +1865,29 @@ class VirtualTable
             @signature.concat("*")
           end
           @signature_pointer = "*"
-          if @type.end_with?("*")
+          if matchdata1[2].end_with?("*")
             @pointer = "*"
           end
         end
       when /(\w+)<(.+)>(\**)/m
         matchdata = /(\w+)<(.+)>(\**)/m.match(@signature)
+        @type = @type.replace(@signature).chomp("*").concat("::iterator")
         if matchdata[3].empty?
           @signature.concat("*")
         end
         @signature_pointer = "*"
         @container_class = matchdata[1]
-        @type = matchdata[2]
         if @type.match(/,/)
-          type_array = @type.split(",")
+          type_array = matchdata[2].split(",")
           if type_array[0].end_with?("*")
             @pointer.concat("*,")
-          else
+          else  # Don't like this
             @pointer.concat(",")
           end
           if type_array[1].end_with?("*")
             @pointer.concat("*")
           end
-        elsif @type.end_with?("*")
+        elsif matchdata[2].end_with?("*") # We care about the record type, not the iterator type
           @pointer = "*"
         end
         if $argD == "DEBUG"

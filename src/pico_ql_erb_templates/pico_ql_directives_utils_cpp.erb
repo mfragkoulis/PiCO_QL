@@ -294,7 +294,9 @@ list <<%= col.fk_col_type.chomp('*') %> > saved_results_<%= i %>;
 <%          end %>
 <%        else %>
   vector<<%= vt.signature.chomp('*') %>::iterator>::iterator resIterC;
+<%          if vt.loop.empty? %>
   <%= vt.signature.chomp('*') %>::iterator tuple_iter;
+<%          end %>
 <%        end %>
 <%      else %>
   set<sqlite3_vtab_cursor *> cursors;

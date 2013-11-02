@@ -79,7 +79,7 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
 #ifdef PICO_QL_DEBUG
   printf("Checked cursor size is %i.\n" , checkedSize);
 #endif
-<%      if @container_class.length > 0 %>
+<%      if !@container_class.empty? %>
   int index = 0;
 <%        if @base_var.length > 0 %>
   if (rs->resBts.size() == 0)
@@ -102,10 +102,10 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
 <%      if $argD == "DEBUG" %>
 #line <%= @signature_line + 1 %> "<%= $argF %>" 
 <%      end %>
-<%      if @base_var.length > 0 %>
+<%      if !@base_var.empty? %>
 <%        if (@signature <=> @type) != 0 %>
 <%# C container %>
-<%          if @loop_root.length > 0 %>
+<%          if !@loop_root.empty? %>
   if (<%= @loop_root %> == NULL) {
     rs->res.clear();
     rs->resBts.clear();
