@@ -6,7 +6,7 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
   int checkedSize = 0;
   int cuSize = 0;
   map<sqlite3_vtab_cursor *, Cursor>::iterator c_map_iter;
-<%      if /\*/.match(@pointer) == nil %>
+<%      if !@pointer.end_with?("*") && !@type.end_with?("::iterator") %>
 <%        type_retype = "#{@type}*" %>
 <%      else %>
 <%        type_retype = "#{@type}" %>
