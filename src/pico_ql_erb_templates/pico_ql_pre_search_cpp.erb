@@ -31,7 +31,7 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
 <%	else %>
     rs->res.clear();
     rs->resBts.clear();
-<%        if @@C_container_types.include?(@container_class) %>
+<%        if @@C_container_types.include?(@container_class) || !@loop.empty? %>
     <%= type_retype %> dummy;
     rs->res.push_back(dummy);
 <%	  else %>
@@ -86,7 +86,7 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
     rs->resBts.resize(stcsr->max_size, 0);
 <%        end %>
   int rowNum = -1;
-<%        if @@C_container_types.include?(@container_class) %>
+<%        if @@C_container_types.include?(@container_class) || !@loop.empty? %>
   int i = 0;
   bool found = false;
 <%        end %>
@@ -121,18 +121,35 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
   if (first_constr)
     stcsr->first_constr = 0;
   if (val == NULL) {
-<%      if @base_var.length > 0 %>
-<%        if @container_class.length > 0 %>
-<%          if @@C_container_types.include?(@container_class) %>
+<%      if !@base_var.empty? %>
+<%        if !@container_class.empty? %>
+<%          if !@loop.empty? %>
+<%            if @@C_container_types.include?(@container_class) %>
     rs->resBts.clear();
+<%            end %>
 <% loop = display_loop("any_dstr") %>
 <% loop.gsub!(/<space>/, "    ") %>
 <%# Generate spacing for nested loops %>
     <%= loop %> {
+<%            if @pointer.end_with?("*") %>
+<%              if @type.end_with?("::iterator") %>
+      if (*tuple_iter == NULL) continue;
+<%              else %>
       if (tuple_iter == NULL) continue;
+<%              end %>
+<%            end %>
+<%            if @type.end_with?("::iterator") %>
+      rs->res.push_back(<%= @signature.chomp('*') %>::iterator(tuple_iter));
+<%            else %>
       rs->res.push_back(tuple_iter);
+<%            end %>
+<%            if @@C_container_types.include?(@container_class) %>
       rs->resBts.push_back(1);
+<%            end %>
     }
+<%            if !@@C_container_types.include?(@container_class) %>
+    rs->resBts.set();
+<%            end %>
 <%            for i in 0..@nloops-1 %>
     }
 <%            end %>
@@ -141,7 +158,11 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
 <%            if !@pointer.match(/,/) && @pointer.match(/\*/) %>
       if (*tuple_iter == NULL) continue;
 <%            end %>
+<%            if @type.end_with?("::iterator") %>
       rs->res.push_back(<%= @signature.chomp('*') %>::iterator(tuple_iter));
+<%            else %>
+      rs->res.push_back(tuple_iter);
+<%            end %>
     }
     rs->resBts.set();
 <%          end %>
@@ -198,7 +219,7 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
             stcsr->size = 1;
 <%	  else %>
 // BASE is first constraint by default, so no need to delete resultset here.
-<%          if @@C_container_types.include?(@container_class) %>
+<%          if @@C_container_types.include?(@container_class) || !@loop.empty? %>
             <%= type_retype %> dummy;
             rs->res.push_back(dummy);
 <%	    else %>
@@ -230,7 +251,7 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
 <%        if @container_class.length > 0 %>
           if ((stcsr->max_size = (int)(*this)(cur, cur->pVtab)) == 0) {
             stcsr->isInstanceEmpty = 1;
-<%          if @@C_container_types.include?(@container_class) %>
+<%          if @@C_container_types.include?(@container_class) || !@loop.empty? %>
             <%= type_retype %> dummy;
             rs->res.push_back(dummy);
 <%	    else %>

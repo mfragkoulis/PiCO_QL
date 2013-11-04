@@ -59,9 +59,9 @@ int <%= @name %>_vt::operator() (sqlite3_vtab *vtab, sqlite3_vtab_cursor *cur) {
   (void)vtab;
 <%      end %>
   if (cursors.find(cur) == cursors.end()) {
-<%      if @container_class.length > 0 %>
-<%        if @@C_container_types.include?(@container_class) %>
-<%          @pointer.match(/\*/) ? retype = "#{@type}" : retype = "#{@type}*" %>
+<%      if !@container_class.empty? %>
+<%        if @@C_container_types.include?(@container_class) || !@loop.empty? %>
+<%          @pointer.match(/\*/) || @type.end_with?("::iterator") ? retype = "#{@type}" : retype = "#{@type}*" %>
     vector<<%= retype %>> res;
 <%        else %>
     vector<<%= @signature.chomp('*') %>::iterator> res;

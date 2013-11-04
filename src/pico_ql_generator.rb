@@ -258,7 +258,7 @@ class Column
                     column_cast, column_cast_back, 
                     space)
     ap_copy = String.new(access_path)
-    if access_path.match(/tuple_iter\.|tuple_iter->|\(tuple_iter,|\(tuple_iter\)|tuple_iter\)/)
+    if !access_path.start_with?("tuple_iter") && access_path.match(/tuple_iter/)
       if access_path.match(/tuple_iter\.|tuple_iter->/)
         ap_copy.gsub!(/tuple_iter\.|tuple_iter->/, "#{iden}")
       end
@@ -277,7 +277,7 @@ class Column
         puts "retrieve_data: substituting \"tuple_iter\" in access path:"
         puts "  #{iden}, #{ap_copy}"
       end
-    else
+    elsif !access_path.match(/tuple_iter/)
       ap_copy = "#{iden}#{ap_copy}"
     end
     iden_block = String.new(iden) # Used for code block access path {pre, post}
@@ -353,7 +353,7 @@ class Column
     end
     r_ap_copy = String.new(access_path)
     p_ap_copy = String.new(access_path)
-    if access_path.match(/tuple_iter\.|tuple_iter->|\(tuple_iter,|\(tuple_iter\)|tuple_iter\)/)
+    if access_path.match(/tuple_iter\.|tuple_iter->|\(tuple_iter,|\(tuple_iter\)|tuple_iter\)/)  # Configured access path ?
       if access_path.match(/tuple_iter\.|tuple_iter->/)
         r_ap_copy.gsub!(/tuple_iter\.|tuple_iter->/, "#{record_type}#{iden}")
         p_ap_copy.gsub!(/tuple_iter\.|tuple_iter->/, "#{p_type}#{iden}")
@@ -1102,7 +1102,8 @@ class Column
            @access_path.match(/tuple_iter->(.+?)\)/) || 
            @access_path.match(/tuple_iter->(.+)/) ||  # Introduced with code block
            @access_path.match(/tuple_iter\.(.+)->(.+),/) ||
-           @access_path.match(/tuple_iter\.(.+)->(.+)\)/)
+           @access_path.match(/tuple_iter\.(.+)->(.+)\)/) ||
+           @access_path.match(/tuple_iter\.(.+)->(.+)/) # Configured access path
           case @access_path
           when /tuple_iter->(.+?),(.+)\)/    # Skipping checks here; not good.
             matchdata = @access_path.match(/tuple_iter->(.+?),(.+)\)/)
@@ -1114,6 +1115,8 @@ class Column
             matchdata = @access_path.match(/tuple_iter\.(.+),/)
           when /tuple_iter\.(.+)->(.+)\)/
             matchdata = @access_path.match(/tuple_iter\.(.+)\)/)
+          when /tuple_iter\.(.+)->(.+)/
+            matchdata = @access_path.match(/tuple_iter\.(.+)/)
           end
           if $argD == "DEBUG"
             puts "Access path with 'tuple_iter' included, path for checking is #{matchdata[1]}."
@@ -1122,8 +1125,8 @@ class Column
             @tokenized_access_path = matchdata[1].split(/->/)
             @tokenized_access_path.pop
           end
-        else
-          puts "WARNING: Dereference in access path not part of data structure registered with PiCO QL.\n"
+        else 
+          puts "WARNING: Dereference in access path: #{@access_path} not part of data structure registered with PiCO QL.\n"
         end
       else
         @tokenized_access_path = @access_path.split(/->/)
@@ -1402,18 +1405,23 @@ class VirtualTable
   def configure_retrieve(access_path, op)
     iden = ""
     type_check = ""
-    if !@container_class.empty?
-      if @type.end_with?("iterator")  # iteration-based abstraction
-        access_path.empty? ? iden = "**(rs->resIter)" : iden = "(**(rs->resIter))."
-      else    # pointer-based abstraction 
-        if $argLB == "CPP"
-          access_path.empty? ? iden = "*(rs->resIter)" : iden = "(*(rs->resIter))."
-        else
-          access_path.empty? ? iden = "((#{@name}ResultSetImpl *)rs)->res[rs->offset]" : iden = "((#{@name}ResultSetImpl *)rs)->res[rs->offset]."
+    if !access_path.start_with?("tuple_iter")
+      if !@container_class.empty?
+        if @type.end_with?("iterator")  # iteration-based abstraction
+          access_path.empty? ? iden = "**(rs->resIter)" : iden = "(**(rs->resIter))."
+        else    # pointer-based abstraction 
+          if $argLB == "CPP"
+            access_path.empty? ? iden = "*(rs->resIter)" : iden = "(*(rs->resIter))->"
+          else
+            access_path.empty? ? iden = "((#{@name}ResultSetImpl *)rs)->res[rs->offset]" : iden = "((#{@name}ResultSetImpl *)rs)->res[rs->offset]->"
+          end
         end
+      else
+        access_path.empty? ? iden = "any_dstr" : iden = "any_dstr->"
       end
-    else
-      access_path.empty? ? iden = "any_dstr" : iden = "any_dstr->"
+    elsif access_path.start_with?("tuple_iter.")  # won't work for object
+      iden = "(*(rs->resIter))."
+      return iden
     end
     case op
     when /data|union/
@@ -1480,13 +1488,13 @@ class VirtualTable
   end
 
   def configure_result_set()
-    @pointer.match(/\*/) ? retype = "" : retype = "*"
+    @pointer.match(/\*/) ? typep = "" : typep = "*"
     if !@container_class.empty?
       if @@C_container_types.include?(@container_class)
         if $argLB == "CPP"
           add_to_result_setF = "<space>    rs->res.push_back(tuple_iter);\n<space>    rs->resBts.push_back(1);\n<space>  } else {\n<space>    rs->resBts.push_back(0);\n<space>  }\n<space>}"            
         else
-          add_to_result_setF = "<space>    rs->size++;\n<space>    rs->actualSize++;\n<space>    if (rs->size == rs->malloced) {\n<space>      rs->malloced *= 2;\n<space>      ((#{@name}ResultSetImpl *)rs)->res = (#{@type}#{retype}*)sqlite3_realloc(((#{@name}ResultSetImpl *)rs)->res, sizeof(#{@type}#{retype}) * rs->malloced);\n<space>      if (((#{@name}ResultSetImpl *)rs)->res == NULL)\n<space>        return SQLITE_NOMEM;\n<space>    }\n<space>    ((#{@name}ResultSetImpl *)rs)->res[rs->size - 1] = tuple_iter;\n<space>  }\n<space>}"
+          add_to_result_setF = "<space>    rs->size++;\n<space>    rs->actualSize++;\n<space>    if (rs->size == rs->malloced) {\n<space>      rs->malloced *= 2;\n<space>      ((#{@name}ResultSetImpl *)rs)->res = (#{@type}#{typep}*)sqlite3_realloc(((#{@name}ResultSetImpl *)rs)->res, sizeof(#{@type}#{typep}) * rs->malloced);\n<space>      if (((#{@name}ResultSetImpl *)rs)->res == NULL)\n<space>        return SQLITE_NOMEM;\n<space>    }\n<space>    ((#{@name}ResultSetImpl *)rs)->res[rs->size - 1] = tuple_iter;\n<space>  }\n<space>}"
         end
       else
         add_to_result_setF = "<space>    rs->res.push_back(tuple_iter);\n<space>    rs->resBts.set(index, 1);\n<space>  }\n<space>  index++;\n<space>}"
@@ -1520,9 +1528,9 @@ class VirtualTable
       else    # pointer-based abstraction 
         ap.empty? ? idenF = "tuple_iter" : idenF = "tuple_iter."
         if $argLB == "CPP"
-          ap.empty? ? idenN = "(*resIterC)" : idenN = "(*resIterC)."
+          ap.empty? ? idenN = "(*resIterC)" : idenN = "(*resIterC)->"
         else
-          ap.empty? ? idenN = "((#{@name}ResultSetImpl *)rs)->res[index]" : idenN = "((#{@name}ResultSetImpl *)rs)->res[index]."
+          ap.empty? ? idenN = "((#{@name}ResultSetImpl *)rs)->res[index]" : idenN = "((#{@name}ResultSetImpl *)rs)->res[index]->"
         end
       end
     else
@@ -1562,13 +1570,13 @@ class VirtualTable
           end
         else
           if (ap == "first" && 
-              @pointer.match(/\*,/)) ||  # why OR ?
+              @pointer.match(/\*,/)) ||
               (ap == "second" &&
-               @pointer.end_with("*"))
+               @pointer.end_with?("*"))
             idenF = "*#{idenF}"
             idenN = "*#{idenN}"
-          elsif !ap.match(/first/) &&
-              !ap.match(/second/) &&
+          elsif !ap.match(/first|key()/) &&
+              !ap.match(/second|value()/) &&
               @pointer.end_with?("*")
             if idenF.end_with?(".")
               idenF.chomp!(".")
@@ -1608,7 +1616,7 @@ class VirtualTable
     end
     ap_copyF = String.new(ap)
     ap_copyN = String.new(ap)
-    if access_path.match(/tuple_iter\.|tuple_iter->|\(tuple_iter,|\(tuple_iter\)|tuple_iter\)/)
+    if !access_path.start_with?("tuple_iter") && access_path.match(/tuple_iter/)  # Substitute
       if ap.match(/tuple_iter\.|tuple_iter->/)
         ap_copyF.gsub!(/tuple_iter\.|tuple_iter->/, "#{idenF}")
         ap_copyN.gsub!(/tuple_iter\.|tuple_iter->/, "#{idenN}")
@@ -1640,9 +1648,14 @@ class VirtualTable
       end
       access_pathF = "#{ap_copyF}"
       access_pathN = "#{ap_copyN}"
-    else
+    elsif !access_path.match(/tuple_iter/) # tuple_iter omitted; the usual case.
       access_pathF = "#{idenF}#{ap_copyF}"
       access_pathN = "#{idenN}#{ap_copyN}"
+    elsif access_path.start_with?("tuple_iter.") # access path configured by user. expandable.
+      idenF = "tuple_iter."
+      idenN = "(*resIterC)."
+      access_pathF = "#{ap_copyF}"
+      access_pathN = "#{ap_copyN}"
     end
     return access_pathF, access_pathN, idenF, idenN
   end
@@ -1679,7 +1692,7 @@ class VirtualTable
           iterationF = "<space>#{loop} {"
         end
         # Hard-coded NULL check for container elements.
-        if !@pointer.empty? 
+        if !@pointer.empty? && !@pointer.match(/,/)
           if @type.end_with?("iterator")  # C++ iterator over pointer type
             iterationF.concat("\n<space>  if (*tuple_iter == NULL) continue;")
           else                            # iterator is a pointer to the contained elements
@@ -1707,11 +1720,14 @@ class VirtualTable
   end
 
 # Generate code for rownum column in search function.
+# Because rownum column is generated for CPP binding only
+# this code will only be generated for CPP binding.
   def search_rownum(fw)
     fw.puts "        rowNum = sqlite3_value_int(val);"
-    if !@@C_container_types.include?(@container_class)
+    if !@@C_container_types.include?(@container_class) && @loop.empty?
       fw.puts "        if (rowNum > (int)rs->resBts.size()) {"
-    else
+    end
+    if !@loop.empty?
       fw.puts "        #{display_loop("any_dstr")} {"
       fw.puts "#{$s}  if (rowNum == i) {"
       if $argLB == "CPP"
@@ -1732,7 +1748,7 @@ class VirtualTable
     fw.puts "          rs->resBts.clear();"
     fw.puts "          return SQLITE_OK;" 
     fw.puts "        }"
-    if !@@C_container_types.include?(@container_class)
+    if !@@C_container_types.include?(@container_class) && @loop.empty?
       fw.puts "        tuple_iter = any_dstr->begin();"
       fw.puts "        for (int i = 0; i < rowNum; i++)"
       fw.puts "          tuple_iter++;"
@@ -1865,8 +1881,22 @@ class VirtualTable
             @signature.concat("*")
           end
           @signature_pointer = "*"
-          if matchdata1[2].end_with?("*")
-            @pointer = "*"
+          if @type.end_with?("::iterator")
+            if matchdata1[2].match(/,/)
+              type_array = matchdata1[2].split(",")
+              if type_array[0].end_with?("*")
+                @pointer.concat("*,")
+              else  # Don't like this
+                @pointer.concat(",")
+              end
+              if type_array[1].end_with?("*")
+                @pointer.concat("*")
+              end
+            elsif matchdata1[2].end_with?("*")
+              @pointer = "*"
+            end
+          elsif @type.end_with?("*")
+              @pointer = "*"
           end
         end
       when /(\w+)<(.+)>(\**)/m
