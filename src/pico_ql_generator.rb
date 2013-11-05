@@ -1729,8 +1729,15 @@ class VirtualTable
   def try_optimize(fw, access_path, sqlite3_type)
     space = "#{$s}"
     optimize = false
-    if @container_class.end_with?("map") && @type.end_with?("::iterator") &&  # unordered?
+    if @container_class.match(/map$/i) && @type.end_with?("::iterator") &&  # unordered?
        access_path.match(/first|key\(\)/)
+      if @container_class == "QMap" || @container_class == "QMultiMap"
+        upBoundF = "upperBound"
+        loBoundF = "lowerBound"
+      else
+        upBoundF = "upper_bound"
+        loBoundF = "lower_bound"
+      end
       if @signature.match(/(\w*)string,/i)  # also the various types of char * ?
         matchdata = @signature.match(/(\w*)string,/i)
         fw.puts "#{space}  #{matchdata[0].chomp(",")} s((const char *)sqlite3_value_text(val));"
@@ -1742,13 +1749,13 @@ class VirtualTable
         rhs = "sqlite3_value_#{sqlite3_type}(val)"
       end
       case @container_class
-      when /unordered_map/
-      when /unordered_multimap/
-      when /multimap/    # ordered
+      when /unordered_map/i
+      when /unordered_multimap/i
+      when /multimap/i    # ordered
         fw.puts "#{space}  int i;"
         fw.puts "#{space}  switch (op) {"
         fw.puts "#{space}  case 0:"
-        fw.puts "#{space}    tuple_iter = any_dstr->upper_bound(#{rhs});"
+        fw.puts "#{space}    tuple_iter = any_dstr->#{upBoundF}(#{rhs});"
         fw.puts "#{space}    i = 0;"
         fw.puts "#{space}    for (#{@type} it = any_dstr->begin(); it != tuple_iter; it++) {"
         fw.puts "#{space}      rs->res.push_back(it);"
@@ -1757,7 +1764,7 @@ class VirtualTable
         fw.puts "#{space}    }"
         fw.puts "#{space}    break;"
         fw.puts "#{space}  case 1:"
-        fw.puts "#{space}    tuple_iter = any_dstr->lower_bound(#{rhs});"
+        fw.puts "#{space}    tuple_iter = any_dstr->#{loBoundF}(#{rhs});"
         fw.puts "#{space}    i = 0;"
         fw.puts "#{space}    for (#{@type} it = any_dstr->begin(); it != tuple_iter; it++) {"
         fw.puts "#{space}      rs->res.push_back(it);"
@@ -1777,7 +1784,7 @@ class VirtualTable
         fw.puts "#{space}    break;"
         fw.puts "#{space}  }"
         fw.puts "#{space}  case 3:"
-        fw.puts "#{space}    tuple_iter = any_dstr->lower_bound(#{rhs});"
+        fw.puts "#{space}    tuple_iter = any_dstr->#{loBoundF}(#{rhs});"
         fw.puts "#{space}    i = 0;"
         fw.puts "#{space}    for (#{@type} it = tuple_iter; it != any_dstr->end(); it++) {"
         fw.puts "#{space}      rs->res.push_back(it);"
@@ -1786,7 +1793,7 @@ class VirtualTable
         fw.puts "#{space}    }"
         fw.puts "#{space}    break;"
         fw.puts "#{space}  case 4:"
-        fw.puts "#{space}    tuple_iter = any_dstr->upper_bound(#{rhs});"
+        fw.puts "#{space}    tuple_iter = any_dstr->#{upBoundF}(#{rhs});"
         fw.puts "#{space}    i = 0;"
         fw.puts "#{space}    for (#{@type} it = tuple_iter; it != any_dstr->end(); it++) {"
         fw.puts "#{space}      rs->res.push_back(it);"
@@ -1795,11 +1802,11 @@ class VirtualTable
         fw.puts "#{space}    }"
         fw.puts "#{space}    break;"
         fw.puts "#{space}  }"
-      when /map/         # ordered
+      when /map/i         # ordered
         fw.puts "#{space}  int i;"
         fw.puts "#{space}  switch (op) {"
         fw.puts "#{space}  case 0:"
-        fw.puts "#{space}    tuple_iter = any_dstr->upper_bound(#{rhs});"
+        fw.puts "#{space}    tuple_iter = any_dstr->#{upBoundF}(#{rhs});"
         fw.puts "#{space}    i = 0;"
         fw.puts "#{space}    for (#{@type} it = any_dstr->begin(); it != tuple_iter; it++) {"
         fw.puts "#{space}      rs->res.push_back(it);"
@@ -1808,7 +1815,7 @@ class VirtualTable
         fw.puts "#{space}    }"
         fw.puts "#{space}    break;"
         fw.puts "#{space}  case 1:"
-        fw.puts "#{space}    tuple_iter = any_dstr->lower_bound(#{rhs});"
+        fw.puts "#{space}    tuple_iter = any_dstr->#{loBoundF}(#{rhs});"
         fw.puts "#{space}    i = 0;"
         fw.puts "#{space}    for (#{@type} it = any_dstr->begin(); it != tuple_iter; it++) {"
         fw.puts "#{space}      rs->res.push_back(it);"
@@ -1826,7 +1833,7 @@ class VirtualTable
         fw.puts "#{space}    }"
         fw.puts "#{space}    break;"
         fw.puts "#{space}  case 3:"
-        fw.puts "#{space}    tuple_iter = any_dstr->lower_bound(#{rhs});"
+        fw.puts "#{space}    tuple_iter = any_dstr->#{loBoundF}(#{rhs});"
         fw.puts "#{space}    i = 0;"
         fw.puts "#{space}    for (#{@type} it = tuple_iter; it != any_dstr->end(); it++) {"
         fw.puts "#{space}      rs->res.push_back(it);"
@@ -1835,7 +1842,7 @@ class VirtualTable
         fw.puts "#{space}    }"
         fw.puts "#{space}    break;"
         fw.puts "#{space}  case 4:"
-        fw.puts "#{space}    tuple_iter = any_dstr->upper_bound(#{rhs});"
+        fw.puts "#{space}    tuple_iter = any_dstr->#{upBoundF}(#{rhs});"
         fw.puts "#{space}    i = 0;"
         fw.puts "#{space}    for (#{@type} it = tuple_iter; it != any_dstr->end(); it++) {"
         fw.puts "#{space}      rs->res.push_back(it);"
@@ -1846,7 +1853,7 @@ class VirtualTable
         fw.puts "#{space}  }"
       end
       optimize = true
-    elsif @container_class.end_with?("vector") && access_path == "rownum"  # works only for ==
+    elsif @container_class.match(/vector$/i) && access_path == "rownum"  # works only for ==
       fw.puts "        tuple_iter = any_dstr->begin() + rowNum;"
       optimize = true
     end
