@@ -26,6 +26,25 @@ rownum id SuperAccountbalance SuperAccountaccount_no SuperAccountrate SuperAccou
 Done
 
 Query 2:
+ select * from SuperAccounts where id = '36';
+
+Statement prepared.
+rownum id SuperAccountbalance SuperAccountaccount_no SuperAccountrate SuperAccountisbn SuperAccountisbn_root 
+
+12 36 2784.590088 28902 27.845901 197396445 14049.784518 
+
+Done
+
+Query 3:
+ select * from SuperAccounts where id = '37';
+
+Statement prepared.
+rownum id SuperAccountbalance SuperAccountaccount_no SuperAccountrate SuperAccountisbn SuperAccountisbn_root 
+
+
+Done
+
+Query 4:
  select * from SuperAccounts where SuperAccountisbn > 0 and SuperAccountbalance < 500 and SuperAccountaccount_no>1000 order by id;
 
 Statement prepared.
@@ -40,7 +59,70 @@ rownum id SuperAccountbalance SuperAccountaccount_no SuperAccountrate SuperAccou
 
 Done
 
-Query 3:
+Query 5:
+ select * from ConnectedAccounts;
+
+Statement prepared.
+rownum id SuperAccountbalance SuperAccountaccount_no SuperAccountrate SuperAccountisbn SuperAccountisbn_root 
+
+0 0 500.000000 10068 5.000000 478923743 21884.326423 
+1 0 1000.000000 23999 10.000000 639269243 25283.774303 
+2 0 46423.000000 46738 464.230011 362626823 19042.763009 
+3 1 394.279999 10234 3.942800 692346729 26312.482380 
+4 1 131.000000 69263 1.310000 457349341 21385.727507 
+5 1 26834.000000 34734 268.339996 236326823 15372.924998 
+6 10 23489.000000 34807 234.889999 394847344 19870.766065 
+7 10 -589045.312500 28904 -5890.453125 808023242 28425.749630 
+8 10 47235.000000 3462 472.350006 676328962 26006.325423 
+9 12 -347389.000000 22974 -3473.889893 580383483 24091.149474 
+10 12 4784.580078 45483 47.845802 580540484 24094.407733 
+11 12 346.230011 2532 3.462300 234628621 15317.591880 
+12 15 445567.000000 47023 4455.669922 830343479 28815.681130 
+13 15 284.579987 04023 2.845800 347893488 18651.903066 
+14 15 2363.000000 23683 23.629999 729367263 27006.800310 
+15 18 48923.000000 34369 489.230011 347304830 18636.116280 
+16 18 2784.590088 28902 27.845901 197396445 14049.784518 
+17 18 -262.000000 26738 -2.620000 234674389 15319.085776 
+
+Done
+
+Query 6:
+ select * from ConnectedAccounts where id = '10';
+
+Statement prepared.
+rownum id SuperAccountbalance SuperAccountaccount_no SuperAccountrate SuperAccountisbn SuperAccountisbn_root 
+
+6 10 23489.000000 34807 234.889999 394847344 19870.766065 
+7 10 -589045.312500 28904 -5890.453125 808023242 28425.749630 
+8 10 47235.000000 3462 472.350006 676328962 26006.325423 
+
+Done
+
+Query 7:
+ select * from ConnectedAccounts where id = '37';
+
+Statement prepared.
+rownum id SuperAccountbalance SuperAccountaccount_no SuperAccountrate SuperAccountisbn SuperAccountisbn_root 
+
+
+Done
+
+Query 8:
+ select * from ConnectedAccounts where SuperAccountisbn > 0 and SuperAccountbalance < 500 and SuperAccountaccount_no>1000 order by id;
+
+Statement prepared.
+rownum id SuperAccountbalance SuperAccountaccount_no SuperAccountrate SuperAccountisbn SuperAccountisbn_root 
+
+3 1 394.279999 10234 3.942800 692346729 26312.482380 
+4 1 131.000000 69263 1.310000 457349341 21385.727507 
+7 10 -589045.312500 28904 -5890.453125 808023242 28425.749630 
+9 12 -347389.000000 22974 -3473.889893 580383483 24091.149474 
+11 12 346.230011 2532 3.462300 234628621 15317.591880 
+17 18 -262.000000 26738 -2.620000 234674389 15319.085776 
+
+Done
+
+Query 9:
  select * from Accounts;
 
 Statement prepared.
@@ -55,7 +137,7 @@ rownum balance account_no rate isbn isbn_root type
 
 Done
 
-Query 4:
+Query 10:
  select * from AccountsNULL;
 
 Statement prepared.
@@ -65,7 +147,7 @@ rownum balance account_no rate isbn isbn_root type
 
 Done
 
-Query 5:
+Query 11:
  select * from Accounts where rate >10 and balance<20000 order by account_no;
 
 Statement prepared.
@@ -74,7 +156,27 @@ rownum balance account_no rate isbn isbn_root type
 
 Done
 
-Query 6:
+Query 12:
+ select * from Accounts where rownum=5;
+
+Statement prepared.
+rownum balance account_no rate isbn isbn_root type 
+
+5 23489.000000 34807 469.779999 394847344 19870.766065 credit-fundtrust 
+
+Done
+
+Query 13:
+ select * from AccountsNULL where rownum=5;
+
+Statement prepared.
+rownum balance account_no rate isbn isbn_root type 
+
+(null) (null) (null) (null) (null) (null) (null) 
+
+Done
+
+Query 14:
  select * from AccountsNULL where rate >10 and balance<20000 order by account_no;
 
 Statement prepared.
@@ -84,7 +186,7 @@ rownum balance account_no rate isbn isbn_root type
 
 Done
 
-Query 7:
+Query 15:
  select * from SpecialAccounts;
 
 Statement prepared.
@@ -99,7 +201,7 @@ rownum balance account_no rate isbn isbn_root bonus
 
 Done
 
-Query 8:
+Query 16:
  select * from SpecialAccounts where bonus > 20 and rate >15 order by account_no;
 
 Statement prepared.
@@ -111,7 +213,7 @@ rownum balance account_no rate isbn isbn_root bonus
 
 Done
 
-Query 9:
+Query 17:
  select * from Myaccounts;
 
 Statement prepared.

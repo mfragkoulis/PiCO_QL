@@ -37,6 +37,7 @@ using namespace picoQL;
 int main() {
 
     map<string,SuperAccount> superaccounts;
+    multimap<string,SuperAccount> connectedaccounts;
     list<SpecialAccount> specialaccounts;
     vector<Account> accounts;
     vector<Account> *accountsNULL = NULL;
@@ -103,9 +104,29 @@ int main() {
     superaccounts.insert(make_pair("9", sa5));
     superaccounts.insert(make_pair("21", sa6));
 
+    connectedaccounts.insert(make_pair("0", acc1));
+    connectedaccounts.insert(make_pair("1", acc2));
+    connectedaccounts.insert(make_pair("12", acc3));
+    connectedaccounts.insert(make_pair("18", acc4));
+    connectedaccounts.insert(make_pair("15", acc5));
+    connectedaccounts.insert(make_pair("10", acc6));
+    connectedaccounts.insert(make_pair("0", spa1));
+    connectedaccounts.insert(make_pair("1", spa2));
+    connectedaccounts.insert(make_pair("12", spa3));
+    connectedaccounts.insert(make_pair("18", spa4));
+    connectedaccounts.insert(make_pair("15", spa5));
+    connectedaccounts.insert(make_pair("10", spa6));
+    connectedaccounts.insert(make_pair("0", sa1));
+    connectedaccounts.insert(make_pair("1", sa2));
+    connectedaccounts.insert(make_pair("12", sa3));
+    connectedaccounts.insert(make_pair("18", sa4));
+    connectedaccounts.insert(make_pair("15", sa5));
+    connectedaccounts.insert(make_pair("10", sa6));
+
     pico_ql_register((const void *)&accounts, "accounts");
     pico_ql_register((const void *)accountsNULL, "accountsNULL");
     pico_ql_register((const void *)&superaccounts, "superaccounts");
+    pico_ql_register((const void *)&connectedaccounts, "connectedaccounts");
     pico_ql_register((const void *)&specialaccounts, "specialaccounts");
     pico_ql_serve(8081);
     

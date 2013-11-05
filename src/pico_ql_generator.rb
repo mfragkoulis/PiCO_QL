@@ -554,6 +554,7 @@ class Column
     end
   end
 
+
 # Generate code for data column in search function.
   def search_data(fw, vt, sqlite3_type,
                   column_cast, column_cast_back)
@@ -567,14 +568,16 @@ class Column
     token_ac_p = Array.new
     array_string_copy_deep(@tokenized_access_path, token_ac_p)
     configure_token_access_checks(token_ac_p, idenF)
-    search_data_constr(fw, vt.container_class, 
-		       access_pathF,
-                       token_ac_p,
-		       sqlite3_type,
-                       column_cast, column_cast_back, 
-                       add_to_result_setF, 
-                       iterationF, 
-                       notC, space)
+    if !vt.try_optimize(fw, access_pathF, sqlite3_type)
+      search_data_constr(fw, vt.container_class, 
+		         access_pathF,
+                         token_ac_p,
+		         sqlite3_type,
+                         column_cast, column_cast_back, 
+                         add_to_result_setF, 
+                         iterationF, 
+                         notC, space)
+    end
     if !vt.container_class.empty?
       fw.puts "        } else {"
     else
@@ -1719,9 +1722,141 @@ class VirtualTable
     return "", ""
   end
 
+# For specific container classes, those that offer
+# associative or random access, generate code
+# that leverages programming language algorithms
+# for optimized query execution.
+  def try_optimize(fw, access_path, sqlite3_type)
+    space = "#{$s}"
+    optimize = false
+    if @container_class.end_with?("map") && @type.end_with?("::iterator") &&  # unordered?
+       access_path.match(/first|key\(\)/)
+      if @signature.match(/(\w*)string,/i)  # also the various types of char * ?
+        matchdata = @signature.match(/(\w*)string,/i)
+        fw.puts "#{space}  #{matchdata[0].chomp(",")} s((const char *)sqlite3_value_text(val));"
+        fw.puts "#ifdef PICO_QL_DEBUG"
+        fw.puts "#{space}  printf(\"string key: %s\\n\", s.c_str());"
+        fw.puts "#endif"
+        rhs = "s"
+      else
+        rhs = "sqlite3_value_#{sqlite3_type}(val)"
+      end
+      case @container_class
+      when /unordered_map/
+      when /unordered_multimap/
+      when /multimap/    # ordered
+        fw.puts "#{space}  int i;"
+        fw.puts "#{space}  switch (op) {"
+        fw.puts "#{space}  case 0:"
+        fw.puts "#{space}    tuple_iter = any_dstr->upper_bound(#{rhs});"
+        fw.puts "#{space}    i = 0;"
+        fw.puts "#{space}    for (#{@type} it = any_dstr->begin(); it != tuple_iter; it++) {"
+        fw.puts "#{space}      rs->res.push_back(it);"
+        fw.puts "#{space}      rs->resBts.set(i, 1);"
+        fw.puts "#{space}      i++;"
+        fw.puts "#{space}    }"
+        fw.puts "#{space}    break;"
+        fw.puts "#{space}  case 1:"
+        fw.puts "#{space}    tuple_iter = any_dstr->lower_bound(#{rhs});"
+        fw.puts "#{space}    i = 0;"
+        fw.puts "#{space}    for (#{@type} it = any_dstr->begin(); it != tuple_iter; it++) {"
+        fw.puts "#{space}      rs->res.push_back(it);"
+        fw.puts "#{space}      rs->resBts.set(i, 1);"
+        fw.puts "#{space}      i++;"
+        fw.puts "#{space}    }"
+        fw.puts "#{space}    break;"
+        fw.puts "#{space}  case 2:"
+        fw.puts "#{space}  {"
+        fw.puts "#{space}    pair<#{@type}, #{@type}> ret = any_dstr->equal_range(#{rhs});"
+        fw.puts "#{space}    for (tuple_iter = ret.first; tuple_iter != ret.second; tuple_iter++) {"
+        fw.puts "#{space}      rs->res.push_back(tuple_iter);"
+        fw.puts "#{space}      i = 0;"
+        fw.puts "#{space}      for (#{@type} it = any_dstr->begin(); it != tuple_iter; it++) i++;"
+        fw.puts "#{space}      rs->resBts.set(i, 1);"
+        fw.puts "#{space}    }"
+        fw.puts "#{space}    break;"
+        fw.puts "#{space}  }"
+        fw.puts "#{space}  case 3:"
+        fw.puts "#{space}    tuple_iter = any_dstr->lower_bound(#{rhs});"
+        fw.puts "#{space}    i = 0;"
+        fw.puts "#{space}    for (#{@type} it = tuple_iter; it != any_dstr->end(); it++) {"
+        fw.puts "#{space}      rs->res.push_back(it);"
+        fw.puts "#{space}      rs->resBts.set(i, 1);"
+        fw.puts "#{space}      i++;"
+        fw.puts "#{space}    }"
+        fw.puts "#{space}    break;"
+        fw.puts "#{space}  case 4:"
+        fw.puts "#{space}    tuple_iter = any_dstr->upper_bound(#{rhs});"
+        fw.puts "#{space}    i = 0;"
+        fw.puts "#{space}    for (#{@type} it = tuple_iter; it != any_dstr->end(); it++) {"
+        fw.puts "#{space}      rs->res.push_back(it);"
+        fw.puts "#{space}      rs->resBts.set(i, 1);"
+        fw.puts "#{space}      i++;"
+        fw.puts "#{space}    }"
+        fw.puts "#{space}    break;"
+        fw.puts "#{space}  }"
+      when /map/         # ordered
+        fw.puts "#{space}  int i;"
+        fw.puts "#{space}  switch (op) {"
+        fw.puts "#{space}  case 0:"
+        fw.puts "#{space}    tuple_iter = any_dstr->upper_bound(#{rhs});"
+        fw.puts "#{space}    i = 0;"
+        fw.puts "#{space}    for (#{@type} it = any_dstr->begin(); it != tuple_iter; it++) {"
+        fw.puts "#{space}      rs->res.push_back(it);"
+        fw.puts "#{space}      rs->resBts.set(i, 1);"
+        fw.puts "#{space}      i++;"
+        fw.puts "#{space}    }"
+        fw.puts "#{space}    break;"
+        fw.puts "#{space}  case 1:"
+        fw.puts "#{space}    tuple_iter = any_dstr->lower_bound(#{rhs});"
+        fw.puts "#{space}    i = 0;"
+        fw.puts "#{space}    for (#{@type} it = any_dstr->begin(); it != tuple_iter; it++) {"
+        fw.puts "#{space}      rs->res.push_back(it);"
+        fw.puts "#{space}      rs->resBts.set(i, 1);"
+        fw.puts "#{space}      i++;"
+        fw.puts "#{space}    }"
+        fw.puts "#{space}    break;"
+        fw.puts "#{space}  case 2:"
+        fw.puts "#{space}    tuple_iter = any_dstr->find(#{rhs});"
+        fw.puts "#{space}    if (tuple_iter != any_dstr->end()) {"
+        fw.puts "#{space}      rs->res.push_back(tuple_iter);"
+        fw.puts "#{space}      i = 0;"
+        fw.puts "#{space}      for (#{@type} it = any_dstr->begin(); it != tuple_iter; it++) i++;"
+        fw.puts "#{space}      rs->resBts.set(i, 1);"
+        fw.puts "#{space}    }"
+        fw.puts "#{space}    break;"
+        fw.puts "#{space}  case 3:"
+        fw.puts "#{space}    tuple_iter = any_dstr->lower_bound(#{rhs});"
+        fw.puts "#{space}    i = 0;"
+        fw.puts "#{space}    for (#{@type} it = tuple_iter; it != any_dstr->end(); it++) {"
+        fw.puts "#{space}      rs->res.push_back(it);"
+        fw.puts "#{space}      rs->resBts.set(i, 1);"
+        fw.puts "#{space}      i++;"
+        fw.puts "#{space}    }"
+        fw.puts "#{space}    break;"
+        fw.puts "#{space}  case 4:"
+        fw.puts "#{space}    tuple_iter = any_dstr->upper_bound(#{rhs});"
+        fw.puts "#{space}    i = 0;"
+        fw.puts "#{space}    for (#{@type} it = tuple_iter; it != any_dstr->end(); it++) {"
+        fw.puts "#{space}      rs->res.push_back(it);"
+        fw.puts "#{space}      rs->resBts.set(i, 1);"
+        fw.puts "#{space}      i++;"
+        fw.puts "#{space}    }"
+        fw.puts "#{space}    break;"
+        fw.puts "#{space}  }"
+      end
+      optimize = true
+    elsif @container_class.end_with?("vector") && access_path == "rownum"  # works only for ==
+      fw.puts "        tuple_iter = any_dstr->begin() + rowNum;"
+      optimize = true
+    end
+    return optimize
+  end
+
 # Generate code for rownum column in search function.
 # Because rownum column is generated for CPP binding only
 # this code will only be generated for CPP binding.
+# Works only for == [TODO - extend]
   def search_rownum(fw)
     fw.puts "        rowNum = sqlite3_value_int(val);"
     if !@@C_container_types.include?(@container_class) && @loop.empty?
@@ -1749,9 +1884,11 @@ class VirtualTable
     fw.puts "          return SQLITE_OK;" 
     fw.puts "        }"
     if !@@C_container_types.include?(@container_class) && @loop.empty?
-      fw.puts "        tuple_iter = any_dstr->begin();"
-      fw.puts "        for (int i = 0; i < rowNum; i++)"
-      fw.puts "          tuple_iter++;"
+      if !try_optimize(fw, "rownum", nil)
+        fw.puts "        tuple_iter = any_dstr->begin();"
+        fw.puts "        for (int i = 0; i < rowNum; i++)"
+        fw.puts "          tuple_iter++;"
+      end
     end
     fw.puts "        if (first_constr == 1) {"
     if @@C_container_types.include?(@container_class)

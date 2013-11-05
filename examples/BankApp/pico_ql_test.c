@@ -94,7 +94,31 @@ int call_test(sqlite3 *db) {
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);
 
+  q = "select * from SuperAccounts where id = '36';";
+  fprintf(f, "Query %i:\n %s\n\n", i++, q);
+  result = test_prep_exec(f, db, q);
+
+  q = "select * from SuperAccounts where id = '37';";
+  fprintf(f, "Query %i:\n %s\n\n", i++, q);
+  result = test_prep_exec(f, db, q);
+
   q = "select * from SuperAccounts where SuperAccountisbn > 0 and SuperAccountbalance < 500 and SuperAccountaccount_no>1000 order by id;";
+  fprintf(f, "Query %i:\n %s\n\n", i++, q);
+  result = test_prep_exec(f, db, q);
+
+  q = "select * from ConnectedAccounts;";
+  fprintf(f, "Query %i:\n %s\n\n", i++, q);
+  result = test_prep_exec(f, db, q);
+
+  q = "select * from ConnectedAccounts where id = '10';";
+  fprintf(f, "Query %i:\n %s\n\n", i++, q);
+  result = test_prep_exec(f, db, q);
+
+  q = "select * from ConnectedAccounts where id = '37';";
+  fprintf(f, "Query %i:\n %s\n\n", i++, q);
+  result = test_prep_exec(f, db, q);
+
+  q = "select * from ConnectedAccounts where SuperAccountisbn > 0 and SuperAccountbalance < 500 and SuperAccountaccount_no>1000 order by id;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);
 
@@ -107,6 +131,14 @@ int call_test(sqlite3 *db) {
   result = test_prep_exec(f, db, q);
 
   q = "select * from Accounts where rate >10 and balance<20000 order by account_no;";
+  fprintf(f, "Query %i:\n %s\n\n", i++, q);
+  result = test_prep_exec(f, db, q);
+
+  q = "select * from Accounts where rownum=5;";
+  fprintf(f, "Query %i:\n %s\n\n", i++, q);
+  result = test_prep_exec(f, db, q);
+
+  q = "select * from AccountsNULL where rownum=5;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   result = test_prep_exec(f, db, q);
 

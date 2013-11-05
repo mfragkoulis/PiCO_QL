@@ -32,6 +32,11 @@ USING STRUCT VIEW SuperAccounts
 WITH REGISTERED C NAME superaccounts 
 WITH REGISTERED C TYPE map<string,SuperAccount>$
 
+CREATE VIRTUAL TABLE ConnectedAccounts 
+USING STRUCT VIEW SuperAccounts
+WITH REGISTERED C NAME connectedaccounts 
+WITH REGISTERED C TYPE multimap<string,SuperAccount>$
+
 CREATE STRUCT VIEW Account (
        INCLUDES STRUCT VIEW SuperAccount,
        type TEXT FROM type)$
