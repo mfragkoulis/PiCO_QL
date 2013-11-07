@@ -2147,6 +2147,11 @@ class VirtualTable
         break
       end
     }
+    if @lock_class == nil
+      puts "Lock class for lock #{@lock} not found."
+      puts "Exiting now."
+      exit(1)
+    end
     if $argD == "DEBUG"
       puts "Processed lock is #{@lock}"
       puts "Processed lock name is #{@lock_class.name}"
@@ -2213,10 +2218,11 @@ class VirtualTable
   def match_table(table_description)
     table_ptn1 = /^create virtual table (\w+) using struct view (\w+) with registered c name (.+) with registered c type (.+) using loop (.+) using lock (.+)/im
     table_ptn2 = /^create virtual table (\w+) using struct view (\w+) with registered c type (.+) using loop (.+) using lock (.+)/im
-    table_ptn3 = /^create virtual table (\w+) using struct view (\w+) with registered c name (.+) with registered c type (.+) using loop (.+)/im
-    table_ptn4 = /^create virtual table (\w+) using struct view (\w+) with registered c type (.+) using loop (.+)/im
-    table_ptn5 = /^create virtual table (\w+) using struct view (\w+) with registered c name (.+) with registered c type (.+)/im
-    table_ptn6 = /^create virtual table (\w+) using struct view (\w+) with registered c type (.+)/im
+    table_ptn3 = /^create virtual table (\w+) using struct view (\w+) with registered c type (.+) using lock (.+)/im
+    table_ptn4 = /^create virtual table (\w+) using struct view (\w+) with registered c name (.+) with registered c type (.+) using loop (.+)/im
+    table_ptn5 = /^create virtual table (\w+) using struct view (\w+) with registered c type (.+) using loop (.+)/im
+    table_ptn6 = /^create virtual table (\w+) using struct view (\w+) with registered c name (.+) with registered c type (.+)/im
+    table_ptn7 = /^create virtual table (\w+) using struct view (\w+) with registered c type (.+)/im
     if $argD == "DEBUG"
       puts "Table description is: #{table_description}"
     end
@@ -2245,25 +2251,32 @@ class VirtualTable
       matchdata = table_ptn3.match(table_description)
       @name = matchdata[1]
       struct_view_name = matchdata[2]
-      @base_var = matchdata[3]
-      @signature = matchdata[4]
-      @loop = matchdata[5]
-      process_loop()
+      @signature = matchdata[3]
+      @lock = matchdata[4]
+      process_lock()
     when table_ptn4
       matchdata = table_ptn4.match(table_description)
       @name = matchdata[1]
       struct_view_name = matchdata[2]
-      @signature = matchdata[3]
-      @loop = matchdata[4]
+      @base_var = matchdata[3]
+      @signature = matchdata[4]
+      @loop = matchdata[5]
       process_loop()
     when table_ptn5
       matchdata = table_ptn5.match(table_description)
       @name = matchdata[1]
       struct_view_name = matchdata[2]
-      @base_var = matchdata[3]
-      @signature = matchdata[4]
+      @signature = matchdata[3]
+      @loop = matchdata[4]
+      process_loop()
     when table_ptn6
       matchdata = table_ptn6.match(table_description)
+      @name = matchdata[1]
+      struct_view_name = matchdata[2]
+      @base_var = matchdata[3]
+      @signature = matchdata[4]
+    when table_ptn7
+      matchdata = table_ptn7.match(table_description)
       @name = matchdata[1]
       struct_view_name = matchdata[2]
       @signature = matchdata[3]
@@ -2473,12 +2486,17 @@ class Lock
     case lock_description
     when lock_ptn
       matchdata = lock_ptn.match(lock_description)
-      @name = matchdata[1]
-      @lock_function = matchdata[2]
-      @unlock_function = matchdata[3]
+      lock_match = matchdata[1].match(/\((.+)\)/)
+      if lock_match
+        @lock_function = matchdata[2].gsub(lock_match[1], "<selector>")
+        @unlock_function = matchdata[3].gsub(lock_match[1], "<selector>")
+        @name = matchdata[1].gsub(/\((.+)\)/, "")  # Remove potential argument
+      else
+        @name = matchdata[1]
+        @lock_function = matchdata[2]
+        @unlock_function = matchdata[3]
+      end
     end
-    @lock_function.gsub!(/\((.*)\)/, "")
-    @unlock_function.gsub!(/\((.*)\)/, "")
     if $argD == "DEBUG"
       puts "Lock description: #{lock_description}"
       puts "Lock class name: #{@name}"

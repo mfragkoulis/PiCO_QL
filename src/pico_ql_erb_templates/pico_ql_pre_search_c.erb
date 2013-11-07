@@ -169,6 +169,10 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
         int passClosed = 0;
         int ner = 0;
         long to_base = 0;
+<%        if !@lock.empty? %>
+        int this_lock_available = 1;
+        picoQLTableCursor *ptc;
+<%        end %>
 <%#       if @base_var.length == 0 %>
 #ifdef PICO_QL_DEBUG
   printf("Table %s, cursorsSize %i, chargedSize %i, earlyRequests %i, cursorsChecked %i, nTimesCharged %i.\n", picoQL->zName, cuSize, chSize, nEarlyRequests, cuchkSize, nTimesCharged); 
@@ -281,6 +285,28 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
         printf("Searching embedded VT <%= @name %> with first constraint other than BASE constraint.\n");
         return SQLITE_MISUSE;
       }
+<%        if !@lock.empty? %>
+<%          if !@lock_argument.empty? %>
+<%            @lock_argument.start_with?("&") ? la = "#{@lock_argument}" : la = "&#{@lock_argument}" %>
+      stcsr->lock = (long int)<%= la %>;
+<%          end %>
+      chs = 0;
+      while (chs < (int)cursorsSize) {
+        ptc = (picoQLTableCursor *)cursors[chs]->cur;
+        if ((ptc != stcsr) && (ptc->locked) && (ptc->lock != 0) &&
+            (stcsr->lock != 0) && (ptc->lock != stcsr->lock))
+          this_lock_available = 0;
+        chs++;
+      }
+      if ((!stcsr->locked) && (this_lock_available)) {  // 1st cond needed?
+<%          if !@lock_argument.empty? %>
+        <%= @lock_class.lock_function.gsub("<selector>", "#{@lock_argument}") %>;
+<%          else %>
+        <%= @lock_class.lock_function %>();
+<%          end %>
+        stcsr->locked += 1;
+      }
+<%        end %>
     }
 <%      end %>
 #ifdef PICO_QL_DEBUG

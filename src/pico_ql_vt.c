@@ -481,6 +481,10 @@ int open_vtable(sqlite3_vtab *pVtab,
    */
   stc->active_owed = 0;
 
+  /* Will be used for embedded structs only. */
+  stc->locked = 0;
+  stc->lock = 0;
+
   /* To allocate space for the resultset.
    * Will need space at most equal to the data structure 
    * size. This is fixed for autonomous structs, variable 

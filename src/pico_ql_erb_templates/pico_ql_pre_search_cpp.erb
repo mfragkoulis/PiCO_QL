@@ -279,8 +279,30 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
         printf("Searching embedded VT <%= @name %> with first constraint other than BASE constraint.\n");
         return SQLITE_MISUSE;
       }
+<%        if !@lock.empty? %>
+<%          if !@lock_argument.empty? %>
+<%            @lock_argument.start_with?("&") ? la = "#{@lock_argument}" : la = "&#{@lock_argument}" %>
+      stcsr->lock = (long int)<%= la %>;
+<%          end %>
+      bool this_lock_available = true;
+      picoQLTableCursor *ptc;
+      for (c_map_iter = c_map.begin(); c_map_iter != c_map.end(); c_map_iter++) {
+        ptc = (picoQLTableCursor *)c_map_iter->first;
+        if ((ptc != stcsr) && (ptc->locked) && (ptc->lock != 0) && 
+            (stcsr->lock != 0) && (ptc->lock != stcsr->lock))
+          this_lock_available = false;
+      }
+      if ((!stcsr->locked) && (this_lock_available)) {  // 1st cond needed?
+<%          if !@lock_argument.empty? %>
+        <%= @lock_class.lock_function.gsub("<selector>", "#{@lock_argument}") %>;
+<%          else %>
+        <%= @lock_class.lock_function %>();
+<%          end %>
+        stcsr->locked += 1;
+      }
+<%        end %>
     }
 <%      end %>
 #ifdef PICO_QL_DEBUG
-  printf("Searching column %i of VT %s, first_constraint %i\n", nCol, picoQL->zName, first_constr);
+    printf("Searching column %i of VT %s, first_constraint %i\n", nCol, picoQL->zName, first_constr);
 #endif

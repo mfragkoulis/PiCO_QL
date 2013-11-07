@@ -112,6 +112,8 @@ namespace picoQL {
       sqlite3_vtab_cursor pCsr;
       int isInstanceNULL;
       int isInstanceEmpty;
+      int locked;
+      long int lock;
       int active_verify;
       int active_checked;
       int active_owed;
