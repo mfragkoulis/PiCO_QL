@@ -37,32 +37,30 @@ size_t <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, sqlite3_vtab *vtab
 
 int <%= @name %>_vt::operator() (sqlite3_vtab *vtab, sqlite3_vtab_cursor *cur) {
   picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
-<%      if !@base_var.empty? %>
-<%        if !@lock.empty? %>
+<%      if !@base_var.empty? && !@lock.empty? %>
   picoQLTable *picoQL = (picoQLTable *)vtab;
   if (!picoQL->locked) {
-<%          if !@lock_argument.empty? %>
-<%            if /\*/.match(@signature_pointer) == nil %>
+<%        if !@lock_argument.empty? %>
+<%          if /\*/.match(@signature_pointer) == nil %>
 <%                sign_retype = "#{@signature}*" %>
-<%            else %>
+<%          else %>
 <%                sign_retype = "#{@signature}" %>
-<%            end %>
-<%            if @lock_argument.match(/any_dstr/) %>
+<%          end %>
+<%          if @lock_argument.match(/any_dstr/) %>
     if (!stcsr->isInstanceNULL) {
       <%= sign_retype %> any_dstr = (<%= sign_retype %>)stcsr->source;
       <%= @lock_class.lock_function.gsub("<selector>", "#{@lock_argument}") %>;
     }
-<%            else %>
-    <%= @lock_class.lock_function.gsub("<selector>", "#{@lock_argument}") %>;
-<%            end %>
 <%          else %>
-    <%= @lock_class.lock_function %>;
+    <%= @lock_class.lock_function.gsub("<selector>", "#{@lock_argument}") %>;
 <%          end %>
+<%        else %>
+    <%= @lock_class.lock_function %>;
+<%        end %>
   }
   picoQL->locked += 1;
-<%        else %>
+<%      else %>
   (void)vtab;
-<%        end %>
 <%      end %>
   if (cursors.find(cur) == cursors.end()) {
 <%      if !@container_class.empty? %>
