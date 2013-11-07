@@ -180,7 +180,7 @@ int <%= @name %>_vt_advance_result_set_iter (sqlite3_vtab_cursor *cur,
 void <%= @name %>_vt_deinit_result_set (sqlite3_vtab_cursor *cur, struct Vtbl *vtbl) {
   cursor **cursors = ((<%= @name %>_vt *)vtbl)->cursors;
   size_t cursorsSize = ((<%= @name %>_vt *)vtbl)->cursorsSize;
-<%      if !@lock.empty? %>
+<%      if !@base_var.empty? && !@lock.empty? %>
   picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
 <%      end %>
   int j = 0;

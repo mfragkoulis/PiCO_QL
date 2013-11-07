@@ -159,6 +159,10 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
   } else {
 <%      if @base_var.length == 0 %>
     if (first_constr) {
+<%        if !@lock.empty? %>
+      int this_lock_available = 1;
+      picoQLTableCursor *ptc = NULL;
+<%        end %>
       if (equals(picoQL->azColumn[nCol], "base")) {
         int chSize = chargedSize;
         int cuchkSize = checkedSize;
@@ -169,10 +173,6 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
         int passClosed = 0;
         int ner = 0;
         long to_base = 0;
-<%        if !@lock.empty? %>
-        int this_lock_available = 1;
-        picoQLTableCursor *ptc;
-<%        end %>
 <%#       if @base_var.length == 0 %>
 #ifdef PICO_QL_DEBUG
   printf("Table %s, cursorsSize %i, chargedSize %i, earlyRequests %i, cursorsChecked %i, nTimesCharged %i.\n", picoQL->zName, cuSize, chSize, nEarlyRequests, cuchkSize, nTimesCharged); 
@@ -302,7 +302,7 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
 <%          if !@lock_argument.empty? %>
         <%= @lock_class.lock_function.gsub("<selector>", "#{@lock_argument}") %>;
 <%          else %>
-        <%= @lock_class.lock_function %>();
+        <%= @lock_class.lock_function %>;
 <%          end %>
         stcsr->locked += 1;
       }
