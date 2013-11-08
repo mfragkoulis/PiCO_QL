@@ -22,7 +22,7 @@ Statement prepared.
 base rownum name color 
 
 
-Library used incorrectly
+Done
 
 Query 3:
  select ChessBoard.rownum,ChessRow.rownum,color,name from ChessBoard,ChessRow where ChessRow.base=ChessBoard.row_id

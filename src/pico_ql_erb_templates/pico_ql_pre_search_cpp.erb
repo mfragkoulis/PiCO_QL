@@ -170,8 +170,11 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
     stcsr->size = 1;
 <%        end %>
 <%      else %>
+#ifdef PICO_QL_DEBUG
     printf("Searching embedded VT <%= @name %> with no BASE constraint makes no sense.\n");
-    return SQLITE_MISUSE;
+#endif
+    printf("Empty instantiation (out of context) for VT <%= @name %>.\n");
+    return SQLITE_OK;
 <%      end %>
   } else {
 <%      if @base_var.length == 0 %>
@@ -201,8 +204,11 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
             //earlyRequestsArray[ner] = -1;
             passClosed = 1;
           } else {
+#ifdef PICO_QL_DEBUG
             printf("%i early service requests but to_base %lx not matched.\n", nEarlyRequests, to_base);
-            return SQLITE_MISUSE;
+#endif
+            printf("Empty instantiation (out of context) for VT <%= @name %>.\n");
+            return SQLITE_OK;
           } 
         }  
         if ((cuchkSize == chSize) || 
@@ -272,12 +278,18 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
 <%        end %>
           stcsr->isInstanceEmpty = 0;
         } else {
+#ifdef PICO_QL_DEBUG
           printf("Searching embedded VT <%= @name %> with invalid BASE constraint cursorsSize %i, chargedCursors %i, recursive is %i, checkedCursors %i, nTimesCharged %i.\n", cuSize, chSize, recursive, cuchkSize, nTimesCharged);
-          return SQLITE_MISUSE;
+#endif
+          printf("Empty instantiation (out of context) for VT <%= @name %>.\n");
+          return SQLITE_OK;
         }
       } else { 
+#ifdef PICO_QL_DEBUG
         printf("Searching embedded VT <%= @name %> with first constraint other than BASE constraint.\n");
-        return SQLITE_MISUSE;
+#endif
+        printf("Empty instantiation (out of context) for VT <%= @name %>.\n");
+        return SQLITE_OK;
       }
 <%        if !@lock.empty? %>
 <%          if !@lock_argument.empty? %>

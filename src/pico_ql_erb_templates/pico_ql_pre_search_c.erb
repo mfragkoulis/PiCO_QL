@@ -7,7 +7,6 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
   int checkedSize = 0;
 <%      if @base_var.length == 0 %>
   size_t chargedSize = ((<%= @name %>_vt *)vtbl)->chargedSize;
-  int recursive = ((<%= @name %>_vt *)vtbl)->recursive;
 <%      end %>
 <%      if /\*/.match(@signature_pointer) == nil %>
 <%        sign_retype = "#{@signature}*" %>
@@ -153,8 +152,11 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
     stcsr->size = 1;
 <%        end %>
 <%      else %>
+#ifdef PICO_QL_DEBUG
     printf("Searching embedded VT <%= @name %> with no BASE constraint makes no sense.\n");
-    return SQLITE_MISUSE;
+#endif
+    printf("Empty instantiation (out of context) for VT <%= @name %>.\n");
+    return SQLITE_OK;
 <%      end %>
   } else {
 <%      if @base_var.length == 0 %>
@@ -200,7 +202,8 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
 #ifdef PICO_QL_DEBUG
             printf("%i early service requests but to_base %lx not matched.\n", nEarlyRequests, to_base);
 #endif
-            return SQLITE_MISUSE;
+            printf("Empty instantiation (out of context) for VT <%= @name %>.\n");
+            return SQLITE_OK;
           } else
             passClosed = 1;
         }  
@@ -278,12 +281,19 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
 <%        end %>
           stcsr->isInstanceEmpty = 0;
         } else {
+#ifdef PICO_QL_DEBUG
+          int recursive = ((<%= @name %>_vt *)vtbl)->recursive;
           printf("Searching embedded VT <%= @name %> with invalid BASE constraint cursorsSize %i, chargedCursors %i, recursive is %i, checkedCursors %i, nTimesCharged %i.\n", (int)cursorsSize, chSize, recursive, cuchkSize, nTimesCharged);
-          return SQLITE_MISUSE;
+#endif
+          printf("Empty instantiation (out of context) for VT <%= @name %>.\n");
+          return SQLITE_OK;
         }
       } else { 
+#ifdef PICO_QL_DEBUG
         printf("Searching embedded VT <%= @name %> with first constraint other than BASE constraint.\n");
-        return SQLITE_MISUSE;
+#endif
+        printf("Empty instantiation (out of context) for VT <%= @name %>.\n");
+        return SQLITE_OK;
       }
 <%        if !@lock.empty? %>
 <%          if !@lock_argument.empty? %>

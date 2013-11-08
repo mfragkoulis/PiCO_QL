@@ -36,7 +36,7 @@ Statement prepared.
 base rownum demand code serviced x_coord x_coord_root y_coord y_coord_root 
 
 
-Library used incorrectly
+Done
 
 PLAIN QUERIES + ROWNUM
 
@@ -67,7 +67,7 @@ Statement prepared.
 base rownum demand code serviced x_coord x_coord_root y_coord y_coord_root 
 
 
-Library used incorrectly
+Done
 
 JOIN QUERIES EXPLICIT
 
@@ -195,7 +195,7 @@ Statement prepared.
 rownum cost delcapacity delcapacity_root rownum demand code 
 
 
-Library used incorrectly
+Done
 
 Query 11:
  select * from truck JOIN customer;
@@ -204,7 +204,7 @@ Statement prepared.
 rownum customers_id cost delcapacity delcapacity_root base rownum demand code serviced x_coord x_coord_root y_coord y_coord_root 
 
 
-Library used incorrectly
+Done
 
 Query 12:
  select * from truck JOIN customer ON customer.base=234;
@@ -213,7 +213,7 @@ Statement prepared.
 rownum customers_id cost delcapacity delcapacity_root base rownum demand code serviced x_coord x_coord_root y_coord y_coord_root 
 
 
-Library used incorrectly
+Done
 
 JOIN QUERIES IMPLICIT
 
@@ -254,7 +254,7 @@ Statement prepared.
 rownum customers_id cost delcapacity delcapacity_root base rownum demand code serviced x_coord x_coord_root y_coord y_coord_root 
 
 
-Library used incorrectly
+Done
 
 Query 15:
  select * from truck, customer WHERE customer.base=234;
@@ -263,7 +263,7 @@ Statement prepared.
 rownum customers_id cost delcapacity delcapacity_root base rownum demand code serviced x_coord x_coord_root y_coord y_coord_root 
 
 
-Library used incorrectly
+Done
 
 JOIN QUERIES EXPLICIT+ ROWNUM
 
