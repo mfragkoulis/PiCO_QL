@@ -324,7 +324,14 @@ int register_table(int argc,
   else if (output == 0) 
     printf("Module registered successfully\n");
 #endif
-  // sqlite3_create_function() calls
+#ifndef __APPLE__
+// sqlite3_load_extension() calls
+  if (sqlite3_enable_load_extension(db, 1))
+    printf("Extension loading failed.\n");
+  if (sqlite3_load_extension(db, "math_func_sqlitext", NULL, NULL))
+    printf("Extension loading failed.\n");
+// sqlite3_create_function() calls
+#endif
   for (i = 0; i < argc; i++) {
     char sqlite_type[10];
     if (i < view_index)
