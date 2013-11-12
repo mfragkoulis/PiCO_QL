@@ -22,6 +22,7 @@
  *   permissions and limitations under the License.
  */
 
+
 #include <stdlib.h>
 #include <time.h>
 #include <swill.h>
@@ -325,17 +326,23 @@ int register_table(int argc,
     printf("Module registered successfully\n");
 #endif
 #ifndef SQLITE_OMIT_COMPILEOPTION_DIAGS
+#ifndef __APPLE__      // Hack; because static check in Mac OS X Lion is broken.
   if (!sqlite3_compileoption_used("OMIT_LOAD_EXTENSION")) {
     char *pzErr = (char *)sqlite3_malloc(sizeof(char) * 100);
 // sqlite3_load_extension() calls
     if (sqlite3_enable_load_extension(db, 1))
       printf("Enabling extension loading failed.\n");
+#ifndef __APPLE__
     if (sqlite3_load_extension(db, "math_func_sqlitext.so", NULL, &pzErr)) {
+#else
+    if (sqlite3_load_extension(db, "math_func_sqlitext.dylib", NULL, &pzErr)) {
+#endif
       printf("Extension loading failed because:\n");
       printf("%s\n", pzErr);
     }
     sqlite3_free(pzErr);
   }
+#endif
 #endif
   for (i = 0; i < argc; i++) {
     char sqlite_type[10];

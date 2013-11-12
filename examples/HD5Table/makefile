@@ -29,6 +29,12 @@ GC=$(CC)
 CEXT=c
 endif
 
+ifeq ($(shell uname -s), Darwin)
+RPATH=-rpath -Xlinker -I$(PWD)
+else
+RPATH=-Wl,-rpath=$(PWD)
+endif
+
 ifdef RELEASE
 CXXFLAGS=-D_NDEBUG -O2 -I /usr/local/hdf5/include
 CFLAGS=-D_NDEBUG -O2 -I /usr/local/hdf5/include
@@ -62,7 +68,7 @@ all: h5t
 OBJ=h5ex_t_cmpd.o pico_ql_search.o pico_ql_internal.o pico_ql_vt.o pico_ql_logo.o pico_ql_error_page.o pico_ql_interface.o pico_ql_search_helper.o pico_ql_test.o
 
 h5t: $(OBJ)
-	$(GC) -L/usr/local/hdf5/lib -lhdf5 -lswill -lsqlite3 -Wl,-rpath=$(PWD) $(CXXFLAGS) $(OBJ) -o $@
+	$(GC) -L/usr/local/hdf5/lib -lhdf5 -lswill -lsqlite3 $(RPATH) $(CXXFLAGS) $(OBJ) -o $@
 
 h5ex_t_cmpd.o: h5ex_t_cmpd.c sensor_t.h pico_ql_search.h
 

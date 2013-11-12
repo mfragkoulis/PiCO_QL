@@ -47,12 +47,19 @@ CXXFLAGS+=-DPICO_QL_HANDLE_POLYMORPHISM
 CFLAGS+=-DPICO_QL_HANDLE_POLYMORPHISM
 endif
 
+
+ifeq ($(shell uname -s), Darwin)
+RPATH=-rpath -Xlinker -I$(PWD) 
+else
+RPATH=-Wl,-rpath=$(PWD) 
+endif
+
 all: prep bank_app
 
 OBJ=main.o Account.o SuperAccount.o SpecialAccount.o pico_ql_search.o pico_ql_internal.o pico_ql_vt.o pico_ql_logo.o pico_ql_error_page.o pico_ql_interface.o pico_ql_search_helper.o pico_ql_test.o
 
 bank_app: $(OBJ)
-	$(CXX) -lswill -lsqlite3 -Wl,-rpath=$(PWD) $(CXXFLAGS) $(OBJ) -o $@
+	$(CXX) -lswill -lsqlite3 $(RPATH) $(CXXFLAGS) $(OBJ) -o $@
 
 main.o: main.cpp Account.h SuperAccount.h SpecialAccount.h pico_ql_search.h
 

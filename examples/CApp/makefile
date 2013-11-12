@@ -29,6 +29,12 @@ GC=$(CC)
 CEXT=c
 endif
 
+ifeq ($(shell uname -s), Darwin)
+RPATH=-rpath -Xlinker -I$(PWD)
+else
+RPATH=-Wl,-rpath=$(PWD)
+endif
+
 ifdef RELEASE
 CXXFLAGS=-D_NDEBUG -O2
 CFLAGS=-D_NDEBUG -O2
@@ -62,7 +68,7 @@ all: prep capp
 OBJ=main.o pico_ql_search.o pico_ql_internal.o pico_ql_vt.o pico_ql_logo.o pico_ql_error_page.o pico_ql_interface.o pico_ql_search_helper.o pico_ql_test.o
 
 capp: $(OBJ)
-	$(GC) -lswill -lsqlite3 -Wl,-rpath=$(PWD) $(CXXFLAGS) $(OBJ) -o $@
+	$(GC) -lswill -lsqlite3 $(RPATH) $(CXXFLAGS) $(OBJ) -o $@
 
 main.o: main.c Money.h Monetary_System.h MoneyArray.h pico_ql_search.h
 
