@@ -52,7 +52,7 @@ all: prep chess
 OBJ=main.o ChessPiece.o Position.o pico_ql_search.o pico_ql_internal.o pico_ql_vt.o pico_ql_logo.o pico_ql_error_page.o pico_ql_interface.o pico_ql_search_helper.o pico_ql_test.o
 
 chess: $(OBJ)
-	$(CXX) -lswill -lsqlite3 $(CXXFLAGS) $(OBJ) -o $@
+	$(CXX) -lswill -lsqlite3 -Wl,-rpath=$(PWD) $(CXXFLAGS) $(OBJ) -o $@
 
 main.o: main.cpp ChessPiece.h Position.h pico_ql_search.h
 
@@ -86,6 +86,7 @@ prep:
 	mv pico_ql_test.c test.c
 	cp -r ../../src/* .
 	mv test.c pico_ql_test.c
+	gcc -g -fPIC -shared math_func_sqlitext.c -o math_func_sqlitext.so
 
 .PHONY= clean
 clean:

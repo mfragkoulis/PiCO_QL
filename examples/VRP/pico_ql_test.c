@@ -367,6 +367,17 @@ int call_test(sqlite3 *db) {
 #endif
   result = test_prep_exec(f, db, q);
 
+#ifndef SQLITE_OMIT_COMPILEOPTION_DIAGS
+  if (!sqlite3_compileoption_used("OMIT_LOAD_EXTENSION")) {
+    q = "select truck.rownum, cost, delcapacity, delcapacity_root, c.rownum, c.code, c.demand, c.x_coord, c.x_coord_root, c.y_coord, c.y_coord_root, s.rownum, s.code, s.demand, s.x_coord, s.x_coord_root, s.y_coord, s.y_coord_root from truck,customer c, customer s where c.base=truck.customers_id and s.base=truck.customers_id and sqrt(power(s.x_coord-c.x_coord,2)+power(s.y_coord-c.y_coord,2));";
+    fprintf(f, "Query %i:\n %s\n\n", i++, q);
+#ifdef PICO_QL_DEBUG
+    printf("Query %i:\n %s\n\n", i, q);
+#endif
+    result = test_prep_exec(f, db, q);
+  }
+#endif
+
   q = "select u.rownum, u.cost, u.delcapacity, u.delcapacity_root, c.rownum, c.code, c.demand, c.x_coord, c.x_coord_root, c.y_coord, c.y_coord_root, k.rownum, k.cost, k.delcapacity, k.delcapacity_root, s.rownum, s.code, s.demand,s.x_coord, s.x_coord_root, s.y_coord, s.y_coord_root from truck u, truck k,customer c, customer s where (u.cost <100 or u.delcapacity>0) and c.base=u.customers_id and s.base=k.customers_id and (c.code>170 or c.demand<10) and (s.x_coord>40 or s.y_coord<20) LIMIT 20;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
 #ifdef PICO_QL_DEBUG

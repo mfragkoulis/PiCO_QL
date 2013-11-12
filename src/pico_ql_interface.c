@@ -324,13 +324,18 @@ int register_table(int argc,
   else if (output == 0) 
     printf("Module registered successfully\n");
 #endif
-#ifndef __APPLE__
+#ifndef SQLITE_OMIT_COMPILEOPTION_DIAGS
+  if (!sqlite3_compileoption_used("OMIT_LOAD_EXTENSION")) {
+    char *pzErr = (char *)sqlite3_malloc(sizeof(char) * 100);
 // sqlite3_load_extension() calls
-  if (sqlite3_enable_load_extension(db, 1))
-    printf("Extension loading failed.\n");
-  if (sqlite3_load_extension(db, "math_func_sqlitext", NULL, NULL))
-    printf("Extension loading failed.\n");
-// sqlite3_create_function() calls
+    if (sqlite3_enable_load_extension(db, 1))
+      printf("Enabling extension loading failed.\n");
+    if (sqlite3_load_extension(db, "math_func_sqlitext.so", NULL, &pzErr)) {
+      printf("Extension loading failed because:\n");
+      printf("%s\n", pzErr);
+    }
+    sqlite3_free(pzErr);
+  }
 #endif
   for (i = 0; i < argc; i++) {
     char sqlite_type[10];

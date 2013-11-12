@@ -62,7 +62,7 @@ all: h5t
 OBJ=h5ex_t_cmpd.o pico_ql_search.o pico_ql_internal.o pico_ql_vt.o pico_ql_logo.o pico_ql_error_page.o pico_ql_interface.o pico_ql_search_helper.o pico_ql_test.o
 
 h5t: $(OBJ)
-	$(GC) -L/usr/local/hdf5/lib -lhdf5 -lswill -lsqlite3 $(CXXFLAGS) $(OBJ) -o $@
+	$(GC) -L/usr/local/hdf5/lib -lhdf5 -lswill -lsqlite3 -Wl,-rpath=$(PWD) $(CXXFLAGS) $(OBJ) -o $@
 
 h5ex_t_cmpd.o: h5ex_t_cmpd.c sensor_t.h pico_ql_search.h
 
@@ -92,7 +92,7 @@ prep:
 	mv pico_ql_test.c test.c
 	cp -r ../../src/* .
 	mv test.c pico_ql_test.c
-
+	gcc -g -fPIC -shared math_func_sqlitext.c -o math_func_sqlitext.so
 .PHONY= clean
 clean:
 	rm *.o

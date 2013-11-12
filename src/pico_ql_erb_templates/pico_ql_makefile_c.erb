@@ -40,7 +40,7 @@ all: prep executable
 OBJ=main.o pico_ql_search.o pico_ql_internal.o pico_ql_vt.o pico_ql_logo.o pico_ql_error_page.o pico_ql_interface.o pico_ql_search_helper.o pico_ql_test.o
 
 executable: $(OBJ)
-        $(CC) -lswill -lsqlite3 $(CFLAGS) $(OBJ) -o $@
+        $(CC) -lswill -lsqlite3 -Wl,-rpath=$(PWD) $(CFLAGS) $(OBJ) -o $@
 
 pico_ql_search.o: pico_ql_search.cpp pico_ql_search.h pico_ql_internal.h
 
@@ -65,6 +65,7 @@ prep:
         mv pico_ql_test.c test.c
 	cp -r <PiCO_QL/src/*> .
         mv test.c pico_ql_test.c
+	gcc -g -fPIC -shared math_func_sqlitext.c -o math_func_sqlitext.so
 
 
 .PHONY= clean
