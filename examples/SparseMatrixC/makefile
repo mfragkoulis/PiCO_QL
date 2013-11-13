@@ -29,10 +29,14 @@ GC=$(CC)
 CEXT=c
 endif
 
+# For dynamic loading of SQL functions extension library
 ifeq ($(shell uname -s), Darwin)
-RPATH=-rpath -Xlinker -I$(PWD)
+#RPATH=-rpath -Xlinker -I$(PWD)   # 10.8
+RPATH=-L$(PWD)  # [TODO-configure]
+SUFFIX=dylib
 else
 RPATH=-Wl,-rpath=$(PWD)
+SUFFIX=so
 endif
 
 ifdef RELEASE
@@ -98,7 +102,7 @@ prep:
 	mv pico_ql_test.c test.c
 	cp -r ../../src/* .
 	mv test.c pico_ql_test.c
-	gcc -g -fPIC -shared math_func_sqlitext.c -o math_func_sqlitext.so
+	gcc -g -fPIC -shared math_func_sqlitext.c -o math_func_sqlitext.$(SUFFIX)
 
 .PHONY= clean
 clean:

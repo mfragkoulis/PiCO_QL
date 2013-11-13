@@ -325,9 +325,13 @@ int register_table(int argc,
   else if (output == 0) 
     printf("Module registered successfully\n");
 #endif
-#ifndef SQLITE_OMIT_COMPILEOPTION_DIAGS
-#ifndef __APPLE__      // Hack; because static check in Mac OS X Lion is broken.
-  if (!sqlite3_compileoption_used("OMIT_LOAD_EXTENSION")) {
+#ifndef __APPLE__      /* Hack; because static check of SQLITE_OMIT_LOAD_EXTENSION
+                        * for pre-installed SQLite in Mac OS X 10.7, 10.8 appears to be broken.
+                        * The flag is not defined yet the linker complains about
+                        * undefined symbols of the used functions.
+                        * Comment the Apple flag and use with caution.
+                        */
+#ifndef SQLITE_OMIT_LOAD_EXTENSION
     char *pzErr = (char *)sqlite3_malloc(sizeof(char) * 100);
 // sqlite3_load_extension() calls
     if (sqlite3_enable_load_extension(db, 1))
@@ -341,7 +345,6 @@ int register_table(int argc,
       printf("%s\n", pzErr);
     }
     sqlite3_free(pzErr);
-  }
 #endif
 #endif
   for (i = 0; i < argc; i++) {
