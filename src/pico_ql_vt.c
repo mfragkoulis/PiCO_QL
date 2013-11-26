@@ -52,7 +52,7 @@ void create(sqlite3 *db,
   }
   q[strlen(q)] = '\0';
 #ifdef PICO_QL_DEBUG
-  printf("Query is: %s with length %i \n", q, 
+  printf("Query is: %s with length %d \n", q, 
 	 (int)strlen(q));
 #endif
 }
@@ -60,7 +60,7 @@ void create(sqlite3 *db,
 /* Estimates the query length by counting the length of 
  * the parameters passed.
  */
-int arrange_size(int argc, const char * const * argv) {
+static int arrange_size(int argc, const char * const * argv) {
   /* Length of standard keywords of sql queries. */
   int length = 28;
   int i;
@@ -72,7 +72,7 @@ int arrange_size(int argc, const char * const * argv) {
   }
   length += 1;         /*  Sentinel character. */
 #ifdef PICO_QL_DEBUG
-  printf("length is %i \n",length);
+  printf("Allocated bytes to store query in char array: %d \n",length);
 #endif
   return length;
 }
@@ -236,7 +236,7 @@ int disconnect_vtable(sqlite3_vtab *ppVtab) {
 /* Helper function for structuring an SQL WHERE 
  * constraint.
  */
-void eval_constraint(int sqlite3_op, 
+static void eval_constraint(int sqlite3_op, 
 		     const char *colName,
 		     int nCol, 
 		     int score,
@@ -297,7 +297,7 @@ void eval_constraint(int sqlite3_op,
 
 /*
  */
-void order_constraints(int score, int *j, int *counter, 
+static void order_constraints(int score, int *j, int *counter, 
 		       char *nidxStr) {
   switch (score) {
   case 0:
@@ -323,7 +323,7 @@ void order_constraints(int score, int *j, int *counter,
 /* xBestindex. Defines the query plan for an SQL query. 
  * Might be called multiple times with alternate plans.
  */
-int best_index_vtable(sqlite3_vtab *pVtab, 
+static int best_index_vtable(sqlite3_vtab *pVtab, 
 		     sqlite3_index_info *pInfo) {
   picoQLTable *st=(picoQLTable *)pVtab;
   int re;
@@ -417,12 +417,34 @@ int filter_vtable(sqlite3_vtab_cursor *cur,
     char *where = (char *)sqlite3_malloc(sizeof(char) * (strlen(idxStr)+1));
     strcpy(where, idxStr);
     where_root = where;
-    token = strsep(&where, "{-}"); 
+#ifdef PICO_QL_DEBUG
+    printf("where clause constraints: %s.\n", where);
+#endif
+#ifdef PICO_QL_VALGRIND
+    token = strtok(where, "{-}"); 
+    while (token != NULL) {     // constr: {<op>-<nCol>}
+#else
+    token = strsep(&where, "{-}");
     while ((token != NULL) && ((token = strsep(&where, "{-}")) != NULL)) {     // constr: {<op>-<nCol>}
+#endif
+#ifdef PICO_QL_DEBUG
+      printf("op[i] is %s.\n", token);
+#endif
       op[i] = (int)strtol(token, NULL, 10);
+#ifdef PICO_QL_VALGRIND
+      token = strtok(NULL, "{-}"); // Matched '}', token is <nCol>
+#else
       token = strsep(&where, "{-}"); // Matched '}', token is <nCol>
+#endif
+#ifdef PICO_QL_DEBUG
+      printf("nCol[i] is %s.\n", token);
+#endif
       nCol[i] = (int)strtol(token, NULL, 10);
+#ifdef PICO_QL_VALGRIND
+      token = strtok(NULL, "{-}"); /* Near eo string or new constraint, token is empty. */
+#else
       token = strsep(&where, "{-}"); /* Near eo string or new constraint, token is empty. */
+#endif
       i++;
     }
     for (i = 0; i < argc; i++) {
