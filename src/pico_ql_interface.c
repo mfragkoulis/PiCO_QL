@@ -22,6 +22,7 @@
  *   permissions and limitations under the License.
  */
 
+
 #include <stdlib.h>
 #include <time.h>
 #include <swill.h>
@@ -324,13 +325,27 @@ int register_table(int argc,
   else if (output == 0) 
     printf("Module registered successfully\n");
 #endif
-#ifndef __APPLE__
+#ifndef __APPLE__      /* Hack; because static check of SQLITE_OMIT_LOAD_EXTENSION
+                        * for pre-installed SQLite in Mac OS X 10.7, 10.8 appears to be broken.
+                        * The flag is not defined yet the linker complains about
+                        * undefined symbols of the used functions.
+                        * Comment the Apple flag and use with caution.
+                        */
+#ifndef SQLITE_OMIT_LOAD_EXTENSION
+    char *pzErr = (char *)sqlite3_malloc(sizeof(char) * 100);
 // sqlite3_load_extension() calls
-  if (sqlite3_enable_load_extension(db, 1))
-    printf("Extension loading failed.\n");
-  if (sqlite3_load_extension(db, "math_func_sqlitext", NULL, NULL))
-    printf("Extension loading failed.\n");
-// sqlite3_create_function() calls
+    if (sqlite3_enable_load_extension(db, 1))
+      printf("Enabling extension loading failed.\n");
+#ifndef __APPLE__
+    if (sqlite3_load_extension(db, "math_func_sqlitext.so", NULL, &pzErr)) {
+#else
+    if (sqlite3_load_extension(db, "math_func_sqlitext.dylib", NULL, &pzErr)) {
+#endif
+      printf("Extension loading failed because:\n");
+      printf("%s\n", pzErr);
+    }
+    sqlite3_free(pzErr);
+#endif
 #endif
   for (i = 0; i < argc; i++) {
     char sqlite_type[10];

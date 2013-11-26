@@ -29,6 +29,16 @@ GC=$(CC)
 CEXT=c
 endif
 
+# For dynamic loading of SQL functions extension library
+ifeq ($(shell uname -s), Darwin)
+#RPATH=-rpath -Xlinker -I$(PWD)   # 10.8
+RPATH=-L$(PWD)  # [TODO-configure]
+SUFFIX=dylib
+else
+RPATH=-Wl,-rpath=$(PWD)
+SUFFIX=so
+endif
+
 ifdef RELEASE
 CXXFLAGS=-D_NDEBUG -O2 -I /usr/local/hdf5/include
 CFLAGS=-D_NDEBUG -O2 -I /usr/local/hdf5/include
@@ -62,7 +72,7 @@ all: h5t
 OBJ=h5ex_t_cmpd.o pico_ql_search.o pico_ql_internal.o pico_ql_vt.o pico_ql_logo.o pico_ql_error_page.o pico_ql_interface.o pico_ql_search_helper.o pico_ql_test.o
 
 h5t: $(OBJ)
-	$(GC) -L/usr/local/hdf5/lib -lhdf5 -lswill -lsqlite3 $(CXXFLAGS) $(OBJ) -o $@
+	$(GC) -L/usr/local/hdf5/lib -lhdf5 -lswill -lsqlite3 $(RPATH) $(CXXFLAGS) $(OBJ) -o $@
 
 h5ex_t_cmpd.o: h5ex_t_cmpd.c sensor_t.h pico_ql_search.h
 
@@ -92,7 +102,7 @@ prep:
 	mv pico_ql_test.c test.c
 	cp -r ../../src/* .
 	mv test.c pico_ql_test.c
-
+	gcc -g -fPIC -shared math_func_sqlitext.c -o math_func_sqlitext.so
 .PHONY= clean
 clean:
 	rm *.o
