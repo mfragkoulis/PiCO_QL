@@ -32,10 +32,12 @@
 #include "pico_ql_test.h"
 #include "pico_ql_swill_access_func.h"
 
+
+
 /* Forwards  a query for execution to sqlite and 
  * presents the resultset of a query.
  */
-int step_query(FILE *f, sqlite3_stmt *stmt) {
+static int step_query(FILE *f, sqlite3_stmt *stmt) {
   int col, result, rows = 0;
   swill_fprintf(f, "<table>");
   swill_fprintf(f, "</tr>");
@@ -84,7 +86,7 @@ int step_query(FILE *f, sqlite3_stmt *stmt) {
  * Collects and acts on the result status of a query 
  * execution.
  */
-int file_prep_exec(FILE *f, sqlite3_stmt *stmt) {
+static int file_prep_exec(FILE *f, sqlite3_stmt *stmt) {
   int result = 0;
   result = step_query(f, stmt);
   switch (result) {
@@ -109,7 +111,7 @@ int file_prep_exec(FILE *f, sqlite3_stmt *stmt) {
 }
 
 // Takes care of query preparation and execution.
-int prep_exec(FILE *f, sqlite3 *db, const char *q){
+static int prep_exec(FILE *f, sqlite3 *db, const char *q){
   sqlite3_stmt  *stmt;
   int result, prepare;
   if ((prepare = sqlite3_prepare_v2(db, q, -1, &stmt, 0)) == SQLITE_OK) {
@@ -134,16 +136,17 @@ int prep_exec(FILE *f, sqlite3 *db, const char *q){
   return result;
 }
 
+#ifndef PICO_QL_TEST
 
 /* Calls the function that prints the PiCO QL error page (.html).
  */
-void print_pico_ql_error_page(FILE *f) {
+static void print_pico_ql_error_page(FILE *f) {
   error_page(f);
 }
 
 /* Calls the function that prints the PiCO QL logo (.PNG).
  */
-void print_pico_ql_logo(FILE *f) {
+static void print_pico_ql_logo(FILE *f) {
   logo(f);
 }
 
@@ -151,7 +154,7 @@ void print_pico_ql_logo(FILE *f) {
  * retrieves the database schema and promotes inputted 
  * queries to sqlite_engine.
  */
-void app_index(FILE *f, sqlite3 *db) {
+static void app_index(FILE *f, sqlite3 *db) {
   swill_fprintf(f, "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"\n\"http://www.w3.org/TR/html4/loose.dtd\">"
 		"<html>"
 		"<head>"
@@ -178,7 +181,7 @@ void app_index(FILE *f, sqlite3 *db) {
 		"</div>"
 		"<div class=\"middle\">"
 		"<textarea name=\"query\" cols=\"72\" rows=\"10\" class=\"style_input\"></textarea><br>"
-  "</div>"
+  		"</div>"
 		"<div class=\"bottom\">"
 		"<input type=\"submit\" value=\"Submit\" class=\"button\"></input>"
 		"</div>"
@@ -203,7 +206,7 @@ void app_index(FILE *f, sqlite3 *db) {
  * along with the time it took to execute and the query 
  * itself.
  */
-void serve_query(FILE *f, sqlite3 *db) {
+static void serve_query(FILE *f, sqlite3 *db) {
   const char *query = "\0";
   swill_fprintf(f, "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"\n\"http://www.w3.org/TR/html4/loose.dtd\">"
 		"<html>"
@@ -256,7 +259,7 @@ void serve_query(FILE *f, sqlite3 *db) {
 }
 
 // Terminates connection to the embedded web-server.
-void terminate(FILE *f, sqlite3 *db) {
+static void terminate(FILE *f, sqlite3 *db) {
   swill_fprintf(f, "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"\n\"http://www.w3.org/TR/html4/loose.dtd\">"
 		"<html>"
 		"<head>"
@@ -274,7 +277,7 @@ void terminate(FILE *f, sqlite3 *db) {
 }
 
 // Interface to the swill server functionality.
-void call_swill(sqlite3 *db, int port_number) {
+static void call_swill(sqlite3 *db, int port_number) {
   swill_init(port_number);
   swill_handle("pico_ql_logo.png", print_pico_ql_logo, 0);
   swill_handle("pico_ql_error_page.html", print_pico_ql_error_page, 0);
@@ -285,6 +288,8 @@ void call_swill(sqlite3 *db, int port_number) {
 
   }
 }
+
+#endif  /* #ifndef PICO_QL_TEST */
 
 /* Executes the SQL CREATE queries, opens the sqlite 
  * database connection and calls swill or pico_ql_test 

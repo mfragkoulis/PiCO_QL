@@ -32,9 +32,12 @@ extern "C" {
 int register_table(int argc,
 		   int view_index,
 		   const char **queries, 
+#ifdef PICO_QL_VALGRIND
+		   const char **table_names);
+#else
 		   const char **table_names, 
 		   int port_number);
-int prep_exec(FILE *f, sqlite3 *db, const char *q);
+#endif
 
 #ifdef __cplusplus
 }
