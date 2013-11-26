@@ -77,10 +77,10 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
       checkedSize += ((picoQLTableCursor *)c_map_iter->first)->active_checked;
   }
 #ifdef PICO_QL_DEBUG
-  printf("Checked cursor size is %i.\n" , checkedSize);
+  printf("Checked cursor size is %d.\n" , checkedSize);
 #endif
 <%      if !@container_class.empty? %>
-  int index = 0;
+  int rsIndex = 0;
 <%        if @base_var.length > 0 %>
   if (rs->resBts.size() == 0)
     rs->resBts.resize(stcsr->max_size, 0);
@@ -189,7 +189,7 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
         vector<long>::iterator ner_iter;
 <%#       if @base_var.length == 0 %>
 #ifdef PICO_QL_DEBUG
-  printf("Table %s, cursorsSize %i, chargedSize %i, earlyRequests %i, cursorsChecked %i, nTimesCharged %i.\n", picoQL->zName, cuSize, chSize, nEarlyRequests, cuchkSize, nTimesCharged);
+  printf("Table %s, cursorsSize %d, chargedSize %d, earlyRequests %d, cursorsChecked %d, nTimesCharged %d.\n", picoQL->zName, cuSize, chSize, nEarlyRequests, cuchkSize, nTimesCharged);
 #endif
 #ifdef ENVIRONMENT64
         to_base = (long)sqlite3_value_int64(val);
@@ -205,7 +205,7 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
             passClosed = 1;
           } else {
 #ifdef PICO_QL_DEBUG
-            printf("%i early service requests but to_base %lx not matched.\n", nEarlyRequests, to_base);
+            printf("%d early service requests but to_base %lx not matched.\n", nEarlyRequests, to_base);
 #endif
             printf("Empty instantiation (out of context) for VT <%= @name %>.\n");
             return SQLITE_OK;
@@ -272,14 +272,14 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
           } else {
             rs->resBts.resize(stcsr->max_size, 0);
 #ifdef PICO_QL_DEBUG
-            printf("VT %s reallocated. Now max_size: %i\n", picoQL->zName, stcsr->max_size);
+            printf("VT %s reallocated. Now max_size: %d\n", picoQL->zName, stcsr->max_size);
 #endif
           }
 <%        end %>
           stcsr->isInstanceEmpty = 0;
         } else {
 #ifdef PICO_QL_DEBUG
-          printf("Searching embedded VT <%= @name %> with invalid BASE constraint cursorsSize %i, chargedCursors %i, recursive is %i, checkedCursors %i, nTimesCharged %i.\n", cuSize, chSize, recursive, cuchkSize, nTimesCharged);
+          printf("Searching embedded VT <%= @name %> with invalid BASE constraint cursorsSize %d, chargedCursors %d, recursive is %d, checkedCursors %d, nTimesCharged %d.\n", cuSize, chSize, recursive, cuchkSize, nTimesCharged);
 #endif
           printf("Empty instantiation (out of context) for VT <%= @name %>.\n");
           return SQLITE_OK;
@@ -316,5 +316,5 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
     }
 <%      end %>
 #ifdef PICO_QL_DEBUG
-    printf("Searching column %i of VT %s, first_constraint %i\n", nCol, picoQL->zName, first_constr);
+    printf("Searching column %d of VT %s, first_constraint %d\n", nCol, picoQL->zName, first_constr);
 #endif

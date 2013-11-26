@@ -1500,12 +1500,12 @@ class VirtualTable
           add_to_result_setF = "<space>    rs->size++;\n<space>    rs->actualSize++;\n<space>    if (rs->size == rs->malloced) {\n<space>      rs->malloced *= 2;\n<space>      ((#{@name}ResultSetImpl *)rs)->res = (#{@type}#{typep}*)sqlite3_realloc(((#{@name}ResultSetImpl *)rs)->res, sizeof(#{@type}#{typep}) * rs->malloced);\n<space>      if (((#{@name}ResultSetImpl *)rs)->res == NULL)\n<space>        return SQLITE_NOMEM;\n<space>    }\n<space>    ((#{@name}ResultSetImpl *)rs)->res[rs->size - 1] = tuple_iter;\n<space>  }\n<space>}"
         end
       else
-        add_to_result_setF = "<space>    rs->res.push_back(tuple_iter);\n<space>    rs->resBts.set(index, 1);\n<space>  }\n<space>  index++;\n<space>}"
+        add_to_result_setF = "<space>    rs->res.push_back(tuple_iter);\n<space>    rs->resBts.set(rsIndex, 1);\n<space>  }\n<space>  rsIndex++;\n<space>}"
       end
       if $argLB == "CPP"
-        add_to_result_setN = "<space>    resIterC = rs->res.erase(resIterC);\n<space>    rs->resBts.reset(index);\n<space>  } else\n<space>    resIterC++;\n<space>  index = rs->resBts.find_next(index);\n<space>}"
+        add_to_result_setN = "<space>    resIterC = rs->res.erase(resIterC);\n<space>    rs->resBts.reset(rsIndex);\n<space>  } else\n<space>    resIterC++;\n<space>  rsIndex = rs->resBts.find_next(rsIndex);\n<space>}"
       else
-        add_to_result_setN = "<space>    rs->actualSize--;\n<space>    ((#{@name}ResultSetImpl *)rs)->res[index] = NULL;\n<space>  }\n<space>  index++;\n<space>  while ((index < rs->size) && (((#{@name}ResultSetImpl *)rs)->res[index] == NULL)) {index++;}\n<space>}"
+        add_to_result_setN = "<space>    rs->actualSize--;\n<space>    ((#{@name}ResultSetImpl *)rs)->res[rsIndex] = NULL;\n<space>  }\n<space>  rsIndex++;\n<space>  while ((rsIndex < rs->size) && (((#{@name}ResultSetImpl *)rs)->res[rsIndex] == NULL)) {rsIndex++;}\n<space>}"
       end
       for i in 0..@nloops-1        # Generate closing curly braces for nested loops
         add_to_result_setF.concat("\n<space>}")
@@ -1533,7 +1533,7 @@ class VirtualTable
         if $argLB == "CPP"
           ap.empty? ? idenN = "(*resIterC)" : idenN = "(*resIterC)->"
         else
-          ap.empty? ? idenN = "((#{@name}ResultSetImpl *)rs)->res[index]" : idenN = "((#{@name}ResultSetImpl *)rs)->res[index]->"
+          ap.empty? ? idenN = "((#{@name}ResultSetImpl *)rs)->res[rsIndex]" : idenN = "((#{@name}ResultSetImpl *)rs)->res[rsIndex]->"
         end
       end
     else
@@ -1713,9 +1713,9 @@ class VirtualTable
         end
       end
       if $argLB == "CPP"
-        iterationN = "<space>index = rs->resBts.find_first();\n<space>resIterC = rs->res.begin();\n<space>while (resIterC != rs->res.end()) {"
+        iterationN = "<space>rsIndex = rs->resBts.find_first();\n<space>resIterC = rs->res.begin();\n<space>while (resIterC != rs->res.end()) {"
       else
-        iterationN = "<space>index = 0;\n<space>while (((#{@name}ResultSetImpl *)rs)->res[index] == NULL) {index++;}\n<space>while (index < (int)rs->size) {"
+        iterationN = "<space>rsIndex = 0;\n<space>while (((#{@name}ResultSetImpl *)rs)->res[rsIndex] == NULL) {rsIndex++;}\n<space>while (rsIndex < (int)rs->size) {"
       end
       return iterationF, iterationN
     end
@@ -1937,8 +1937,8 @@ class VirtualTable
         add_to_result_setF.gsub!(/\n<space>    \}\n<space>  \}/, "\n<space>  }")
       end
     end
-    add_to_result_setF.gsub!(/\n<space>  index\+\+;/, "") # CPP, CPP_containers
-    add_to_result_setF.gsub!(/index/, "index++")
+    add_to_result_setF.gsub!(/\n<space>  rsIndex\+\+;/, "") # CPP, CPP_containers
+    add_to_result_setF.gsub!(/rsIndex/, "rsIndex++")
     fw.puts "#{add_to_result_setF.gsub("<space>", "        ")}"
     fw.puts "        } else {"
     fw.puts "#{$s}  printf(\"Constraint for BASE column on embedded data structure has not been placed first. Exiting now.\\n\");"

@@ -1,5 +1,5 @@
 // Filters column values of virtual table <%= @name %>.
-int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_value *val, struct Vtbl *vtbl) {
+static int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_value *val, struct Vtbl *vtbl) {
   picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
   picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
   cursor **cursors = ((<%= @name %>_vt *)vtbl)->cursors;
@@ -25,7 +25,7 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
 <%      end %>
 <%      if @loop.match(/\Wtuple_iter\W/) %>
   <%= @name %>_decl(tuple_iter);
-  int index = 0;
+  int rsIndex = 0;
   ResultSet *rs;
 <%        if $argLB == "CPP" %>
   int i = 0;
@@ -177,7 +177,7 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
         long to_base = 0;
 <%#       if @base_var.length == 0 %>
 #ifdef PICO_QL_DEBUG
-  printf("Table %s, cursorsSize %i, chargedSize %i, earlyRequests %i, cursorsChecked %i, nTimesCharged %i.\n", picoQL->zName, cuSize, chSize, nEarlyRequests, cuchkSize, nTimesCharged); 
+  printf("Table %s, cursorsSize %d, chargedSize %d, earlyRequests %d, cursorsChecked %d, nTimesCharged %d.\n", picoQL->zName, cuSize, chSize, nEarlyRequests, cuchkSize, nTimesCharged); 
 #endif
 #ifdef ENVIRONMENT64
         to_base = (long)sqlite3_value_int64(val);
@@ -187,7 +187,7 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
         if (nEarlyRequests - ((<%= @name %>_vt *)vtbl)->lateMatches > 0) {
           for (ner = 0; ner < nEarlyRequests; ner++) {
 #ifdef PICO_QL_DEBUG
-            printf("base provided by report charged early is %lx, to_base is %lx, ner is %i, nEarlyRequests is %i.\n", earlyRequestsArray[ner], to_base, ner, nEarlyRequests);
+            printf("base provided by report charged early is %lx, to_base is %lx, ner is %d, nEarlyRequests is %d.\n", earlyRequestsArray[ner], to_base, ner, nEarlyRequests);
 #endif
             if (earlyRequestsArray[ner] == to_base) {
 #ifdef PICO_QL_DEBUG
@@ -200,7 +200,7 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
           }
           if (ner == nEarlyRequests) {
 #ifdef PICO_QL_DEBUG
-            printf("%i early service requests but to_base %lx not matched.\n", nEarlyRequests, to_base);
+            printf("%d early service requests but to_base %lx not matched.\n", nEarlyRequests, to_base);
 #endif
             printf("Empty instantiation (out of context) for VT <%= @name %>.\n");
             return SQLITE_OK;
@@ -283,7 +283,7 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
         } else {
 #ifdef PICO_QL_DEBUG
           int recursive = ((<%= @name %>_vt *)vtbl)->recursive;
-          printf("Searching embedded VT <%= @name %> with invalid BASE constraint cursorsSize %i, chargedCursors %i, recursive is %i, checkedCursors %i, nTimesCharged %i.\n", (int)cursorsSize, chSize, recursive, cuchkSize, nTimesCharged);
+          printf("Searching embedded VT <%= @name %> with invalid BASE constraint cursorsSize %d, chargedCursors %d, recursive is %d, checkedCursors %d, nTimesCharged %d.\n", (int)cursorsSize, chSize, recursive, cuchkSize, nTimesCharged);
 #endif
           printf("Empty instantiation (out of context) for VT <%= @name %>.\n");
           return SQLITE_OK;
@@ -320,5 +320,5 @@ int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, sqlite3_
     }
 <%      end %>
 #ifdef PICO_QL_DEBUG
-  printf("Searching column %i of VT %s, first_constraint %i\n", nCol, picoQL->zName, first_constr);
+  printf("Searching column %d of VT %s, first_constraint %d\n", nCol, picoQL->zName, first_constr);
 #endif
