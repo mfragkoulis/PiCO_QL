@@ -31,7 +31,8 @@
 /* Takes care of query preparation and execution. 
  * Writes results to file.
  */
-int test_prep_exec(FILE *f, sqlite3 *db, const char *q) {
+#ifdef PICO_QL_TEST
+static int test_prep_exec(FILE *f, sqlite3 *db, const char *q) {
   sqlite3_stmt  *stmt;
   int result, col, prepare;
   if ((prepare = sqlite3_prepare_v2(db, q, -1, &stmt, 0)) == SQLITE_OK) {
@@ -92,6 +93,7 @@ int test_prep_exec(FILE *f, sqlite3 *db, const char *q) {
   sqlite3_finalize(stmt);
   return result;
 }
+#endif
 
 /* Executes test queries. */
 int call_test(sqlite3 *db) {
