@@ -100,7 +100,12 @@ int equals(const char *zCol, const char *key) {
   char *token, *copy_root;
   memcpy(copy, zCol, length);
   copy_root = copy;
+<%# if argVLG is required, the following can be auto-generated. %>
+#ifdef PICO_QL_VALGRIND
+  token = strtok(copy, " ");
+#else
   token = strsep((char **)&copy, " ");
+#endif
   if (token != NULL) {
     if (!strcmp(token, key)) {
       sqlite3_free(copy_root);
