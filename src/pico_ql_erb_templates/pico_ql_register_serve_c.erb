@@ -84,6 +84,7 @@ void pico_ql_register(const void *data_structure, const char *ds_name) {
 <%      if $argK == "KERNEL" %>
 // The API with user application code. Creates the PiCO_QL thread.
 int pico_ql_serve(sqlite3 *db) {
+  int re;
   void *exit_status = NULL;
 #ifndef PICO_QL_SINGLE_THREADED
   pthread_t sqlite_thread;
@@ -94,18 +95,25 @@ int pico_ql_serve(sqlite3 *db) {
 #else
   exit_status = thread_sqlite(db);
 #endif
-  if (((int)(long)exit_status) != SQLITE_DONE)
-    printf("PiCO QL module terminating abnormally with error code %i\n.", (int)(long)exit_status);
+  if (((re = (int)(long)exit_status) != SQLITE_DONE) && (re != SQLITE_OK))
+    printf("PiCO QL module terminating abnormally with error code %d.\n", re);
   else
-    printf("PiCO QL module initiated normally.\n");
-  return (int)(long)exit_status;
+    printf("PiCO QL module initiated normally.\n\n");
+  return re;
 }
 <%      else %>
 // The API with user application code. Creates the PiCO_QL thread.
+#ifdef PICO_QL_VALGRIND
+int pico_ql_serve() {
+#else
 int pico_ql_serve(int port) {
+#endif
+  int re;
   void *exit_status = NULL;
+#ifndef PICO_QL_VALGRIND
   int *portN = (int *)sqlite3_malloc(sizeof(int));
   *portN = port;
+#endif
 #ifndef PICO_QL_SINGLE_THREADED
   pthread_t sqlite_thread;
   pthread_create(&sqlite_thread, NULL, thread_sqlite, (void *)portN);
@@ -113,12 +121,16 @@ int pico_ql_serve(int port) {
   pthread_join(sqlite_thread, &exit_status);
 #endif
 #else
+#ifdef PICO_QL_VALGRIND
+  exit_status = thread_sqlite();
+#else
   exit_status = thread_sqlite((void *)portN);
 #endif
-  if (((int)(long)exit_status) != SQLITE_DONE)
-    printf("PiCO QL library terminating abnormally with error code %i\n.", (int)(long)exit_status);
+#endif
+  if (((re = (int)(long)exit_status) != SQLITE_DONE) && (re != SQLITE_OK))
+    printf("PiCO QL library terminating abnormally with error code %d.\n", re);
   else
-    printf("PiCO QL library terminating normally.\n");
-  return (int)(long)exit_status;
+    printf("PiCO QL library terminating normally.\n\n");
+  return re;
 }
 <%      end %>

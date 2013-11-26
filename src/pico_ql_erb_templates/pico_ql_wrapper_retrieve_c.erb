@@ -35,7 +35,7 @@ struct Vtbl <%= vt.name %>_vtbl = {
 <%     } %>
 
 
-int set_VtblImpl(void) {
+static int set_VtblImpl(void) {
 <%     @tables.each_index { |vt| %>
   <%= @tables[vt].name %>_vt *<%= @tables[vt].name %>VT;
 <%     } %>
@@ -88,11 +88,17 @@ int set_VtblImpl(void) {
 }
 
 // Thread. Creates the queries and passes them on to PiCO_QL.
+#ifdef PICO_QL_VALGRIND
+void * thread_sqlite(void) {
+#else
 void * thread_sqlite(void *data) {
+#endif
 <%    if $argK == "KERNEL" %>
   sqlite3 *db = (sqlite3 *)data;
 <%    else %>
+#ifndef PICO_QL_VALGRIND
   int port_number = *(int *)data;
+#endif
 <%    end %>
   char **queries, **sqlite_names;
   int failure = 0, i;
@@ -123,13 +129,15 @@ void * thread_sqlite(void *data) {
 <%      query = query.chomp(", ") + ")" %>
   queries[<%= vt %>] = (char *)sqlite3_malloc(sizeof(char) * <%= query.length %>);
   strcpy(queries[<%= vt %>], "<%= query %>");
-  sqlite_names[<%= vt %>] = "<%= @tables[vt].name %>";
+  sqlite_names[<%= vt %>] = (char *)sqlite3_malloc(sizeof(char) * <%= @tables[vt].name.length %>);
+  strcpy(sqlite_names[<%= vt %>], "<%= @tables[vt].name %>");
 <%    } %>
 <%    if views_length > 0 %>
 <%      @views.each_index { |vs| %>
   queries[<%= vs + @tables.length %>] = (char *)sqlite3_malloc(sizeof(char) * <%= @views[vs].stmt.length.to_s %>);
   strcpy(queries[<%= vs + @tables.length %>], "<%= @views[vs].stmt %>");
-  sqlite_names[<%= vs + @tables.length %>] = "<%= @views[vs].name %>";
+  sqlite_names[<%= vs + @tables.length %>] = (char *)sqlite3_malloc(sizeof(char) * <%= @views[vs].stmt.length.to_s %>);
+  strcpy(sqlite_names[<%= vs + @tables.length %>], "<%= @views[vs].name %>");
 <%      } %>
 <%    end %>
   if ((failure = set_VtblImpl()) > 0) {
@@ -137,11 +145,15 @@ void * thread_sqlite(void *data) {
     goto exit;
   }
 <%    if $argK == "KERNEL" %>
-  if ((failure = register_table(db, <%= (@tables.length + views_length).to_s %>, <%= @tables.length.to_s %>, (const char **)queries, (const char **)sqlite_names)) != SQLITE_DONE) {
+  if (((failure = register_table(db, <%= (@tables.length + views_length).to_s %>, <%= @tables.length.to_s %>, (const char **)queries, (const char **)sqlite_names)) != SQLITE_DONE)) && (failure != SQLITE_OK)) {
 <%    else %>
-  if ((failure = register_table(<%= (@tables.length + views_length).to_s %>, <%= @tables.length.to_s %>, (const char **)queries, (const char **)sqlite_names, port_number)) != SQLITE_DONE) {
+#ifdef PICO_QL_VALGRIND
+  if (((failure = register_table(<%= (@tables.length + views_length).to_s %>, <%= @tables.length.to_s %>, (const char **)queries, (const char **)sqlite_names) != SQLITE_DONE) && (failure != SQLITE_OK)) {
+#else
+  if (((failure = register_table(<%= (@tables.length + views_length).to_s %>, <%= @tables.length.to_s %>, (const char **)queries, (const char **)sqlite_names, port_number)) != SQLITE_DONE) && (failure != SQLITE_OK)) {
+#endif
 <%    end %>
-    printf("Register table returns with error code %i.\n", failure);
+    printf("Register table returns with error code %d.\n", failure);
     re = (void *)(long)failure;
     goto exit;
   }

@@ -126,7 +126,11 @@ namespace picoQL {
     } picoQLTableCursor; /* The cursor struct for the 
 			  * virtual table. 
 			  */
+#ifdef PICO_QL_VALGRIND
+    void * thread_sqlite(void);
+#else
     void * thread_sqlite(void *data);
+#endif
     int register_vt(picoQLTable *picoQL);
     int equals(const char *zCol, const char *key);
     void set_selectors(void); // internal but inconvenient to position

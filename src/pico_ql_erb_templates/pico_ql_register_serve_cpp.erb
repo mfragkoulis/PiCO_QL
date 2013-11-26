@@ -87,6 +87,7 @@ void pico_ql_register(const void *data_structure, const char *ds_name) {
 
 // The API with user application code. Creates the PiCO_QL thread.
 int pico_ql_serve(int port) {
+  int re;
   int *portN = new int(port);
   void *exit_status = NULL;
 #ifndef PICO_QL_SINGLE_THREADED
@@ -98,11 +99,11 @@ int pico_ql_serve(int port) {
 #else
   exit_status = thread_sqlite((void *)portN);
 #endif
-  if (((int)(long)exit_status) != SQLITE_DONE)
-    printf("PiCO QL library terminating abnormally with error code %i\n.", (int)(long)exit_status);
+  if (((re = (int)(long)exit_status) != SQLITE_DONE) && (re != SQLITE_OK))
+    printf("PiCO QL library terminating abnormally with error code %d\n.", re);
   else
-    printf("PiCO QL library terminating normally.\n");
-  return (int)(long)exit_status;
+    printf("PiCO QL library terminating normally.\n\n");
+  return re;
 }
 
 }

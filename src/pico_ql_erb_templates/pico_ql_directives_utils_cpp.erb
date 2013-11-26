@@ -129,6 +129,7 @@ void * thread_sqlite(void *data) {
 <%        query += "#{c.name} #{c.data_type}, " %>
 <%      } %>
 <%      query = query.chomp(", ") + ")" %>
+<%# Is the following legit? %>
   queries[<%= vt %>] = "<%= query %>";
   sqlite_names[<%= vt %>] = "<%= @tables[vt].name %>";
 <%    } %>
@@ -141,11 +142,11 @@ void * thread_sqlite(void *data) {
   set_selectors();
   int port_number = *(int *)data;
   delete (int *)data;
-  if ((failure = register_table(<%= (@tables.length + views_length).to_s %>, <%= @tables.length.to_s %>, queries, sqlite_names, port_number)) != SQLITE_DONE) {
-    printf("Register table returns with error code %i.\n    ", failure);
+  if (((failure = register_table(<%= (@tables.length + views_length).to_s %>, <%= @tables.length.to_s %>, queries, sqlite_names, port_number)) != SQLITE_DONE) && (failure != SQLITE_OK)) {
+    printf("Register table returns with error code %d.\n", failure);
     re = (void *)(long)failure;
   }
-  printf("Thread sqlite returns %i\n", failure);
+  printf("Thread sqlite returns %d.\n", failure);
   sqlite3_free(queries);
   sqlite3_free(sqlite_names);
   return re;
@@ -354,7 +355,7 @@ public:
       if ((c_map.size() == 0) && (picoQL) && (picoQL->toOpen)) {
         earlyRequestsArray.push_back(base);
 #ifdef PICO_QL_DEBUG
-        printf("In report charge: recorded base to provide %lx at position %i.\n", earlyRequestsArray.back(), (int)(earlyRequestsArray.size() - 1));
+        printf("In report charge: recorded base to provide %lx at position %d.\n", earlyRequestsArray.back(), (int)(earlyRequestsArray.size() - 1));
 #endif
       }
       operation = charged.insert(pair<Cursor *, bool>(c, false));
