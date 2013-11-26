@@ -1,0 +1,124 @@
+/*
+ *
+ *   Automatically-generated file.  Do not modify.
+ *   Modify pico_ql_register_serve_c.erb and pico_ql_generator.rb
+ *   instead.
+ *
+ *   Implement the filter and projection functions for
+ *   each of the registered virtual tables.
+ *
+ *   Copyright 2012 Marios Fragkoulis
+ *
+ *   Licensed under the Apache License, Version 2.0
+ *   (the "License");you may not use this file except in
+ *   compliance with the License.
+ *   You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *   Unless required by applicable law or agreed to in
+ *   writing, software distributed under the License is
+ *   distributed on an "AS IS" BASIS.
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ *   express or implied.
+ *   See the License for the specific language governing
+ *   permissions and limitations under the License.
+ */
+
+#ifndef PICO_QL_SINGLE_THREADED
+#include <pthread.h>
+#endif
+<% stripDir = String.new(directives) %>
+<% stripDir.gsub!(/^(?!#)(.+)\((.*)\)(\s*)\{(.+)\}/m, "") %>
+<%= stripDir %>
+#include <stdio.h>
+#include <string.h>
+#include <sqlite3.h>
+#include "pico_ql_search.h"
+#include "pico_ql_internal.h"
+
+
+<%     @tables.each { |vt| %>
+<%      if vt.base_var.length > 0 %>
+<%        /\*/.match(vt.signature_pointer) ? retype = "" : retype = "*" %>
+<%        if $argD == "DEBUG" %>
+// C NAME (pico_ql_table_)<%= vt.base_var %>_<%= vt.type.gsub(/(\s*)/, "").chomp("*") %> in line <%= vt.base_var_line + 1 %> <%= $argF %> 
+<%        end %>
+<%        if /\[/.match(vt.signature) %>
+<%= vt.assignable_signature.gsub("<variable_name>", "pico_ql_table_#{vt.base_var}_#{vt.type.gsub(/(\s*)/, "").gsub(/\*/, "ptr")}") %>;
+<%        else %>
+<%= vt.signature %> <%= retype %>pico_ql_table_<%= vt.base_var %>_<%= vt.type.gsub(/(\s*)/, "").gsub(/\*/, "ptr") %>;
+<%        end %>
+<%        if $argD == "DEBUG" %>
+#line <%= vt.signature_line + 1 %> "<%= $argF %>" 
+<%        end %>
+<%      end %>
+<%     } %>
+
+/* Registers the base variables of user application code
+ * with PiCO QL.
+ */
+void pico_ql_register(const void *data_structure, const char *ds_name) {
+<%    count = 0 %>
+<%    @tables.each_index { |vt| %>
+<%      if @tables[vt].base_var.length > 0 %>
+<%        if count == 0 %>
+  if (!strcmp(ds_name, "<%= @tables[vt].base_var %>")) {
+<%	  count += 1 %>
+<%        else %>
+  } else if (!strcmp(ds_name, "<%= @tables[vt].base_var %>")) {
+<%        end %>
+<%        if $argD == "DEBUG" %>
+#line <%= @tables[vt].base_var_line + 1 %> "<%= $argF %>" 
+<%        end %>
+<%        /\*/.match(@tables[vt].signature_pointer) ? retype = "" : retype = "*" %>
+    pico_ql_table_<%= @tables[vt].base_var %>_<%= @tables[vt].type.gsub(/(\s*)/, "").gsub(/\*/, "ptr") %> = (<%= @tables[vt].signature %> <%= retype %>)data_structure;
+<%        if $argD == "DEBUG" %>
+#line <%= @tables[vt].signature_line + 1 %> "<%= $argF %>" 
+<%        end %>
+<%      end %>
+<%    } %>
+  }
+}
+
+<%      if $argK == "KERNEL" %>
+// The API with user application code. Creates the PiCO_QL thread.
+int pico_ql_serve(sqlite3 *db) {
+  void *exit_status = NULL;
+  int re;
+#ifndef PICO_QL_SINGLE_THREADED
+  pthread_t sqlite_thread;
+  pthread_create(&sqlite_thread, NULL, thread_sqlite, db);
+#ifdef PICO_QL_JOIN_THREADS
+  pthread_join(sqlite_thread, &exit_status);
+#endif
+#else
+  exit_status = thread_sqlite(db);
+#endif
+  if (((re = ((int)(long)exit_status)) != SQLITE_DONE) && (re != SQLITE_OK))
+    printf("PiCO QL module terminating abnormally with error code %d.\n\n", (int)(long)exit_status);
+  else
+    printf("PiCO QL module initiated normally.\n\n");
+  return (int)(long)exit_status;
+}
+<%      else %>
+// The API with user application code. Creates the PiCO_QL thread.
+int pico_ql_serve(void) {
+  void *exit_status = NULL;
+  int re;
+#ifndef PICO_QL_SINGLE_THREADED
+  pthread_t sqlite_thread;
+  pthread_create(&sqlite_thread, NULL, thread_sqlite);
+#ifdef PICO_QL_JOIN_THREADS
+  pthread_join(sqlite_thread, &exit_status);
+#endif
+#else
+  exit_status = thread_sqlite();
+#endif
+  if (((re = ((int)(long)exit_status)) != SQLITE_DONE) && (re != SQLITE_OK))
+    printf("PiCO QL library terminating abnormally with error code %d.\n\n", (int)(long)exit_status);
+  else
+    printf("PiCO QL library terminating normally.\n\n");
+  return (int)(long)exit_status;
+}
+<%      end %>
