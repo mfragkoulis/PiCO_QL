@@ -19,8 +19,8 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int nCol, sqlite3_con
 #ifdef PICO_QL_DEBUG
   picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
 <%    if @container_class.length > 0 %>
-  printf("Retrieving column %i of VT %s element %i\n", nCol, picoQL->zName, rs->offset);
+  printf("Retrieving column %d of VT %s element %d\n", nCol, picoQL->zName, rs->offset);
 <%    else %>
-  printf("Retrieving column %i of VT %s\n", nCol, picoQL->zName);
+  printf("Retrieving column %d of VT %s\n", nCol, picoQL->zName);
 <%    end %>
 #endif
