@@ -61,7 +61,7 @@ RPATH=-Wl,-rpath=$(PWD)
 SUFFIX=so
 endif
 
-INCLUDES= -I. -I.. -I../../include -I../../VEX/pub
+INCLUDES= -I. -I../../../include -I../../../VEX/pub
 PICO_QL_CFLAGS+=$(INCLUDES) 
 
 CFLAGS=-Wall -Werror -g 
@@ -146,6 +146,20 @@ prep:
 #	gcc -g -fPIC -shared math_func_sqlitext.c -o math_func_sqlitext.$(SUFFIX)
 
 
-.PHONY= clean
-clean: 
-	rm *.o
+.PHONY= clean-picoQL
+clean-picoQL: clean-picoQL-gen clean-picoQL-obj clean-picoQL-bin
+
+# For PiCO QL
+clean-picoQL-bin:
+	test ! -f "libpicoQL_amd64.a" || rm libpicoQL_amd64.a
+	test ! -f "libpicoQL_x86.a" || rm libpicoQL_x86.a
+	test ! -f "picoQL-gui" || rm picoQL-gui
+
+clean-picoQL-obj:
+	test ! -f "*.o" || rm $(PICO_QL_srcdir)/*.o
+
+clean-picoQL-gen:
+	test ! -f "pico_ql_search.c" || rm pico_ql_search.c
+	test ! -f "pico_ql_search.h" || rm pico_ql_search.h
+	test ! -f "pico_ql_internal.c" || rm pico_ql_internal.c
+

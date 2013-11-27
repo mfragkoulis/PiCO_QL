@@ -776,7 +776,7 @@ clean-binPROGRAMS:
 	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
 
 # For PiCO QL
-PICO_QL_srcdir = ../PiCO_QL/src/Valgrind-mod/
+PICO_QL_srcdir = ../PiCO_QL/src/Valgrind-mod
 PICO_QL_CFLAGS_amd64 := $(DEFS) $(cachegrind_amd64_darwin_CPPFLAGS) $(CPPFLAGS) $(cachegrind_amd64_darwin_CFLAGS) -Wno-long-long -fno-stack-protector
 export PICO_QL_CFLAGS_amd64
 PICO_QL_CFLAGS_x86 := $(DEFS) $(cachegrind_x86_darwin_CPPFLAGS) $(CPPFLAGS) $(cachegrind_x86_darwin_CFLAGS) -Wno-long-long -fno-stack-protector
@@ -1169,19 +1169,10 @@ distclean-generic:
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
-# For PiCO QL
-clean: clean-recursive clean-picoQL
 
 # For PiCO QL
-clean-picoQL-bin:
-	rm $(PICO_QL_srcdir)/*.a
-
-clean-picoQL:
-	test ! -f "$(PICO_QL_srcdir)/libpicoQL_amd64.a" || rm $(PICO_QL_srcdir)/libpicoQL_amd64.a
-	test ! -f "$(PICO_QL_srcdir)/libpicoQL_x86.a" || rm $(PICO_QL_srcdir)/libpicoQL_x86.a
-	test ! -f "$(PICO_QL_srcdir)/picoQL-gui" || rm $(PICO_QL_srcdir)/picoQL-gui
-	test ! -f "$(PICO_QL_srcdir)/pico_ql_search.c" || rm $(PICO_QL_srcdir)/pico_ql_search.c
-	rm $(PICO_QL_srcdir)/*.o
+clean-picoQL: clean-recursive
+	$(MAKE) -C $(PICO_QL_srcdir) clean-picoQL
 
 clean-am: clean-binPROGRAMS clean-generic clean-local \
 	clean-noinstPROGRAMS mostlyclean-am

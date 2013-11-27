@@ -105,7 +105,7 @@ void * thread_sqlite(void *data) {
 <% @views == nil ? views_length = 0 : views_length = @views.length %>
   queries = (char **)sqlite3_malloc(sizeof(char *) * <%= (@tables.length + views_length).to_s %>);
   sqlite_names = (char **)sqlite3_malloc(sizeof(char *) * <%= (@tables.length + views_length).to_s %>);
-<%    if $argK != "KERNEL" %>
+<%    if $argK != "KERNEL" && $argVLG != "VALGRIND" %>
   sqlite3_free(data);
 <%    end %>
   if (queries == NULL) {
@@ -145,7 +145,7 @@ void * thread_sqlite(void *data) {
 <%    if $argK == "KERNEL" %>
   if (((failure = register_table(db, <%= (@tables.length + views_length).to_s %>, <%= @tables.length.to_s %>, (const char **)queries, (const char **)sqlite_names)) != SQLITE_DONE)) && (failure != SQLITE_OK)) {
 <%    elsif $argVLG == "VALGRIND"  %>
-  if (((failure = register_table(<%= (@tables.length + views_length).to_s %>, <%= @tables.length.to_s %>, (const char **)queries, (const char **)sqlite_names) != SQLITE_DONE) && (failure != SQLITE_OK)) {
+  if (((failure = register_table(<%= (@tables.length + views_length).to_s %>, <%= @tables.length.to_s %>, (const char **)queries, (const char **)sqlite_names)) != SQLITE_DONE) && (failure != SQLITE_OK)) {
 <%    else %>
   if (((failure = register_table(<%= (@tables.length + views_length).to_s %>, <%= @tables.length.to_s %>, (const char **)queries, (const char **)sqlite_names, port_number)) != SQLITE_DONE) && (failure != SQLITE_OK)) {
 <%    end %>
