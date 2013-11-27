@@ -73,7 +73,7 @@ int <%= @name %>_vt::operator() (sqlite3_vtab *vtab, sqlite3_vtab_cursor *cur) {
     ResultSet r(stcsr->max_size, -1, -1, res.begin());
     pair<map<sqlite3_vtab_cursor *, ResultSet>::iterator, bool> inserted = cursors.insert(pair<sqlite3_vtab_cursor *, ResultSet>(cur, r));
 #ifdef PICO_QL_DEBUG
-    printf("Table %s, Cursor: inserted %i, max size %i, resBts size %i\n", ((picoQLTable *)cur->pVtab)->zName, (int)inserted.second, stcsr->max_size, (int)cursors[cur].resBts.size());
+    printf("Table %s, Cursor: inserted %d, max size %d, resBts size %d\n", ((picoQLTable *)cur->pVtab)->zName, (int)inserted.second, stcsr->max_size, (int)cursors[cur].resBts.size());
 #endif
   } else {
     ResultSet *rs = &cursors[cur];
@@ -83,7 +83,7 @@ int <%= @name %>_vt::operator() (sqlite3_vtab *vtab, sqlite3_vtab_cursor *cur) {
     (void)stcsr;
     pair<set<sqlite3_vtab_cursor *>::iterator, bool> inserted = cursors.insert(cur);
 #ifdef PICO_QL_DEBUG
-    printf("Table %s, sqlite3_cursor %lx: inserted %i\n", ((picoQLTable *)cur->pVtab)->zName, (long)cur, (int)inserted.second);
+    printf("Table %s, sqlite3_cursor %lx: inserted %d\n", ((picoQLTable *)cur->pVtab)->zName, (long)cur, (int)inserted.second);
 #endif
   }  
 <%      end %>
@@ -94,11 +94,11 @@ int <%= @name %>_vt::operator() (sqlite3_vtab *vtab, sqlite3_vtab_cursor *cur) {
   } else {
     c_map.insert(pair<sqlite3_vtab_cursor *, Cursor>(cur, Cursor(cur, 1, 1)));
 #ifdef PICO_QL_DEBUG
-    printf("Table %s, sqlite3 cursor: %lx inserted, max size %i.\n", ((picoQLTable *)cur->pVtab)->zName, (long int)cur, ((picoQLTableCursor *)cur)->max_size);
+    printf("Table %s, sqlite3 cursor: %lx inserted, max size %d.\n", ((picoQLTable *)cur->pVtab)->zName, (long int)cur, ((picoQLTableCursor *)cur)->max_size);
 #endif
   }
 #ifdef PICO_QL_DEBUG
-  printf("Table %s_vt_init_result_set search is active on Cursor %lx, sqlite3 cursor %lx, cursors size %i.\n", ((picoQLTable *)cur->pVtab)->zName, (long)&c_map[cur], (long)cur, (int)c_map.size());
+  printf("Table %s_vt_init_result_set search is active on Cursor %lx, sqlite3 cursor %lx, cursors size %d.\n", ((picoQLTable *)cur->pVtab)->zName, (long)&c_map[cur], (long)cur, (int)c_map.size());
 #endif
   return SQLITE_OK;
 }
@@ -119,7 +119,7 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur) {
     if (rs->resIter < rs->res.end()) {
 #ifdef PICO_QL_DEBUG
   picoQLTable *st = (picoQLTable *)cur->pVtab;
-  printf("Table %s, now rs->offset: %i \nstc->isEof: %i\n\n",
+  printf("Table %s, now rs->offset: %d \nstc->isEof: %d\n\n",
          st->zName, rs->offset, stc->isEof);
 #endif
       return SQLITE_OK;
@@ -163,9 +163,9 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur) {
 <%    end %>
 #ifdef PICO_QL_DEBUG
   picoQLTable *st = (picoQLTable *)cur->pVtab;
-  printf("Table %s, stc->isEof: %i\n\n",
+  printf("Table %s, stc->isEof: %d\n\n",
          st->zName, stc->isEof);
-  printf("stc->offset: %i, stc->size: %i\n", stc->offset, stc->size);
+  printf("stc->offset: %d, stc->size: %d\n", stc->offset, stc->size);
 #endif
   return SQLITE_OK;
 }
