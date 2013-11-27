@@ -34,9 +34,14 @@ EXTRA_CFLAGS += -O3 -Wall -Werror -g -nostdinc -DPICO_QL_SINGLE_THREADED -DSQLIT
 obj-m += picoQL.o
 picoQL-objs := sqlite3.o pico_ql_procfs.o pico_ql_search.o pico_ql_exec.o pico_ql_internal.o pico_ql_vt.o pico_ql_search_helper.o stdio.o stdlib.o time.o string.o unistd.o
 
+cfiles := pico_ql_search_helper pico_ql_vt sqlite3
+hfiles := pico_ql_internal.h pico_ql_search_helper.h pico_ql_vt.h sqlite3.h
+#TODO:rbfiles := pico_ql_generator.rb pico_ql_erb_templates/...
+#c_files := pico_ql_generator.rb pico_ql_internal.h pico_ql_search_helper.c pico_ql_search_helper.h pico_ql_vt.c pico_ql_vt.h sqlite3.c sqlite3.h
+
 all:
-	cp ../../pico_ql_generator.rb ../../pico_ql_internal.h ../../pico_ql_search_helper.c \
-          ../../pico_ql_search_helper.h ../../pico_ql_vt.c ../../pico_ql_vt.h ../../sqlite3.c ../../sqlite3.h .
+	$(foreach f, $(cfiles), test ../../$f.c -ot $f.o || cp ../../$f.c .)
+	$(foreach f, $(hfiles), test ../../$f -ot $f || cp ../../$f .)
 	cp -r ../../pico_ql_erb_templates .
 	ruby pico_ql_generator.rb pico_ql_dsl.sql kernel no_mem_mgt
 	make -C /lib/modules/$(shell uname -r)/build M=$(shell pwd) modules

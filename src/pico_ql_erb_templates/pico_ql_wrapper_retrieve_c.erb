@@ -143,7 +143,7 @@ void * thread_sqlite(void *data) {
     goto exit;
   }
 <%    if $argK == "KERNEL" %>
-  if (((failure = register_table(db, <%= (@tables.length + views_length).to_s %>, <%= @tables.length.to_s %>, (const char **)queries, (const char **)sqlite_names)) != SQLITE_DONE)) && (failure != SQLITE_OK)) {
+  if (((failure = register_table(db, <%= (@tables.length + views_length).to_s %>, <%= @tables.length.to_s %>, (const char **)queries, (const char **)sqlite_names)) != SQLITE_DONE) && (failure != SQLITE_OK)) {
 <%    elsif $argVLG == "VALGRIND"  %>
   if (((failure = register_table(<%= (@tables.length + views_length).to_s %>, <%= @tables.length.to_s %>, (const char **)queries, (const char **)sqlite_names)) != SQLITE_DONE) && (failure != SQLITE_OK)) {
 <%    else %>

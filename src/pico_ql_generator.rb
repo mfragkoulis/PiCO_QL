@@ -2843,6 +2843,14 @@ if __FILE__ == $0
       end
       "#{m}"   # The actual substitution.
     }
+    kvm_is_running = system("lsmod | grep 'kvm'")
+    if $argD == "DEBUG"
+      puts "kvm is running? #{kvm_is_running.to_s}\n"
+    end
+    description.gsub!(/^#if KVM_RUNNING\n(.+?)\n#endif KVM_RUNNING/m) { |m|
+      kvm_is_running ? m = $1 : m = ""
+      "#{m}"   # The actual substitution.
+    }
   end
   begin
     token_description = description.split(/\$/)

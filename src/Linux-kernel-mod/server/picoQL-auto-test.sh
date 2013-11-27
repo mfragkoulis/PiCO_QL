@@ -34,12 +34,19 @@ echo "Calling picoQL ioctl to activate query output metadata."
 
 echo " "
 
+kvm_is_running=$(lsmod | grep 'kvm')
+
 while read LINE; do
-   echo "$LINE" > /proc/picoQL
-   sleep 1
-   test
-   ((count++))
-   echo "Test $count successful." 
+   if [[ $LINE != *KVM* ]] || [ "$kvm_is_running" != "" ]
+   then
+     echo "$LINE" > /proc/picoQL
+     sleep 1
+     test
+     ((count++))
+     echo "Test $count successful." 
+   else
+     echo "Test not available: kvm not running in this system."
+   fi
 
 done
 

@@ -21,7 +21,10 @@
 #include <linux/skbuff.h>   // Network data
 #include <xen/balloon.h>    /* Xen balloon stats */
 #include <asm/virtext.h>    /* cpu_has_vmx(), cpu_has svm() */
+#if KVM_RUNNING
 #include <linux/kvm_host.h>
+#endif KVM_RUNNING
+
 #define EIpVsStatsEstim_VT_decl(X) struct ip_vs_estimator *X
 #define Process_VT_decl(X) struct task_struct *X
 #define EProcessChild_VT_decl(X) struct task_struct *X
@@ -42,6 +45,7 @@
 #define Superblock_VT_decl(X) struct super_block *X
 #define EKobjectSet_VT_decl(X) struct kobject *X
 #define EKobjectList_VT_decl(X) struct kobject *X
+#if KVM_RUNNING
 #define EKVMArchPitChannelState_VT_decl(X) struct kvm_pit_channel_state *X; int i = 0
 
 struct kvm_timer {
@@ -99,7 +103,7 @@ struct kvm_pit {
         struct workqueue_struct *wq;
         struct work_struct expired;
 };
-
+#endif KVM_RUNNING
 
 
 long get_file_offset(struct file *f) {
@@ -178,6 +182,7 @@ char *check_svm(void *dummy, char *msg) {
   return msg;
 }
 
+#if KVM_RUNNING
 int is_kvm_file(struct file *f) {
   if ((f->f_cred->uid == 107) && 
       (f->f_cred->gid == 107) && 
@@ -217,6 +222,7 @@ int get_cpl(struct kvm_vcpu *vcpu) {
 int check_cpl(struct kvm_vcpu *vcpu) {
   return (kvm_x86_ops->get_cpl(vcpu) == 0);
 }
+
 
 /* global; hope this is not a problem
  * wrt frame size.
@@ -284,7 +290,7 @@ long mem_copy_pit_state(struct kvm_kpit_state *kpit_state) {
   mutex_unlock(&kpit_state->lock);
   return (long)&pit_state;
 }
-
+#endif KVM_RUNNING
 $
 
 CREATE LOCK RCU
@@ -790,10 +796,12 @@ CREATE STRUCT VIEW File_SV (
        fra_pages INT FROM f_ra.size,
        fra_mmap_miss INT FROM f_ra.mmap_miss,
        is_socket INT FROM S_ISSOCK(tuple_iter->f_path.dentry->d_inode->i_mode),
+#if KVM_RUNNING
        is_kvm_file INT FROM is_kvm_file(tuple_iter),
        FOREIGN KEY(kvm_id) FROM check_kvm(tuple_iter) REFERENCES EKVM_VT POINTER,
        is_kvm_vcpu_file INT FROM is_kvm_vcpu_file(tuple_iter),
        FOREIGN KEY(kvm_vcpu_id) FROM check_kvm_vcpu(tuple_iter) REFERENCES EKVMVCPU_VT POINTER,
+#endif KVM_RUNNING
        special_interface BIGINT FROM (long)tuple_iter->private_data,
        FOREIGN KEY(socket_id) FROM is_socket(tuple_iter) REFERENCES ESocket_VT POINTER,
        FOREIGN KEY(sb_id) FROM f_path.dentry->d_inode->i_sb REFERENCES ESuperblock_VT POINTER
@@ -951,6 +959,7 @@ USING LOOP list_for_each_entry_rcu(tuple_iter, &base->thread_group, thread_group
 USING LOCK RCU
 $
 
+#if KVM_RUNNING
 CREATE STRUCT VIEW KVMVCPUEvents_SV (
         exception_injected INT FROM exception.injected,
         exception_nr INT FROM exception.nr,
@@ -1043,6 +1052,9 @@ USING STRUCT VIEW KVM_SV
 WITH REGISTERED C TYPE struct kvm *
 $
 
+#endif KVM_RUNNING
+
+
 #if KERNEL_VERSION >= 3.2.0
 CREATE STRUCT VIEW XenStats_SV (
         cpu_has_vmx INT FROM check_vmx(tuple_iter),
@@ -1070,6 +1082,7 @@ $
 
 #endif
 
+#if KVM_RUNNING
 CREATE VIEW KVM_View AS
        SELECT P.name AS kvm_process_name, 
 	      F.inode_name AS kvm_inode_name, 
@@ -1104,3 +1117,4 @@ CREATE VIEW KVM_VCPU_View AS
        ON KVM_VCPU.base = F.kvm_vcpu_id
        WHERE F.is_kvm_vcpu_file;
 $
+#endif KVM_RUNNING
