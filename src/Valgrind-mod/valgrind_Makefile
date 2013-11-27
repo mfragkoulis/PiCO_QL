@@ -868,7 +868,7 @@ include ./$(DEPDIR)/cg_merge-cg_merge.Po
 #	$(COMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
 
 picoQL-gen:
-	cd $(PICO_QL_srcdir) && make pico_ql_search.c
+	cd $(PICO_QL_srcdir) && make gen
 
 cachegrind_amd64_darwin-cg_main.o: cg_main.c picoQL-gen
 	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) -I$(PICO_QL_srcdir) $(cachegrind_amd64_darwin_CPPFLAGS) $(CPPFLAGS) $(cachegrind_amd64_darwin_CFLAGS) $(CFLAGS) -MT cachegrind_amd64_darwin-cg_main.o -MD -MP -MF $(DEPDIR)/cachegrind_amd64_darwin-cg_main.Tpo -c -o cachegrind_amd64_darwin-cg_main.o `test -f 'cg_main.c' || echo '$(srcdir)/'`cg_main.c

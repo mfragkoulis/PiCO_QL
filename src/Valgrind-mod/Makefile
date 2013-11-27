@@ -68,15 +68,12 @@ CFLAGS=-Wall -Werror -g
 #-DPICO_QL_DEBUG
 UI_CFLAGS=$(CFLAGS)
 
-all: libpicoQL_$(ARCH)
+all: gen libpicoQL_$(ARCH)
 
 OBJ=pico_ql_search_$(ARCH).o pico_ql_internal_$(ARCH).o pico_ql_vt_$(ARCH).o pico_ql_interface_$(ARCH).o pico_ql_search_helper_$(ARCH).o pico_ql_test_$(ARCH).o sqlite3_$(ARCH).o errno_$(ARCH).o stdio_$(ARCH).o string_$(ARCH).o unistd_$(ARCH).o time_$(ARCH).o
 
 APP_OBJ=cachegrind_$(ARCH)_darwin-cg_main.o
 
-
-#picoQL.o: $(OBJ)
-#	$(CXX) -lswill -lsqlite3 $(RPATH) $(CXXFLAGS) $(OBJ) $(APP_OBJ) -o $@
 
 libpicoQL_$(ARCH): $(OBJ) $(APP_OBJ) picoQL-gui
 	ar rcs libpicoQL_$(ARCH).a $(OBJ) $(APP_OBJ)
@@ -101,7 +98,7 @@ pico_ql_test_$(ARCH).o: pico_ql_test.c pico_ql_test.h pico_ql_internal.h
 	$(CC) $(PICO_QL_CFLAGS) -c $< -o $@
 
 pico_ql_search.c: pico_ql_generator.rb valgrind_dsl.sql
-	ruby pico_ql_generator.rb valgrind_dsl.sql C
+	ruby pico_ql_generator.rb valgrind_dsl.sql valgrind
 
 sqlite3_$(ARCH).o: sqlite3.c sqlite3.h
 	$(CC) $(PICO_QL_CFLAGS) -DSQLITE_THREADSAFE=0 -DSQLITE_OMIT_LOAD_EXTENSION -DSQLITE_OMIT_BUILTIN_TEST -DNDEBUG -DSQLITE_OMIT_WAL -DSQLITE_WITHOUT_ZONEMALLOC -c $< -o $@
@@ -136,11 +133,17 @@ cmp:
 seed:
 	cp pico_ql_test_current.txt pico_ql_test_success.txt
 
+gen: prep pico_ql_search.c
+
 prep:
-	mv pico_ql_test.c test.c
-	cp -r ../../src/* .
-	mv test.c pico_ql_test.c
-	gcc -g -fPIC -shared math_func_sqlitext.c -o math_func_sqlitext.$(SUFFIX)
+#	mv pico_ql_test.c test.c
+	cp -r ../pico_ql_erb_templates .
+	cd ../ && cp pico_ql_generator.rb pico_ql_interface.h pico_ql_search_helper.c \
+          pico_ql_internal.h pico_ql_vt.c pico_ql_test.c pico_ql_error_page.c \
+          pico_ql_logo.c pico_ql_search_helper.h pico_ql_vt.h pico_ql_test.h \
+          pico_ql_swill_access_func.h Valgrind-mod/
+#	mv test.c pico_ql_test.c
+#	gcc -g -fPIC -shared math_func_sqlitext.c -o math_func_sqlitext.$(SUFFIX)
 
 
 .PHONY= clean
