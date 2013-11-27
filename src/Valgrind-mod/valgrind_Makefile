@@ -776,7 +776,7 @@ clean-binPROGRAMS:
 	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
 
 # For PiCO QL
-PICO_QL_srcdir = ../PiCO_QL/src
+PICO_QL_srcdir = ../PiCO_QL/src/Valgrind-mod/
 PICO_QL_CFLAGS_amd64 := $(DEFS) $(cachegrind_amd64_darwin_CPPFLAGS) $(CPPFLAGS) $(cachegrind_amd64_darwin_CFLAGS) -Wno-long-long -fno-stack-protector
 export PICO_QL_CFLAGS_amd64
 PICO_QL_CFLAGS_x86 := $(DEFS) $(cachegrind_x86_darwin_CPPFLAGS) $(CPPFLAGS) $(cachegrind_x86_darwin_CFLAGS) -Wno-long-long -fno-stack-protector
