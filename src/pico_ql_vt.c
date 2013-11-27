@@ -412,41 +412,15 @@ int filter_vtable(sqlite3_vtab_cursor *cur,
     if ((re = search(cur, 0, 0, NULL)) != 0)
       return re;
   } else {
-    int i = 0, op[argc], nCol[argc];
-    char *token, *where_root;
+    int i, op[argc], nCol[argc];
+    char *where_root;
     char *where = (char *)sqlite3_malloc(sizeof(char) * (strlen(idxStr)+1));
     strcpy(where, idxStr);
     where_root = where;
 #ifdef PICO_QL_DEBUG
     printf("where clause constraints: %s.\n", where);
 #endif
-#ifdef PICO_QL_VALGRIND
-    token = strtok(where, "{-}"); 
-    while (token != NULL) {     // constr: {<op>-<nCol>}
-#else
-    token = strsep(&where, "{-}");
-    while ((token != NULL) && ((token = strsep(&where, "{-}")) != NULL)) {     // constr: {<op>-<nCol>}
-#endif
-#ifdef PICO_QL_DEBUG
-      printf("op[i] is %s.\n", token);
-#endif
-      op[i] = (int)strtol(token, NULL, 10);
-#ifdef PICO_QL_VALGRIND
-      token = strtok(NULL, "{-}"); // Matched '}', token is <nCol>
-#else
-      token = strsep(&where, "{-}"); // Matched '}', token is <nCol>
-#endif
-#ifdef PICO_QL_DEBUG
-      printf("nCol[i] is %s.\n", token);
-#endif
-      nCol[i] = (int)strtol(token, NULL, 10);
-#ifdef PICO_QL_VALGRIND
-      token = strtok(NULL, "{-}"); /* Near eo string or new constraint, token is empty. */
-#else
-      token = strsep(&where, "{-}"); /* Near eo string or new constraint, token is empty. */
-#endif
-      i++;
-    }
+    tokenize_constraint_set(where, op, nCol);
     for (i = 0; i < argc; i++) {
       if ((re = search(cur, op[i], nCol[i], argv[i])) != 0) {
         sqlite3_free(where_root);

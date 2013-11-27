@@ -28,6 +28,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 <%#include <list> %>
 <%# list include..not always. At least on fk_col_type.length > 0 %>
@@ -91,6 +92,42 @@ int register_vt(picoQLTable *picoQL) {
   return SQLITE_INTERNAL;
 }
 
+/* Tokenize a string depending on the domain
+ * we are, that is use either strtok or strsep.
+ */
+void tokenize_constraint_set(char *src, int *op, int *nCol) {
+  char *token;
+  int i = 0;
+<%    if $argVLG == "VALGRIND" %>
+  token = strtok(src, "{-}");
+  while (token != NULL) {     // constr: {<op>-<nCol>}
+<%    else %>
+  token = strsep(&src, "{-}");
+  while ((token != NULL) && ((token = strsep(&src, "{-}")) != NULL)) {     // constr: {<op>-<nCol>}
+<%    end %>
+#ifdef PICO_QL_DEBUG
+    printf("op[i] is %s.\n", token);
+#endif
+    op[i] = (int)strtol(token, NULL, 10);
+<%    if $argVLG == "VALGRIND" %>
+    token = strtok(NULL, "{-}"); // Matched '}', token is <nCol>
+<%    else %>
+    token = strsep(&src, "{-}"); // Matched '}', token is <nCol>
+<%    end %>
+#ifdef PICO_QL_DEBUG
+    printf("nCol[i] is %s.\n", token);
+#endif
+    nCol[i] = (int)strtol(token, NULL, 10);
+<%    if $argVLG == "VALGRIND" %>
+    token = strtok(NULL, "{-}"); /* Near eo string or new constraint, token is empty. */
+<%    else %>
+    token = strsep(&src, "{-}"); /* Near eo string or new constraint, token is empty. */
+<%    end %>
+    i++;
+  }
+}
+
+
 
 // Each embedded virtual table has a column named 'base'.
 // This function checks if a provided column name is indeed 'base'.
@@ -100,12 +137,11 @@ int equals(const char *zCol, const char *key) {
   char *token, *copy_root;
   memcpy(copy, zCol, length);
   copy_root = copy;
-<%# if argVLG is required, the following can be auto-generated. %>
-#ifdef PICO_QL_VALGRIND
+<%    if $argVLG == "VALGRIND" %>
   token = strtok(copy, " ");
-#else
+<%    else %>
   token = strsep((char **)&copy, " ");
-#endif
+<%    end %>
   if (token != NULL) {
     if (!strcmp(token, key)) {
       sqlite3_free(copy_root);

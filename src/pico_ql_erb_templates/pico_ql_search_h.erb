@@ -33,6 +33,8 @@ namespace picoQL {
 
 <%    if $argK == "KERNEL" %>
   int pico_ql_serve(sqlite3 *db);
+<%    elsif $argVLG == "VALGRIND" %>
+  int pico_ql_serve(void);
 <%    else %>
   int pico_ql_serve(int port_number);
 <%    end %>

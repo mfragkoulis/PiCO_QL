@@ -2778,6 +2778,9 @@ def take_cases(argv)
   when /kernel/i
     $argK = "KERNEL"
     $argLB = "C"
+  when /valgrind/i
+    $argVLG = "VALGRIND"
+    $argLB = "C"
   when /concept_check/i
     $argC = "CONCEPT_CHECK"
   end
@@ -2790,6 +2793,7 @@ if __FILE__ == $0
   $argM = "MEM_MGT"
   $argLB = "CPP"
   $argK = ""
+  $argVLG = ""
   $argC = ""
   ARGV.each_index { |arg| 
     if arg > 0

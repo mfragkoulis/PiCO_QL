@@ -132,6 +132,7 @@ namespace picoQL {
     void * thread_sqlite(void *data);
 #endif
     int register_vt(picoQLTable *picoQL);
+    void tokenize_constraint_set(char *src, int *op, int *nCol);
     int equals(const char *zCol, const char *key);
     void set_selectors(void); // internal but inconvenient to position
     void deinit_temp_structs(void);

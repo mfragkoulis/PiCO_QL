@@ -88,17 +88,15 @@ static int set_VtblImpl(void) {
 }
 
 // Thread. Creates the queries and passes them on to PiCO_QL.
-#ifdef PICO_QL_VALGRIND
+<%    if $argVLG == "VALGRIND"  %>
 void * thread_sqlite(void) {
-#else
+<%    else %>
 void * thread_sqlite(void *data) {
-#endif
+<%    end %>
 <%    if $argK == "KERNEL" %>
   sqlite3 *db = (sqlite3 *)data;
-<%    else %>
-#ifndef PICO_QL_VALGRIND
+<%    elsif $argVLG != "VALGRIND"  %>
   int port_number = *(int *)data;
-#endif
 <%    end %>
   char **queries, **sqlite_names;
   int failure = 0, i;
@@ -146,12 +144,10 @@ void * thread_sqlite(void *data) {
   }
 <%    if $argK == "KERNEL" %>
   if (((failure = register_table(db, <%= (@tables.length + views_length).to_s %>, <%= @tables.length.to_s %>, (const char **)queries, (const char **)sqlite_names)) != SQLITE_DONE)) && (failure != SQLITE_OK)) {
-<%    else %>
-#ifdef PICO_QL_VALGRIND
+<%    elsif $argVLG == "VALGRIND"  %>
   if (((failure = register_table(<%= (@tables.length + views_length).to_s %>, <%= @tables.length.to_s %>, (const char **)queries, (const char **)sqlite_names) != SQLITE_DONE) && (failure != SQLITE_OK)) {
-#else
+<%    else %>
   if (((failure = register_table(<%= (@tables.length + views_length).to_s %>, <%= @tables.length.to_s %>, (const char **)queries, (const char **)sqlite_names, port_number)) != SQLITE_DONE) && (failure != SQLITE_OK)) {
-#endif
 <%    end %>
     printf("Register table returns with error code %d.\n", failure);
     re = (void *)(long)failure;

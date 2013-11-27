@@ -103,17 +103,17 @@ int pico_ql_serve(sqlite3 *db) {
 }
 <%      else %>
 // The API with user application code. Creates the PiCO_QL thread.
-#ifdef PICO_QL_VALGRIND
+<%        if $argVLG == "VALGRIND" %>
 int pico_ql_serve() {
-#else
+<%        else %>
 int pico_ql_serve(int port) {
-#endif
+<%        end %>
   int re;
   void *exit_status = NULL;
-#ifndef PICO_QL_VALGRIND
+<%        if $argVLG != "VALGRIND" %>
   int *portN = (int *)sqlite3_malloc(sizeof(int));
   *portN = port;
-#endif
+<%        end %>
 #ifndef PICO_QL_SINGLE_THREADED
   pthread_t sqlite_thread;
   pthread_create(&sqlite_thread, NULL, thread_sqlite, (void *)portN);
@@ -121,11 +121,11 @@ int pico_ql_serve(int port) {
   pthread_join(sqlite_thread, &exit_status);
 #endif
 #else
-#ifdef PICO_QL_VALGRIND
+<%        if $argVLG == "VALGRIND" %>
   exit_status = thread_sqlite();
-#else
+<%        else %>
   exit_status = thread_sqlite((void *)portN);
-#endif
+<%        end %>
 #endif
   if (((re = (int)(long)exit_status) != SQLITE_DONE) && (re != SQLITE_OK))
     printf("PiCO QL library terminating abnormally with error code %d.\n", re);

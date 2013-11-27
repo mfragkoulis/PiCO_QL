@@ -28,6 +28,7 @@
 #include <cassert>
 #include <cstdio>
 #include <cstring>
+#include <cstdlib>
 #include <string>
 #include <map>
 #include <set>
@@ -181,6 +182,42 @@ int register_vt(picoQLTable *picoQL) {
     picoQL->embedded = 1;
   }
   return SQLITE_INTERNAL;
+}
+
+
+/* Tokenize a string depending on the domain
+ * we are, that is use either strtok or strsep.
+ */
+void tokenize_constraint_set(char *src, int *op, int *nCol) {
+  char *token;
+  int i = 0;
+<%    if $argVLG == "VALGRIND" %>
+  token = strtok(src, "{-}");
+  while (token != NULL) {     // constr: {<op>-<nCol>}
+<%    else %>
+  token = strsep(&src, "{-}");
+  while ((token != NULL) && ((token = strsep(&src, "{-}")) != NULL)) {     // constr: {<op>-<nCol>}
+<%    end %>
+#ifdef PICO_QL_DEBUG
+    printf("op[i] is %s.\n", token);
+#endif
+    op[i] = (int)strtol(token, NULL, 10);
+<%    if $argVLG == "VALGRIND" %>
+    token = strtok(NULL, "{-}"); // Matched '}', token is <nCol>
+<%    else %>
+    token = strsep(&src, "{-}"); // Matched '}', token is <nCol>
+<%    end %>
+#ifdef PICO_QL_DEBUG
+    printf("nCol[i] is %s.\n", token);
+#endif
+    nCol[i] = (int)strtol(token, NULL, 10);
+<%    if $argVLG == "VALGRIND" %>
+    token = strtok(NULL, "{-}"); /* Near eo string or new constraint, token is empty. */
+<%    else %>
+    token = strsep(&src, "{-}"); /* Near eo string or new constraint, token is empty. */
+<%    end %>
+    i++;
+  }
 }
 
 
