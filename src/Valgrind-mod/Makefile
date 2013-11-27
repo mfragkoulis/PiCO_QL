@@ -22,7 +22,7 @@
 CC=gcc
 # exported from Cachegrind's makefile
 PICO_QL_CFLAGS = $(PICO_QL_CFLAGS_$(ARCH))
-PICO_QL_CFLAGS+=-Werror -nodefaultlibs -DPICO_QL_SINGLE_THREADED 
+PICO_QL_CFLAGS+=-Werror -nodefaultlibs -DPICO_QL_SINGLE_THREADED -DPICO_QL_VALGRIND
 #-DPICO_QL_DEBUG
 # Removed -Wwrite-strings
 
@@ -141,7 +141,7 @@ prep:
 	cd ../ && cp pico_ql_generator.rb pico_ql_interface.h pico_ql_search_helper.c \
           pico_ql_internal.h pico_ql_vt.c pico_ql_test.c pico_ql_error_page.c \
           pico_ql_logo.c pico_ql_search_helper.h pico_ql_vt.h pico_ql_test.h \
-          pico_ql_swill_access_func.h sqlite3.h Valgrind-mod/
+          pico_ql_swill_access_func.h sqlite3.c sqlite3.h Valgrind-mod/
 #	mv test.c pico_ql_test.c
 #	gcc -g -fPIC -shared math_func_sqlitext.c -o math_func_sqlitext.$(SUFFIX)
 
