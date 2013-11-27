@@ -35,7 +35,7 @@ obj-m += picoQL.o
 picoQL-objs := sqlite3.o pico_ql_procfs.o pico_ql_search.o pico_ql_exec.o pico_ql_internal.o pico_ql_vt.o pico_ql_search_helper.o stdio.o stdlib.o time.o string.o unistd.o
 
 all:
-	cp ../../pico_ql_generator.rb ../../pico_ql_internal.h ../../pico_ql_search_helper.c ../../pico_ql_search_helper.h ../../pico_ql_vt.c ../../pico_ql_vt.h .
+	cp ../../pico_ql_generator.rb ../../pico_ql_internal.h ../../pico_ql_search_helper.c ../../pico_ql_search_helper.h ../../pico_ql_vt.c ../../pico_ql_vt.h ../../sqlite3.h .
 	cp -r ../../pico_ql_erb_templates .
 	ruby pico_ql_generator.rb pico_ql_dsl.sql kernel no_mem_mgt
 	make -C /lib/modules/$(shell uname -r)/build M=$(shell pwd) modules
