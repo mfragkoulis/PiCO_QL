@@ -794,13 +794,10 @@ clean-noinstPROGRAMS:
 cachegrind-amd64-darwin$(EXEEXT): $(cachegrind_amd64_darwin_OBJECTS) $(cachegrind_amd64_darwin_DEPENDENCIES) $(EXTRA_cachegrind_amd64_darwin_DEPENDENCIES) libpicoQL_amd64
 	@rm -f cachegrind-amd64-darwin$(EXEEXT)
 	$(cachegrind_amd64_darwin_LINK) $(cachegrind_amd64_darwin_OBJECTS) $(PICO_QL_srcdir)/libpicoQL_amd64.a $(cachegrind_amd64_darwin_LDADD) $(LIBS)
-#/usr/local/lib/libswill.a /usr/local/opt/sqlite/lib/libsqlite3.a ../PiCO_QL/src/libpicoQL.a $(cachegrind_amd64_darwin_LDADD) $(LIBS)
-#$(cachegrind_amd64_darwin_LDADD) $(LIBS)
 cachegrind-x86-darwin$(EXEEXT): $(cachegrind_x86_darwin_OBJECTS) $(cachegrind_x86_darwin_DEPENDENCIES) $(EXTRA_cachegrind_x86_darwin_DEPENDENCIES) libpicoQL_x86
 	@rm -f cachegrind-x86-darwin$(EXEEXT)
 	$(cachegrind_x86_darwin_LINK) $(cachegrind_x86_darwin_OBJECTS) $(PICO_QL_srcdir)/libpicoQL_x86.a $(cachegrind_x86_darwin_LDADD) $(LIBS)
 cg_merge$(EXEEXT): $(cg_merge_OBJECTS) $(cg_merge_DEPENDENCIES) $(EXTRA_cg_merge_DEPENDENCIES) 
-#	cp $(PICO_QL_srcdir)/picoQL-gui .
 	@rm -f cg_merge$(EXEEXT)
 	$(cg_merge_LINK) $(cg_merge_OBJECTS) $(cg_merge_LDADD) $(LIBS)
 install-binSCRIPTS: $(bin_SCRIPTS)
@@ -868,12 +865,11 @@ include ./$(DEPDIR)/cg_merge-cg_merge.Po
 #	$(COMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
 
 picoQL-gen:
-	cd $(PICO_QL_srcdir) && make gen
+	$(MAKE) -C $(PICO_QL_srcdir) gen
 
 cachegrind_amd64_darwin-cg_main.o: cg_main.c picoQL-gen
 	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) -I$(PICO_QL_srcdir) $(cachegrind_amd64_darwin_CPPFLAGS) $(CPPFLAGS) $(cachegrind_amd64_darwin_CFLAGS) $(CFLAGS) -MT cachegrind_amd64_darwin-cg_main.o -MD -MP -MF $(DEPDIR)/cachegrind_amd64_darwin-cg_main.Tpo -c -o cachegrind_amd64_darwin-cg_main.o `test -f 'cg_main.c' || echo '$(srcdir)/'`cg_main.c
 	$(am__mv) $(DEPDIR)/cachegrind_amd64_darwin-cg_main.Tpo $(DEPDIR)/cachegrind_amd64_darwin-cg_main.Po
-#	cp $@ ../PiCO_QL/src && $(MAKE) -C ../PiCO_QL/src
 #	source='cg_main.c' object='cachegrind_amd64_darwin-cg_main.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(cachegrind_amd64_darwin_CPPFLAGS) $(CPPFLAGS) $(cachegrind_amd64_darwin_CFLAGS) $(CFLAGS) -c -o cachegrind_amd64_darwin-cg_main.o `test -f 'cg_main.c' || echo '$(srcdir)/'`cg_main.c

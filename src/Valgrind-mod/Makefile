@@ -68,7 +68,7 @@ CFLAGS=-Wall -Werror -g
 #-DPICO_QL_DEBUG
 UI_CFLAGS=$(CFLAGS)
 
-all: gen libpicoQL_$(ARCH)
+all: libpicoQL_$(ARCH)
 
 OBJ=pico_ql_search_$(ARCH).o pico_ql_internal_$(ARCH).o pico_ql_vt_$(ARCH).o pico_ql_interface_$(ARCH).o pico_ql_search_helper_$(ARCH).o pico_ql_test_$(ARCH).o sqlite3_$(ARCH).o errno_$(ARCH).o stdio_$(ARCH).o string_$(ARCH).o unistd_$(ARCH).o time_$(ARCH).o
 
@@ -97,7 +97,7 @@ pico_ql_search_helper_$(ARCH).o: pico_ql_search_helper.c pico_ql_search_helper.h
 pico_ql_test_$(ARCH).o: pico_ql_test.c pico_ql_test.h pico_ql_internal.h
 	$(CC) $(PICO_QL_CFLAGS) -c $< -o $@
 
-pico_ql_search.c: pico_ql_generator.rb valgrind_dsl.sql
+pico_ql_search.c: $(rbfiles) $(erbfiles) valgrind_dsl.sql
 	ruby pico_ql_generator.rb valgrind_dsl.sql valgrind
 
 sqlite3_$(ARCH).o: sqlite3.c sqlite3.h
@@ -135,13 +135,28 @@ seed:
 
 gen: prep pico_ql_search.c
 
+
+cfiles := sqlite3 pico_ql_search_helper pico_ql_vt pico_ql_test 
+
+uifiles := pico_ql_swill_ui pico_ql_error_page pico_ql_logo 
+
+hfiles := pico_ql_interface.h pico_ql_internal.h pico_ql_search_helper.h pico_ql_vt.h \
+	  pico_ql_test.h pico_ql_swill_access_func.h sqlite3.h
+
+rbfiles := pico_ql_generator.rb
+
+erbfiles := pico_ql_directives_utils_c.erb pico_ql_register_serve_c.erb \
+	   pico_ql_result_set_iter_c.erb pico_ql_pre_search_c.erb pico_ql_pre_retrieve_c.erb \
+	   pico_ql_post_search.erb pico_ql_post_retrieve.erb pico_ql_wrapper_result_set_iter_c.erb \
+	   pico_ql_search_h.erb pico_ql_wrapper_search_c.erb pico_ql_wrapper_retrieve_c.erb
+ 
 prep:
 #	mv pico_ql_test.c test.c
-	cp -r ../pico_ql_erb_templates .
-	cd ../ && cp pico_ql_generator.rb pico_ql_interface.h pico_ql_search_helper.c \
-          pico_ql_internal.h pico_ql_vt.c pico_ql_test.c pico_ql_error_page.c \
-          pico_ql_logo.c pico_ql_search_helper.h pico_ql_vt.h pico_ql_test.h \
-          pico_ql_swill_access_func.h sqlite3.c sqlite3.h Valgrind-mod/
+	$(foreach f, $(cfiles), [ -f $f_$(ARCH).o ] && test ../$f.c -ot $f_$(ARCH).o || cp ../$f.c . ; )
+	$(foreach f, $(uifiles), [ -f $f.o ] && test ../$f.c -ot $f.o || cp ../$f.c . ; )
+	$(foreach f, $(hfiles), [ -f $f ] && test -f $f && test ../$f -ot $f || cp ../$f . ; )
+	$(foreach f, $(rbfiles), [ -f $f ] && test -f $f && test ../$f -ot $f || cp ../$f . ; )
+	$(foreach f, $(erbfiles), [ -f $f ] && test -f $f && test ../pico_ql_erb_templates/$f -ot pico_ql_erb_templates/$f || cp ../pico_ql_erb_templates/$f pico_ql_erb_templates/ ; )
 #	mv test.c pico_ql_test.c
 #	gcc -g -fPIC -shared math_func_sqlitext.c -o math_func_sqlitext.$(SUFFIX)
 
@@ -156,7 +171,7 @@ clean-picoQL-bin:
 	test ! -f "picoQL-gui" || rm picoQL-gui
 
 clean-picoQL-obj:
-	test ! -f "*.o" || rm $(PICO_QL_srcdir)/*.o
+	find . -type -f -iname "*.o" && rm *.o
 
 clean-picoQL-gen:
 	test ! -f "pico_ql_search.c" || rm pico_ql_search.c
