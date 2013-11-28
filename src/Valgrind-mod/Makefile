@@ -68,15 +68,15 @@ CFLAGS=-Wall -Werror -g
 #-DPICO_QL_DEBUG
 UI_CFLAGS=$(CFLAGS)
 
-all: libpicoQL_$(ARCH)
+all: libpicoQL_$(ARCH)_darwin
 
 OBJ=pico_ql_search_$(ARCH).o pico_ql_internal_$(ARCH).o pico_ql_vt_$(ARCH).o pico_ql_interface_$(ARCH).o pico_ql_search_helper_$(ARCH).o pico_ql_test_$(ARCH).o sqlite3_$(ARCH).o errno_$(ARCH).o stdio_$(ARCH).o string_$(ARCH).o unistd_$(ARCH).o time_$(ARCH).o
 
 APP_OBJ=cachegrind_$(ARCH)_darwin-cg_main.o
 
 
-libpicoQL_$(ARCH): $(OBJ) $(APP_OBJ) picoQL-gui
-	ar rcs libpicoQL_$(ARCH).a $(OBJ) $(APP_OBJ)
+libpicoQL_$(ARCH)_darwin: $(OBJ) $(APP_OBJ) picoQL-gui
+	ar rcs libpicoQL_$(ARCH)_darwin.a $(OBJ) $(APP_OBJ)
 
 pico_ql_search_$(ARCH).o: pico_ql_search.c pico_ql_search.h pico_ql_internal.h
 	$(CC) $(PICO_QL_CFLAGS) -c $< -o $@ 
@@ -135,8 +135,11 @@ seed:
 
 gen: prep pico_ql_search.c
 
+locfiles=errno stdio string unistd time pico_ql_interface
 
-cfiles := sqlite3 pico_ql_search_helper pico_ql_vt pico_ql_test 
+genfiles := pico_ql_internal pico_ql_search
+
+cfiles := sqlite3 pico_ql_search_helper pico_ql_vt pico_ql_test
 
 uifiles := pico_ql_swill_ui pico_ql_error_page pico_ql_logo 
 
@@ -166,12 +169,15 @@ clean-picoQL: clean-picoQL-gen clean-picoQL-obj clean-picoQL-bin
 
 # For PiCO QL
 clean-picoQL-bin:
-	test ! -f "libpicoQL_amd64.a" || rm libpicoQL_amd64.a
-	test ! -f "libpicoQL_x86.a" || rm libpicoQL_x86.a
+	test ! -f "libpicoQL_amd64_darwin.a" || rm libpicoQL_amd64_darwin.a
+	test ! -f "libpicoQL_x86_darwin.a" || rm libpicoQL_x86_darwin.a
 	test ! -f "picoQL-gui" || rm picoQL-gui
 
 clean-picoQL-obj:
-	find . -type -f -iname "*.o" && rm *.o
+	$(foreach f, $(cfiles), [ ! -f $f_*.o ] || rm $f_*.o ; )
+	$(foreach f, $(locfiles), [ ! -f $f_*.o ] || rm $f_*.o ; )
+	$(foreach f, $(genfiles), [ ! -f $f_*.o ] || rm $f_*.o ; )
+	$(foreach f, $(uifiles), [ ! -f $f.o ] || rm $f.o ; )
 
 clean-picoQL-gen:
 	test ! -f "pico_ql_search.c" || rm pico_ql_search.c
