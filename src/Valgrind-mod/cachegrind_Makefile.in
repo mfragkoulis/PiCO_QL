@@ -777,10 +777,10 @@ clean-binPROGRAMS:
 
 # For PiCO QL
 PICO_QL_srcdir = ../PiCO_QL/src/Valgrind-mod
-PICO_QL_CFLAGS_@VGCONF_ARCH_PRI@ := $(DEFS) $(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CFLAGS) -Wno-long-long -fno-stack-protector
-export PICO_QL_CFLAGS_@VGCONF_ARCH_PRI@
-PICO_QL_CFLAGS_@VGCONF_ARCH_SEC@ := $(DEFS) $(cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CFLAGS) -Wno-long-long -fno-stack-protector
-export PICO_QL_CFLAGS_@VGCONF_ARCH_SEC@
+PICO_QL_CFLAGS_@VGCONF_ARCH_PRI@_@VGCONF_OS@ := $(DEFS) $(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CFLAGS) -Wno-long-long -fno-stack-protector
+export PICO_QL_CFLAGS_@VGCONF_ARCH_PRI@_@VGCONF_OS@
+PICO_QL_CFLAGS_@VGCONF_ARCH_SEC@_@VGCONF_OS@ := $(DEFS) $(cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CFLAGS) -Wno-long-long -fno-stack-protector
+export PICO_QL_CFLAGS_@VGCONF_ARCH_SEC@_@VGCONF_OS@
 libpicoQL_@VGCONF_ARCH_PRI@_@VGCONF_OS@: cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@-cg_main.o
 	cp $< $(PICO_QL_srcdir) && $(MAKE) -C $(PICO_QL_srcdir) AMD64=1 && cp $(PICO_QL_srcdir)/picoQL-gui .
 

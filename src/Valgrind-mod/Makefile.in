@@ -57,11 +57,12 @@ CFLAGS=-Wall -Werror -g
 #-DPICO_QL_DEBUG
 UI_CFLAGS=$(CFLAGS)
 
+EXT = .o
+
 all: libpicoQL_@VGCONF_ARCH_PRI@_@VGCONF_OS@ libpicoQL_@VGCONF_ARCH_SEC@_@VGCONF_OS@
 
-EXT = .o
 OBJ_@VGCONF_ARCH_PRI@_@VGCONF_OS@ = pico_ql_search_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT) \
-				    pico_ql_internal@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT) \
+				    pico_ql_internal_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT) \
 				    pico_ql_vt_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT) \
 				    pico_ql_interface_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT) \
 				    pico_ql_search_helper_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT) \
@@ -79,10 +80,10 @@ libpicoQL_@VGCONF_ARCH_PRI@_@VGCONF_OS@: $(OBJ_@VGCONF_ARCH_PRI@_@VGCONF_OS@) $(
 	ar rcs libpicoQL_@VGCONF_ARCH_PRI@_@VGCONF_OS@.a $(OBJ_@VGCONF_ARCH_PRI@_@VGCONF_OS@) $(APP_OBJ_@VGCONF_ARCH_PRI@_@VGCONF_OS@)
 
 pico_ql_search_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT): pico_ql_search.c pico_ql_search.h pico_ql_internal.h
-	$(CC) $(PICO_QL_CFLAGS__@VGCONF_ARCH_PRI@_@VGCONF_OS@) -c $< -o $@ 
+	$(CC) $(PICO_QL_CFLAGS_@VGCONF_ARCH_PRI@_@VGCONF_OS@) -c $< -o $@ 
 
 pico_ql_internal_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT): pico_ql_internal.c pico_ql_internal.h pico_ql_interface.h pico_ql_search_helper.h
-	$(CC) $(PICO_QL_CFLAGS_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT)) -c $< -o $@ 
+	$(CC) $(PICO_QL_CFLAGS_@VGCONF_ARCH_PRI@_@VGCONF_OS@) -c $< -o $@ 
 
 pico_ql_vt_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT): pico_ql_vt.c pico_ql_vt.h pico_ql_internal.h
 	$(CC) $(PICO_QL_CFLAGS_@VGCONF_ARCH_PRI@_@VGCONF_OS@) -c $< -o $@
@@ -114,11 +115,9 @@ unistd_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT): unistd.c
 time_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT): time.c
 	$(CC) $(PICO_QL_CFLAGS_@VGCONF_ARCH_PRI@_@VGCONF_OS@) -c $< -o $@
 
-picoQL-gui: pico_ql_swill_ui.o pico_ql_logo.o pico_ql_error_page.o
-	$(CC) $(UI_CFLAGS) -lswill $^ -o $@
 
 OBJ_@VGCONF_ARCH_SEC@_@VGCONF_OS@ = pico_ql_search_@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT) \
-				    pico_ql_internal@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT) \
+				    pico_ql_internal_@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT) \
 				    pico_ql_vt_@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT) \
 				    pico_ql_interface_@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT) \
 				    pico_ql_search_helper_@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT) \
@@ -136,10 +135,10 @@ libpicoQL_@VGCONF_ARCH_SEC@_@VGCONF_OS@: $(OBJ_@VGCONF_ARCH_SEC@_@VGCONF_OS@) $(
 	ar rcs libpicoQL_@VGCONF_ARCH_SEC@_@VGCONF_OS@.a $(OBJ_@VGCONF_ARCH_SEC@_@VGCONF_OS@) $(APP_OBJ_@VGCONF_ARCH_SEC@_@VGCONF_OS@)
 
 pico_ql_search_@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT): pico_ql_search.c pico_ql_search.h pico_ql_internal.h
-	$(CC) $(PICO_QL_CFLAGS__@VGCONF_ARCH_SEC@_@VGCONF_OS@) -c $< -o $@ 
+	$(CC) $(PICO_QL_CFLAGS_@VGCONF_ARCH_SEC@_@VGCONF_OS@) -c $< -o $@ 
 
 pico_ql_internal_@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT): pico_ql_internal.c pico_ql_internal.h pico_ql_interface.h pico_ql_search_helper.h
-	$(CC) $(PICO_QL_CFLAGS_@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT)) -c $< -o $@ 
+	$(CC) $(PICO_QL_CFLAGS_@VGCONF_ARCH_SEC@_@VGCONF_OS@) -c $< -o $@ 
 
 pico_ql_vt_@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT): pico_ql_vt.c pico_ql_vt.h pico_ql_internal.h
 	$(CC) $(PICO_QL_CFLAGS_@VGCONF_ARCH_SEC@_@VGCONF_OS@) -c $< -o $@
@@ -154,7 +153,7 @@ pico_ql_test_@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT): pico_ql_test.c pico_ql_test.h 
 	$(CC) $(PICO_QL_CFLAGS_@VGCONF_ARCH_SEC@_@VGCONF_OS@) -c $< -o $@
 
 sqlite3_@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT): sqlite3.c sqlite3.h
-	$(CC) $(PICO_QL_CFLAGS) -DSQLITE_THREADSAFE=0 -DSQLITE_OMIT_LOAD_EXTENSION -DSQLITE_OMIT_BUILTIN_TEST -DNDEBUG -DSQLITE_OMIT_WAL -DSQLITE_WITHOUT_ZONEMALLOC -c $< -o $@
+	$(CC) $(PICO_QL_CFLAGS_@VGCONF_ARCH_SEC@_@VGCONF_OS@) -DSQLITE_THREADSAFE=0 -DSQLITE_OMIT_LOAD_EXTENSION -DSQLITE_OMIT_BUILTIN_TEST -DNDEBUG -DSQLITE_OMIT_WAL -DSQLITE_WITHOUT_ZONEMALLOC -c $< -o $@
 
 errno_@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT): errno.c
 	$(CC) $(PICO_QL_CFLAGS_@VGCONF_ARCH_SEC@_@VGCONF_OS@) -c $< -o $@
@@ -171,9 +170,10 @@ unistd_@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT): unistd.c
 time_@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT): time.c
 	$(CC) $(PICO_QL_CFLAGS_@VGCONF_ARCH_SEC@_@VGCONF_OS@) -c $< -o $@
 
-pico_ql_search.c: $(rbfiles) $(erbfiles) valgrind_dsl.sql
+pico_ql_search.c: $(rbfiles) pico_ql_erb_templates/$(erbfiles) valgrind_dsl.sql
 	ruby pico_ql_generator.rb valgrind_dsl.sql valgrind
 
+pico_ql_internal.c: pico_ql_search.c
 
 picoQL-gui: pico_ql_swill_ui.o pico_ql_logo.o pico_ql_error_page.o
 	$(CC) $(UI_CFLAGS) -lswill $^ -o $@
@@ -194,9 +194,9 @@ gen: prep pico_ql_search.c
 
 locfiles=errno stdio string unistd time pico_ql_interface
 
-genfiles := pico_ql_internal pico_ql_search
-
 cfiles := sqlite3 pico_ql_search_helper pico_ql_vt pico_ql_test
+
+genfiles := pico_ql_search pico_ql_internal
 
 uifiles := pico_ql_swill_ui pico_ql_error_page pico_ql_logo 
 
@@ -227,15 +227,18 @@ clean-picoQL: clean-picoQL-gen clean-picoQL-obj clean-picoQL-bin
 
 # For PiCO QL
 clean-picoQL-bin:
-	test ! -f "libpicoQL_@VGCONF_ARCH_SEC@_@VGCONF_OS@.a" || rm libpicoQL_@VGCONF_ARCH_SEC@_@VGCONF_OS@.a
+	test ! -f "libpicoQL_@VGCONF_ARCH_PRI@_@VGCONF_OS@.a" || rm libpicoQL_@VGCONF_ARCH_PRI@_@VGCONF_OS@.a
 	test ! -f "libpicoQL_@VGCONF_ARCH_SEC@_@VGCONF_OS@.a" || rm libpicoQL_@VGCONF_ARCH_SEC@_@VGCONF_OS@.a
 	test ! -f "picoQL-gui" || rm picoQL-gui
 
 clean-picoQL-obj:
-	$(foreach f, $(cfiles), [ ! -f $f_*$(EXT) ] || rm $f_*$(EXT) ; )
-	$(foreach f, $(locfiles), [ ! -f $f_*$(EXT) ] || rm $f_*$(EXT) ; )
-	$(foreach f, $(genfiles), [ ! -f $f_*$(EXT) ] || rm $f_*$(EXT) ; )
-	$(foreach f, $(uifiles), [ ! -f $f$(EXT) ] || rm $f$(EXT) ; )
+	$(foreach f, $(cfiles), test ! -f $f_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT) || rm $f_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT) ; )
+	$(foreach f, $(cfiles), test ! -f $f_@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT) || rm $f_@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT) ; )
+	$(foreach f, $(locfiles), test ! -f $f_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT) || rm $f_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT) ; )
+	$(foreach f, $(locfiles), test ! -f $f_@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT) || rm $f_@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT) ; )
+	$(foreach f, $(genfiles), test ! -f $f_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT) || rm $f_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT) ; )
+	$(foreach f, $(genfiles), test ! -f $f_@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT) || rm $f_@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT) ; )
+	$(foreach f, $(uifiles), test ! -f $f$(EXT) || rm $f$(EXT) ; )
 
 clean-picoQL-gen:
 	test ! -f "pico_ql_search.c" || rm pico_ql_search.c
