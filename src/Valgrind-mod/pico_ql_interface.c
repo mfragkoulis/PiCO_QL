@@ -83,7 +83,7 @@ static int step_query(char ***res, int *argc_slots, sqlite3_stmt *stmt) {
     sprintf(bufCol, "%d, row buffer's is %d, number of slots is %d", (int)strlen(resP), (int)strlen(buf), *argc_slots);
     printf("Row read: current result set chunk's length is %s.\n", bufCol);
 #endif
-    if (strlen(resP) + strlen(buf) + 20 > PAGE_SIZE) {	/* 20: For result set metadata text. */
+    if (strlen(resP) + strlen(buf) + 40 > PAGE_SIZE) {	/* 40: For result set metadata text. */
 #ifdef PICO_QL_DEBUG
       sprintf(bufCol, "%d", (int)strlen(resP));
       printf("Before new result set chunk, current chunk's length is %s.\n", bufCol);
@@ -257,8 +257,7 @@ int register_table(int argc,
     sqlite3_close(db);
     return re;
   }
-#ifdef __linux__
-  re = prep_exec(NULL, 0, db, "PRAGMA main.journal_mode=OFF;");
+  re = prep_exec(NULL, 0, db, "PRAGMA main.journal_mode=OFF;");  /* Turn off journals.*/
 #ifdef PICO_QL_DEBUG
   sprintf(sqlite_query, "Query to turn off main.journal returned %d.\n", re);
   printf("%s", sqlite_query);
@@ -267,7 +266,6 @@ int register_table(int argc,
 #ifdef PICO_QL_DEBUG
   sprintf(sqlite_query, "Query to turn off temp.journal returned %d.\n", re);
   printf("%s", sqlite_query);
-#endif
 #endif
 #ifdef PICO_QL_DEBUG
   for (i = 0; i < argc; i++) {

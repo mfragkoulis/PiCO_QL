@@ -59,8 +59,6 @@ UI_CFLAGS=$(CFLAGS)
 
 EXT = .o
 
-all: libpicoQL_@VGCONF_ARCH_PRI@_@VGCONF_OS@ @VGCONF_HAVE_PLATFORM_SEC_TRUE@libpicoQL_@VGCONF_ARCH_SEC@_@VGCONF_OS@
-
 OBJ_@VGCONF_ARCH_PRI@_@VGCONF_OS@ = pico_ql_search_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT) \
 				    pico_ql_internal_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT) \
 				    pico_ql_vt_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT) \
@@ -131,7 +129,7 @@ OBJ_@VGCONF_ARCH_SEC@_@VGCONF_OS@ = pico_ql_search_@VGCONF_ARCH_SEC@_@VGCONF_OS@
 
 APP_OBJ_@VGCONF_ARCH_SEC@_@VGCONF_OS@ = cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@-cg_main.o
 
-libpicoQL_@VGCONF_ARCH_SEC@_@VGCONF_OS@: $(OBJ_@VGCONF_ARCH_SEC@_@VGCONF_OS@) $(APP_OBJ_@VGCONF_ARCH_SEC@_@VGCONF_OS@) picoQL-gui
+@VGCONF_HAVE_PLATFORM_SEC_TRUE@libpicoQL_@VGCONF_ARCH_SEC@_@VGCONF_OS@: $(OBJ_@VGCONF_ARCH_SEC@_@VGCONF_OS@) $(APP_OBJ_@VGCONF_ARCH_SEC@_@VGCONF_OS@) picoQL-gui
 	ar rcs libpicoQL_@VGCONF_ARCH_SEC@_@VGCONF_OS@.a $(OBJ_@VGCONF_ARCH_SEC@_@VGCONF_OS@) $(APP_OBJ_@VGCONF_ARCH_SEC@_@VGCONF_OS@)
 
 pico_ql_search_@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT): pico_ql_search.c pico_ql_search.h pico_ql_internal.h
@@ -192,7 +190,9 @@ seed:
 
 gen: prep pico_ql_search.c
 
-locfiles=errno stdio string unistd time pico_ql_interface pico_ql_swill_ui 
+locfiles := errno stdio string unistd time pico_ql_interface
+
+locuifiles := pico_ql_swill_ui
 
 cfiles := sqlite3 pico_ql_search_helper pico_ql_vt pico_ql_test
 
@@ -216,6 +216,7 @@ prep:
 	$(foreach f, $(uifiles), [ -f $f.o ] && test ../$f.c -ot $f.o || cp ../$f.c . ; )
 	$(foreach f, $(hfiles), [ -f $f ] && test -f $f && test ../$f -ot $f || cp ../$f . ; )
 	$(foreach f, $(rbfiles), [ -f $f ] && test -f $f && test ../$f -ot $f || cp ../$f . ; )
+	test -d pico_ql_erb_templates || mkdir pico_ql_erb_templates
 	$(foreach f, $(erbfiles), [ -f $f ] && test -f $f && test ../pico_ql_erb_templates/$f -ot pico_ql_erb_templates/$f || cp ../pico_ql_erb_templates/$f pico_ql_erb_templates/ ; )
 #	mv test.c pico_ql_test.c
 #	gcc -g -fPIC -shared math_func_sqlitext.c -o math_func_sqlitext.$(SUFFIX)
@@ -233,6 +234,7 @@ clean-picoQL-bin_@VGCONF_ARCH_PRI@_@VGCONF_OS@:
 clean-picoQL-obj_@VGCONF_ARCH_PRI@_@VGCONF_OS@:
 	$(foreach f, $(cfiles), test ! -f $f_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT) || rm $f_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT) ; )
 	$(foreach f, $(locfiles), test ! -f $f_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT) || rm $f_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT) ; )
+	$(foreach f, $(locuifiles), test ! -f $f$(EXT) || rm $f$(EXT) ; )
 	$(foreach f, $(genfiles), test ! -f $f_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT) || rm $f_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT) ; )
 	$(foreach f, $(uifiles), test ! -f $f$(EXT) || rm $f$(EXT) ; )
 
