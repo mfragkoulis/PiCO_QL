@@ -22,6 +22,10 @@
  *   permissions and limitations under the License.
  */
 
+#ifdef __linux__
+#include <fcntl.h> /* O_* */
+#endif
+
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
@@ -253,12 +257,18 @@ int register_table(int argc,
     sqlite3_close(db);
     return re;
   }
-/*  re = prep_exec(NULL, db, "PRAGMA main.journal_mode=OFF;");
-  re2 = prep_exec(NULL, db, "PRAGMA temp.journal_mode=OFF;");
-  char pragma[200];
-  sprintf(pragma, "main.journal returned %d, temp.journal returned %d.\n", re, re2);
-  printf("Journal queries: %s", pragma);
-*/
+#ifdef __linux__
+  re = prep_exec(NULL, 0, db, "PRAGMA main.journal_mode=OFF;");
+#ifdef PICO_QL_DEBUG
+  sprintf(sqlite_query, "Query to turn off main.journal returned %d.\n", re);
+  printf("%s", sqlite_query);
+#endif
+  re = prep_exec(NULL, 0, db, "PRAGMA temp.journal_mode=OFF;");
+#ifdef PICO_QL_DEBUG
+  sprintf(sqlite_query, "Query to turn off temp.journal returned %d.\n", re);
+  printf("%s", sqlite_query);
+#endif
+#endif
 #ifdef PICO_QL_DEBUG
   for (i = 0; i < argc; i++) {
     printf("\nQuery to be executed: %s.\n", q[i]);
@@ -275,12 +285,14 @@ int register_table(int argc,
     printf("Module registered successfully\n");
 #endif
 #ifndef __APPLE__
+#ifndef SQLITE_OMIT_LOAD_EXTENSION
 // sqlite3_load_extension() calls
   if (sqlite3_enable_load_extension(db, 1))
     printf("Extension loading failed.\n");
   if (sqlite3_load_extension(db, "math_func_sqlitext", NULL, NULL))
     printf("Extension loading failed.\n");
 // sqlite3_create_function() calls
+#endif
 #endif
   for (i = 0; i < argc; i++) {
     char sqlite_type[20];

@@ -28,6 +28,10 @@
 #endif
 */
 
+#ifdef __linux__
+#include <sys/stat.h>     /* S_* */
+#endif
+
 #include <fcntl.h>    /* O_* */
 #include <unistd.h>   /* open, read, write, close */
 #include <stdlib.h>

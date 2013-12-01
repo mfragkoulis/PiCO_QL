@@ -1,6 +1,7 @@
 #include <unistd.h>
 #include <valgrind.h>
 
+
 int rmdir(const char *path){return 0;};
 
 /* Returns an absolute file name representing 
@@ -67,13 +68,6 @@ int fsync(int fd){return 0;}
 /* VG: /usr/include/sys/fcntl.h in __APPLE__ */
 int fcntl(int n, int m, ...){return 0;};
 
-/* VG: for __APPLE__ */
-int fsctl(const char *path, unsigned long request, void *data,
-             unsigned long options){return 0;};
-
-/* VG */
-int flock(int fd, int operation){return 0;};
-
 /* VG */
 int fstatfs(int fd, struct statfs *buf){return 0;};
 
@@ -81,16 +75,52 @@ int fstatfs(int fd, struct statfs *buf){return 0;};
 int statfs(const char *fs, struct statfs *buf){return 0;};
 
 /* VG */
-int futimes(int fd, const struct timeval tv[2]){return 0;};
-
-/* VG */
 int mkdir(const char * pathname , mode_t mode){return 0;};
 
 /* VG */
 mode_t umask(mode_t mask){return (mode_t)0;};
 
+#ifdef __APPLE__
+
+/* VG: for __APPLE__ */
+int fsctl(const char *path, unsigned long request, void *data,
+             unsigned long options){return 0;};
+
+/* VG */
+int flock(int fd, int operation){return 0;};
+
+
+/* VG */
+int futimes(int fd, const struct timeval tv[2]){return 0;};
+
 /* VG */
 int sysctlbyname(const char *name, void *oldp, size_t *oldlenp, void *newp, size_t newlen){return 0;};
+
+#endif
+
+#ifdef __linux__
+typedef long off64_t;
+
+int open64(const char *path, int flags, ...);
+int fstat64(int fd, struct stat *buf);
+int stat64(const char *path, struct stat *buf);
+int posix_fallocate64(int fd, off64_t offset, off64_t len);
+
+int fstat64(int fd, struct stat *buf){return 0;};
+int stat64(const char *path, struct stat *buf){return 0;};
+int posix_fallocate64(int fd, off64_t offset, off64_t len){return 0;};
+int open64(const char *path, int flags, ...) {
+  va_list ap;
+  mode_t mode;
+
+  va_start(ap, flags);
+  mode = va_arg(ap, int);
+  va_end(ap);
+
+  SysRes sr = VG_(open)(path, flags, mode);
+  return (int)sr_Res(sr);
+}
+#endif
 
 int open(const char *path, int flags, ...) {
   va_list ap;
@@ -103,3 +133,4 @@ int open(const char *path, int flags, ...) {
   SysRes sr = VG_(open)(path, flags, mode);
   return (int)sr_Res(sr);
 }
+

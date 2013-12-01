@@ -2,7 +2,7 @@
 #define _UNISTD_H
 
 #include <stdlib.h>
-#include "pub_tool_vki.h"  // uuid_t
+#include "pub_tool_vki.h"  // uuid_t, vki_mode_t, VKI_PAGE_SIZE
 #include "pub_tool_libcfile.h"  // mknod, open, close, read, write, unlink
 
 #define NFILES 10
@@ -12,6 +12,23 @@
 #define SEEK_SET 0
 #define SEEK_CUR 1
 #define SEEK_END 2
+
+
+#ifdef __linux__
+#define PAGE_SIZE VKI_PAGE_SIZE 
+#include <sys/stat.h>
+#include "pub_tool_basics.h" // OffT (instead of off_t)
+typedef vki_mode_t mode_t;  /* mode_t not defined */
+typedef OffT off_t;
+struct statfs;
+
+/* VG: matched: Open new file and obtain its file descriptor */
+int open(const char *path, int flags, ...);
+int open64(const char *path, int flags, ...);
+int fcntl(int n, int m, ...);
+int fstatfs(int fd, struct statfs *buf);
+int statfs(const char *fs, struct statfs *buf);
+#endif
 
 /* Dummy macro and function 
  * implementations all over the file.
@@ -54,9 +71,6 @@ void close(int fd);
 //#define fstat(X,Y) 0
 int fstat(int fd, struct stat *buf);
 
-/* VG: matched: Open new file and obtain its file descriptor */
-//#define open(X,Y,Z) VG_(open)(X,Y,Z)
-//int open(const char *path, int flags, ...);
 
 /* VG: match: Remove file from file system */
 //#define unlink(X) VG_(unlink)(X)

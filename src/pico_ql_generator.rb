@@ -2625,7 +2625,7 @@ class InputDescription
       print_retrieve_functions(fw)
     end
     puts "Created/updated pico_ql_internal.#{$argLB.downcase} ."
-    if $argK != "KERNEL"
+    if $argK != "KERNEL" && $argVLG != "VALGRIND"
       myFile = File.open("pico_ql_makefile.append", "w") do |fw|
         file = File.open("pico_ql_erb_templates/pico_ql_makefile_#{$argLB.downcase}.erb").read
         makefile = ERB.new(file, 0, '>')
