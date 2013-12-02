@@ -780,16 +780,18 @@ clean-binPROGRAMS:
 picoQL-gui: libpicoQL_@VGCONF_ARCH_PRI@_@VGCONF_OS@
 
 PICO_QL_srcdir = ../PiCO_QL/src/Valgrind-mod
+VG_TOOL := cachegrind
+export VG_TOOL
 PICO_QL_CFLAGS_@VGCONF_ARCH_PRI@_@VGCONF_OS@ := $(DEFS) $(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CFLAGS) -Wno-long-long -fno-stack-protector
 export PICO_QL_CFLAGS_@VGCONF_ARCH_PRI@_@VGCONF_OS@
 PICO_QL_CFLAGS_@VGCONF_ARCH_SEC@_@VGCONF_OS@ := $(DEFS) $(cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CFLAGS) -Wno-long-long -fno-stack-protector
 export PICO_QL_CFLAGS_@VGCONF_ARCH_SEC@_@VGCONF_OS@
 
-libpicoQL_@VGCONF_ARCH_PRI@_@VGCONF_OS@: cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@-cg_main.o
-	cp $< $(PICO_QL_srcdir) && $(MAKE) -C $(PICO_QL_srcdir) libpicoQL_@VGCONF_ARCH_PRI@_@VGCONF_OS@ && cp $(PICO_QL_srcdir)/picoQL-gui .
+libpicoQL_@VGCONF_ARCH_PRI@_@VGCONF_OS@:
+	$(MAKE) -C $(PICO_QL_srcdir) libpicoQL_@VGCONF_ARCH_PRI@_@VGCONF_OS@ && cp $(PICO_QL_srcdir)/picoQL-gui .
 
-@VGCONF_HAVE_PLATFORM_SEC_TRUE@libpicoQL_@VGCONF_ARCH_SEC@_@VGCONF_OS@: cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@-cg_main.o
-	cp $< $(PICO_QL_srcdir) && $(MAKE) -C $(PICO_QL_srcdir) libpicoQL_@VGCONF_ARCH_SEC@_@VGCONF_OS@ 
+@VGCONF_HAVE_PLATFORM_SEC_TRUE@libpicoQL_@VGCONF_ARCH_SEC@_@VGCONF_OS@:
+	$(MAKE) -C $(PICO_QL_srcdir) libpicoQL_@VGCONF_ARCH_SEC@_@VGCONF_OS@ 
 
 # For PiCO QL
 clean-noinstPROGRAMS:
