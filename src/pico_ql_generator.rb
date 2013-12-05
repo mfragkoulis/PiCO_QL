@@ -561,7 +561,7 @@ class Column
     notC = ""
     space = "#{$s}  "
     access_pathF, access_pathN, 
-    idenF, idenN = vt.configure_search("data", @access_path, "")
+    idenF, idenN = vt.configure_search("data", @access_path, "", @data_type)
     add_to_result_setF, add_to_result_setN = vt.configure_result_set()
     iterationF, iterationN = vt.configure_iteration(@access_path)
     fw.puts "        if (first_constr == 1) {"
@@ -686,7 +686,7 @@ class Column
 		sqlite3_type, 
                 sqlite3_parameters, 
                 column_cast)
-    access_pathF, access_pathN, idenF, idenN = vt.configure_search("fk", @access_path, @col_type)
+    access_pathF, access_pathN, idenF, idenN = vt.configure_search("fk", @access_path, @col_type, "")
     add_to_result_setF, add_to_result_setN = vt.configure_result_set()
     iterationF, iterationN = vt.configure_iteration(@access_path)
     fw.puts "        if (first_constr) {"
@@ -907,7 +907,7 @@ class Column
   def search_union(fw, vt) 
     full_union_access_pathF, 
     full_union_access_pathN, 
-    idenF, idenN = vt.configure_search("union", @access_path, @col_type)
+    idenF, idenN = vt.configure_search("union", @access_path, @col_type, "")
     add_to_result_setF, add_to_result_setN = vt.configure_result_set()
     iterationF, iterationN = vt.configure_iteration("")
     fw.puts "        if (first_constr == 1) {"
@@ -1000,7 +1000,7 @@ class Column
     col_class, sqlite3_type,
     sqlite3_parameters, column_cast,
     column_cast_back = bind_datatypes("retrieve") 
-    iden = vt.configure_retrieve(@access_path, col_class)
+    iden = vt.configure_retrieve(@access_path, col_class, @data_type)
     token_ac_p = Array.new
     if col_class == "fk" || col_class == "data" ||
        col_class == "union"
@@ -1405,7 +1405,7 @@ class VirtualTable
 
 # Method performs case analysis to generate 
 # the correct form of the variable
-  def configure_retrieve(access_path, op)
+  def configure_retrieve(access_path, op, data_type)
     iden = ""
     type_check = ""
     if !access_path.start_with?("tuple_iter")
@@ -1430,7 +1430,7 @@ class VirtualTable
     when /data|union/
       if !@container_class.empty?
         if access_path.empty?
-          if @pointer.end_with?("*")
+          if @pointer.end_with?("*") && data_type != "TEXT"
             iden = "*#{iden}"
           end
         else
@@ -1518,7 +1518,7 @@ class VirtualTable
   end
 
   def configure_search(op, access_path, 
-                       fk_type)
+                       fk_type, data_type)
     idenF = ""
     idenN = ""
     access_pathF = ""
@@ -1566,8 +1566,8 @@ class VirtualTable
     when "data"
       if !@container_class.empty?
         if ap.empty?
-# Dereference what is there for all containers.
-          if @pointer.end_with?("*")
+# Dereference what is there for all containers but not char *.
+          if @pointer.end_with?("*") && data_type != "TEXT"
             idenF = "*#{idenF}"
             idenN = "*#{idenN}"
           end

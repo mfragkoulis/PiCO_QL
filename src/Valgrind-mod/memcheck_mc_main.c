@@ -6676,6 +6676,9 @@ static void mc_fini ( Int exitcode )
 
 /* For PiCO QL */
 pico_ql_register(&MC_(malloc_list), "malloc_list");
+pico_ql_register(primary_map, "primary_map");
+pico_ql_register(sm_distinguished, "distinguished_sec_map");
+pico_ql_register(auxmap_L1, "aux_primary_map");
 pico_ql_serve();
 
 }

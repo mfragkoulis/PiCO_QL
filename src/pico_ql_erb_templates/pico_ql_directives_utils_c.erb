@@ -54,8 +54,10 @@
 <%        end %>
 <%        if /\[/.match(vt.signature) %>
 extern <%= vt.assignable_signature.gsub("<variable_name>", "pico_ql_table_#{vt.base_var}_#{vt.type.gsub(/(\s*)/, "").gsub(/\*/, "ptr")}") %>;
+#define pico_ql_table_<%= "#{vt.base_var}_#{vt.type.gsub(/(\s*)/, "").gsub(/\*/, "ptr")}" %> pqlPub_<%= "#{vt.base_var}" %> 
 <%        else %>
 extern <%= vt.signature %> <%= retype %>pico_ql_table_<%= vt.base_var %>_<%= vt.type.gsub(/(\s*)/, "").gsub(/\*/, "ptr") %>;
+#define pico_ql_table_<%= "#{vt.base_var}_#{vt.type.gsub(/(\s*)/, "").gsub(/\*/, "ptr")}" %> pqlPub_<%= "#{vt.base_var}" %> 
 <%        end %>
 <%        if $argD == "DEBUG" %>
 #line <%= vt.signature_line + 1 %> "<%= $argF %>" 

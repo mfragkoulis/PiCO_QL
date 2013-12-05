@@ -184,7 +184,7 @@ cmp:
 seed:
 	cp pico_ql_test_current.txt pico_ql_test_success.txt
 
-gen: prep pico_ql_search.c
+gen: prep pico_ql_search.c pico_ql_internal.c
 
 locfiles := errno stdio string unistd time pico_ql_interface
 
@@ -210,10 +210,10 @@ prep:
 #	mv pico_ql_test.c test.c
 	$(foreach f, $(cfiles), [ -f $f_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT) ] && test ../$f.c -ot $f_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT) || cp ../$f.c . ; )
 	$(foreach f, $(uifiles), [ -f $f.o ] && test ../$f.c -ot $f.o || cp ../$f.c . ; )
-	$(foreach f, $(hfiles), [ -f $f ] && test -f $f && test ../$f -ot $f || cp ../$f . ; )
-	$(foreach f, $(rbfiles), [ -f $f ] && test -f $f && test ../$f -ot $f || cp ../$f . ; )
+	$(foreach f, $(hfiles), [ -f $f ] && test ../$f -ot $f || cp ../$f . ; )
+	$(foreach f, $(rbfiles), [ -f $f ] && test ../$f -ot $f || cp ../$f . ; )
 	test -d pico_ql_erb_templates || mkdir pico_ql_erb_templates
-	$(foreach f, $(erbfiles), [ -f $f ] && test -f $f && test ../pico_ql_erb_templates/$f -ot pico_ql_erb_templates/$f || cp ../pico_ql_erb_templates/$f pico_ql_erb_templates/ ; )
+	$(foreach f, $(erbfiles), [ -f $f ] && test ../pico_ql_erb_templates/$f -ot pico_ql_erb_templates/$f || cp ../pico_ql_erb_templates/$f pico_ql_erb_templates/ ; )
 #	mv test.c pico_ql_test.c
 #	gcc -g -fPIC -shared math_func_sqlitext.c -o math_func_sqlitext.$(SUFFIX)
 

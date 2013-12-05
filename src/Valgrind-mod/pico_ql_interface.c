@@ -77,6 +77,12 @@ static int step_query(char ***res, int *argc_slots, sqlite3_stmt *stmt) {
 	sprintf(bufCol, "<td><b>(null)</td></b>");
 	break;
       }
+      if (strlen(bufCol) > PAGE_SIZE) {
+        sprintf(buf, "Row read has exceeded PAGE_SIZE length. Length is %d. Exiting now.\n", (int)strlen(bufCol));
+        printf("%s", buf);
+        result = SQLITE_ERROR;
+        goto exit;
+      }
       strcat(buf, bufCol);
     }
 #ifdef PICO_QL_DEBUG
@@ -90,12 +96,16 @@ static int step_query(char ***res, int *argc_slots, sqlite3_stmt *stmt) {
 #endif
       (*argc_slots)++;
       *res = (char **)sqlite3_realloc(*res, sizeof(char*) * (*argc_slots));
-      if (!*res)
-        return SQLITE_NOMEM;
+      if (!*res) {
+        result = SQLITE_NOMEM;
+        goto exit;
+      }
       (*res)[*argc_slots - 1] = (char *)sqlite3_malloc(sizeof(char) * PAGE_SIZE);
       resP = (*res)[*argc_slots - 1];
-      if (!resP)
-        return SQLITE_NOMEM;
+      if (!resP) {
+        result = SQLITE_NOMEM;
+        goto exit;
+      }
 #ifdef PICO_QL_DEBUG
       sprintf(bufCol, "%d", (int)strlen(resP));
       printf("After malloc, new result set chunk's length is %s.\n", bufCol);
@@ -117,6 +127,8 @@ static int step_query(char ***res, int *argc_slots, sqlite3_stmt *stmt) {
 #ifdef PICO_QL_DEBUG
   printf("Result set is\n\n%s\n\n", resP);
 #endif
+
+exit:
   sqlite3_free(bufCol);
   sqlite3_free(buf);
   return result;
