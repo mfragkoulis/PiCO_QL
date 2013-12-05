@@ -165,7 +165,7 @@ time_@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT): time.c
 	$(CC) $(PICO_QL_CFLAGS_@VGCONF_ARCH_SEC@_@VGCONF_OS@) -c $< -o $@
 
 pico_ql_search.c: $(rbfiles) pico_ql_erb_templates/$(erbfiles) $(VG_TOOL)_dsl.sql
-	ruby pico_ql_generator.rb $(VG_TOOL)_dsl.sql valgrind
+	ruby pico_ql_generator.rb $(VG_TOOL)_dsl.sql valgrind no_mem_mgt
 
 pico_ql_internal.c: pico_ql_search.c
 

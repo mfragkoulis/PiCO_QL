@@ -23,11 +23,16 @@
 #define PriMapVT_advance(X,Y,Z) X = &Y[Z]
 #define PriMapVT_end(X,Y) X != Y
 
-#define AuxPriMapVT_decl(X) auxmap_L1* X; int i = 0
-#define AuxPriMapVT_begin(X,Y,Z) X = &Y[Z]
-#define AuxPriMapVT_advance(X,Y,Z) X = &Y[Z]
-#define AuxPriMapVT_end(X,Y) X != Y
+#define AuxPriL1MapVT_decl(X) auxmap_L1* X; int i = 0
+#define AuxPriL1MapVT_begin(X,Y,Z) X = &Y[Z]
+#define AuxPriL1MapVT_advance(X,Y,Z) X = &Y[Z]
+#define AuxPriL1MapVT_end(X,Y) X != Y
 
+#define AuxPriL2MapVT_decl(X) AuxMapEnt* X;
+#define AuxPriL2MapVT_begin(X,Y) X = (AuxMapEnt *)VG_(OSetGen_Next)(Y)
+#define AuxPriL2MapVT_advance(X,Y) X = (AuxMapEnt *)VG_(OSetGen_Next)(Y)
+#define AuxPriL2MapVT_end(X) X != NULL
+ 
 #define SM_CHUNKS             16384
 #if VG_WORDSIZE == 4
 
@@ -105,14 +110,16 @@ typedef
        }
        auxmap_L1;
 
-UChar* lookup_L2(Addr base) {
+static UChar* lookup_L2(Addr base) {
   AuxMapEnt *res;
   AuxMapEnt key;
   key.base = base;
   key.sm = 0;
-  res = VG_(OSetGenLookup)(pqlPub_aux_primary_L2_map, &key); 
-  (res == NULL) || (res->sm == NULL) ? return NULL : return res->sm->vabits8;
-}
+  res = VG_(OSetGen_Lookup)(pqlPub_aux_primary_L2_map, &key);
+  if ((res == NULL) || (res->sm == NULL)) return NULL;
+  else return res->sm->vabits8;
+};
+
 $
 
 CREATE STRUCT VIEW MemCheckV (
@@ -171,7 +178,7 @@ USING LOOP for(PriMapVT_begin(tuple_iter, base, i); PriMapVT_end(i, N_PRIMARY_MA
 
 CREATE STRUCT VIEW AuxMapEntryV (
 	addr_data BIGINT FROM base,
-	FOREIGN KEY(sec_id) FROM sm->vabits8 REFERENCES SecMapVT
+	FOREIGN KEY(sm_vabits_id) FROM sm->vabits8 REFERENCES SecMapVT
 )$
 
 CREATE VIRTUAL TABLE AuxMapEntryVT
@@ -185,9 +192,15 @@ CREATE STRUCT VIEW AuxPriMapV (
 	FOREIGN KEY(sm_vabits_id) FROM lookup_L2(tuple_iter->base) REFERENCES AuxMapEntryVT POINTER
 )$
 
-CREATE VIRTUAL TABLE AuxPriMapVT
+CREATE VIRTUAL TABLE AuxPriL1MapVT
 USING STRUCT VIEW AuxPriMapV
-WITH REGISTERED C NAME aux_primary_map
+WITH REGISTERED C NAME aux_primary_L1_map
 WITH REGISTERED C TYPE auxmap_L1
-USING LOOP for(AuxPriMapVT_begin(tuple_iter,base, i); AuxPriMapVT_end(i, N_AUXMAP_L1); AuxPriMapVT_advance(tuple_iter, base, ++i))$
+USING LOOP for(AuxPriL1MapVT_begin(tuple_iter,base, i); AuxPriL1MapVT_end(i, N_AUXMAP_L1); AuxPriL1MapVT_advance(tuple_iter, base, ++i))$
+
+CREATE VIRTUAL TABLE AuxPriL2MapVT
+USING STRUCT VIEW AuxMapEntryV
+WITH REGISTERED C NAME aux_primary_L2_map
+WITH REGISTERED C TYPE OSet:AuxMapEnt*
+USING LOOP VG_(OSetGen_ResetIter)(base);for (AuxPriL2MapVT_begin(tuple_iter, base);AuxPriL2MapVT_end(tuple_iter);AuxPriL2MapVT_advance(tuple_iter, base))$
 

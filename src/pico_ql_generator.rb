@@ -163,16 +163,18 @@ class Column
 # For pre, post access paths we don't want to substitute
 # accessors. In access paths we do.
 # Refactor to include 'tuple_iter' substitutions in here too.
+# For PiCO QL Valgrind module: commenting out the base substitution block;
+# it's not used in any DSL description. Are there cases that it would be useful?
   def sub_keywords(pre_post_ap, access_path, iter)
     if access_path
       if iter != nil &&
          access_path.match(/tuple_iter->|tuple_iter\.|tuple_iter,|tuple_iter\)/)
         access_path.gsub!(/tuple_iter/, "#{iter}") 
       end
-      if access_path.match(/base->|base\.|base,|base\)/)
-        access_path.gsub!(/base(\.|->)/, "any_dstr->")
-        access_path.gsub!(/base/, "any_dstr") 
-      end
+      #if access_path.match(/base->|base\.|base,|base\)/)
+      #  access_path.gsub!(/base(\.|->)/, "any_dstr->")
+      #  access_path.gsub!(/base/, "any_dstr") 
+      #end
     elsif pre_post_ap
       if iter != nil &&
          pre_post_ap.match(/tuple_iter->|tuple_iter\.|tuple_iter,|tuple_iter\)/)
