@@ -29,7 +29,10 @@
 #include <pthread.h>
 #endif
 <% stripDir = String.new(directives) %>
-<% stripDir.gsub!(/^(?!#)(.+)\((.*)\)(\s*)\{(.+)\}/m, "") %>
+<%# The following requires attention. Experimental hack. %>
+<%# stripDir.gsub!(/^(?!#)(.+?)\((.*?)\)(\s*)\{(.+?)\}/m, "") %>
+<% stripDir.gsub!(/\)(\s*)\{(.+?)\};/m, "<clear_method_signature>") %>
+<% stripDir.gsub!(/\n^(.+)<clear_method_signature>/, "") %>
 <%= stripDir %>
 #include <stdio.h>
 #include <string.h>
@@ -46,8 +49,10 @@
 <%        end %>
 <%        if /\[/.match(vt.signature) %>
 <%= vt.assignable_signature.gsub("<variable_name>", "pico_ql_table_#{vt.base_var}_#{vt.type.gsub(/(\s*)/, "").gsub(/\*/, "ptr")}") %>;
+#define pqlPub_<%= "#{vt.base_var}" %> pico_ql_table_<%= "#{vt.base_var}_#{vt.type.gsub(/(\s*)/, "").gsub(/\*/, "ptr")}" %> 
 <%        else %>
 <%= vt.signature %> <%= retype %>pico_ql_table_<%= vt.base_var %>_<%= vt.type.gsub(/(\s*)/, "").gsub(/\*/, "ptr") %>;
+#define pqlPub_<%= "#{vt.base_var}" %> pico_ql_table_<%= "#{vt.base_var}_#{vt.type.gsub(/(\s*)/, "").gsub(/\*/, "ptr")}" %> 
 <%        end %>
 <%        if $argD == "DEBUG" %>
 #line <%= vt.signature_line + 1 %> "<%= $argF %>" 

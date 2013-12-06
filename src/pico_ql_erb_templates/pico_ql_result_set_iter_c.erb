@@ -226,7 +226,7 @@ static void <%= @name %>_vt_deinit_result_set (sqlite3_vtab_cursor *cur, struct 
 
 <%    if @base_var.length == 0 %>
 
-int <%= @name %>_report_charge (cursor *c, int offset, cursorCharged ***oCharged, size_t *oChargedSize, long base, struct Vtbl *vtbl) {
+static int <%= @name %>_report_charge (cursor *c, int offset, cursorCharged ***oCharged, size_t *oChargedSize, long base, struct Vtbl *vtbl) {
   picoQLTable *picoQL = ((<%= @name %>_vt *)vtbl)->picoQL;
   cursor **cursors = ((<%= @name %>_vt *)vtbl)->cursors;
   size_t cursorsSize = ((<%= @name %>_vt *)vtbl)->cursorsSize;

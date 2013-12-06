@@ -60,7 +60,7 @@ static int set_VtblImpl(void) {
 <%      @tables[vt].columns.each { |col| %>
 <%       if col.related_to.length > 0 %>
 <%        if $argM == "MEM_MGT" && col.fk_method_ret == 1 %>
-  <%= @tables[vt].name %>VT->saved_results_<%= saved_results_index %> = {0, 0};
+  <%= @tables[vt].name %>VT->saved_results_<%= col.saved_results_index %> = {0, 0};
 <%        end %>
 <%       end %>
 <%      } %>

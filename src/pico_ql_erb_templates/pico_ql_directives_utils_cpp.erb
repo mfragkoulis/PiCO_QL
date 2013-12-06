@@ -42,7 +42,39 @@
 #ifndef PICO_QL_SINGLE_THREADED
 #include <pthread.h>
 #endif
-<%= directives %>
+
+<%     externDefs = "" %>
+<%# Extern definiitons have ot be inside picoQL namespace. %>
+<%     externDefs.concat("namespace picoQL {\n\n") %>
+<%     @tables.each { |vt| %>
+<%       if vt.base_var.length > 0 %>
+<%         type = vt.type.gsub(/(\s*)/, "").gsub(/,/, "").gsub(/</, "").gsub(/>/, "").gsub(/:{2}/, "").gsub(/\*/, "ptr") %>
+<%         /\*/.match(vt.signature_pointer) == nil ? retype = "*" : retype = "" %>
+<%         if $argD == "DEBUG" %>
+<%           externDefs.concat("\n// C NAME (pico_ql_table_)#{vt.base_var}_#{type} in line #{(vt.base_var_line + 1).to_s} #{$argF}") %>
+<%         end %>
+<%         if /\[/.match(vt.signature) %>
+<%           externDefs.concat("\nextern #{vt.assignable_signature.gsub("<variable_name>", "pico_ql_table_#{vt.base_var}")}_#{type};") %>
+<%           externDefs.concat("\n#define pqlPub_#{vt.base_var} pico_ql_table_#{vt.base_var}_#{type}") %>
+<%         else %>
+<%           externDefs.concat("\nextern #{vt.signature} #{retype}pico_ql_table_#{vt.base_var}_#{type};") %>
+<%           externDefs.concat("\n#define pqlPub_#{vt.base_var} pico_ql_table_#{vt.base_var}_#{type}") %>
+<%         end %>
+<%         if $argD == "DEBUG" %>
+<%           externDefs.concat("\n#line #{(vt.signature_line + 1).to_s} #{$argF}") %>
+<%         end %>
+<%       end %>
+<%     } %>
+<%     externDefs.concat("\n\n} /* picoQL namespace */\n\n") %>
+<%     stripDir = String.new(directives) %>
+<%     methodDefs = stripDir.sub!(/^(.+?)\)(\s*)\{/) { |m|
+                 "\n#{externDefs}\n\n#{m}"
+       } %>
+<%=    stripDir %>
+<%     if methodDefs == nil %>
+<%=      externDefs %>
+<%     end %>
+
 #include "pico_ql_internal.h"
 #include "pico_ql_search_helper.h"
 #include "pico_ql_interface.h"
@@ -88,25 +120,6 @@ struct name_cmp {
 };
 
 static map<string, VtblImpl*> selector_vt;
-
-<%     @tables.each { |vt| %>
-<%      if vt.base_var.length > 0 %>
-<%        type = vt.type.gsub(/(\s*)/, "").gsub(/,/, "").gsub(/</, "").gsub(/>/, "").gsub(/:{2}/, "").gsub(/\*/, "ptr") %>
-<%        /\*/.match(vt.signature_pointer) == nil ? retype = "*" : retype = "" %>
-<%        if $argD == "DEBUG" %>
-// C NAME (pico_ql_table_)<%= vt.base_var %>_<%= type %> in line <%= vt.base_var_line + 1 %> <%= $argF %> 
-<%        end %>
-<%        if /\[/.match(vt.signature) %>
-extern <%= vt.assignable_signature.gsub("<variable_name>", "pico_ql_table_#{vt.base_var}_#{type}") %>;
-<%        else %>
-extern <%= vt.signature %> <%= retype %>pico_ql_table_<%= vt.base_var %>_<%= type %>;
-<%        end %>
-<%        if $argD == "DEBUG" %>
-#line <%= vt.signature_line + 1 %> "<%= $argF %>" 
-<%        end %>
-<%      end %>
-<%     } %>
-
 
 // Thread. Creates the queries and passes them on to PiCO_QL.
 void * thread_sqlite(void *data) {
