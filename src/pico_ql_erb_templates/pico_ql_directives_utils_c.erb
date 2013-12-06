@@ -36,31 +36,35 @@
 #ifndef PICO_QL_SINGLE_THREADED
 #include <pthread.h>
 #endif
-<% stripDir = String.new(directives) %>
-<% stripDir.sub!(/^(.+?)\)(\s*)\{/) { |m|
-                 externDefs = ""
-                 @tables.each { |vt|
-                   if vt.base_var.length > 0
-                     /\*/.match(vt.signature_pointer) == nil ? retype = "*" : retype = ""
-                     if $argD == "DEBUG"
-                       externDefs.concat("\n// C NAME (pico_ql_table_)#{vt.base_var}_#{vt.type.gsub(/(\s*)/, "").gsub(/\*/, "ptr")} in line #{(vt.base_var_line + 1).to_s} #{$argF}") 
-                     end
-                     if /\[/.match(vt.signature)
-                       externDefs.concat("\nextern #{vt.assignable_signature.gsub("<variable_name>", "pico_ql_table_#{vt.base_var}")}_#{vt.type.gsub(/(\s*)/, "").gsub(/\*/, "ptr")};")
-                       externDefs.concat("\n#define pqlPub_#{vt.base_var} pico_ql_table_#{vt.base_var}_#{vt.type.gsub(/(\s*)/, "").gsub(/\*/, "ptr")}") 
-                     else
-                       plc = vt.type.gsub(/(\s*)/, "").gsub(/\*/, "ptr")
-                       externDefs.concat("\nextern #{vt.signature} #{retype}pico_ql_table_#{vt.base_var}_#{plc};")
-                       externDefs.concat("\n#define pqlPub_#{vt.base_var} pico_ql_table_#{vt.base_var}_#{plc}")
-                     end
-                     if $argD == "DEBUG"
-                       externDefs.concat("\n#line #{(vt.signature_line + 1).to_s} #{$argF}") 
-                     end
-                   end
-                 }
+
+<%     externDefs = "" %>
+<%     @tables.each { |vt| %>
+<%       if vt.base_var.length > 0 %>
+<%         /\*/.match(vt.signature_pointer) == nil ? retype = "*" : retype = "" %>
+<%         if $argD == "DEBUG" %>
+<%           externDefs.concat("\n// C NAME (pico_ql_table_)#{vt.base_var}_#{vt.type.gsub(/(\s*)/, "").gsub(/\*/, "ptr")} in line #{(vt.base_var_line + 1).to_s} #{$argF}") %>
+<%         end %>
+<%         if /\[/.match(vt.signature) %>
+<%           externDefs.concat("\nextern #{vt.assignable_signature.gsub("<variable_name>", "pico_ql_table_#{vt.base_var}")}_#{vt.type.gsub(/(\s*)/, "").gsub(/\*/, "ptr")};") %>
+<%           externDefs.concat("\n#define pqlPub_#{vt.base_var} pico_ql_table_#{vt.base_var}_#{vt.type.gsub(/(\s*)/, "").gsub(/\*/, "ptr")}") %>
+<%         else %>
+<%           plc = vt.type.gsub(/(\s*)/, "").gsub(/\*/, "ptr") %>
+<%           externDefs.concat("\nextern #{vt.signature} #{retype}pico_ql_table_#{vt.base_var}_#{plc};") %>
+<%           externDefs.concat("\n#define pqlPub_#{vt.base_var} pico_ql_table_#{vt.base_var}_#{plc}") %>
+<%         end %>
+<%         if $argD == "DEBUG" %>
+<%           externDefs.concat("\n#line #{(vt.signature_line + 1).to_s} #{$argF}") %>
+<%         end %>
+<%       end %>
+<%     } %>
+<%     stripDir = String.new(directives) %>
+<%     methodDefs = stripDir.sub!(/^(.+?)\)(\s*)\{/) { |m|
                  "\n#{externDefs}\n\n#{m}"
-   } %>
-<%= stripDir %>
+       } %>
+<%=    stripDir %>
+<%     if methodDefs == nil %>
+<%=      externDefs %>
+<%     end %>
 #include <sqlite3.h>
 #include "pico_ql_internal.h"
 #include "pico_ql_search_helper.h"

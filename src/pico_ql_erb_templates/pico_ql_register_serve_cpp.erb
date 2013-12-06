@@ -28,9 +28,14 @@
 #ifndef PICO_QL_SINGLE_THREADED
 #include <pthread.h>
 #endif
+
 <% stripDir = String.new(directives) %>
-<% stripDir.gsub!(/^(?!#)(.+)\((.*)\)(\s*)\{(.+)\}/m, "") %>
+<%# The following requires attention. Experimental hack. %>
+<%# stripDir.gsub!(/^(?!#)(.+?)\((.*?)\)(\s*)\{(.+?)\}/m, "") %>
+<% stripDir.gsub!(/\)(\s*)\{(.+?)\};/m, "<clear_method_signature>") %>
+<% stripDir.gsub!(/\n^(.+)<clear_method_signature>/, "") %>
 <%= stripDir %>
+
 #include <cstdio>
 #include <cstring>
 #include <sqlite3.h>
@@ -48,8 +53,10 @@ namespace picoQL {
 <%        end %>
 <%        if /\[/.match(vt.signature) %>
 <%= vt.assignable_signature.gsub("<variable_name>", "pico_ql_table_#{vt.base_var}_#{type}") %>;
+#define pqlPub_<%= "#{vt.base_var}" %> pico_ql_table_<%= "#{vt.base_var}_#{type}" %> 
 <%        else %>
 <%= vt.signature %> <%= retype %>pico_ql_table_<%= vt.base_var %>_<%= type %>;
+#define pqlPub_<%= "#{vt.base_var}" %> pico_ql_table_<%= "#{vt.base_var}_#{type}" %> 
 <%        end %>
 <%        if $argD == "DEBUG" %>
 #line <%= vt.signature_line + 1 %> "<%= $argF %>" 
