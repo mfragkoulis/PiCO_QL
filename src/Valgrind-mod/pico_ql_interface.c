@@ -22,6 +22,10 @@
  *   permissions and limitations under the License.
  */
 
+#ifdef __linux__
+#include <fcntl.h> /* O_* */
+#endif
+
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
@@ -73,25 +77,35 @@ static int step_query(char ***res, int *argc_slots, sqlite3_stmt *stmt) {
 	sprintf(bufCol, "<td><b>(null)</td></b>");
 	break;
       }
+      if (strlen(bufCol) > PAGE_SIZE) {
+        sprintf(buf, "Row read has exceeded PAGE_SIZE length. Length is %d. Exiting now.\n", (int)strlen(bufCol));
+        printf("%s", buf);
+        result = SQLITE_ERROR;
+        goto exit;
+      }
       strcat(buf, bufCol);
     }
 #ifdef PICO_QL_DEBUG
     sprintf(bufCol, "%d, row buffer's is %d, number of slots is %d", (int)strlen(resP), (int)strlen(buf), *argc_slots);
     printf("Row read: current result set chunk's length is %s.\n", bufCol);
 #endif
-    if (strlen(resP) + strlen(buf) + 20 > PAGE_SIZE) {	/* 20: For result set metadata text. */
+    if (strlen(resP) + strlen(buf) + 40 > PAGE_SIZE) {	/* 40: For result set metadata text. */
 #ifdef PICO_QL_DEBUG
       sprintf(bufCol, "%d", (int)strlen(resP));
       printf("Before new result set chunk, current chunk's length is %s.\n", bufCol);
 #endif
       (*argc_slots)++;
       *res = (char **)sqlite3_realloc(*res, sizeof(char*) * (*argc_slots));
-      if (!*res)
-        return SQLITE_NOMEM;
+      if (!*res) {
+        result = SQLITE_NOMEM;
+        goto exit;
+      }
       (*res)[*argc_slots - 1] = (char *)sqlite3_malloc(sizeof(char) * PAGE_SIZE);
       resP = (*res)[*argc_slots - 1];
-      if (!resP)
-        return SQLITE_NOMEM;
+      if (!resP) {
+        result = SQLITE_NOMEM;
+        goto exit;
+      }
 #ifdef PICO_QL_DEBUG
       sprintf(bufCol, "%d", (int)strlen(resP));
       printf("After malloc, new result set chunk's length is %s.\n", bufCol);
@@ -113,6 +127,8 @@ static int step_query(char ***res, int *argc_slots, sqlite3_stmt *stmt) {
 #ifdef PICO_QL_DEBUG
   printf("Result set is\n\n%s\n\n", resP);
 #endif
+
+exit:
   sqlite3_free(bufCol);
   sqlite3_free(buf);
   return result;
@@ -253,12 +269,16 @@ int register_table(int argc,
     sqlite3_close(db);
     return re;
   }
-/*  re = prep_exec(NULL, db, "PRAGMA main.journal_mode=OFF;");
-  re2 = prep_exec(NULL, db, "PRAGMA temp.journal_mode=OFF;");
-  char pragma[200];
-  sprintf(pragma, "main.journal returned %d, temp.journal returned %d.\n", re, re2);
-  printf("Journal queries: %s", pragma);
-*/
+  re = prep_exec(NULL, 0, db, "PRAGMA main.journal_mode=OFF;");  /* Turn off journals.*/
+#ifdef PICO_QL_DEBUG
+  sprintf(sqlite_query, "Query to turn off main.journal returned %d.\n", re);
+  printf("%s", sqlite_query);
+#endif
+  re = prep_exec(NULL, 0, db, "PRAGMA temp.journal_mode=OFF;");
+#ifdef PICO_QL_DEBUG
+  sprintf(sqlite_query, "Query to turn off temp.journal returned %d.\n", re);
+  printf("%s", sqlite_query);
+#endif
 #ifdef PICO_QL_DEBUG
   for (i = 0; i < argc; i++) {
     printf("\nQuery to be executed: %s.\n", q[i]);
@@ -275,12 +295,14 @@ int register_table(int argc,
     printf("Module registered successfully\n");
 #endif
 #ifndef __APPLE__
+#ifndef SQLITE_OMIT_LOAD_EXTENSION
 // sqlite3_load_extension() calls
   if (sqlite3_enable_load_extension(db, 1))
     printf("Extension loading failed.\n");
   if (sqlite3_load_extension(db, "math_func_sqlitext", NULL, NULL))
     printf("Extension loading failed.\n");
 // sqlite3_create_function() calls
+#endif
 #endif
   for (i = 0; i < argc; i++) {
     char sqlite_type[20];
