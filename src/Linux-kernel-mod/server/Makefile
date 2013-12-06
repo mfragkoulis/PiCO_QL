@@ -40,8 +40,8 @@ hfiles := pico_ql_internal.h pico_ql_search_helper.h pico_ql_vt.h sqlite3.h
 #c_files := pico_ql_generator.rb pico_ql_internal.h pico_ql_search_helper.c pico_ql_search_helper.h pico_ql_vt.c pico_ql_vt.h sqlite3.c sqlite3.h
 
 all:
-	$(foreach f, $(cfiles), [ -f $f.o ] && test ../../$f.c -ot $f.o || cp ../../$f.c . ; )
-	$(foreach f, $(hfiles), [-f $f ] && test ../../$f -ot $f || cp ../../$f . ; )
+	$(foreach f, $(cfiles), test -f $f.o && test ../../$f.c -ot $f.o || cp ../../$f.c . ; )
+	$(foreach f, $(hfiles), test -f $f && test ../../$f -ot $f || cp ../../$f . ; )
 	cp -r ../../pico_ql_erb_templates .
 	ruby pico_ql_generator.rb pico_ql_dsl.sql kernel no_mem_mgt
 	make -C /lib/modules/$(shell uname -r)/build M=$(shell pwd) modules

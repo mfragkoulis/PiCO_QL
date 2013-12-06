@@ -112,7 +112,7 @@ long get_file_offset(struct file *f) {
   f_pos = f->f_pos;
   spin_unlock(&f->f_lock);
   return f_pos;
-}
+};
 
 long get_page_offset(struct file *f) {
   long p_pos;
@@ -120,7 +120,7 @@ long get_page_offset(struct file *f) {
   p_pos = f->f_pos >> PAGE_CACHE_SHIFT;
   spin_unlock(&f->f_lock);
   return p_pos;
-}
+};
 
 long get_page_in_cache(struct file *f) {
   long page;
@@ -128,7 +128,7 @@ long get_page_in_cache(struct file *f) {
   page = (long)find_get_page(f->f_mapping, f->f_pos >> PAGE_CACHE_SHIFT);
   spin_unlock(&f->f_lock);
   return page;
-}
+};
 
 int get_pages_in_cache(struct address_space *a) {
   int pages;
@@ -136,7 +136,7 @@ int get_pages_in_cache(struct address_space *a) {
   pages = a->nrpages;
   spin_unlock(&a->tree_lock);
   return pages;
-}
+};
 
 unsigned get_pages_in_cache_contig(struct file *f, int current_offset) {
   pgoff_t index = 0;
@@ -152,7 +152,7 @@ unsigned get_pages_in_cache_contig(struct file *f, int current_offset) {
   nr_pages = find_get_pages_contig(f->f_mapping, index, malloc_pages, pages);
   kfree(pages);
   return nr_pages;
-}
+};
 
 unsigned get_pages_in_cache_tag(struct file *f, pgoff_t index, int tag) {
   int malloc_pages = f->f_mapping->nrpages;  /* There will be at most so many */
@@ -162,25 +162,25 @@ unsigned get_pages_in_cache_tag(struct file *f, pgoff_t index, int tag) {
   nr_pages = find_get_pages_tag(f->f_mapping, &index, tag, malloc_pages, pages);
   kfree(pages);
   return nr_pages;
-}
+};
 
 long is_socket(struct file *f) {
   if (S_ISSOCK(f->f_path.dentry->d_inode->i_mode))
     return (long)f->private_data;
   return 0;
-}
+};
 
 int check_vmx(void *dummy) {
   (void)dummy;
   return cpu_has_vmx();
-}
+};
 
 char *check_svm(void *dummy, char *msg) {
   (void)dummy;
   if (cpu_has_svm((const char **)&msg))
     sprintf(msg, "1");
   return msg;
-}
+};
 
 #if KVM_RUNNING
 int is_kvm_file(struct file *f) {
@@ -189,7 +189,7 @@ int is_kvm_file(struct file *f) {
       (!strcmp(f->f_path.dentry->d_name.name, "kvm-vm")))
     return 1;
   return 0;
-}
+};
 
 long check_kvm(struct file *f) {
   if ((f->f_cred->uid == 107) && 
@@ -197,7 +197,7 @@ long check_kvm(struct file *f) {
       (!strcmp(f->f_path.dentry->d_name.name, "kvm-vm")))
     return (long)f->private_data;
   return 0;
-}
+};
 
 int is_kvm_vcpu_file(struct file *f) {
   if ((f->f_cred->uid == 107) && 
@@ -205,7 +205,7 @@ int is_kvm_vcpu_file(struct file *f) {
       (!strcmp(f->f_path.dentry->d_name.name, "kvm-vcpu")))
     return 1;
   return 0;
-}
+};
 
 long check_kvm_vcpu(struct file *f) {
   if ((f->f_cred->uid == 107) && 
@@ -213,15 +213,15 @@ long check_kvm_vcpu(struct file *f) {
       (!strcmp(f->f_path.dentry->d_name.name, "kvm-vcpu")))
     return (long)f->private_data;
   return 0;
-}
+};
 
 int get_cpl(struct kvm_vcpu *vcpu) {
   return kvm_x86_ops->get_cpl(vcpu);
-}
+};
 
 int check_cpl(struct kvm_vcpu *vcpu) {
   return (kvm_x86_ops->get_cpl(vcpu) == 0);
-}
+};
 
 
 /* global; hope this is not a problem
@@ -273,7 +273,7 @@ long kvm_vcpu_ioctl_x86_get_vcpu_events(struct kvm_vcpu *vcpu) {
                          | KVM_VCPUEVENT_VALID_SIPI_VECTOR);
 
   return (long)&vcpu_events;
-}
+};
 
 /* global; hope this is not a problem
  * wrt frame size.
@@ -289,7 +289,7 @@ long mem_copy_pit_state(struct kvm_kpit_state *kpit_state) {
   memcpy(&pit_state, kpit_state, sizeof(struct kvm_pit_state));
   mutex_unlock(&kpit_state->lock);
   return (long)&pit_state;
-}
+};
 #endif KVM_RUNNING
 $
 
