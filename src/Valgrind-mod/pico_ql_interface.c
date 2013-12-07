@@ -106,12 +106,12 @@ static int step_query(char ***res, int *argc_slots, sqlite3_stmt *stmt) {
         result = SQLITE_NOMEM;
         goto exit;
       }
+      strcpy(resP, buf);
+      strcat(resP, "</tr>");
 #ifdef PICO_QL_DEBUG
       sprintf(bufCol, "%d", (int)strlen(resP));
       printf("After malloc, new result set chunk's length is %s.\n", bufCol);
 #endif
-      strcpy(resP, buf);
-      strcat(resP, "</tr>");
     } else {
       strcat(resP, buf);
       strcat(resP, "</tr>");
