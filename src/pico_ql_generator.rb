@@ -1499,7 +1499,7 @@ class VirtualTable
         if $argLB == "CPP"
           add_to_result_setF = "<space>    rs->res.push_back(tuple_iter);\n<space>    rs->resBts.push_back(1);\n<space>  } else {\n<space>    rs->resBts.push_back(0);\n<space>  }\n<space>}"            
         else
-          add_to_result_setF = "<space>    rs->size++;\n<space>    rs->actualSize++;\n<space>    if (rs->size == rs->malloced) {\n<space>      rs->malloced *= 2;\n<space>      ((#{@name}ResultSetImpl *)rs)->res = (#{@type}#{typep}*)sqlite3_realloc(((#{@name}ResultSetImpl *)rs)->res, sizeof(#{@type}#{typep}) * rs->malloced);\n<space>      if (((#{@name}ResultSetImpl *)rs)->res == NULL)\n<space>        return SQLITE_NOMEM;\n<space>    }\n<space>    ((#{@name}ResultSetImpl *)rs)->res[rs->size - 1] = tuple_iter;\n<space>  }\n<space>}"
+          add_to_result_setF = "<space>    rs->size++;\n<space>    rs->actualSize++;\n<space>    if (rs->size == rs->malloced) {\n<space>      rs->malloced *= 2;\n<space>      ((#{@name}ResultSetImpl *)rs)->res = (#{@type}*)sqlite3_realloc(((#{@name}ResultSetImpl *)rs)->res, sizeof(#{@type}) * rs->malloced);\n<space>      if (((#{@name}ResultSetImpl *)rs)->res == NULL)\n<space>        return SQLITE_NOMEM;\n<space>      rs->resBts = (int *)sqlite3_realloc(rs->resBts, sizeof(unsigned int) * (rs->malloced / WORDBITS + 1));\n<space>      if (rs->resBts == NULL)\n<space>        return SQLITE_NOMEM;\n<space>    }\n<space>    ((#{@name}ResultSetImpl *)rs)->res[rs->size - 1] = tuple_iter;\n<space>    rs->resBts[(rs->size - 1) / WORDBITS] |= (1 << ((rs->size - 1) % WORDBITS));\n<space>  }\n<space>}"
         end
       else
         add_to_result_setF = "<space>    rs->res.push_back(tuple_iter);\n<space>    rs->resBts.set(rsIndex, 1);\n<space>  }\n<space>  rsIndex++;\n<space>}"
@@ -1507,7 +1507,7 @@ class VirtualTable
       if $argLB == "CPP"
         add_to_result_setN = "<space>    resIterC = rs->res.erase(resIterC);\n<space>    rs->resBts.reset(rsIndex);\n<space>  } else\n<space>    resIterC++;\n<space>  rsIndex = rs->resBts.find_next(rsIndex);\n<space>}"
       else
-        add_to_result_setN = "<space>    rs->actualSize--;\n<space>    ((#{@name}ResultSetImpl *)rs)->res[rsIndex] = NULL;\n<space>  }\n<space>  rsIndex++;\n<space>  while ((rsIndex < rs->size) && (((#{@name}ResultSetImpl *)rs)->res[rsIndex] == NULL)) {rsIndex++;}\n<space>}"
+        add_to_result_setN = "<space>    rs->actualSize--;\n<space>    rs->resBts[rsIndex / WORDBITS] &= (~(1 << (rsIndex % WORDBITS)));\n<space>  }\n<space>  rsIndex++;\n<space>  while ((rsIndex < rs->size) && !(rs->resBts[rsIndex / WORDBITS] & (1 << (rsIndex % WORDBITS)))) {rsIndex++;}\n<space>}"
       end
       for i in 0..@nloops-1        # Generate closing curly braces for nested loops
         add_to_result_setF.concat("\n<space>}")
@@ -1717,7 +1717,7 @@ class VirtualTable
       if $argLB == "CPP"
         iterationN = "<space>rsIndex = rs->resBts.find_first();\n<space>resIterC = rs->res.begin();\n<space>while (resIterC != rs->res.end()) {"
       else
-        iterationN = "<space>rsIndex = 0;\n<space>while (((#{@name}ResultSetImpl *)rs)->res[rsIndex] == NULL) {rsIndex++;}\n<space>while (rsIndex < (int)rs->size) {"
+        iterationN = "<space>rsIndex = 0;\n<space>while (!(rs->resBts[rsIndex / WORDBITS] & (1 << (rsIndex % WORDBITS)))) {rsIndex++;}\n<space>while (rsIndex < (int)rs->size) {"
       end
       return iterationF, iterationN
     end

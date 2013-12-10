@@ -66,7 +66,7 @@ static int <%= @name %>_vt_init_result_set (sqlite3_vtab *vtab, sqlite3_vtab_cur
       return SQLITE_NOMEM;
     c->cur = cur;
     c->open = 1;
-<%      if @container_class.length > 0 %>    
+<%      if !@container_class.empty? %>    
     resImpl = (<%= @name %>ResultSetImpl *)sqlite3_malloc(sizeof(<%= @name 
 %>ResultSetImpl));
     if (resImpl == NULL)
@@ -77,9 +77,14 @@ static int <%= @name %>_vt_init_result_set (sqlite3_vtab *vtab, sqlite3_vtab_cur
     resImpl->r.offset = -1;
     resImpl->r.resultSetIterState = -1;
     c->res = &resImpl->r;
-    resImpl->res = (<%= @type.chomp('*') %> **)sqlite3_malloc(sizeof(<%= @type.chomp('*') %> *) * resImpl->r.malloced);
+<%# Maybe assert(typeof(<%= @type) <= 64) %>
+    resImpl->res = (<%= @type %>*)sqlite3_malloc(sizeof(<%= @type %>) * resImpl->r.malloced);
     if (resImpl->res == NULL)
       return SQLITE_NOMEM;
+    resImpl->r.resBts = (int *)sqlite3_malloc(sizeof(unsigned int) * (resImpl->r.malloced / WORDBITS + 1));
+    if (resImpl->r.resBts == NULL)
+      return SQLITE_NOMEM;
+    memset(resImpl->r.resBts, 0, resImpl->r.malloced / WORDBITS + 1);
 <%      else %>
 <%# ResultSet unused for object %>
     c->res = NULL;
@@ -114,7 +119,7 @@ static int <%= @name %>_vt_advance_result_set_iter (sqlite3_vtab_cursor *cur,
     printf("In <%= @name %>_vt_next_resultSet: Cursor %li not registered.\nExiting now.\n", (long int)cur);
     return SQLITE_ERROR;
   }
-<%    if @container_class.length > 0 %>
+<%    if !@container_class.empty? %>
   res = cursors[j]->res;
   if ((int)res->size > 0) {
     if (res->resultSetIterState == -1) {
@@ -124,7 +129,7 @@ static int <%= @name %>_vt_advance_result_set_iter (sqlite3_vtab_cursor *cur,
     } else if (res->resultSetIterState == 1) {
       res->offset++;
     }
-    while ((res->offset < res->size) && (((<%= @name %>ResultSetImpl *)res)->res[res->offset] == 0)) {res->offset++;}
+    while ((res->offset < res->size) && (!(res->resBts[res->offset / WORDBITS] & (1 << (res->offset % WORDBITS))))) {res->offset++;}
     if (res->offset < res->size) {
 #ifdef PICO_QL_DEBUG
       picoQLTable *st = (picoQLTable *)cur->pVtab;
@@ -190,6 +195,7 @@ static void <%= @name %>_vt_deinit_result_set (sqlite3_vtab_cursor *cur, struct 
   } else {
 <%      if @container_class.length > 0 %>
     ResultSet *res = cursors[j]->res;
+    sqlite3_free(res->resBts);
     sqlite3_free(((<%= @name %>ResultSetImpl *)res)->res);
     ((<%= @name %>ResultSetImpl *)res)->r.malloced = 0;
     sqlite3_free((<%= @name %>ResultSetImpl *)res);

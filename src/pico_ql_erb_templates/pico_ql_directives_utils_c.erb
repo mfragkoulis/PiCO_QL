@@ -37,6 +37,9 @@
 #include <pthread.h>
 #endif
 
+/* for result set's bitset */
+#define WORDBITS (8 * sizeof(unsigned int))
+
 <%     externDefs = "" %>
 <%     @tables.each { |vt| %>
 <%       if vt.base_var.length > 0 %>
@@ -174,6 +177,8 @@ typedef struct ResultSet {
   size_t actualSize;
   int offset;
   int resultSetIterState;
+<%# in place of C++'s boost::dynamic_bitset %>
+  int *resBts;
 
 } ResultSet;
 
@@ -222,7 +227,7 @@ VtblAll vtAll = {0, 0, 0};
 <%      if vt.container_class.length > 0 %>
 typedef struct <%= vt.name %>ResultSetImpl {
   ResultSet r;
-  <%= vt.type.chomp('*') %> **res;
+  <%= vt.type %>* res;
 } <%= vt.name %>ResultSetImpl;
 <%      end %>
 

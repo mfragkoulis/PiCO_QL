@@ -44,21 +44,26 @@ static int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, s
   rs = cursors[j]->res;
 <%      end %>
   if (struct_empty_null(cur, val, picoQL->embedded, nCol)) {
+<%      @pointer.match(/\*/) ? init = " = NULL" : init = "" %>
 <%      if @container_class.length == 0 %>
     stcsr->size = 1;
 <%	else %>
 <%        @pointer.match(/\*/) ? retype = "" : retype = "*" %>
-    <%= @type %><%= retype %> dummy = NULL;
+    <%= @type %> dummy<%= init %>;
     rs->size = 0;
     rs->actualSize = 0;
     rs->size++;
     rs->actualSize++;
-    ((<%= @name %>ResultSetImpl *)rs)->res = (<%= type_retype %>*)sqlite3_realloc(((<%= @name %>ResultSetImpl *)rs)->res, sizeof(<%= type_retype %>)*rs->size);
+    ((<%= @name %>ResultSetImpl *)rs)->res = (<%= @type %>*)sqlite3_realloc(((<%= @name %>ResultSetImpl *)rs)->res, sizeof(<%= @type %>) * rs->size);
     if (((<%= @name %>ResultSetImpl *)rs)->res == NULL)
+      return SQLITE_NOMEM;
+    rs->resBts = (int *)sqlite3_realloc(rs->resBts, sizeof(unsigned int) * (rs->size / WORDBITS + 1));
+    if (rs->resBts == NULL)
       return SQLITE_NOMEM;
     rs->malloced = 1;
     ((<%= @name %>ResultSetImpl *)rs)->res[rs->size - 1] = dummy;
     rs->offset = 0;
+    rs->resBts[(rs->size - 1) / WORDBITS] |= (1 << ((rs->size - 1) % WORDBITS));
 <%      end %>
     return SQLITE_OK;
   }
@@ -106,17 +111,21 @@ static int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, s
     stcsr->size = 1;
 <%            else %>
 <%              @pointer.match(/\*/) ? retype = "#{@type}" : retype = "#{@type}*" %>
-    <%= retype %> dummy = NULL;
+    <%= @type %> dummy<%= init %>;
     rs->size = 0;
     rs->actualSize = 0;
     rs->size++;
     rs->actualSize++;
-    ((<%= @name %>ResultSetImpl *)rs)->res = (<%= type_retype %>*)sqlite3_realloc(((<%= @name %>ResultSetImpl *)rs)->res, sizeof(<%= type_retype %>)*rs->size);
+    ((<%= @name %>ResultSetImpl *)rs)->res = (<%= @type %>*)sqlite3_realloc(((<%= @name %>ResultSetImpl *)rs)->res, sizeof(<%= @type %>) * rs->size);
     if (((<%= @name %>ResultSetImpl *)rs)->res == NULL)
+      return SQLITE_NOMEM;
+    rs->resBts = (int *)sqlite3_realloc(rs->resBts, sizeof(unsigned int) * (rs->size / WORDBITS + 1));
+    if (rs->resBts == NULL)
       return SQLITE_NOMEM;
     rs->malloced = 1;
     ((<%= @name %>ResultSetImpl *)rs)->res[rs->size - 1] = dummy;
     rs->offset = 0;
+    rs->resBts[(rs->size - 1) / WORDBITS] |= (1 << ((rs->size - 1) % WORDBITS));
 <%            end %>
     return SQLITE_OK;
   }
@@ -139,11 +148,15 @@ static int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, s
       rs->actualSize++;
       if (rs->size == rs->malloced) {
         rs->malloced *= 2;
-        ((<%= @name %>ResultSetImpl *)rs)->res = (<%= type_retype %>*)sqlite3_realloc(((<%= @name %>ResultSetImpl *)rs)->res, sizeof(<%= type_retype %>) * rs->malloced);
+        ((<%= @name %>ResultSetImpl *)rs)->res = (<%= @type %>*)sqlite3_realloc(((<%= @name %>ResultSetImpl *)rs)->res, sizeof(<%= @type %>) * rs->malloced);
         if (((<%= @name %>ResultSetImpl *)rs)->res == NULL)
+          return SQLITE_NOMEM;
+        rs->resBts = (int *)sqlite3_realloc(rs->resBts, sizeof(unsigned int) * (rs->malloced / WORDBITS + 1));
+        if (rs->resBts == NULL)
           return SQLITE_NOMEM;
       }
       ((<%= @name %>ResultSetImpl *)rs)->res[rs->size - 1] = tuple_iter;
+      rs->resBts[(rs->size - 1) / WORDBITS] |= (1 << ((rs->size - 1) % WORDBITS));
     }
 <%          for i in 0..@nloops-1 %>
     }
@@ -224,15 +237,19 @@ static int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, s
             stcsr->size = 1;
 <%	  else %>
 <%            @pointer.match(/\*/) ? retype = "" : retype = "*" %>
-            <%= @type %><%= retype %> dummy = NULL;
+            <%= @type %> dummy<%= init %>;
 // BASE is first constraint by default, so no need to delete resultset here.
             rs->size++;
             rs->actualSize++;
-            ((<%= @name %>ResultSetImpl *)rs)->res = (<%= type_retype %>*)sqlite3_realloc(((<%= @name %>ResultSetImpl *)rs)->res, sizeof(<%= type_retype %>)*rs->size);
+            ((<%= @name %>ResultSetImpl *)rs)->res = (<%= @type %>*)sqlite3_realloc(((<%= @name %>ResultSetImpl *)rs)->res, sizeof(<%= @type %>) * rs->size);
             if (((<%= @name %>ResultSetImpl *)rs)->res == NULL)
+              return SQLITE_NOMEM;
+            rs->resBts = (int *)sqlite3_realloc(rs->resBts, sizeof(unsigned int) * (rs->size / WORDBITS + 1));
+            if (rs->resBts == NULL)
               return SQLITE_NOMEM;
             rs->malloced = 1;
             ((<%= @name %>ResultSetImpl *)rs)->res[rs->size - 1] = dummy;
+            rs->resBts[(rs->size - 1) / WORDBITS] |= (1 << ((rs->size - 1) % WORDBITS));
 <%        end %>
             stcsr->isInstanceNULL = 1;
             return SQLITE_OK;
@@ -246,14 +263,18 @@ static int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, s
     stcsr->size = 1;
 <%            else %>
 <%              @pointer.match(/\*/) ? retype = "#{@type}" : retype = "#{@type}*" %>
-            <%= retype %> dummy = NULL;
+            <%= @type %> dummy<%= init %>;
             rs->size++;
             rs->actualSize++;
-            ((<%= @name %>ResultSetImpl *)rs)->res = (<%= type_retype %>*)sqlite3_realloc(((<%= @name %>ResultSetImpl *)rs)->res, sizeof(<%= type_retype %>)*rs->size);
+            ((<%= @name %>ResultSetImpl *)rs)->res = (<%= @type %>*)sqlite3_realloc(((<%= @name %>ResultSetImpl *)rs)->res, sizeof(<%= @type %>) * rs->size);
             if (((<%= @name %>ResultSetImpl *)rs)->res == NULL)
+              return SQLITE_NOMEM;
+            rs->resBts = (int *)sqlite3_realloc(rs->resBts, sizeof(unsigned int) * (rs->size / WORDBITS + 1));
+            if (rs->resBts == NULL)
               return SQLITE_NOMEM;
             rs->malloced = 1;
             ((<%= @name %>ResultSetImpl *)rs)->res[rs->size - 1] = dummy;
+            rs->resBts[(rs->size - 1) / WORDBITS] |= (1 << ((rs->size - 1) % WORDBITS));
 <%            end %>
             stcsr->isInstanceNULL = 1;
             return SQLITE_OK;
@@ -263,15 +284,19 @@ static int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, s
 <%        if @container_class.length > 0 %>
           if ((stcsr->max_size = (int)<%= @name %>_vt_get_datastructure_size(cur, cur->pVtab)) == 0) {
 <%          @pointer.match(/\*/) ? retype = "" : retype = "*" %>
-            <%= @type %><%= retype %> dummy = NULL;
+            <%= @type %> dummy<%= init %>;
             stcsr->isInstanceEmpty = 1;
             rs->size++;
             rs->actualSize++;
-            ((<%= @name %>ResultSetImpl *)rs)->res = (<%= type_retype %>*)sqlite3_realloc(((<%= @name %>ResultSetImpl *)rs)->res, sizeof(<%= type_retype %>)*rs->size);
+            ((<%= @name %>ResultSetImpl *)rs)->res = (<%= @type %>*)sqlite3_realloc(((<%= @name %>ResultSetImpl *)rs)->res, sizeof(<%= @type %>) * rs->size);
             if (((<%= @name %>ResultSetImpl *)rs)->res == NULL)
+              return SQLITE_NOMEM;
+            rs->resBts = (int *)sqlite3_realloc(rs->resBts, sizeof(unsigned int) * (rs->size / WORDBITS + 1));
+            if (rs->resBts == NULL)
               return SQLITE_NOMEM;
             rs->malloced = 1;
             ((<%= @name %>ResultSetImpl *)rs)->res[rs->size - 1] = dummy;
+            rs->resBts[(rs->size - 1) / WORDBITS] |= (1 << ((rs->size - 1) % WORDBITS));
             return SQLITE_OK;
           } else {
 #ifdef PICO_QL_DEBUG

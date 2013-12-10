@@ -8,14 +8,21 @@
 #define MemProfileVT_advance(X,Y) X = (MC_Chunk *)VG_(HT_Next)(Y)
 #define MemProfileVT_end(X) X != NULL
 
+#define ARCHSIZEB ((sizeof(SizeT)*8)-2)
+
+#define AddrVAbitsVT_decl(X) Addr X
+#define AddrVAbitsVT_begin(X,Y) X = *Y
+#define AddrVAbitsVT_advance(X) X += 32
+#define AddrVAbitsVT_end(X,Y,Z) X <= *Y + Z * ARCHSIZEB
+
 #define IPVT_decl(X) Addr* X;int i = 0 
 #define IPVT_begin(X,Y,Z) X = &Y[Z]
 #define IPVT_advance(X,Y,Z) X = &Y[Z]
 #define IPVT_end(X, Y) X != Y
 
 #define SecMapVT_decl(X) int *X; int i = 0
-#define SecMapVT_begin(X,Y,Z) X = &Y[Z]
-#define SecMapVT_advance(X,Y,Z) X = &Y[Z]
+#define SecMapVT_begin(X,Y,Z) X = (int *)&Y[Z]
+#define SecMapVT_advance(X,Y,Z) X = (int *)&Y[Z]
 #define SecMapVT_end(X,Y) X != Y
 
 #define PriMapVT_decl(X) SecMap* X; int i = 0
@@ -137,12 +144,20 @@ static short getVAbits8InPrim(Addr base) {
     return -1;
   }
 };
+
+static SizeT memOpSize;
+static Addr* sendOpData(Addr* base, SizeT szB) {
+  memOpSize = szB;
+  return base;
+};
+
 $
 
 CREATE STRUCT VIEW MemProfileV (
 	addr_data BIGINT FROM data,
 	inPrim BIGINT FROM inPrim(tuple_iter->data),
 	vabits8 INT FROM getVAbits8InPrim(tuple_iter->data),
+	FOREIGN KEY(vabits8_id) FROM {sendOpData(&tuple_iter->data, tuple_iter->szB)} REFERENCES AddrVAbitsVT POINTER,
 	sizeB BIGINT FROM szB,
 	allocKind INT FROM allockind,
 	excnt_alloc_id INT FROM where[0]->ecu,
@@ -156,6 +171,16 @@ USING STRUCT VIEW MemProfileV
 WITH REGISTERED C NAME malloc_list
 WITH REGISTERED C TYPE VgHashTable:MC_Chunk*
 USING LOOP VG_(HT_ResetIter)(*base);for (MemProfileVT_begin(tuple_iter, *base);MemProfileVT_end(tuple_iter);MemProfileVT_advance(tuple_iter, *base))$
+
+CREATE STRUCT VIEW AddrVAbitsV (
+	addr_data BIGINT FROM tuple_iter,
+	vabits INT FROM getVAbits8InPrim(tuple_iter)
+)$
+
+CREATE VIRTUAL TABLE AddrVAbitsVT
+USING STRUCT VIEW AddrVAbitsV
+WITH REGISTERED C TYPE Addr*:Addr
+USING LOOP for (AddrVAbitsVT_begin(tuple_iter, base); AddrVAbitsVT_end(tuple_iter, base, memOpSize); AddrVAbitsVT_advance(tuple_iter))$
 
 CREATE STRUCT VIEW IPV (
 	addr_data BIGINT FROM tuple_iter
