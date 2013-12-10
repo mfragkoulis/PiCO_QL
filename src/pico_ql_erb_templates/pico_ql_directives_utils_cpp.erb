@@ -304,8 +304,8 @@ list <<%= col.fk_col_type.chomp('*') %> > saved_results_<%= i %>;
   public:
 <%        vt.pointer.match(/\*/) || vt.type.end_with?("::iterator") ? type_retype = "" : type_retype = "*" %>
 <%        if VirtualTable.C_container_types.include?(vt.container_class) || !vt.loop.empty? %>
-    vector<<%= vt.type %><%= type_retype %>> res;
-    vector<<%= vt.type %><%= type_retype %>>::iterator resIter;
+    vector<<%= vt.type %>> res;
+    vector<<%= vt.type %>>::iterator resIter;
 <%        else %>
     vector<<%= vt.signature.chomp('*') %>::iterator> res;
     vector<<%= vt.signature.chomp('*') %>::iterator>::iterator resIter;
@@ -314,7 +314,7 @@ list <<%= col.fk_col_type.chomp('*') %> > saved_results_<%= i %>;
     int resultSetIterState;
     int offset;
 <%        if VirtualTable.C_container_types.include?(vt.container_class) || !vt.loop.empty? %>
-    ResultSet(int res_max_size, int resIterState, int off, vector<<%= vt.type %><%= type_retype %>>::iterator it) {
+    ResultSet(int res_max_size, int resIterState, int off, vector<<%= vt.type %>>::iterator it) {
 <%        else %>
     ResultSet(int res_max_size, int resIterState, int off, vector<<%= vt.signature.chomp('*') %>::iterator>::iterator it) {
 <%        end %>
@@ -326,7 +326,7 @@ list <<%= col.fk_col_type.chomp('*') %> > saved_results_<%= i %>;
     ResultSet() {};
     ~ResultSet() {resBts.clear();};
 <%        if VirtualTable.C_container_types.include?(vt.container_class) || !vt.loop.empty? %>
-    void set(int res_max_size, int resIterState, int off, vector<<%= vt.type %><%= type_retype %>>::iterator it) {
+    void set(int res_max_size, int resIterState, int off, vector<<%= vt.type %>>::iterator it) {
 <%        else %>
     void set(int res_max_size, int resIterState, int off, vector<<%= vt.signature.chomp('*') %>::iterator>::iterator it) {
 <%        end %>
@@ -338,17 +338,17 @@ list <<%= col.fk_col_type.chomp('*') %> > saved_results_<%= i %>;
   };
   map<sqlite3_vtab_cursor *, ResultSet> cursors;
 <%        if VirtualTable.C_container_types.include?(vt.container_class) %>
-  vector<<%= vt.type %><%= type_retype %>>::iterator resIterC;
+  vector<<%= vt.type %>>::iterator resIterC;
 <%          if vt.loop.empty? %>   # Loop always non-empty for C containers. Why condition?
 <%# Tables with @loop take care of this with _decl(tuple_iter). Silencing compiler unused variable error. %>
-  <%= vt.type %><%= type_retype %> tuple_iter;
+  <%= vt.type %> tuple_iter;
 <%          end %>
 <%        else %>
 <%          if vt.loop.empty? %>
   vector<<%= vt.signature.chomp('*') %>::iterator>::iterator resIterC;
   <%= vt.signature.chomp('*') %>::iterator tuple_iter;
 <%          else %>
-  vector<<%= vt.type %><%= type_retype %>>::iterator resIterC;
+  vector<<%= vt.type %>>::iterator resIterC;
 <%          end %>
 <%        end %>
 <%      else %>

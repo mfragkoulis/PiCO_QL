@@ -66,7 +66,7 @@ int <%= @name %>_vt::operator() (sqlite3_vtab *vtab, sqlite3_vtab_cursor *cur) {
 <%      if !@container_class.empty? %>
 <%        if @@C_container_types.include?(@container_class) || !@loop.empty? %>
 <%          @pointer.match(/\*/) || @type.end_with?("::iterator") ? retype = "#{@type}" : retype = "#{@type}*" %>
-    vector<<%= retype %>> res;
+    vector<<%= @type %>> res;
 <%        else %>
     vector<<%= @signature.chomp('*') %>::iterator> res;
 <%        end %>

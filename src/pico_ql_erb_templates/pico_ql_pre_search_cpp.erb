@@ -32,7 +32,7 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
     rs->res.clear();
     rs->resBts.clear();
 <%        if @@C_container_types.include?(@container_class) || !@loop.empty? %>
-    <%= type_retype %> dummy;
+    <%= @type %> dummy;
     rs->res.push_back(dummy);
 <%	  else %>
 <%          if /\[/.match(@signature) %>
@@ -109,7 +109,7 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
   if (<%= @loop_root %> == NULL) {
     rs->res.clear();
     rs->resBts.clear();
-    <%= type_retype %> dummy;
+    <%= @type %> dummy;
     rs->res.push_back(dummy);
     rs->resIter = rs->res.begin();
     return SQLITE_OK;
@@ -226,7 +226,7 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
 <%	  else %>
 // BASE is first constraint by default, so no need to delete resultset here.
 <%          if @@C_container_types.include?(@container_class) || !@loop.empty? %>
-            <%= type_retype %> dummy;
+            <%= @type %> dummy;
             rs->res.push_back(dummy);
 <%	    else %>
 <%            if /\[/.match(@signature) %>
@@ -247,7 +247,7 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
           if (<%= @loop_root %> == NULL) {
             rs->res.clear();
             rs->resBts.clear();
-            <%= type_retype %> dummy;
+            <%= @type %> dummy;
             rs->res.push_back(dummy);
             rs->resIter = rs->res.begin();
             return SQLITE_OK;
@@ -258,7 +258,7 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
           if ((stcsr->max_size = (int)(*this)(cur, cur->pVtab)) == 0) {
             stcsr->isInstanceEmpty = 1;
 <%          if @@C_container_types.include?(@container_class) || !@loop.empty? %>
-            <%= type_retype %> dummy;
+            <%= @type %> dummy;
             rs->res.push_back(dummy);
 <%	    else %>
 <%            if /\[/.match(@signature) %>
