@@ -142,7 +142,9 @@ static int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, s
 <% loop.gsub!(/<space>/, "    ") %>
 <%# Generate spacing for nested loops %>
     <%= loop %> {
+<%            if !@pointer.empty? %>
       if (tuple_iter == NULL) continue;
+<%            end %>
 <%          end %>
       rs->size++;
       rs->actualSize++;

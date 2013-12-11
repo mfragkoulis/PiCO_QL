@@ -1416,9 +1416,9 @@ class VirtualTable
           access_path.empty? ? iden = "**(rs->resIter)" : iden = "(**(rs->resIter))."
         else    # pointer-based abstraction 
           if $argLB == "CPP"
-            access_path.empty? ? iden = "*(rs->resIter)" : iden = "(*(rs->resIter))->"
+            access_path.empty? ? iden = "*(rs->resIter)" : iden = "(*(rs->resIter))."
           else
-            access_path.empty? ? iden = "((#{@name}ResultSetImpl *)rs)->res[rs->offset]" : iden = "((#{@name}ResultSetImpl *)rs)->res[rs->offset]->"
+            access_path.empty? ? iden = "((#{@name}ResultSetImpl *)rs)->res[rs->offset]" : iden = "((#{@name}ResultSetImpl *)rs)->res[rs->offset]."
           end
         end
       else
@@ -1533,9 +1533,9 @@ class VirtualTable
       else    # pointer-based abstraction 
         ap.empty? ? idenF = "tuple_iter" : idenF = "tuple_iter."
         if $argLB == "CPP"
-          ap.empty? ? idenN = "(*resIterC)" : idenN = "(*resIterC)->"
+          ap.empty? ? idenN = "(*resIterC)" : idenN = "(*resIterC)."
         else
-          ap.empty? ? idenN = "((#{@name}ResultSetImpl *)rs)->res[rsIndex]" : idenN = "((#{@name}ResultSetImpl *)rs)->res[rsIndex]->"
+          ap.empty? ? idenN = "((#{@name}ResultSetImpl *)rs)->res[rsIndex]" : idenN = "((#{@name}ResultSetImpl *)rs)->res[rsIndex]."
         end
       end
     else
@@ -1550,11 +1550,11 @@ class VirtualTable
             (@type.gsub(/ /,"").match(/,(\w+)\*/) &&
             ap.match(/second/)) ||
             @type.gsub(/ /,"").match(/(\w+)\*/)
-          if idenF.end_with?(".")
+          if idenF.end_with?(".") && !@pointer.empty?
             idenF.chomp!(".")
             idenF.concat("->")
           end
-          if idenN.end_with?(".")
+          if idenN.end_with?(".") && !@pointer.empty?
             idenN.chomp!(".")
             idenN.concat("->")
           end
