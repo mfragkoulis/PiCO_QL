@@ -40,6 +40,10 @@
 #define AuxPriL2MapVT_advance(X,Y) X = (AuxMapEnt *)VG_(OSetGen_Next)(Y)
 #define AuxPriL2MapVT_end(X) X != NULL
  
+#define SM_DIST_NOACCESS   0
+#define SM_DIST_UNDEFINED  1
+#define SM_DIST_DEFINED    2
+
 #define SM_OFF(aaa)           (((aaa) & 0xffff) >> 2)
 #define SM_CHUNKS             16384
 #if VG_WORDSIZE == 4
@@ -129,7 +133,8 @@ static int inPrim(Addr base) {
   else return 0;
 };
 
-static short getVAbits8InPrim(Addr base) {
+static short getVAbits(Addr base) {
+  UChar vabits = -1;
   if (inPrim(base)) {
     UWord pm_off = base >> 16;
     UWord sm_off = SM_OFF(base);
@@ -137,12 +142,32 @@ static short getVAbits8InPrim(Addr base) {
     tl_assert(pm_off < N_PRIMARY_MAP);
 #endif
     SecMap *sm = pqlPub_primary_map[ pm_off ];
-    UChar vabits = sm->vabits8[ sm_off ];
+    vabits = sm->vabits8[ sm_off ];
     printf("returning vabits8: %c.\n", vabits);
-    return vabits;
   } else {
-    return -1;
+    AuxMapEnt  key;
+    AuxMapEnt* res;
+    Word       i;
+    tl_assert(base > MAX_PRIMARY_ADDRESS);
+    base &= ~(Addr)0xFFFF;
+    for (i = 0; i < N_AUXMAP_L1; i++) {
+      if (pqlPub_aux_primary_L1_map[i].base == base) {
+        break;
+      }
+    }
+    if (i < N_AUXMAP_L1) {
+      res = pqlPub_aux_primary_L1_map[i].ent;
+    } else {
+      key.base = base;
+      key.sm   = 0;
+      res = VG_(OSetGen_Lookup)(pqlPub_aux_primary_L2_map, &key);
+    }
+    if ((res) && (res->sm) && (res->sm != &pqlPub_distinguished_sec_map[SM_DIST_NOACCESS])) {
+      UWord sm_off = SM_OFF(base);
+      vabits = res->sm->vabits8[ sm_off ];
+    }
   }
+  return vabits;
 };
 
 $
@@ -150,8 +175,7 @@ $
 CREATE STRUCT VIEW MemProfileV (
 	addr_data BIGINT FROM data,
 	inPrim BIGINT FROM inPrim(tuple_iter->data),
-	vabits8 INT FROM getVAbits8InPrim(tuple_iter->data),
-	FOREIGN KEY(vabits8_id) FROM tuple_iter REFERENCES AddrVAbitsVT POINTER,
+	FOREIGN KEY(vabits_id) FROM tuple_iter REFERENCES AddrVAbitsVT POINTER,
 	sizeB BIGINT FROM szB,
 	allocKind INT FROM allockind,
 	excnt_alloc_id INT FROM where[0]->ecu,
@@ -168,7 +192,8 @@ USING LOOP VG_(HT_ResetIter)(*base);for (MemProfileVT_begin(tuple_iter, *base);M
 
 CREATE STRUCT VIEW AddrVAbitsV (
 	addr_data BIGINT FROM tuple_iter,
-	vabits INT FROM getVAbits8InPrim(tuple_iter)
+	inPrim BIGINT FROM inPrim(tuple_iter),
+	vabits INT FROM getVAbits(tuple_iter)
 )$
 
 CREATE VIRTUAL TABLE AddrVAbitsVT
@@ -230,4 +255,15 @@ USING STRUCT VIEW AuxMapEntryV
 WITH REGISTERED C NAME aux_primary_L2_map
 WITH REGISTERED C TYPE OSet:AuxMapEnt*
 USING LOOP VG_(OSetGen_ResetIter)(base);for (AuxPriL2MapVT_begin(tuple_iter, base);AuxPriL2MapVT_end(tuple_iter);AuxPriL2MapVT_advance(tuple_iter, base))$
+
+CREATE STRUCT VIEW DistinguishedSecMapV (
+	FOREIGN KEY(no_access_sm_id) FROM tuple_iter REFERENCES SecMapVT POINTER
+	//FOREIGN KEY(undefined_sm_id) FROM {tuple_iter[1]} REFERENCES SecMapVT,
+	//FOREIGN KEY(defined_sm_id) FROM {tuple_iter[2]} REFERENCES SecMapVT
+)$
+
+CREATE VIRTUAL TABLE DistinguishedSecMapVT
+USING STRUCT VIEW DistinguishedSecMapV
+WITH REGISTERED C NAME distinguished_sec_map
+WITH REGISTERED C TYPE SecMap$
 
