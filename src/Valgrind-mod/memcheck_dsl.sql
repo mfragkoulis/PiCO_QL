@@ -8,12 +8,10 @@
 #define MemProfileVT_advance(X,Y) X = (MC_Chunk *)VG_(HT_Next)(Y)
 #define MemProfileVT_end(X) X != NULL
 
-#define ARCHSIZEB ((sizeof(SizeT)*8)-2)
-
 #define AddrVAbitsVT_decl(X) Addr X
-#define AddrVAbitsVT_begin(X,Y) X = Y->data
-#define AddrVAbitsVT_advance(X) X += 32     // each VAbits entry tracks the state of 4 Bytes. So hopping 4 Bytes after each iteration.
-#define AddrVAbitsVT_end(X,Y) X <= Y->data + Y->szB * ARCHSIZEB
+#define AddrVAbitsVT_begin(X,Y,Z) X = Y->data, Z = Y->data + Y->szB
+#define AddrVAbitsVT_advance(X) X += 4     // each VAbits entry tracks the state of 4 Bytes. So hopping 4 Bytes after each iteration.
+#define AddrVAbitsVT_end(X,Y) X < Y
 
 #define IPVT_decl(X) Addr* X;int i = 0 
 #define IPVT_begin(X,Y,Z) X = &Y[Z]
@@ -143,7 +141,9 @@ static short getVAbits(Addr base) {
 #endif
     SecMap *sm = pqlPub_primary_map[ pm_off ];
     vabits = sm->vabits8[ sm_off ];
-    printf("returning vabits8: %c.\n", vabits);
+/*  char m[100];
+    sprintf(m, "%d", (int)vabits);
+    printf("returning vabits8: %c (%s)\n", vabits, m);*/
   } else {
     AuxMapEnt  key;
     AuxMapEnt* res;
@@ -170,6 +170,43 @@ static short getVAbits(Addr base) {
   return vabits;
 };
 
+static short extract_vabits2(Addr base, UChar vabits8) {
+   UInt shift = (base & 3) << 1;          // shift by 0, 2, 4, or 6
+   vabits8 >>= shift;                     // shift the two bits to the bottom
+/*   char m[100];
+   sprintf(m, "In extract: for addr %ld returning vabits2 %d.\n", (long)base, (int)(0x3 & vabits8));
+   printf("%s", m);*/
+   return 0x3 & vabits8;                  // mask out the rest
+};
+
+static Addr addrSize;
+static short getVAbits2_1B(Addr base) {
+  if (base >= addrSize) return -1;
+  UChar vabits8 = getVAbits(base);
+/*  char m[100];
+  sprintf(m, "vabits8 in 1B is: %d, addr is %ld, threshold size is %ld.\n", (int)vabits8, (long)base, (long)addrSize);
+  printf("%s", m);*/
+  return extract_vabits2(base, vabits8);
+};
+
+static short getVAbits2_2B(Addr base) {
+  if (base + 1 >= addrSize) return -1;
+  UChar vabits8 = getVAbits(base);
+  return extract_vabits2(base + 1, vabits8);
+};
+
+static short getVAbits2_3B(Addr base) {
+  if (base + 2 >= addrSize) return -1;
+  UChar vabits8 = getVAbits(base);
+  return extract_vabits2(base + 2, vabits8);
+};
+
+static short getVAbits2_4B(Addr base) {
+  if (base + 3 >= addrSize) return -1;
+  UChar vabits8 = getVAbits(base);
+  return extract_vabits2(base + 3, vabits8);
+};
+
 $
 
 CREATE STRUCT VIEW MemProfileV (
@@ -193,13 +230,18 @@ USING LOOP VG_(HT_ResetIter)(*base);for (MemProfileVT_begin(tuple_iter, *base);M
 CREATE STRUCT VIEW AddrVAbitsV (
 	addr_data BIGINT FROM tuple_iter,
 	inPrim BIGINT FROM inPrim(tuple_iter),
-	vabits INT FROM getVAbits(tuple_iter)
+	vabits INT FROM getVAbits(tuple_iter),
+	vabits_1B INT FROM getVAbits2_1B(tuple_iter),
+	vabits_2B INT FROM getVAbits2_2B(tuple_iter),
+	vabits_3B INT FROM getVAbits2_3B(tuple_iter),
+	vabits_4B INT FROM getVAbits2_4B(tuple_iter)
 )$
 
 CREATE VIRTUAL TABLE AddrVAbitsVT
 USING STRUCT VIEW AddrVAbitsV
 WITH REGISTERED C TYPE MC_Chunk*:Addr
-USING LOOP for (AddrVAbitsVT_begin(tuple_iter, base); AddrVAbitsVT_end(tuple_iter, base); AddrVAbitsVT_advance(tuple_iter))$
+USING LOOP for (AddrVAbitsVT_begin(tuple_iter, base, addrSize); AddrVAbitsVT_end(tuple_iter, addrSize); AddrVAbitsVT_advance(tuple_iter))$
+// addrSize is static global variable defined above in the boilerplate part of the DSL
 
 CREATE STRUCT VIEW IPV (
 	addr_data BIGINT FROM tuple_iter
