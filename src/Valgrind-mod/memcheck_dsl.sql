@@ -38,6 +38,16 @@
 #define AuxPriL2MapVT_advance(X,Y) X = (AuxMapEnt *)VG_(OSetGen_Next)(Y)
 #define AuxPriL2MapVT_end(X) X != NULL
  
+#define VBitVT_decl(X) int X;int i = 0 
+#define VBitVT_begin(X,Y,Z) X = Y[Z]
+#define VBitVT_advance(X,Y,Z) X = Y[Z]
+#define VBitVT_end(X, Y) X < Y
+
+#define SecVBitNodeVT_decl(X) SecVBitNode* X;
+#define SecVBitNodeVT_begin(X,Y) X = (SecVBitNode *)VG_(OSetGen_Next)(Y)
+#define SecVBitNodeVT_advance(X,Y) X = (SecVBitNode *)VG_(OSetGen_Next)(Y)
+#define SecVBitNodeVT_end(X) X != NULL
+ 
 #define SM_DIST_NOACCESS   0
 #define SM_DIST_UNDEFINED  1
 #define SM_DIST_DEFINED    2
@@ -120,6 +130,15 @@ typedef
           AuxMapEnt* ent; // pointer to the matching auxmap_L2 node
        }
        auxmap_L1;
+
+#define BYTES_PER_SEC_VBIT_NODE     16
+typedef
+   struct {
+      Addr  a;
+      UChar vbits8[BYTES_PER_SEC_VBIT_NODE];
+   }
+   SecVBitNode;
+
 
 static long sm_offset(Addr base) {
   base &= ~(Addr)0xFFFF;
@@ -308,6 +327,26 @@ CREATE VIRTUAL TABLE DistinguishedSecMapVT
 USING STRUCT VIEW DistinguishedSecMapV
 WITH REGISTERED C NAME distinguished_sec_map
 WITH REGISTERED C TYPE SecMap$
+
+CREATE STRUCT VIEW VBitV (
+	vbit INT FROM tuple_iter
+)$
+
+CREATE VIRTUAL TABLE VBitVT
+USING STRUCT VIEW VBitV
+WITH REGISTERED C TYPE int*:int
+USING LOOP for(VBitVT_begin(tuple_iter,base, i); VBitVT_end(i, BYTES_PER_SEC_VBIT_NODE); VBitVT_advance(tuple_iter, base, ++i))$
+
+CREATE STRUCT VIEW SecVBitNodeV (
+	addr_data BIGINT FROM a,
+	FOREIGN KEY(vbits_id) FROM vbits8 REFERENCES VBitVT POINTER
+)$
+
+CREATE VIRTUAL TABLE SecVBitNodeVT
+USING STRUCT VIEW SecVBitNodeV
+WITH REGISTERED C NAME sec_vbit_table
+WITH REGISTERED C TYPE OSet:SecVBitNode*
+USING LOOP VG_(OSetGen_ResetIter)(base);for (SecVBitNodeVT_begin(tuple_iter, base);SecVBitNodeVT_end(tuple_iter);SecVBitNodeVT_advance(tuple_iter, base))$
 
 CREATE VIEW VAbitTags AS
 	SELECT base, addr_data, inPrim, vabits,
