@@ -48,6 +48,14 @@
 #define SecVBitNodeVT_advance(X,Y) X = (SecVBitNode *)VG_(OSetGen_Next)(Y)
 #define SecVBitNodeVT_end(X) X != NULL
  
+#define VA_BITS2_NOACCESS     0x0      // 00b
+#define VA_BITS2_UNDEFINED    0x1      // 01b
+#define VA_BITS2_DEFINED      0x2      // 10b
+#define VA_BITS2_PARTDEFINED  0x3      // 11b
+
+#define V_BITS8_DEFINED       0
+#define V_BITS8_UNDEFINED     0xFF
+
 #define SM_DIST_NOACCESS   0
 #define SM_DIST_UNDEFINED  1
 #define SM_DIST_DEFINED    2
@@ -199,31 +207,31 @@ static short extract_vabits2(Addr base, UChar vabits8) {
 };
 
 static Addr addrSize;
-static short getVAbits2_1B(Addr base) {
-  if (base >= addrSize) return -1;
+static short getVAbits2(Addr base, int indexB) {
+  if (base + indexB >= addrSize) return -1;
   UChar vabits8 = getVAbits(base);
 /*  char m[100];
   sprintf(m, "vabits8 in 1B is: %d, addr is %ld, threshold size is %ld.\n", (int)vabits8, (long)base, (long)addrSize);
   printf("%s", m);*/
-  return extract_vabits2(base, vabits8);
+  return extract_vabits2(base + indexB, vabits8);
 };
 
-static short getVAbits2_2B(Addr base) {
-  if (base + 1 >= addrSize) return -1;
-  UChar vabits8 = getVAbits(base);
-  return extract_vabits2(base + 1, vabits8);
-};
-
-static short getVAbits2_3B(Addr base) {
-  if (base + 2 >= addrSize) return -1;
-  UChar vabits8 = getVAbits(base);
-  return extract_vabits2(base + 2, vabits8);
-};
-
-static short getVAbits2_4B(Addr base) {
-  if (base + 3 >= addrSize) return -1;
-  UChar vabits8 = getVAbits(base);
-  return extract_vabits2(base + 3, vabits8);
+static short getVbits8(Addr base, int indexB) {
+  short vabits2 = getVAbits2(base, indexB);
+  if (vabits2 == VA_BITS2_PARTDEFINED) {
+    Addr aAligned = VG_ROUNDDN(base, BYTES_PER_SEC_VBIT_NODE);
+    Int amod     = base % BYTES_PER_SEC_VBIT_NODE;
+    SecVBitNode* n = VG_(OSetGen_Lookup)(pqlPub_sec_vbit_table, &aAligned);
+    UChar vbits8;
+    tl_assert2(n, "get_sec_vbits8: no node for address %p (%p)\n", aAligned, base);
+    /* Shouldn't be fully defined or fully undefined -- those cases shouldn't
+     * make it to the secondary V bits table.
+     */
+    vbits8 = n->vbits8[amod];
+//    tl_assert(V_BITS8_DEFINED != vbits8 && V_BITS8_UNDEFINED != vbits8);
+    return vbits8;
+  }
+  return -1;
 };
 
 $
@@ -250,10 +258,14 @@ CREATE STRUCT VIEW AddrVAbitsV (
 	addr_data BIGINT FROM tuple_iter,
 	inPrim BIGINT FROM inPrim(tuple_iter),
 	vabits INT FROM getVAbits(tuple_iter),
-	vabits_1B INT FROM getVAbits2_1B(tuple_iter),
-	vabits_2B INT FROM getVAbits2_2B(tuple_iter),
-	vabits_3B INT FROM getVAbits2_3B(tuple_iter),
-	vabits_4B INT FROM getVAbits2_4B(tuple_iter)
+	vabits_1B INT FROM {getVAbits2(tuple_iter, 0)},
+	vbits_1B INT FROM {getVbits8(tuple_iter, 0)},
+	vabits_2B INT FROM {getVAbits2(tuple_iter, 1)},
+	vbits_2B INT FROM {getVbits8(tuple_iter, 1)},
+	vabits_3B INT FROM {getVAbits2(tuple_iter, 2)},
+	vbits_3B INT FROM {getVbits8(tuple_iter, 2)},
+	vabits_4B INT FROM {getVAbits2(tuple_iter, 3)},
+	vbits_4B INT FROM {getVbits8(tuple_iter, 3)}
 )$
 
 CREATE VIRTUAL TABLE AddrVAbitsVT
