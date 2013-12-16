@@ -366,17 +366,29 @@ CREATE VIEW VAbitTags AS
 		     	WHEN vabits_1B = 1 THEN 'undefined'
 		     	WHEN vabits_1B = 2 THEN 'defined'
 		     	WHEN vabits_1B = 3 THEN 'partdefined' end) VATag_1B,
+        	(SELECT case WHEN vbits_1B = 0 THEN 'defined'
+		     	WHEN vbits_1B = -1 THEN 'undefined'
+		     	ELSE vbits_1B end) VTag_1B,
         	(SELECT case WHEN vabits_2B = 0 THEN 'noaccess'
 		 	WHEN vabits_2B = 1 THEN 'undefined'
 		     	WHEN vabits_2B = 2 THEN 'defined'
 		     	WHEN vabits_2B = 3 THEN 'partdefined' end) VATag_2B,
+        	(SELECT case WHEN vbits_2B = 0 THEN 'defined'
+		     	WHEN vbits_2B = -1 THEN 'undefined'
+		     	ELSE vbits_2B end) VTag_2B,
         	(SELECT case WHEN vabits_3B = 0 THEN 'noaccess'
 		     	WHEN vabits_3B = 1 THEN 'undefined'
 		     	WHEN vabits_3B = 2 THEN 'defined'
 		     	WHEN vabits_3B = 3 THEN 'partdefined' end) VATag_3B,
+        	(SELECT case WHEN vbits_3B = 0 THEN 'defined'
+		     	WHEN vbits_3B = -1 THEN 'undefined'
+		     	ELSE vbits_3B end) VTag_3B,
         	(SELECT case WHEN vabits_4B = 0 THEN 'noaccess'
 		     	WHEN vabits_4B = 1 THEN 'undefined'
 		     	WHEN vabits_4B = 2 THEN 'defined'
-		     	WHEN vabits_4B = 3 THEN 'partdefined' end) VATag_4B
+		     	WHEN vabits_4B = 3 THEN 'partdefined' end) VATag_4B,
+        	(SELECT case WHEN vbits_4B = 0 THEN 'defined'
+		     	WHEN vbits_4B = -1 THEN 'undefined'
+		     	ELSE vbits_4B end) VTag_4B
 	FROM AddrVAbitsVT;
 	
