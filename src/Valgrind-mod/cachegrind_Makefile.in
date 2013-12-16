@@ -777,31 +777,31 @@ clean-binPROGRAMS:
 	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
 
 # For PiCO QL
-picoQL-gui: libpicoQL_@VGCONF_ARCH_PRI@_@VGCONF_OS@
-
-PICO_QL_srcdir = ../PiCO_QL/src/Valgrind-mod
 VG_TOOL := cachegrind
 export VG_TOOL
+picoQL-gui: libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@
+
+PICO_QL_srcdir = ../PiCO_QL/src/Valgrind-mod
 PICO_QL_CFLAGS_@VGCONF_ARCH_PRI@_@VGCONF_OS@ := $(DEFS) $(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CFLAGS) -Wno-long-long -fno-stack-protector
 export PICO_QL_CFLAGS_@VGCONF_ARCH_PRI@_@VGCONF_OS@
 PICO_QL_CFLAGS_@VGCONF_ARCH_SEC@_@VGCONF_OS@ := $(DEFS) $(cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CFLAGS) -Wno-long-long -fno-stack-protector
 export PICO_QL_CFLAGS_@VGCONF_ARCH_SEC@_@VGCONF_OS@
 
-libpicoQL_@VGCONF_ARCH_PRI@_@VGCONF_OS@:
-	$(MAKE) -C $(PICO_QL_srcdir) libpicoQL_@VGCONF_ARCH_PRI@_@VGCONF_OS@ && cp $(PICO_QL_srcdir)/picoQL-gui .
+libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@:
+	$(MAKE) -C $(PICO_QL_srcdir) libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@ && cp $(PICO_QL_srcdir)/picoQL-gui .
 
-@VGCONF_HAVE_PLATFORM_SEC_TRUE@libpicoQL_@VGCONF_ARCH_SEC@_@VGCONF_OS@:
-	$(MAKE) -C $(PICO_QL_srcdir) libpicoQL_@VGCONF_ARCH_SEC@_@VGCONF_OS@ 
+@VGCONF_HAVE_PLATFORM_SEC_TRUE@libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@:
+	$(MAKE) -C $(PICO_QL_srcdir) libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@ 
 
 # For PiCO QL
 clean-noinstPROGRAMS:
 	-test -z "$(noinst_PROGRAMS)" || rm -f $(noinst_PROGRAMS)
-cachegrind-@VGCONF_ARCH_PRI@-@VGCONF_OS@$(EXEEXT): $(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_OBJECTS) $(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_DEPENDENCIES) $(EXTRA_cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_DEPENDENCIES) libpicoQL_@VGCONF_ARCH_PRI@_@VGCONF_OS@
+cachegrind-@VGCONF_ARCH_PRI@-@VGCONF_OS@$(EXEEXT): $(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_OBJECTS) $(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_DEPENDENCIES) $(EXTRA_cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_DEPENDENCIES) libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@
 	@rm -f cachegrind-@VGCONF_ARCH_PRI@-@VGCONF_OS@$(EXEEXT)
-	$(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_LINK) $(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_OBJECTS) $(PICO_QL_srcdir)/libpicoQL_@VGCONF_ARCH_PRI@_@VGCONF_OS@.a $(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_LDADD) $(LIBS)
-cachegrind-@VGCONF_ARCH_SEC@-@VGCONF_OS@$(EXEEXT): $(cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_OBJECTS) $(cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_DEPENDENCIES) $(EXTRA_cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_DEPENDENCIES) libpicoQL_@VGCONF_ARCH_SEC@_@VGCONF_OS@
+	$(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_LINK) $(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_OBJECTS) $(PICO_QL_srcdir)/libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@.a $(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_LDADD) $(LIBS)
+cachegrind-@VGCONF_ARCH_SEC@-@VGCONF_OS@$(EXEEXT): $(cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_OBJECTS) $(cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_DEPENDENCIES) $(EXTRA_cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_DEPENDENCIES) libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@
 	@rm -f cachegrind-@VGCONF_ARCH_SEC@-@VGCONF_OS@$(EXEEXT)
-	$(cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_LINK) $(cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_OBJECTS) $(PICO_QL_srcdir)/libpicoQL_@VGCONF_ARCH_SEC@_@VGCONF_OS@.a $(cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_LDADD) $(LIBS)
+	$(cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_LINK) $(cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_OBJECTS) $(PICO_QL_srcdir)/libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@.a $(cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_LDADD) $(LIBS)
 cg_merge$(EXEEXT): $(cg_merge_OBJECTS) $(cg_merge_DEPENDENCIES) $(EXTRA_cg_merge_DEPENDENCIES) 
 	@rm -f cg_merge$(EXEEXT)
 	$(cg_merge_LINK) $(cg_merge_OBJECTS) $(cg_merge_LDADD) $(LIBS)

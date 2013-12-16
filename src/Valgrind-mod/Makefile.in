@@ -72,8 +72,8 @@ OBJ_@VGCONF_ARCH_PRI@_@VGCONF_OS@ = pico_ql_search_@VGCONF_ARCH_PRI@_@VGCONF_OS@
 				    unistd_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT) \
 				    time_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT)
 
-libpicoQL_@VGCONF_ARCH_PRI@_@VGCONF_OS@: $(OBJ_@VGCONF_ARCH_PRI@_@VGCONF_OS@) picoQL-gui
-	ar rcs libpicoQL_@VGCONF_ARCH_PRI@_@VGCONF_OS@.a $(OBJ_@VGCONF_ARCH_PRI@_@VGCONF_OS@) 
+libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@: $(OBJ_@VGCONF_ARCH_PRI@_@VGCONF_OS@) picoQL-gui
+	ar rcs libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@.a $(OBJ_@VGCONF_ARCH_PRI@_@VGCONF_OS@) 
 
 pico_ql_search_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT): pico_ql_search.c pico_ql_search.h pico_ql_internal.h
 	$(CC) $(PICO_QL_CFLAGS_@VGCONF_ARCH_PRI@_@VGCONF_OS@) -c $< -o $@ 
@@ -125,8 +125,8 @@ OBJ_@VGCONF_ARCH_SEC@_@VGCONF_OS@ = pico_ql_search_@VGCONF_ARCH_SEC@_@VGCONF_OS@
 				    unistd_@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT) \
 				    time_@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT)
 
-@VGCONF_HAVE_PLATFORM_SEC_TRUE@libpicoQL_@VGCONF_ARCH_SEC@_@VGCONF_OS@: $(OBJ_@VGCONF_ARCH_SEC@_@VGCONF_OS@)
-	ar rcs libpicoQL_@VGCONF_ARCH_SEC@_@VGCONF_OS@.a $(OBJ_@VGCONF_ARCH_SEC@_@VGCONF_OS@)
+@VGCONF_HAVE_PLATFORM_SEC_TRUE@libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@: $(OBJ_@VGCONF_ARCH_SEC@_@VGCONF_OS@)
+	ar rcs libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@.a $(OBJ_@VGCONF_ARCH_SEC@_@VGCONF_OS@)
 
 pico_ql_search_@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT): pico_ql_search.c pico_ql_search.h pico_ql_internal.h
 	$(CC) $(PICO_QL_CFLAGS_@VGCONF_ARCH_SEC@_@VGCONF_OS@) -c $< -o $@ 
@@ -224,7 +224,7 @@ clean-picoQL: clean-picoQL_@VGCONF_ARCH_PRI@_@VGCONF_OS@ @VGCONF_HAVE_PLATFORM_S
 clean-picoQL_@VGCONF_ARCH_PRI@_@VGCONF_OS@: clean-picoQL-obj_@VGCONF_ARCH_PRI@_@VGCONF_OS@ clean-picoQL-bin_@VGCONF_ARCH_PRI@_@VGCONF_OS@ clean-picoQL-gen
 
 clean-picoQL-bin_@VGCONF_ARCH_PRI@_@VGCONF_OS@:
-	test ! -f "libpicoQL_@VGCONF_ARCH_PRI@_@VGCONF_OS@.a" || rm libpicoQL_@VGCONF_ARCH_PRI@_@VGCONF_OS@.a
+	test ! -f "libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@.a" || rm libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@.a
 	test ! -f "picoQL-gui" || rm picoQL-gui
 
 clean-picoQL-obj_@VGCONF_ARCH_PRI@_@VGCONF_OS@:
@@ -247,5 +247,5 @@ clean-picoQL-obj_@VGCONF_ARCH_SEC@_@VGCONF_OS@:
 	$(foreach f, $(genfiles), test ! -f $f_@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT) || rm $f_@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT) ; )
 
 clean-picoQL-bin_@VGCONF_ARCH_SEC@_@VGCONF_OS@:
-	test ! -f "libpicoQL_@VGCONF_ARCH_SEC@_@VGCONF_OS@.a" || rm libpicoQL_@VGCONF_ARCH_SEC@_@VGCONF_OS@.a
+	test ! -f "libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@.a" || rm libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@.a
 
