@@ -264,6 +264,12 @@ static void call_swill(int port_number, struct picoQL_fd *fd) {
 int main(int argc, char **argv) {
   struct picoQL_fd fd;
 
+  /* This check is not enough. You need to check for integrity also. */
+  if (argc < 2) {
+    printf("Fatal error: no port provided for accepting and serving queries. Exiting now.\n");
+    exit(1);
+  }
+
   fd.q = open("picoQL_query", O_WRONLY, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
   if (fd.q < 0) {
     printf("Opening picoQL query pipe at client side failed.\n");

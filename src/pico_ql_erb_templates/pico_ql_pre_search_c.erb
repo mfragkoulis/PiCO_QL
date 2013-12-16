@@ -44,7 +44,8 @@ static int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, s
   rs = cursors[j]->res;
 <%      end %>
   if (struct_empty_null(cur, val, picoQL->embedded, nCol)) {
-<%      @pointer.match(/\*/) ? init = " = NULL" : init = "" %>
+<%# Hacked: seek alternative %>
+<%      @pointer.match(/\*/) ? init = " = NULL" : init = " = 0" %>
 <%      if @container_class.length == 0 %>
     stcsr->size = 1;
 <%	else %>
