@@ -34,7 +34,7 @@
 <% stripDir.gsub!(/\)(\s*)\{(.+?)\};/m, "<clear_method_signature>") %>
 <% stripDir.gsub!(/\n^(.+)<clear_method_signature>/, "") %>
 <%# Currently works because of the ^(\w+). It could fail at some point. %>
-<% stripDir.gsub!(/^(\w+)[^{}()](.+);$/, "") %>
+<% stripDir.gsub!(/^(\w+)(\s+)[^{}()](.+);$/, "") %>
 <%= stripDir %>
 #include <stdio.h>
 #include <string.h>

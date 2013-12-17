@@ -779,7 +779,7 @@ clean-binPROGRAMS:
 # For PiCO QL
 VG_TOOL := cachegrind
 export VG_TOOL
-picoQL-gui: libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@
+picoQL-gui: picoQL-gen libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@
 
 PICO_QL_srcdir = ../PiCO_QL/src/Valgrind-mod
 PICO_QL_CFLAGS_@VGCONF_ARCH_PRI@_@VGCONF_OS@ := $(DEFS) $(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CFLAGS) -Wno-long-long -fno-stack-protector

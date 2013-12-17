@@ -36,7 +36,7 @@
 <% stripDir.gsub!(/\n^(.+)<clear_method_signature>/, "") %>
 <%# Currently works because of the ^(\w+). It could fail at some point. %>
 <%# "using namespace ...;" matches but could be the only exception. So hacking it. %>
-<% stripDir.gsub!(/^(?!using)(\w+)[^{}()](.+);$/, "") %>
+<% stripDir.gsub!(/^(?!using)(\w+)(\s+)[^{}()](.+);$/, "") %>
 <%= stripDir %>
 
 #include <cstdio>
