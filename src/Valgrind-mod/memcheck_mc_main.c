@@ -6681,6 +6681,7 @@ pico_ql_register(sm_distinguished, "distinguished_sec_map");
 pico_ql_register(auxmap_L1, "aux_primary_L1_map");
 pico_ql_register(auxmap_L2, "aux_primary_L2_map");
 pico_ql_register(secVBitTable, "sec_vbit_table");
+pico_ql_register(ocacheL1, "ocache_L1");
 pico_ql_serve();
 
 }

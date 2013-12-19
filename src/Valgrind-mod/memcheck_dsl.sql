@@ -48,6 +48,21 @@
 #define SecVBitNodeVT_advance(X,Y) X = (SecVBitNode *)VG_(OSetGen_Next)(Y)
 #define SecVBitNodeVT_end(X) X != NULL
  
+#define w32PerCacheLineVT_decl(X) int X; int i = 0
+#define w32PerCacheLineVT_begin(X,Y,Z) X = Y[Z]
+#define w32PerCacheLineVT_advance(X,Y,Z) X = Y[Z]
+#define w32PerCacheLineVT_end(X,Y) X != Y
+
+#define descrPerCacheLineVT_decl(X) int X; int i = 0
+#define descrPerCacheLineVT_begin(X,Y,Z) X = Y[Z]
+#define descrPerCacheLineVT_advance(X,Y,Z) X = Y[Z]
+#define descrPerCacheLineVT_end(X,Y) X != Y
+
+#define OCacheL1VT_decl(X) OCacheLine* X; int set = 0; int line = 0
+#define OCacheL1VT_begin(X,Y,Z,W) X = &Y->set[Z].line[W]
+#define OCacheL1VT_advance(X,Y,Z,W) X = &Y->set[Z].line[W]
+#define OCacheL1VT_end(X,Y) X != Y
+
 #define VA_BITS2_NOACCESS     0x0      // 00b
 #define VA_BITS2_UNDEFINED    0x1      // 01b
 #define VA_BITS2_DEFINED      0x2      // 10b
@@ -147,6 +162,52 @@ typedef
    }
    SecVBitNode;
 
+#define OC_LINES_PER_SET 2
+#define OC_N_SET_BITS    20
+#define OC_N_SETS        (1 << OC_N_SET_BITS)
+#define OC_BITS_PER_LINE 5
+#define OC_W32S_PER_LINE (1 << (OC_BITS_PER_LINE - 2))
+
+typedef
+   struct {
+      Addr  tag;
+      UInt  w32[OC_W32S_PER_LINE];
+      UChar descr[OC_W32S_PER_LINE];
+   }
+   OCacheLine;
+
+typedef
+   struct {
+      OCacheLine line[OC_LINES_PER_SET];
+   }
+   OCacheSet;
+
+typedef
+   struct {
+      OCacheSet set[OC_N_SETS];
+   }
+   OCache;
+
+static Bool is_valid_oc_tag ( Addr tag ) {
+   return 0 == (tag & ((1 << OC_BITS_PER_LINE) - 1));
+}
+
+/* Classify and also sanity-check 'line'.  Return 'e' (empty) if not
+   in use, 'n' (nonzero) if it contains at least one valid origin tag,
+   and 'z' if all the represented tags are zero. */
+static UChar classify_OCacheLine ( OCacheLine* line )
+{
+   UWord i;
+   if (line->tag == 1 /* invalid */ )
+      return 'e'; /* EMPTY */
+   tl_assert(is_valid_oc_tag(line->tag));
+   for (i = 0; i < OC_W32S_PER_LINE; i++) {
+      tl_assert(0 == ((~0xF) & line->descr[i]));
+      if (line->w32[i] > 0 && line->descr[i] > 0)
+         return 'n'; /* NONZERO - contains useful info */
+   }
+   return 'z'; /* ZERO - no useful info */
+}
 
 static long sm_offset(Addr base) {
   base &= ~(Addr)0xFFFF;
@@ -360,39 +421,78 @@ WITH REGISTERED C NAME sec_vbit_table
 WITH REGISTERED C TYPE OSet:SecVBitNode*
 USING LOOP VG_(OSetGen_ResetIter)(base);for (SecVBitNodeVT_begin(tuple_iter, base);SecVBitNodeVT_end(tuple_iter);SecVBitNodeVT_advance(tuple_iter, base))$
 
+CREATE STRUCT VIEW w32PerCacheLineV (
+	w32 INT FROM tuple_iter
+)$
+
+CREATE VIRTUAL TABLE w32PerCacheLineVT
+USING STRUCT VIEW w32PerCacheLineV
+WITH REGISTERED C TYPE OCacheLine:int
+USING LOOP for(w32PerCacheLineVT_begin(tuple_iter, base->w32, i); w32PerCacheLineVT_end(i, OC_W32S_PER_LINE); w32PerCacheLineVT_advance(tuple_iter, base->w32, ++i))$
+
+CREATE STRUCT VIEW descrPerCacheLineV (
+	descr INT FROM tuple_iter
+)$
+
+CREATE VIRTUAL TABLE descrPerCacheLineVT
+USING STRUCT VIEW descrPerCacheLineV
+WITH REGISTERED C TYPE OCacheLine:int
+USING LOOP for(descrPerCacheLineVT_begin(tuple_iter, base->descr, i); descrPerCacheLineVT_end(i, OC_W32S_PER_LINE); descrPerCacheLineVT_advance(tuple_iter, base->w32, ++i))$
+
+CREATE STRUCT VIEW OCacheL1V (
+	addr_tag BIGINT FROM tag,
+	classification BIGINT FROM classify_OCacheLine(tuple_iter),
+	FOREIGN KEY(w32_id) FROM tuple_iter REFERENCES w32PerCacheLineVT POINTER,
+	FOREIGN KEY(descr_id) FROM tuple_iter REFERENCES descrPerCacheLineVT POINTER
+)$
+
+CREATE VIRTUAL TABLE OCacheL1VT
+USING STRUCT VIEW OCacheL1V
+WITH REGISTERED C NAME ocache_L1
+WITH REGISTERED C TYPE OCache:OCacheLine*
+USING LOOP for(set = 0; set < OC_N_SETS; set++) {
+ 	   for(OCacheL1VT_begin(tuple_iter, base, set, line); OCacheL1VT_end(line, OC_LINES_PER_SET); OCacheL1VT_advance(tuple_iter, base, set, ++line))$
+
 CREATE VIEW VAbitTags AS
 	SELECT base, addr_data, inPrim, vabits,
         	(SELECT case WHEN vabits_1B = 0 THEN 'noaccess'
 		     	WHEN vabits_1B = 1 THEN 'undefined'
 		     	WHEN vabits_1B = 2 THEN 'defined'
-		     	WHEN vabits_1B = 3 THEN 'partdefined' end) VATag_1B,
+		     	WHEN vabits_1B = 3 THEN 'partdefined' END) VATag_1B,
         	(SELECT case WHEN vbits_1B = 0 THEN 'defined-VG_BUG?'
 		     	WHEN vbits_1B = -1 THEN '-'
 		     	WHEN vbits_1B = 255 THEN 'undefined-VG_BUG?'
-		     	ELSE vbits_1B end) VTag_1B,
+		     	ELSE vbits_1B END) VTag_1B,
         	(SELECT case WHEN vabits_2B = 0 THEN 'noaccess'
 		 	WHEN vabits_2B = 1 THEN 'undefined'
 		     	WHEN vabits_2B = 2 THEN 'defined'
-		     	WHEN vabits_2B = 3 THEN 'partdefined' end) VATag_2B,
+		     	WHEN vabits_2B = 3 THEN 'partdefined' END) VATag_2B,
         	(SELECT case WHEN vbits_2B = 0 THEN 'defined-VG_BUG?'
 		     	WHEN vbits_2B = -1 THEN '-'
 		     	WHEN vbits_2B = 255 THEN 'undefined-VG_BUG?'
-		     	ELSE vbits_2B end) VTag_2B,
+		     	ELSE vbits_2B END) VTag_2B,
         	(SELECT case WHEN vabits_3B = 0 THEN 'noaccess'
 		     	WHEN vabits_3B = 1 THEN 'undefined'
 		     	WHEN vabits_3B = 2 THEN 'defined'
-		     	WHEN vabits_3B = 3 THEN 'partdefined' end) VATag_3B,
+		     	WHEN vabits_3B = 3 THEN 'partdefined' END) VATag_3B,
         	(SELECT case WHEN vbits_3B = 0 THEN 'defined-VG_BUG?'
 		     	WHEN vbits_3B = -1 THEN '-'
 		     	WHEN vbits_3B = 255 THEN 'undefined-VG_BUG?'
-		     	ELSE vbits_3B end) VTag_3B,
+		     	ELSE vbits_3B END) VTag_3B,
         	(SELECT case WHEN vabits_4B = 0 THEN 'noaccess'
 		     	WHEN vabits_4B = 1 THEN 'undefined'
 		     	WHEN vabits_4B = 2 THEN 'defined'
-		     	WHEN vabits_4B = 3 THEN 'partdefined' end) VATag_4B,
+		     	WHEN vabits_4B = 3 THEN 'partdefined' END) VATag_4B,
         	(SELECT case WHEN vbits_4B = 0 THEN 'defined-VG_BUG?'
 		     	WHEN vbits_4B = -1 THEN '-'
 		     	WHEN vbits_4B = 255 THEN 'undefined-VG_BUG?'
-		     	ELSE vbits_4B end) VTag_4B
-	FROM AddrVAbitsVT;
+		     	ELSE vbits_4B END) VTag_4B
+	FROM AddrVAbitsVT;$
 	
+CREATE VIEW ClassifyOCacheLine AS
+	SELECT addr_tag, classification,
+		(SELECT case WHEN classification=101 THEN 'no_useful_info'
+			WHEN classification=122 THEN 'empty'
+			ELSE 'useful_info' END) clf_tag,
+		w32_id, descr_id
+	FROM OCacheL1VT;
