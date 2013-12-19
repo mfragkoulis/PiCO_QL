@@ -441,7 +441,7 @@ USING LOOP for(descrPerCacheLineVT_begin(tuple_iter, base->descr, i); descrPerCa
 
 CREATE STRUCT VIEW OCacheL1V (
 	addr_tag BIGINT FROM tag,
-	classification BIGINT FROM classify_OCacheLine(tuple_iter),
+	classification INT FROM classify_OCacheLine(tuple_iter),
 	FOREIGN KEY(w32_id) FROM tuple_iter REFERENCES w32PerCacheLineVT POINTER,
 	FOREIGN KEY(descr_id) FROM tuple_iter REFERENCES descrPerCacheLineVT POINTER
 )$
