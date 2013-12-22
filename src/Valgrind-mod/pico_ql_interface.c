@@ -279,6 +279,16 @@ int register_table(int argc,
   sprintf(sqlite_query, "Query to turn off temp.journal returned %d.\n", re);
   printf("%s", sqlite_query);
 #endif
+  re = prep_exec(NULL, 0, db, "PRAGMA page_size = 4096;");  /* Set SQLite's page size at 4096 Bytes.*/
+#ifdef PICO_QL_DEBUG
+  sprintf(sqlite_query, "Query to set SQLite's page size at 4096 Bytes returned %d.\n", re);
+  printf("%s", sqlite_query);
+#endif
+  re = prep_exec(NULL, 0, db, "PRAGMA cache_size = 10000;");  /* Set SQLite's cache size at 10000 pages.*/
+#ifdef PICO_QL_DEBUG
+  sprintf(sqlite_query, "Query to set SQLite's cache size at 10000 pages returned %d.\n", re);
+  printf("%s", sqlite_query);
+#endif
 #ifdef PICO_QL_DEBUG
   for (i = 0; i < argc; i++) {
     printf("\nQuery to be executed: %s.\n", q[i]);

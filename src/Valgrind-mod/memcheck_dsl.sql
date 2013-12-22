@@ -2,6 +2,9 @@
 #include "pub_tool_oset.h"          // OSet
 #include "pub_tool_execontext.h"    // ExeContext
 #include "pub_tool_basics.h"        // VG_WORDSIZE
+#include "pub_tool_debuginfo.h"     // VG_(get_fnname), VG_(get_fnname_w_offset)
+#include "pub_core_options.h"       // coregrind/ VG_(clo_sym_offsets)
+
 
 #define MemProfileVT_decl(X) MC_Chunk* X; 
 #define MemProfileVT_begin(X,Y) X = (MC_Chunk *)VG_(HT_Next)(Y)
@@ -13,9 +16,9 @@
 #define AddrVAbitsVT_advance(X) X += 4     // each VAbits entry tracks the state of 4 Bytes. So hopping 4 Bytes after each iteration.
 #define AddrVAbitsVT_end(X,Y) X < Y
 
-#define IPVT_decl(X) Addr* X;int i = 0 
-#define IPVT_begin(X,Y,Z) X = &Y[Z]
-#define IPVT_advance(X,Y,Z) X = &Y[Z]
+#define IPVT_decl(X) Addr X;int i = 0 
+#define IPVT_begin(X,Y,Z) X = Y[Z]
+#define IPVT_advance(X,Y,Z) X = Y[Z]
 #define IPVT_end(X, Y) X != Y
 
 #define SecMapVT_decl(X) int *X; int i = 0
@@ -295,10 +298,76 @@ static UWord getVbits8(Addr base, int indexB) {
   return -1;
 };
 
+#define BUF_LEN 4096
+static HChar alloc_by[BUF_LEN];
+static HChar obj_name[BUF_LEN];
+static HChar dir_name[BUF_LEN];
+static HChar file_name[BUF_LEN];
+static HChar fn_name[BUF_LEN];
+static HChar exec_obj_name[BUF_LEN];
+static HChar exec_dir_name[BUF_LEN];
+static HChar exec_file_name[BUF_LEN];
+static HChar exec_fn_name[BUF_LEN];
+
+static HChar * getObjName(Addr data, HChar *buf_obj) {
+  Bool  know_objname = VG_(get_objname)(data, buf_obj, BUF_LEN);
+  if (!know_objname) strcpy(buf_obj, "N/A");
+  return buf_obj;
+};
+
+static HChar * getFileName(Addr data, HChar *buf_filename, HChar *buf_dirname) {
+  UInt lineno;
+  Bool know_dirinfo = True;
+  Bool know_srcloc = VG_(get_filename_linenum)(
+                           data,
+                           buf_filename,  BUF_LEN,
+                           buf_dirname, BUF_LEN, &know_dirinfo,
+                           &lineno);
+  if (!know_srcloc) strcpy(buf_filename, "N/A");
+  return buf_filename;
+};
+
+static int getLOCNo(Addr data, HChar *buf_filename, HChar *buf_dirname) {
+  UInt lineno = -1;
+  Bool know_dirinfo = True;
+  VG_(get_filename_linenum)(
+                            data,
+                            buf_filename,  BUF_LEN,
+                            buf_dirname, BUF_LEN, &know_dirinfo,
+                            &lineno);
+  return lineno;
+};
+
+static HChar * getDirName(Addr data, HChar * buf_filename, HChar * buf_dirname) {
+  UInt lineno;
+  Bool know_dirinfo = False;
+  Bool know_srcloc  = VG_(get_filename_linenum)(
+                           data,
+                           buf_filename,  BUF_LEN,
+                           buf_dirname, BUF_LEN, &know_dirinfo,
+                           &lineno);
+  if (!know_srcloc) strcpy(buf_dirname, "N/A");
+  return buf_dirname;
+};
+
+static HChar * getFnName(Addr data, HChar *buf_fn) {
+  Bool know_fnname  = VG_(clo_sym_offsets)
+		? VG_(get_fnname_w_offset) (data, buf_fn, BUF_LEN)
+                : VG_(get_fnname) (data, buf_fn, BUF_LEN);
+  if (!know_fnname) strcpy(buf_fn, "N/A");
+  return buf_fn;
+};
+
 $
 
 CREATE STRUCT VIEW MemProfileV (
 	addr_data BIGINT FROM data,
+	obj_name TEXT FROM {getObjName(tuple_iter->where[0]->ips[1], obj_name)},
+	dir_name TEXT FROM {getDirName(tuple_iter->where[0]->ips[1], file_name, dir_name)},
+	file_name TEXT FROM {getFileName(tuple_iter->where[0]->ips[1], file_name, dir_name)},
+	fn_name TEXT FROM {getFnName(tuple_iter->where[0]->ips[1], fn_name)},
+	line_no INT FROM {getLOCNo(tuple_iter->where[0]->ips[1], file_name, dir_name)},
+	alloc_by TEXT FROM {getFnName(tuple_iter->where[0]->ips[0], alloc_by)},
 	inPrim BIGINT FROM inPrim(tuple_iter->data),
 	FOREIGN KEY(vabits_id) FROM tuple_iter REFERENCES AddrVAbitsVT POINTER,
 	sizeB BIGINT FROM szB,
@@ -336,13 +405,18 @@ USING LOOP for (AddrVAbitsVT_begin(tuple_iter, base, addrSize); AddrVAbitsVT_end
 // addrSize is static global variable defined above in the boilerplate part of the DSL
 
 CREATE STRUCT VIEW IPV (
-	addr_data BIGINT FROM tuple_iter
+	addr_data BIGINT FROM tuple_iter,
+	obj_name TEXT FROM {getObjName(tuple_iter, exec_obj_name)},
+	dir_name TEXT FROM {getDirName(tuple_iter, exec_file_name, exec_dir_name)},
+	file_name TEXT FROM {getFileName(tuple_iter, exec_file_name, exec_dir_name)},
+	fn_name TEXT FROM {getFnName(tuple_iter, exec_fn_name)},
+	line_no INT FROM {getLOCNo(tuple_iter, exec_file_name, exec_dir_name)}
 //	execnt_id INT FROM ecu
 )$
 
 CREATE VIRTUAL TABLE IPVT
 USING STRUCT VIEW IPV
-WITH REGISTERED C TYPE ExeContext:Addr*
+WITH REGISTERED C TYPE ExeContext:Addr
 USING LOOP for(IPVT_begin(tuple_iter, base->ips, i); IPVT_end(i, base->n_ips); IPVT_advance(tuple_iter, base->ips, ++i))$
 
 CREATE STRUCT VIEW SecMapV (
@@ -495,4 +569,58 @@ CREATE VIEW ClassifyOCacheLine AS
 			WHEN classification=122 THEN 'empty'
 			ELSE 'useful_info' END) clf_tag,
 		w32_id, descr_id
-	FROM OCacheL1VT;
+	FROM OCacheL1VT;$
+
+CREATE VIEW FilterOrderMemProfileQ AS
+	SELECT * 
+	FROM MemProfileVT
+	WHERE sizeB > 1000000
+	ORDER BY sizeB;$
+
+CREATE VIEW GroupFunctionMemProfileQ AS
+	SELECT *, SUM(sizeB) 
+	FROM MemProfileVT
+//      WHERE fn_name LIKE 'IMP_pattern_in_fn_name'
+	GROUP BY file_name, fn_name, line_no;$
+
+CREATE VIEW LocatePDBMemProfileQ AS
+	SELECT *
+	FROM MemProfileVT
+	JOIN VAbitTags
+	ON base=vabits_id
+	WHERE VAtag_1B = 'partdefined'
+	OR VAtag_2B = 'partdefined'
+	OR VAtag_3B = 'partdefined'
+	OR VAtag_4B = 'partdefined';$
+
+// Not in final form; check out the WHERE clause.
+CREATE VIEW ClusterBytesMemProfileQ AS
+	SELECT addrL AS block_addr, fn_name, min(clusterBegin) AS clusterBegin, 
+		clusterEnd, VAbitsClBegin, VAbitsClEnd
+	FROM (
+		SELECT MP1.addr_data AS addrL,MP2.addr_data as addrR,
+			MP1.fn_name AS fn_name,
+			VA1.addr_data AS clusterBegin, MIN(VA2.addr_data) AS clusterEnd,
+			VA1.vabits AS VAbitsClBegin,VA2.vabits AS VAbitsClEnd
+		FROM MemProfileVT MP1
+		JOIN VAbitTags VA1
+		ON VA1.base=MP1.vabits_id,
+		MemProfileVT MP2
+		JOIN VAbitTags VA2
+		ON VA2.base=MP2.vabits_id
+		WHERE MP1.sizeB < 5000
+		AND MP2.sizeB < 5000
+		AND MP1.addr_data = MP2.addr_data
+		AND VA1.vabits <> VA2.vabits
+		AND VA1.addr_data < VA2.addr_data
+		GROUP BY VA1.addr_data
+		LIMIT 1000
+	) MP
+	GROUP BY ClusterEnd;$
+
+CREATE VIEW CountClustersPerBlockMemProfileQ AS
+	SELECT block_addr, fn_name, COUNT(*) AS clusters
+	FROM ClusterBytesMemProfileQ
+	GROUP BY block_addr
+	ORDER BY clusters desc;
+
