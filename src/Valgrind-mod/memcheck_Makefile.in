@@ -1016,7 +1016,7 @@ memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_machine.obj: mc_machine.c
 
 # For PiCO QL
 memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_errors.o: mc_errors.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) -I(PICO_QL_srcdir) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -MT memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_errors.o -MD -MP -MF $(DEPDIR)/memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_errors.Tpo -c -o memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_errors.o `test -f 'mc_errors.c' || echo '$(srcdir)/'`mc_errors.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) -I$(PICO_QL_srcdir) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -MT memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_errors.o -MD -MP -MF $(DEPDIR)/memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_errors.Tpo -c -o memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_errors.o `test -f 'mc_errors.c' || echo '$(srcdir)/'`mc_errors.c
 @am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_errors.Tpo $(DEPDIR)/memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_errors.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='mc_errors.c' object='memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_errors.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
