@@ -195,10 +195,16 @@ class Column
       end 
     }
     union_access_path = String.new(@access_path)
-    if !@access_path.end_with?(".") && !@access_path.end_with?("->")
-      union_access_path.concat(".")
+    if u.switch.match(/tuple_iter/)
+      switch = String.new(u.switch)
+      switch.gsub!(/tuple_iter/, "#{iden}")
+    else
+      switch = String.new("#{iden}#{u.switch}")
+      if !@access_path.end_with?(".") && !@access_path.end_with?("->")
+        union_access_path.concat(".")
+      end
     end
-    fw.puts "#{space}    switch (#{iden}#{u.switch}) {"
+    fw.puts "#{space}    switch (#{switch}) {"
 # Will not work for union in struct1 in struct2 (user responsibility?)
 # if struct1.struct2.union then access path would be 
 # (any_dstr->)struct2.union . reasonable to await struct2.union_mode
@@ -824,7 +830,13 @@ class Column
                          null_check_action,
                          fw, space)
     end
-    fw.puts "#{space}switch (#{root_access_path}#{u.switch}) {"
+    if u.switch.match(/tuple_iter/)
+      switch = String.new(u.switch)
+      switch.gsub!(/tuple_iter/, "#{root_access_path}")
+    else
+      switch = String.new("#{root_access_path}#{u.switch}")
+    end
+    fw.puts "#{space}switch (#{switch}) {"
     u.columns.each { |col|
       fw.puts "#{space}case #{col.case}:"
       fw.puts "#{space}  {"
@@ -833,7 +845,12 @@ class Column
       sqlite3_parameters,
       column_cast,
       column_cast_back = col.bind_datatypes("search") 
-      total_access_path = "#{union_access_path}#{col.access_path}"
+      if col.access_path.match(/tuple_iter/)   # generic enough or hack?
+        total_access_path = "#{col.access_path}"
+        total_access_path.gsub!(/tuple_iter/, "#{root_access_path}")
+      else
+        total_access_path = "#{union_access_path}#{col.access_path}"
+      end
       if col_class == "fk" && col.col_type == "object"
         total_access_path = "&#{total_access_path}"
       elsif col_class == "union"   # What cause does this serve?
@@ -1431,8 +1448,8 @@ class VirtualTable
     case op
     when /data|union/
       if !@container_class.empty?
-        if access_path.empty?
-          if @pointer.end_with?("*") && data_type != "TEXT"
+        if access_path.empty?   # only for data: see erroClassV UNION in Valgrind-mod 
+          if op == "data" && @pointer.end_with?("*") && data_type != "TEXT"
             iden = "*#{iden}"
           end
         else
@@ -2465,6 +2482,7 @@ class UnionView
     }
     if $argD == "DEBUG"
       puts "Union view #{@name} registered."
+      puts "Union view switch statement is: #{@switch}."
       puts "Union view includes #{@include_text_col} columns of type text."
       puts "Columns follow:"
       @columns.each { |x| p x }

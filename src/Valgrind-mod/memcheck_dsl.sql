@@ -4,6 +4,8 @@
 #include "pub_tool_basics.h"        // VG_WORDSIZE
 #include "pub_tool_debuginfo.h"     // VG_(get_fnname), VG_(get_fnname_w_offset)
 #include "pub_core_options.h"       // coregrind/ VG_(clo_sym_offsets)
+#include "pub_tool_errormgr.h"      // typedef struct _Error Error, typedef struct _Supp Supp
+#include "pub_tool_xarray.h"        // typedef struct _XArray XArray
 
 
 #define MemProfileVT_decl(X) MC_Chunk* X; 
@@ -65,6 +67,9 @@
 #define OCacheL1VT_begin(X,Y,Z,W) X = &Y->set[Z].line[W]
 #define OCacheL1VT_advance(X,Y,Z,W) X = &Y->set[Z].line[W]
 #define OCacheL1VT_end(X,Y) X != Y
+
+#define ErrorVT_decl(X) Error *X
+#define SuppressionVT_decl(X) Supp *X
 
 #define VA_BITS2_NOACCESS     0x0      // 00b
 #define VA_BITS2_UNDEFINED    0x1      // 01b
@@ -190,6 +195,286 @@ typedef
       OCacheSet set[OC_N_SETS];
    }
    OCache;
+
+struct _Error {
+   struct _Error* next;
+   // Unique tag.  This gives the error a unique identity (handle) by
+   // which it can be referred to afterwords.  Currently only used for
+   // XML printing.
+   UInt unique;
+   // NULL if unsuppressed; or ptr to suppression record.
+   Supp* supp;
+   Int count;
+
+   // The tool-specific part
+   ThreadId tid;           // Initialised by core
+   ExeContext* where;      // Initialised by core
+   ErrorKind ekind;        // Used by ALL.  Must be in the range (0..)
+   Addr addr;              // Used frequently
+   const HChar* string;    // Used frequently
+   void* extra;            // For any tool-specific extras
+};
+
+/* For each caller specified for a suppression, record the nature of
+   the caller name.  Not of interest to tools. */
+typedef
+   enum {
+      NoName,     /* Error case */
+      ObjName,    /* Name is of an shared object file. */
+      FunName,    /* Name is of a function. */
+      DotDotDot   /* Frame-level wildcard */
+   }
+   SuppLocTy;
+
+typedef
+   struct {
+      SuppLocTy ty;
+      Bool      name_is_simple_str; /* True if name is a string without
+                                       '?' and '*' wildcard characters. */
+      HChar*    name; /* NULL for NoName and DotDotDot */
+   }
+   SuppLoc;
+
+/* Suppressions.  Tools can get/set tool-relevant parts with functions
+   declared in include/pub_tool_errormgr.h.  Extensible via the 'extra' field.
+   Tools can use a normal enum (with element values in the normal range
+   (0..)) for 'skind'. */
+struct _Supp {
+   struct _Supp* next;
+   Int count;     // The number of times this error has been suppressed.
+   HChar* sname;  // The name by which the suppression is referred to.
+
+   // Index in VG_(clo_suppressions) giving filename from which suppression
+   // was read, and the lineno in this file where sname was read.
+   Int    clo_suppressions_i;
+   Int    sname_lineno;
+
+   // Length of 'callers'
+   Int n_callers;
+   // Array of callers, for matching stack traces.  First one (name of fn
+   // where err occurs) is mandatory;  rest are optional.
+   SuppLoc* callers;
+
+   /* The tool-specific part */
+   SuppKind skind;   // What kind of suppression.  Must use the range (0..).
+   HChar* string;    // String -- use is optional.  NULL by default.
+   void* extra;      // Anything else -- use is optional.  NULL by default.
+};
+
+
+// Different kinds of blocks.
+typedef enum {
+   Block_Mallocd = 111,
+   Block_Freed,
+   Block_MempoolChunk,
+   Block_UserG
+} BlockKind;
+
+
+typedef
+   enum {
+      // Nb: the order is important -- it dictates the order of loss records
+      // of equal sizes.
+      Reachable    =0,  // Definitely reachable from root-set.
+      Possible     =1,  // Possibly reachable from root-set;  involves at
+                        //   least one interior-pointer along the way.
+      IndirectLeak =2,  // Leaked, but reachable from another leaked block
+                        //   (be it Unreached or IndirectLeak).
+      Unreached    =3,  // Not reached, ie. leaked.
+                        //   (At best, only reachable from itself via a cycle.)
+  }
+  Reachedness;
+
+/* When a LossRecord is put into an OSet, these elements represent the key. */
+typedef
+   struct _LossRecordKey {
+      Reachedness  state;        // LC_Extra.state value shared by all blocks.
+      ExeContext*  allocated_at; // Where they were allocated.
+   }
+   LossRecordKey;
+
+/* A loss record, used for generating err msgs.  Multiple leaked blocks can be
+ * merged into a single loss record if they have the same state and similar
+ * enough allocation points (controlled by --leak-resolution). */
+typedef
+   struct _LossRecord {
+      LossRecordKey key;  // Key, when used in an OSet.
+      SizeT szB;          // Sum of all MC_Chunk.szB values.
+      SizeT indirect_szB; // Sum of all LC_Extra.indirect_szB values.
+      UInt  num_blocks;   // Number of blocks represented by the record.
+      SizeT old_szB;          // old_* values are the values found during the
+      SizeT old_indirect_szB; // previous leak search. old_* values are used to
+      UInt  old_num_blocks;   // output only the changed/new loss records
+   }
+   LossRecord;
+
+
+/* The classification of a faulting address. */
+typedef
+   enum {
+      Addr_Undescribed, // as-yet unclassified
+      Addr_Unknown,     // classification yielded nothing useful
+      Addr_Block,       // in malloc'd/free'd block
+      Addr_Stack,       // on a thread's stack
+      Addr_DataSym,     // in a global data sym
+      Addr_Variable,    // variable described by the debug info
+      Addr_SectKind     // last-ditch classification attempt
+   }
+   AddrTag;
+
+typedef
+   struct _AddrInfo
+   AddrInfo;
+
+struct _AddrInfo {
+   AddrTag tag;
+   union {
+      // As-yet unclassified.
+      struct { } Undescribed;
+
+      // On a stack.
+      struct {
+         ThreadId tid;        // Which thread's stack?
+      } Stack;
+
+      // This covers heap blocks (normal and from mempools) and user-defined
+      // blocks.
+      struct {
+         BlockKind   block_kind;
+         const HChar* block_desc;    // "block", "mempool" or user-defined
+         SizeT       block_szB;
+         PtrdiffT    rwoffset;
+         ExeContext* allocated_at;  // might be null_ExeContext.
+         ExeContext* freed_at;      // might be null_ExeContext.
+      } Block;
+
+      // In a global .data symbol.  This holds the first 127 chars of
+      // the variable's name (zero terminated), plus a (memory) offset.
+      struct {
+         HChar    name[128];
+         PtrdiffT offset;
+      } DataSym;
+
+      // Is described by Dwarf debug info.  XArray*s of HChar.
+      struct {
+         XArray* /* of HChar */ descr1;
+         XArray* /* of HChar */ descr2;
+      } Variable;
+
+      // Could only narrow it down to be the PLT/GOT/etc of a given
+      // object.  Better than nothing, perhaps.
+      struct {
+         HChar      objname[128];
+         VgSectKind kind;
+      } SectKind;
+
+      // Classification yielded nothing useful.
+      struct { } Unknown;
+
+   } Addr;
+};
+
+
+typedef struct _MC_Error MC_Error;
+
+struct _MC_Error {
+   // Nb: we don't need the tag here, as it's stored in the Error type! Yuk.
+   //MC_ErrorTag tag;
+
+   union {
+      // Use of an undefined value:
+      // - as a pointer in a load or store
+      // - as a jump target
+      struct {
+         SizeT szB;   // size of value in bytes
+         // Origin info
+         UInt        otag;      // origin tag
+         ExeContext* origin_ec; // filled in later
+      } Value;
+
+      // Use of an undefined value in a conditional branch or move.
+      struct {
+         // Origin info
+         UInt        otag;      // origin tag
+         ExeContext* origin_ec; // filled in later
+      } Cond;
+
+      // Addressability error in core (signal-handling) operation.
+      // It would be good to get rid of this error kind, merge it with
+      // another one somehow.
+      struct {
+      } CoreMem;
+
+      // Use of an unaddressable memory location in a load or store.
+      struct {
+         Bool     isWrite;    // read or write?
+         SizeT    szB;        // not used for exec (jump) errors
+         Bool     maybe_gcc;  // True if just below %esp -- could be a gcc bug
+         AddrInfo ai;
+      } Addr;
+
+      // Jump to an unaddressable memory location.
+      struct {
+         AddrInfo ai;
+      } Jump;
+
+      // System call register input contains undefined bytes.
+      struct {
+         // Origin info
+         UInt        otag;      // origin tag
+         ExeContext* origin_ec; // filled in later
+      } RegParam;
+
+      // System call register input contains undefined bytes.
+      struct {
+         // Origin info
+         UInt        otag;      // origin tag
+         ExeContext* origin_ec; // filled in later
+      } MemParam;
+
+      // Problem found from a client request like CHECK_MEM_IS_ADDRESSABLE.
+      struct {
+         Bool     isAddrErr;  // Addressability or definedness error?
+         AddrInfo ai;
+         // Origin info
+         UInt        otag;      // origin tag
+         ExeContext* origin_ec; // filled in later
+      } User;
+
+      // Program tried to free() something that's not a heap block (this
+      // covers double-frees). */
+      struct {
+         AddrInfo ai;
+      } Free;
+
+      // Program allocates heap block with one function
+      // (malloc/new/new[]/custom) and deallocates with not the matching one.
+      struct {
+         AddrInfo ai;
+      } FreeMismatch;
+
+      // Call to strcpy, memcpy, etc, with overlapping blocks.
+      struct {
+         Addr  src;   // Source block
+         Addr  dst;   // Destination block
+         SizeT szB;   // Size in bytes;  0 if unused.
+      } Overlap;
+
+      // A memory leak.
+      struct {
+         UInt        n_this_record;
+         UInt        n_total_records;
+         LossRecord* lr;
+      } Leak;
+
+      // A memory pool error.
+      struct {
+         AddrInfo ai;
+      } IllegalMempool;
+
+   } Err;
+};
+
 
 static Bool is_valid_oc_tag ( Addr tag ) {
    return 0 == (tag & ((1 << OC_BITS_PER_LINE) - 1));
@@ -356,6 +641,20 @@ static HChar * getFnName(Addr data, HChar *buf_fn) {
                 : VG_(get_fnname) (data, buf_fn, BUF_LEN);
   if (!know_fnname) strcpy(buf_fn, "N/A");
   return buf_fn;
+};
+
+static HChar * get_descr(HChar *text, HChar *plc) {
+  if (text != NULL) return text;
+  else return plc;
+};
+
+static long send_MC_Error(Error *e, int ucase) {
+  if (VG_(get_error_kind)(e) == ucase) return (long)VG_(get_error_extra)(e);
+  else return 0;
+};
+
+static long get_stub(MC_Error *e) {
+  return (long)e;
 };
 
 $
@@ -527,37 +826,209 @@ WITH REGISTERED C TYPE OCache:OCacheLine*
 USING LOOP for(set = 0; set < OC_N_SETS; set++) {
  	   for(OCacheL1VT_begin(tuple_iter, base, set, line); OCacheL1VT_end(line, OC_LINES_PER_SET); OCacheL1VT_advance(tuple_iter, base, set, ++line))$
 
+CREATE STRUCT VIEW ErrorValueV (
+	sizeB BIGINT FROM Err.Value.szB,
+	originTag INT FROM Err.Value.otag,
+	FOREIGN KEY(origin_execontext_id) FROM Err.Value.origin_ec REFERENCES IPVT POINTER
+)$
+
+CREATE VIRTUAL TABLE ErrorValueVT
+USING STRUCT VIEW ErrorValueV
+WITH REGISTERED C TYPE MC_Error$
+
+CREATE STRUCT VIEW ErrorCondV (
+	originTag INT FROM Err.Cond.otag,
+	FOREIGN KEY(origin_execontext_id) FROM Err.Cond.origin_ec REFERENCES IPVT POINTER
+)$
+
+CREATE VIRTUAL TABLE ErrorCondVT
+USING STRUCT VIEW ErrorCondV
+WITH REGISTERED C TYPE MC_Error$
+
+CREATE STRUCT VIEW ErrorCoreMemV (
+	stub BIGINT FROM get_stub(tuple_iter)
+)$
+
+CREATE VIRTUAL TABLE ErrorCoreMemVT
+USING STRUCT VIEW ErrorCoreMemV
+WITH REGISTERED C TYPE MC_Error$
+
+CREATE STRUCT VIEW ErrorAddrV (
+	isWrite INT FROM Err.Addr.isWrite,
+	sizeB BIGINT FROM Err.Addr.szB,
+	maybeGcc INT FROM Err.Addr.maybe_gcc,
+// instrument AddrInfo and use includes struct view or join
+	addrInfoTag INT FROM Err.Addr.ai.tag
+)$
+
+CREATE VIRTUAL TABLE ErrorAddrVT
+USING STRUCT VIEW ErrorAddrV
+WITH REGISTERED C TYPE MC_Error$
+
+CREATE STRUCT VIEW ErrorJumpV (
+	stub BIGINT FROM get_stub(tuple_iter),
+	addrInfoTag INT FROM Err.Jump.ai.tag
+)$
+
+CREATE VIRTUAL TABLE ErrorJumpVT
+USING STRUCT VIEW ErrorJumpV
+WITH REGISTERED C TYPE MC_Error$
+
+CREATE STRUCT VIEW ErrorRegParamV (
+	originTag INT FROM Err.RegParam.otag,
+	FOREIGN KEY(origin_execontext_id) FROM Err.RegParam.origin_ec REFERENCES IPVT POINTER
+)$
+
+CREATE VIRTUAL TABLE ErrorRegParamVT
+USING STRUCT VIEW ErrorRegParamV
+WITH REGISTERED C TYPE MC_Error$
+
+CREATE STRUCT VIEW ErrorMemParamV (
+	originTag INT FROM Err.MemParam.otag,
+	FOREIGN KEY(origin_execontext_id) FROM Err.MemParam.origin_ec REFERENCES IPVT POINTER
+)$
+
+CREATE VIRTUAL TABLE ErrorMemParamVT
+USING STRUCT VIEW ErrorMemParamV
+WITH REGISTERED C TYPE MC_Error$
+
+CREATE STRUCT VIEW ErrorUserV (
+	isAddrError INT FROM Err.User.isAddrErr,
+	addrInfoTag INT FROM Err.User.ai.tag,
+	originTag INT FROM Err.User.otag,
+	FOREIGN KEY(origin_execontext_id) FROM Err.User.origin_ec REFERENCES IPVT POINTER
+)$
+
+CREATE VIRTUAL TABLE ErrorUserVT
+USING STRUCT VIEW ErrorUserV
+WITH REGISTERED C TYPE MC_Error$
+
+CREATE STRUCT VIEW ErrorFreeV (
+	stub BIGINT FROM get_stub(tuple_iter),
+	addrInfoTag INT FROM Err.Free.ai.tag
+)$
+
+CREATE VIRTUAL TABLE ErrorFreeVT
+USING STRUCT VIEW ErrorFreeV
+WITH REGISTERED C TYPE MC_Error$
+
+CREATE STRUCT VIEW ErrorFreeMismatchV (
+	stub BIGINT FROM get_stub(tuple_iter),
+	addrInfoTag INT FROM Err.FreeMismatch.ai.tag
+)$
+
+CREATE VIRTUAL TABLE ErrorFreeMismatchVT
+USING STRUCT VIEW ErrorFreeMismatchV
+WITH REGISTERED C TYPE MC_Error$
+
+CREATE STRUCT VIEW ErrorOverlapV (
+	addrSrc BIGINT FROM Err.Overlap.src,
+	addrDest BIGINT FROM Err.Overlap.dst,
+	sizeB BIGINT FROM Err.Overlap.szB
+)$
+
+CREATE VIRTUAL TABLE ErrorOverlapVT
+USING STRUCT VIEW ErrorOverlapV
+WITH REGISTERED C TYPE MC_Error$
+
+CREATE STRUCT VIEW ErrorLeakV (
+	nThisRecord INT FROM Err.Leak.n_this_record,
+	nTotalRecords INT FROM Err.Leak.n_total_records,
+// instrument LossRecord
+	lr_sizeB BIGINT FROM Err.Leak.lr->szB
+)$
+
+CREATE VIRTUAL TABLE ErrorLeakVT
+USING STRUCT VIEW ErrorLeakV
+WITH REGISTERED C TYPE MC_Error$
+
+CREATE STRUCT VIEW ErrorIllegalMempoolV (
+	stub BIGINT FROM get_stub(tuple_iter),
+	addrInfoTag INT FROM Err.IllegalMempool.ai.tag
+)$
+
+CREATE VIRTUAL TABLE ErrorIllegalMempoolVT
+USING STRUCT VIEW ErrorIllegalMempoolV
+WITH REGISTERED C TYPE MC_Error$
+
+
+CREATE STRUCT VIEW ErrorV (
+	name TEXT FROM string,
+	id INT FROM unique,
+	addr_data BIGINT FROM addr,
+	thread_id INT FROM tid,
+	count INT FROM count,
+	FOREIGN KEY(execontext_id) FROM where REFERENCES IPVT POINTER,
+	kind INT FROM ekind,
+	mc_kind INT FROM VG_(get_error_kind)(tuple_iter),
+	FOREIGN KEY(value_id) FROM {send_MC_Error(tuple_iter, 0)} REFERENCES ErrorValueVT POINTER,
+	FOREIGN KEY(cond_id) FROM {send_MC_Error(tuple_iter, 1)} REFERENCES ErrorCondVT POINTER,
+	FOREIGN KEY(coremem_id) FROM {send_MC_Error(tuple_iter, 2)} REFERENCES ErrorCoreMemVT POINTER,
+	FOREIGN KEY(addr_id) FROM {send_MC_Error(tuple_iter, 3)} REFERENCES ErrorAddrVT POINTER,
+	FOREIGN KEY(jump_id) FROM {send_MC_Error(tuple_iter, 4)} REFERENCES ErrorJumpVT POINTER,
+	FOREIGN KEY(regparam_id) FROM {send_MC_Error(tuple_iter, 5)} REFERENCES ErrorRegParamVT POINTER,
+	FOREIGN KEY(memparam_id) FROM {send_MC_Error(tuple_iter, 6)} REFERENCES ErrorMemParamVT POINTER,
+	FOREIGN KEY(user_id) FROM {send_MC_Error(tuple_iter, 7)} REFERENCES ErrorUserVT POINTER,
+	FOREIGN KEY(free_id) FROM {send_MC_Error(tuple_iter, 8)} REFERENCES ErrorFreeVT POINTER,
+	FOREIGN KEY(freemismatch_id) FROM {send_MC_Error(tuple_iter, 9)} REFERENCES ErrorFreeMismatchVT POINTER,
+	FOREIGN KEY(overlap_id) FROM {send_MC_Error(tuple_iter, 10)} REFERENCES ErrorOverlapVT POINTER,
+	FOREIGN KEY(leak_id) FROM {send_MC_Error(tuple_iter, 11)} REFERENCES ErrorLeakVT POINTER,
+	FOREIGN KEY(illegalmempool_id) FROM {send_MC_Error(tuple_iter, 12)} REFERENCES ErrorIllegalMempoolVT POINTER
+)$
+
+//   switch (VG_(get_error_kind)(err)) {
+CREATE VIRTUAL TABLE ErrorVT
+USING STRUCT VIEW ErrorV
+WITH REGISTERED C NAME errorList
+WITH REGISTERED C TYPE Error
+USING LOOP for(tuple_iter = base; tuple_iter != NULL; tuple_iter = tuple_iter->next)$
+
+CREATE STRUCT VIEW SuppressionV (
+	name TEXT FROM sname,
+	description TEXT FROM {HChar plc[] = "N/A";
+				get_descr(tuple_iter->string, plc)},
+	kind INT FROM skind,
+	count INT FROM count,
+	nCallers INT FROM n_callers
+)$
+
+CREATE VIRTUAL TABLE SuppressionVT
+USING STRUCT VIEW SuppressionV
+WITH REGISTERED C NAME suppressionList
+WITH REGISTERED C TYPE Supp
+USING LOOP for(tuple_iter = base; tuple_iter != NULL; tuple_iter = tuple_iter->next)$
+
 CREATE VIEW VAbitTags AS
 	SELECT base, addr_data, inPrim, vabits,
-        	(SELECT case WHEN vabits_1B = 0 THEN 'noaccess'
+        	(SELECT CASE WHEN vabits_1B = 0 THEN 'noaccess'
 		     	WHEN vabits_1B = 1 THEN 'undefined'
 		     	WHEN vabits_1B = 2 THEN 'defined'
 		     	WHEN vabits_1B = 3 THEN 'partdefined' END) VATag_1B,
-        	(SELECT case WHEN vbits_1B = 0 THEN 'defined-VG_BUG?'
+        	(SELECT CASE WHEN vbits_1B = 0 THEN 'defined-VG_BUG?'
 		     	WHEN vbits_1B = -1 THEN '-'
 		     	WHEN vbits_1B = 255 THEN 'undefined-VG_BUG?'
 		     	ELSE vbits_1B END) VTag_1B,
-        	(SELECT case WHEN vabits_2B = 0 THEN 'noaccess'
+        	(SELECT CASE WHEN vabits_2B = 0 THEN 'noaccess'
 		 	WHEN vabits_2B = 1 THEN 'undefined'
 		     	WHEN vabits_2B = 2 THEN 'defined'
 		     	WHEN vabits_2B = 3 THEN 'partdefined' END) VATag_2B,
-        	(SELECT case WHEN vbits_2B = 0 THEN 'defined-VG_BUG?'
+        	(SELECT CASE WHEN vbits_2B = 0 THEN 'defined-VG_BUG?'
 		     	WHEN vbits_2B = -1 THEN '-'
 		     	WHEN vbits_2B = 255 THEN 'undefined-VG_BUG?'
 		     	ELSE vbits_2B END) VTag_2B,
-        	(SELECT case WHEN vabits_3B = 0 THEN 'noaccess'
+        	(SELECT CASE WHEN vabits_3B = 0 THEN 'noaccess'
 		     	WHEN vabits_3B = 1 THEN 'undefined'
 		     	WHEN vabits_3B = 2 THEN 'defined'
 		     	WHEN vabits_3B = 3 THEN 'partdefined' END) VATag_3B,
-        	(SELECT case WHEN vbits_3B = 0 THEN 'defined-VG_BUG?'
+        	(SELECT CASE WHEN vbits_3B = 0 THEN 'defined-VG_BUG?'
 		     	WHEN vbits_3B = -1 THEN '-'
 		     	WHEN vbits_3B = 255 THEN 'undefined-VG_BUG?'
 		     	ELSE vbits_3B END) VTag_3B,
-        	(SELECT case WHEN vabits_4B = 0 THEN 'noaccess'
+        	(SELECT CASE WHEN vabits_4B = 0 THEN 'noaccess'
 		     	WHEN vabits_4B = 1 THEN 'undefined'
 		     	WHEN vabits_4B = 2 THEN 'defined'
 		     	WHEN vabits_4B = 3 THEN 'partdefined' END) VATag_4B,
-        	(SELECT case WHEN vbits_4B = 0 THEN 'defined-VG_BUG?'
+        	(SELECT CASE WHEN vbits_4B = 0 THEN 'defined-VG_BUG?'
 		     	WHEN vbits_4B = -1 THEN '-'
 		     	WHEN vbits_4B = 255 THEN 'undefined-VG_BUG?'
 		     	ELSE vbits_4B END) VTag_4B
@@ -565,7 +1036,7 @@ CREATE VIEW VAbitTags AS
 	
 CREATE VIEW ClassifyOCacheLine AS
 	SELECT addr_tag, classification,
-		(SELECT case WHEN classification=101 THEN 'no_useful_info'
+		(SELECT CASE WHEN classification=101 THEN 'no_useful_info'
 			WHEN classification=122 THEN 'empty'
 			ELSE 'useful_info' END) clf_tag,
 		w32_id, descr_id
@@ -622,5 +1093,59 @@ CREATE VIEW CountClustersPerBlockMemProfileQ AS
 	SELECT block_addr, fn_name, COUNT(*) AS clusters
 	FROM ClusterBytesMemProfileQ
 	GROUP BY block_addr
-	ORDER BY clusters desc;
+	ORDER BY clusters desc;$
 
+// This does not work perfectly because the error is in a
+// data address, hence you need a data description for
+// that particular entry, not an IP description.
+// Also it would be nice to have a rownum column available
+// to be able to see only that entry; that would be (ExeContext*)->ips[1].
+CREATE VIEW GroupErrorQ AS
+	SELECT * 
+	FROM ErrorVT
+	JOIN IPVT
+	ON base=execontext_id
+	GROUP BY fn_name;$
+
+CREATE VIEW InspectErrorQ AS
+	SELECT
+		(SELECT CASE WHEN kind = 0 THEN 'Err_Value'
+			     WHEN kind = 1 THEN 'Err_Cond'
+			     WHEN kind = 2 THEN 'Err_CoreMem'
+			     WHEN kind = 3 THEN 'Err_Addr'
+			     WHEN kind = 4 THEN 'Err_Jump'
+			     WHEN kind = 5 THEN 'Err_RegParam'
+			     WHEN kind = 6 THEN 'Err_MemParam'
+			     WHEN kind = 7 THEN 'Err_User'
+			     WHEN kind = 8 THEN 'Err_Free'
+			     WHEN kind = 9 THEN 'Err_FreeMismatch'
+			     WHEN kind = 10 THEN 'Err_Overlap'
+			     WHEN kind = 11 THEN 'Err_Leak'
+			     WHEN kind = 12 THEN 'Err_IllegalMempool' END) mcErrorTag, *
+	FROM ErrorVT
+	JOIN ErrorValueVT EV
+	ON EV.base = value_id
+	JOIN ErrorCondVT EC
+	ON EC.base = cond_id
+	JOIN ErrorCoreMemVT ECM
+	ON ECM.base = coremem_id
+	JOIN ErrorAddrVT EA
+	ON EA.base = addr_id
+	JOIN ErrorJumpVT EJ
+	ON EJ.base = jump_id
+	JOIN ErrorRegParamVT ERP
+	ON ERP.base = regparam_id
+	JOIN ErrorMemParamVT EMP
+	ON EMP.base = memparam_id
+	JOIN ErrorUserVT EU
+	ON EU.base = user_id
+	JOIN ErrorFreeVT EF
+	ON EF.base = free_id
+	JOIN ErrorFreeMismatchVT EFM
+	ON EFM.base = freemismatch_id
+	JOIN ErrorOverlapVT EO
+	ON EO.base = overlap_id
+	JOIN ErrorLeakVT EL
+	ON EL.base = leak_id
+	JOIN ErrorIllegalMempoolVT EIM
+	ON EIM.base = illegalmempool_id;
