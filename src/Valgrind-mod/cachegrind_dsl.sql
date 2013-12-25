@@ -69,3 +69,24 @@ WITH REGISTERED C NAME cachegrind_out_table
 WITH REGISTERED C TYPE OSet:LineCC*
 USING LOOP VG_(OSetGen_ResetIter)(base);for (CachegrindVT_begin(tuple_iter, base);CachegrindVT_end(tuple_iter);CachegrindVT_advance(tuple_iter, base))$
 
+CREATE VIEW FilterOrderCacheQ AS
+	SELECT *
+	FROM CachegrindVT
+	WHERE cacheInstrRMemAc > 100000
+	ORDER BY cacheInstrRMemMissL1, cacheInstrRMemMissL2;$
+
+CREATE VIEW FilterFuncCacheQ AS
+	SELECT *
+	FROM CachegrindVT
+	WHERE codeLocFunc LIKE '%lookup%'
+	ORDER BY cacheDataRMemMissL1 desc;$
+
+CREATE VIEW GroupFuncCacheQ AS
+	SELECT codeLocFile, codeLocFunc, codeLocLine,
+	       SUM(cacheInstrRMemAc) AS instrReadAcc, SUM(cacheInstrRMemMissL1) AS instrReadMissL1, SUM(cacheInstrRMemMissL2) AS instrReadMissL2,
+	       SUM(cacheDataRMemAc) AS dataReadAcc, SUM(cacheDataRMemMissL1) AS dataReadMissL1, SUM(cacheDataRMemMissL2) AS dataReadMissL2,
+	       SUM(cacheDataWMemAc) AS dataWriteAcc, SUM(cacheDataWMemMissL1) AS dataWriteMissL1, SUM(cacheDataWMemMissL2) AS dataWriteMissL2
+	FROM CachegrindVT
+	GROUP BY codeLocFunc
+	ORDER BY dataWriteMissL1 desc;$
+
