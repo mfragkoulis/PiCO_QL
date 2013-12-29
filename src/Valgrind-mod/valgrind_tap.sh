@@ -27,6 +27,8 @@ cp cachegrind_cg_main.c ../../../cachegrind/cg_main.c
 cp memcheck_Makefile.in ../../../memcheck/Makefile.in
 cp memcheck_mc_main.c ../../../memcheck/mc_main.c
 cp memcheck_mc_errors.c ../../../memcheck/mc_errors.c
+cp callgrind_Makefile.in ../../../callgrind/Makefile.in
+cp callgrind_main.c ../../../callgrind/main.c
 printf "\nNow you can configure, compile, and install Valgrind\n \
 in the usual manner by executing \n\n \
 ./configure && make && make install\n\n \
