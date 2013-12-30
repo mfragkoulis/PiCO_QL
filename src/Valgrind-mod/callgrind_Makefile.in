@@ -767,16 +767,16 @@ VG_TOOL := callgrind
 export VG_TOOL
 
 PICO_QL_srcdir = ../PiCO_QL/src/Valgrind-mod
-PICO_QL_CFLAGS_@VGCONF_ARCH_PRI@_@VGCONF_OS@ := $(DEFS) $(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CFLAGS) -Wno-long-long -fno-stack-protector
+PICO_QL_CFLAGS_@VGCONF_ARCH_PRI@_@VGCONF_OS@ := $(DEFS) $(callgrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(callgrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CFLAGS) -Wno-long-long -fno-stack-protector
 export PICO_QL_CFLAGS_@VGCONF_ARCH_PRI@_@VGCONF_OS@
-PICO_QL_CFLAGS_@VGCONF_ARCH_SEC@_@VGCONF_OS@ := $(DEFS) $(cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CFLAGS) -Wno-long-long -fno-stack-protector
+PICO_QL_CFLAGS_@VGCONF_ARCH_SEC@_@VGCONF_OS@ := $(DEFS) $(callgrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(callgrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CFLAGS) -Wno-long-long -fno-stack-protector
 export PICO_QL_CFLAGS_@VGCONF_ARCH_SEC@_@VGCONF_OS@
 
 libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@:
-	$(MAKE) -C $(PICO_QL_srcdir) libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@ && cp $(PICO_QL_srcdir)/picoQL-gui .
+	$(MAKE) -C $(PICO_QL_srcdir) libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@
 
 @VGCONF_HAVE_PLATFORM_SEC_TRUE@libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@:
-@VGCONF_HAVE_PLATFORM_SEC_TRUE@ $(MAKE) -C $(PICO_QL_srcdir) libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@
+@VGCONF_HAVE_PLATFORM_SEC_TRUE@	$(MAKE) -C $(PICO_QL_srcdir) libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@
 
 clean-noinstPROGRAMS:
 	-test -z "$(noinst_PROGRAMS)" || rm -f $(noinst_PROGRAMS)
