@@ -43,6 +43,11 @@
 
 #define BbccListBbVT_decl(X) BBCC *X 
 
+#define ExecStackVT_decl(X) exec_state *X;int i = 0 
+#define ExecStackVT_begin(X,Y,Z) X = Y[Z]
+#define ExecStackVT_end(X,Y) X < Y
+#define ExecStackVT_advance(X,Y,Z) X = Y[Z]
+
 #define FullCostVT_decl(X) long X;int i = 0
 #define FullCostVT_begin(X,Y,Z) X = (long)Y[Z]
 #define FullCostVT_end(X,Y) X < Y
@@ -199,13 +204,22 @@ WITH REGISTERED C TYPE call_stack:call_entry*
 USING LOOP for(CallStackVT_begin(tuple_iter, base->entry, i); CallStackVT_end(i, base->sp); CallStackVT_advance(tuple_iter, base->entry, ++i))$
 $
 
-CREATE STRUCT VIEW ExecStackV (
-	sp INT FROM sp
+CREATE STRUCT VIEW ExecStateV (
+	sig INT FROM sig,
+	orig_sp INT FROM orig_sp,
+	FOREIGN KEY(cost_id) FROM cost REFERENCES FullCostVT POINTER,
+	collect INT FROM collect,
+	FOREIGN KEY(cxt_id) FROM cxt REFERENCES FnDepsVT POINTER,
+	jmps_passed INT FROM jmps_passed,
+	FOREIGN KEY(bbcc_id) FROM bbcc REFERENCES BbccVT POINTER,
+	FOREIGN KEY(nonskipped_bbcc_id) FROM nonskipped REFERENCES BbccVT POINTER,
+	call_stack_bottom INT FROM call_stack_bottom
 )$
 
 CREATE VIRTUAL TABLE ExecStackVT
-USING STRUCT VIEW ExecStackV
-WITH REGISTERED C TYPE exec_stack$
+USING STRUCT VIEW ExecStateV
+WITH REGISTERED C TYPE exec_stack:exec_state*
+USING LOOP for(ExecStackVT_begin(tuple_iter, base->entry, i); ExecStackVT_end(i, MAX_SIGHANDLERS); ExecStackVT_advance(tuple_iter, base->entry, ++i))$
 
 CREATE STRUCT VIEW FnArrayV (
 	size INT FROM size
