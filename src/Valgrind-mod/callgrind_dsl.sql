@@ -14,10 +14,10 @@
 
 #define FnChainVT_decl(X) fn_node *X
 
-#define FnDepsVT_decl(X) fn_node *X;int i = 1 // i = 0 the function we are at
-#define FnDepsVT_begin(X,Y,Z) X = Y[Z]
-#define FndepsVT_end(X,Y) X < Y
-#define FnDepsVT_advance(X,Y,Z) X = Y[Z]
+#define FnCxtVT_decl(X) fn_node *X;int i = 1 // i = 0 the function we are at
+#define FnCxtVT_begin(X,Y,Z) X = Y[Z]
+#define FnCxtVT_end(X,Y) X < Y
+#define FnCxtVT_advance(X,Y,Z) X = Y[Z]
 
 #define FileFunctionsVT_decl(X) fn_node *X;int i = 0 
 #define FileFunctionsVT_begin(X,Y,Z) X = Y[Z]
@@ -48,6 +48,21 @@
 #define ExecStackVT_end(X,Y) X < Y
 #define ExecStackVT_advance(X,Y,Z) X = Y[Z]
 
+#define FnArrayVT_decl(X) int X;int i = 0 
+#define FnArrayVT_begin(X,Y,Z) X = Y[Z]
+#define FnArrayVT_end(X,Y) X < Y
+#define FnArrayVT_advance(X,Y,Z) X = Y[Z]
+
+#define JccHashVT_decl(X) jCC *X;int i = 0 
+#define JccHashVT_begin(X,Y,Z) X = Y[Z]
+#define JccHashVT_end(X,Y) X < Y
+#define JccHashVT_advance(X,Y,Z) X = Y[Z]
+
+#define BbccHashVT_decl(X) BBCC *X;int i = 0 
+#define BbccHashVT_begin(X,Y,Z) X = Y[Z]
+#define BbccHashVT_end(X,Y) X < Y
+#define BbccHashVT_advance(X,Y,Z) X = Y[Z]
+
 #define FullCostVT_decl(X) long X;int i = 0
 #define FullCostVT_begin(X,Y,Z) X = (long)Y[Z]
 #define FullCostVT_end(X,Y) X < Y
@@ -61,8 +76,8 @@ CREATE STRUCT VIEW FnNodeV (
 	in_obj TEXT FROM file->obj->name, // ++ ObjFilesVT, addr, size, offset
 	number INT FROM number,
 	FOREIGN KEY(fnchain_id) FROM next REFERENCES FnChainVT POINTER,
-	FOREIGN KEY(last_cxt_id) FROM last_cxt REFERENCES FnDepsVT POINTER,
-	FOREIGN KEY(pure_cxt_id) FROM pure_cxt REFERENCES FnDepsVT POINTER,
+	FOREIGN KEY(last_cxt_id) FROM last_cxt REFERENCES FnCxtVT POINTER,
+	FOREIGN KEY(pure_cxt_id) FROM pure_cxt REFERENCES FnCxtVT POINTER,
 	FOREIGN KEY(file_node_id) FROM file REFERENCES FileFunctionsVT POINTER,
 	dump_before INT FROM dump_before,
 	dump_after INT FROM dump_after,
@@ -92,10 +107,10 @@ USING STRUCT VIEW FnNodeV
 WITH REGISTERED C TYPE fn_node
 USING LOOP for(tuple_iter = base; tuple_iter != NULL; tuple_iter = tuple_iter->next)$
 
-CREATE VIRTUAL TABLE FnDepsVT
+CREATE VIRTUAL TABLE FnCxtVT
 USING STRUCT VIEW FnNodeV
 WITH REGISTERED C TYPE Context:fn_node*
-USING LOOP for(FnDepsVT_begin(tuple_iter, base->fn, i); FnStackVT_end(i, base->size); FnStackVT_advance(tuple_iter, base->fn, ++i))$
+USING LOOP for(FnCxtVT_begin(tuple_iter, base->fn, i); FnCxtVT_end(i, base->size); FnCxtVT_advance(tuple_iter, base->fn, ++i))$
 
 CREATE VIRTUAL TABLE FileFunctionsVT
 USING STRUCT VIEW FnNodeV
@@ -147,10 +162,10 @@ WITH REGISTERED C TYPE BB$
 
 CREATE STRUCT VIEW BbccV (
 	FOREIGN KEY(bb_id) FROM bb REFERENCES BbVT POINTER,
-	FOREIGN KEY(cxt_id) FROM cxt REFERENCES FnDepsVT POINTER,
+	FOREIGN KEY(cxt_id) FROM cxt REFERENCES FnCxtVT POINTER,
 	tid INT FROM tid,
 	recursion_index INT FROM rec_index,
-	FOREIGN KEY(recursion_array_id) FROM rec_array REFERENCES BbccRecursionVT POINTER,
+	//FOREIGN KEY(recursion_array_id) FROM rec_array REFERENCES BbccRecursionVT POINTER,
 	ret_counter BIGINT FROM ret_counter,
 	FOREIGN KEY(next_bbcc_id) FROM next_bbcc REFERENCES BbccListBbVT POINTER,
 	FOREIGN KEY(lru_next_bbcc_id) FROM lru_next_bbcc REFERENCES BbccVT POINTER,
@@ -194,7 +209,7 @@ CREATE STRUCT VIEW CallEntryV (
 	sp_addr BIGINT FROM sp,
 	ret_addr BIGINT FROM ret_addr,
 	FOREIGN KEY(nonskipped_bbcc_id) FROM nonskipped REFERENCES BbccVT POINTER,
-	FOREIGN KEY(cxt_id) FROM cxt REFERENCES FnDepsVT POINTER,
+	FOREIGN KEY(cxt_id) FROM cxt REFERENCES FnCxtVT POINTER,
         fn_sp INT FROM fn_sp
 )$
 
@@ -209,7 +224,7 @@ CREATE STRUCT VIEW ExecStateV (
 	orig_sp INT FROM orig_sp,
 	FOREIGN KEY(cost_id) FROM cost REFERENCES FullCostVT POINTER,
 	collect INT FROM collect,
-	FOREIGN KEY(cxt_id) FROM cxt REFERENCES FnDepsVT POINTER,
+	FOREIGN KEY(cxt_id) FROM cxt REFERENCES FnCxtVT POINTER,
 	jmps_passed INT FROM jmps_passed,
 	FOREIGN KEY(bbcc_id) FROM bbcc REFERENCES BbccVT POINTER,
 	FOREIGN KEY(nonskipped_bbcc_id) FROM nonskipped REFERENCES BbccVT POINTER,
@@ -222,12 +237,13 @@ WITH REGISTERED C TYPE exec_stack:exec_state*
 USING LOOP for(ExecStackVT_begin(tuple_iter, base->entry, i); ExecStackVT_end(i, MAX_SIGHANDLERS); ExecStackVT_advance(tuple_iter, base->entry, ++i))$
 
 CREATE STRUCT VIEW FnArrayV (
-	size INT FROM size
+	active_count INT FROM tuple_iter
 )$
 
 CREATE VIRTUAL TABLE FnArrayVT
 USING STRUCT VIEW FnArrayV
-WITH REGISTERED C TYPE fn_array$
+WITH REGISTERED C TYPE fn_array:int
+USING LOOP for(FnArrayVT_begin(tuple_iter, base->array, i); FnArrayVT_end(i, base->size); FnArrayVT_advance(tuple_iter, base->array, ++i))$
 
 CREATE STRUCT VIEW JccHashV (
 	size INT FROM size,
@@ -235,8 +251,9 @@ CREATE STRUCT VIEW JccHashV (
 )$
 
 CREATE VIRTUAL TABLE JccHashVT
-USING STRUCT VIEW JccHashV
-WITH REGISTERED C TYPE jcc_hash$
+USING STRUCT VIEW JccV
+WITH REGISTERED C TYPE jcc_hash:jCC*
+USING LOOP for(JccHashVT_begin(tuple_iter, base->table, i); JccHashVT_end(i, base->size); JccHashVT_advance(tuple_iter, base->table, ++i))$
 
 CREATE STRUCT VIEW BbccHashV (
 	size INT FROM size,
@@ -244,8 +261,9 @@ CREATE STRUCT VIEW BbccHashV (
 )$
 
 CREATE VIRTUAL TABLE BbccHashVT
-USING STRUCT VIEW BbccHashV
-WITH REGISTERED C TYPE bbcc_hash$
+USING STRUCT VIEW BbccV
+WITH REGISTERED C TYPE bbcc_hash:BBCC*
+USING LOOP for(JccHashVT_begin(tuple_iter, base->table, i); JccHashVT_end(i, base->size); JccHashVT_advance(tuple_iter, base->table, ++i))$
 
 CREATE STRUCT VIEW FullCostV (
 	//event TEXT FROM get
