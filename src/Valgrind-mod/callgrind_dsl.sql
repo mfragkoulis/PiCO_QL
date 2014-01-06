@@ -34,6 +34,11 @@
 #define JmpInfoVT_end(X,Y) X < Y
 #define JmpInfoVT_advance(X,Y,Z) X = &Y[Z]
 
+#define JmpDataVT_decl(X) JmpData *X;int i = 0 
+#define JmpDataVT_begin(X,Y,Z) X = (JmpData *)&Y[Z]
+#define JmpDataVT_end(X,Y) ((X) || (Y)) == 0 ? 1 : X < Y
+#define JmpDataVT_advance(X,Y,Z) X = (JmpData *)&Y[Z]
+
 #define CallStackVT_decl(X) call_entry *X;int i = 0 
 #define CallStackVT_begin(X,Y,Z) X = &Y[Z]
 #define CallStackVT_end(X,Y) X < Y
@@ -42,6 +47,11 @@
 #define JccFromBbccListVT_decl(X) jCC *X 
 
 #define BbccListBbVT_decl(X) BBCC *X 
+
+#define BbccRecArrayVT_decl(X) BBCC *X;int i = 0 
+#define BbccRecArrayVT_begin(X,Y,Z) X = Y[Z]
+#define BbccRecArrayVT_end(X,Y) X < Y
+#define BbccRecArrayVT_advance(X,Y,Z) X = Y[Z]
 
 #define ExecStackVT_decl(X) exec_state *X;int i = 0 
 #define ExecStackVT_begin(X,Y,Z) X = Y[Z]
@@ -63,10 +73,18 @@
 #define BbccHashVT_end(X,Y) X < Y
 #define BbccHashVT_advance(X,Y,Z) X = Y[Z]
 
-#define FullCostVT_decl(X) long X;int i = 0
-#define FullCostVT_begin(X,Y,Z) X = (long)Y[Z]
-#define FullCostVT_end(X,Y) X < Y
-#define FullCostVT_advance(X,Y,Z) X = (long)Y[Z]
+//#define FullCostVT_decl(X) long X;int i = 0
+//#define FullCostVT_begin(X,Y,Z) X = (long)Y[Z]
+//#define FullCostVT_end(X,Y) X < Y
+//#define FullCostVT_advance(X,Y,Z) X = (long)Y[Z]
+
+static int get_mangled_no(BBCC *bbcc) {
+  return bbcc->cxt->base_number + bbcc->rec_index;
+};
+
+static long get_cost_offset(FullCost *f, int index) {
+  return (long)f[index];
+};
 
 $
 
@@ -127,7 +145,7 @@ CREATE STRUCT VIEW InstrInfoV (
 CREATE VIRTUAL TABLE InstrInfoVT
 USING STRUCT VIEW InstrInfoV
 WITH REGISTERED C TYPE BB:InstrInfo*
-USING LOOP for(JmpInfoVT_begin(tuple_iter, base->instr, i); JmpInfoVT_end(i, base->instr_len); JmpInfoVT_advance(tuple_iter, base->instr, ++i))$
+USING LOOP for(InstrInfoVT_begin(tuple_iter, base->instr, i); InstrInfoVT_end(i, base->instr_len); InstrInfoVT_advance(tuple_iter, base->instr, ++i))$
 
 CREATE STRUCT VIEW JmpInfoV (
 	instr_index INT FROM instr,
@@ -140,6 +158,7 @@ WITH REGISTERED C TYPE BB:CJmpInfo*
 USING LOOP for(JmpInfoVT_begin(tuple_iter, base->jmp, i); JmpInfoVT_end(i, base->cjmp_count); JmpInfoVT_advance(tuple_iter, base->jmp, ++i))$
 
 CREATE STRUCT VIEW BbV (
+	addr BIGINT FROM bb_addr(tuple_iter),
 	in_obj TEXT FROM obj->name,
 	in_obj_offset BIGINT FROM offset,
 	section INT FROM sect_kind,
@@ -160,19 +179,30 @@ CREATE VIRTUAL TABLE BbVT
 USING STRUCT VIEW BbV
 WITH REGISTERED C TYPE BB$
 
+CREATE STRUCT VIEW JmpDataV (
+       ecounter INT FROM ecounter,
+       FOREIGN KEY(jcc_list_id) FROM jcc_list REFERENCES JccFromBbccListVT POINTER
+)$
+
+CREATE VIRTUAL TABLE JmpDataVT
+USING STRUCT VIEW JmpDataV
+WITH REGISTERED C TYPE BBCC*:JmpData*
+USING LOOP for(JmpDataVT_begin(tuple_iter, base->jmp, i); JmpDataVT_end(i, base->bb->cjmp_count); JmpDataVT_advance(tuple_iter, base, ++i))$
+
 CREATE STRUCT VIEW BbccV (
 	FOREIGN KEY(bb_id) FROM bb REFERENCES BbVT POINTER,
 	FOREIGN KEY(cxt_id) FROM cxt REFERENCES FnCxtVT POINTER,
 	tid INT FROM tid,
+	mangled_no INT FROM get_mangled_no(tuple_iter),
 	recursion_index INT FROM rec_index,
-	//FOREIGN KEY(recursion_array_id) FROM rec_array REFERENCES BbccRecursionVT POINTER,
+	FOREIGN KEY(recursion_array_id) FROM tuple_iter REFERENCES BbccRecArrayVT POINTER,
 	ret_counter BIGINT FROM ret_counter,
 	FOREIGN KEY(next_bbcc_id) FROM next_bbcc REFERENCES BbccListBbVT POINTER,
 	FOREIGN KEY(lru_next_bbcc_id) FROM lru_next_bbcc REFERENCES BbccVT POINTER,
 	FOREIGN KEY(skippedfn_cost_id) FROM skipped REFERENCES FullCostVT POINTER,
 	FOREIGN KEY(cost_id) FROM cost REFERENCES FullCostVT POINTER,
-	ecounter_sum BIGINT FROM ecounter_sum
-    //JmpData  jmp[0];
+	ecounter_sum BIGINT FROM ecounter_sum,
+	FOREIGN KEY(jmp_data_id) FROM tuple_iter REFERENCES JmpDataVT POINTER
 )$
 
 CREATE VIRTUAL TABLE BbccVT
@@ -183,6 +213,11 @@ CREATE VIRTUAL TABLE BbccListBbVT
 USING STRUCT VIEW BbccV
 WITH REGISTERED C TYPE BBCC
 USING LOOP for(tuple_iter = base; tuple_iter != NULL; tuple_iter = base->next_bbcc)$
+
+CREATE VIRTUAL TABLE BbccRecArrayVT
+USING STRUCT VIEW BbccV
+WITH REGISTERED C TYPE BBCC*:BBCC*
+USING LOOP for(BbccRecArrayVT_begin(tuple_iter, base->rec_array, i); BbccRecArrayVT_end(i, base->cxt->fn[0]->separate_recursions); BbccRecArrayVT_advance(tuple_iter, base->rec_array, ++i))$
 
 CREATE STRUCT VIEW JccV (
 	jmp_kind INT FROM jmpkind,
@@ -201,7 +236,7 @@ WITH REGISTERED C TYPE jCC$
 CREATE VIRTUAL TABLE JccFromBbccListVT
 USING STRUCT VIEW JccV
 WITH REGISTERED C TYPE jCC
-USING LOOP for(tuple_iter = base; tuple_iter != NULL; tuple_iter = base->next_from)$
+USING LOOP for(tuple_iter = base; tuple_iter != NULL; tuple_iter = tuple_iter->next_from)$
 
 CREATE STRUCT VIEW CallEntryV (
 	FOREIGN KEY(jcc_id) FROM jcc REFERENCES JccVT POINTER,
@@ -263,17 +298,21 @@ CREATE STRUCT VIEW BbccHashV (
 CREATE VIRTUAL TABLE BbccHashVT
 USING STRUCT VIEW BbccV
 WITH REGISTERED C TYPE bbcc_hash:BBCC*
-USING LOOP for(JccHashVT_begin(tuple_iter, base->table, i); JccHashVT_end(i, base->size); JccHashVT_advance(tuple_iter, base->table, ++i))$
+USING LOOP for(BbccHashVT_begin(tuple_iter, base->table, i); BbccHashVT_end(i, base->size); BbccHashVT_advance(tuple_iter, base->table, ++i)) {
+               for(;tuple_iter != NULL; tuple_iter = tuple_iter->next)$
+//                     for(BbccHashVT_begin(tuple_iter, tuple_iter->rec_array, h); BbccHashVT_end(h, tuple_iter->cxt->fn[0]->separate_recursions); BbccHashVT_advance(tuple_iter, tuple_iter->rec_array, ++h))$
+
 
 CREATE STRUCT VIEW FullCostV (
 	//event TEXT FROM get
-	cost BIGINT FROM tuple_iter
+	ir BIGINT FROM {get_cost_offset(tuple_iter, 0)}
 )$
 
 CREATE VIRTUAL TABLE FullCostVT
 USING STRUCT VIEW FullCostV
-WITH REGISTERED C TYPE FullCost:long
-USING LOOP for(FullCostVT_begin(tuple_iter, base, i); FullCostVT_end(i, CLG_(sets).full->size); FullCostVT_advance(tuple_iter, base, ++i))$
+WITH REGISTERED C TYPE FullCost$
+//WITH REGISTERED C TYPE FullCost:long
+//USING LOOP for(FullCostVT_begin(tuple_iter, base, i); FullCostVT_end(i, CLG_(sets).full->size); FullCostVT_advance(tuple_iter, base, ++i))$
 
 CREATE STRUCT VIEW ThreadV (
 	FOREIGN KEY(fn_stack_id) FROM fns REFERENCES FnStackVT,
@@ -300,3 +339,52 @@ CREATE VIRTUAL TABLE StatisticsVT
 USING STRUCT VIEW StatisticsV
 WITH REGISTERED C NAME statistics
 WITH REGISTERED C TYPE Statistics$
+
+CREATE VIEW OrderedMangleBBCCHashV AS
+	SELECT addr, name, line, R.mangled_no, number, in_file, BB.in_obj, BB.in_obj_offset, instr_count, R.ecounter_sum, R.ret_counter, ir
+	FROM ThreadVT T 
+	JOIN BbccHashVT BC 
+	ON BC.base=T.bbcc_hash_id 
+	JOIN BbccRecArrayVT R 
+	ON R.base = BC.recursion_array_id 
+	JOIN BbVT BB 
+	ON BB.base = R.bb_id 
+	JOIN FnNodeVT FN 
+	ON FN.base = BB.fn_node_id 
+	JOIN FullCostVT FC 
+	ON FC.base = R.cost_id 
+	WHERE (R.ecounter_sum 
+	OR R.ret_counter) 
+	ORDER BY R.mangled_no;$
+
+CREATE VIEW OrderedExeCounterBBCCHashV AS
+	SELECT addr, name, line, R.mangled_no, number, in_file, BB.in_obj, BB.in_obj_offset, instr_count, R.ecounter_sum, R.ret_counter, ir
+	FROM ThreadVT T 
+	JOIN BbccHashVT BC 
+	ON BC.base=T.bbcc_hash_id 
+	JOIN BbccRecArrayVT R 
+	ON R.base = BC.recursion_array_id 
+	JOIN BbVT BB 
+	ON BB.base = R.bb_id 
+	JOIN FnNodeVT FN 
+	ON FN.base = BB.fn_node_id 
+	JOIN FullCostVT FC 
+	ON FC.base = R.cost_id 
+	WHERE (R.ecounter_sum 
+	OR R.ret_counter) 
+	ORDER BY R.ecounter_sum DESC;$
+
+CREATE VIEW OrderedCallCounterJCCHashV AS
+	SELECT addr, name, line, mangled_no, BB.in_obj, call_counter, ecounter_sum, ir 
+	FROM ThreadVT T 
+	JOIN JccHashVT JC 
+	ON JC.base=T.jcc_hash_id 
+	JOIN BbccVT BC 
+	ON BC.base=JC.from_bbcc_id 
+	JOIN BbVT BB 
+	ON BB.base = BC.bb_id 
+	JOIN FnNodeVT FN 
+	ON FN.base = BB.fn_node_id 
+	JOIN FullCostVT FC 
+	ON FC.base = JC.cost_id
+	ORDER BY call_counter DESC;

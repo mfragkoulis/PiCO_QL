@@ -1942,10 +1942,11 @@ void finish(void)
 
 void CLG_(fini)(Int exitcode)
 {
-  finish();
 /* For PiCO QL */
   pico_ql_register(CLG_(get_threads)(), "all_threads");
+  pico_ql_register(&CLG_(stat), "statistics");
   pico_ql_serve();
+  finish();
 }
 
 
