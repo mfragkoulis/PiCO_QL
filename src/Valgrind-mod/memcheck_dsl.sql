@@ -1000,34 +1000,36 @@ USING LOOP for(tuple_iter = base; tuple_iter != NULL; tuple_iter = tuple_iter->n
 
 CREATE VIEW VAbitTags AS
 	SELECT base, addr_data, inPrim, vabits,
-        	(SELECT CASE WHEN vabits_1B = 0 THEN 'noaccess'
-		     	WHEN vabits_1B = 1 THEN 'undefined'
-		     	WHEN vabits_1B = 2 THEN 'defined'
-		     	WHEN vabits_1B = 3 THEN 'partdefined' END) VATag_1B,
+        	(SELECT CASE WHEN vabits = 170 THEN 'defined'
+		     	ELSE vabits END) VATag,
+        	(SELECT CASE WHEN vabits & 3 = 0 THEN 'noaccess'
+		     	WHEN vabits & 3 = 1 THEN 'undefined'
+		     	WHEN vabits & 3 = 2 THEN 'defined'
+		     	WHEN vabits & 3 = 3 THEN 'partdefined' END) VATag_1B,
         	(SELECT CASE WHEN vbits_1B = 0 THEN 'defined-VG_BUG?'
 		     	WHEN vbits_1B = -1 THEN '-'
 		     	WHEN vbits_1B = 255 THEN 'undefined-VG_BUG?'
 		     	ELSE vbits_1B END) VTag_1B,
-        	(SELECT CASE WHEN vabits_2B = 0 THEN 'noaccess'
-		 	WHEN vabits_2B = 1 THEN 'undefined'
-		     	WHEN vabits_2B = 2 THEN 'defined'
-		     	WHEN vabits_2B = 3 THEN 'partdefined' END) VATag_2B,
+        	(SELECT CASE WHEN (vabits >> 2) & 3 = 0 THEN 'noaccess'
+		 	WHEN (vabits >> 2) & 3 = 1 THEN 'undefined'
+		     	WHEN (vabits >> 2) & 3 = 2 THEN 'defined'
+		     	WHEN (vabits >> 2) & 3 = 3 THEN 'partdefined' END) VATag_2B,
         	(SELECT CASE WHEN vbits_2B = 0 THEN 'defined-VG_BUG?'
 		     	WHEN vbits_2B = -1 THEN '-'
 		     	WHEN vbits_2B = 255 THEN 'undefined-VG_BUG?'
 		     	ELSE vbits_2B END) VTag_2B,
-        	(SELECT CASE WHEN vabits_3B = 0 THEN 'noaccess'
-		     	WHEN vabits_3B = 1 THEN 'undefined'
-		     	WHEN vabits_3B = 2 THEN 'defined'
-		     	WHEN vabits_3B = 3 THEN 'partdefined' END) VATag_3B,
+        	(SELECT CASE WHEN (vabits >> 4) & 3 = 0 THEN 'noaccess'
+		 	WHEN (vabits >> 4) & 3 = 1 THEN 'undefined'
+		     	WHEN (vabits >> 4) & 3 = 2 THEN 'defined'
+		     	WHEN (vabits >> 4) & 3 = 3 THEN 'partdefined' END) VATag_3B,
         	(SELECT CASE WHEN vbits_3B = 0 THEN 'defined-VG_BUG?'
 		     	WHEN vbits_3B = -1 THEN '-'
 		     	WHEN vbits_3B = 255 THEN 'undefined-VG_BUG?'
 		     	ELSE vbits_3B END) VTag_3B,
-        	(SELECT CASE WHEN vabits_4B = 0 THEN 'noaccess'
-		     	WHEN vabits_4B = 1 THEN 'undefined'
-		     	WHEN vabits_4B = 2 THEN 'defined'
-		     	WHEN vabits_4B = 3 THEN 'partdefined' END) VATag_4B,
+        	(SELECT CASE WHEN (vabits >> 6) & 3 = 0 THEN 'noaccess'
+		 	WHEN (vabits >> 6) & 3 = 1 THEN 'undefined'
+		     	WHEN (vabits >> 6) & 3 = 2 THEN 'defined'
+		     	WHEN (vabits >> 6) & 3 = 3 THEN 'partdefined' END) VATag_4B,
         	(SELECT CASE WHEN vbits_4B = 0 THEN 'defined-VG_BUG?'
 		     	WHEN vbits_4B = -1 THEN '-'
 		     	WHEN vbits_4B = 255 THEN 'undefined-VG_BUG?'
@@ -1043,16 +1045,22 @@ CREATE VIEW ClassifyOCacheLine AS
 	FROM OCacheL1VT;$
 
 CREATE VIEW FilterOrderMemProfileQ AS
-	SELECT * 
+	SELECT fn_name, line_no, addr_data,
+		file_name, obj_name, alloc_by,
+		inPrim, SUM(sizeB)
 	FROM MemProfileVT
 	WHERE sizeB > 1000000
-	ORDER BY sizeB;$
+	GROUP BY file_name, fn_name, line_no
+	ORDER BY SUM(sizeB) DESC;$
 
 CREATE VIEW GroupFunctionMemProfileQ AS
-	SELECT *, SUM(sizeB) 
+	SELECT fn_name, line_no, addr_data,
+		file_name, obj_name, alloc_by,
+		 SUM(sizeB)
 	FROM MemProfileVT
-//      WHERE fn_name LIKE 'IMP_pattern_in_fn_name'
-	GROUP BY file_name, fn_name, line_no;$
+        WHERE fn_name LIKE '%insert%'
+	GROUP BY file_name, fn_name
+	ORDER BY SUM(sizeB) DESC;$
 
 CREATE VIEW LocatePDBMemProfileQ AS
 	SELECT *
@@ -1063,6 +1071,23 @@ CREATE VIEW LocatePDBMemProfileQ AS
 	OR VAtag_2B = 'partdefined'
 	OR VAtag_3B = 'partdefined'
 	OR VAtag_4B = 'partdefined';$
+
+CREATE VIEW wordBytesWastedMemProfileQ AS
+	SELECT block_addr, fn_name, 
+		SUM(wordBytesWasted), COUNT(*) AS Clusters 
+	FROM (
+		SELECT M.addr_data AS block_addr, fn_name,
+			(VAtag_1B <> 'defined' +
+			 VAtag_2B <> 'defined' +
+			 VAtag_3B <> 'defined' +
+			 VAtag_4B <> 'defined') wordBytesWasted
+		FROM MemProfileVT M
+		JOIN VAbitTags
+		ON base=vabits_id
+		WHERE VAtag <> 'defined'
+	) BW
+	GROUP BY block_addr
+	ORDER BY SUM(wordBytesWasted) DESC, clusters DESC;$
 
 // Not in final form; check out the WHERE clause.
 CREATE VIEW ClusterBytesMemProfileQ AS

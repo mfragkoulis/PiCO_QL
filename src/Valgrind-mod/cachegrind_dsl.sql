@@ -48,15 +48,15 @@ CREATE STRUCT VIEW CacheV (
 	codeLocFile TEXT FROM loc.file,
 	codeLocFunc TEXT FROM loc.fn,
 	codeLocLine INT FROM loc.line,
-	cacheInstrRMemAc BIGINT FROM Ir.a,
-	cacheInstrRMemMissL1 BIGINT FROM Ir.m1,
-	cacheInstrRMemMissL2 BIGINT FROM Ir.mL,
-	cacheDataRMemAc BIGINT FROM Dr.a,
-	cacheDataRMemMissL1 BIGINT FROM Dr.m1,
-	cacheDataRMemMissL2 BIGINT FROM Dr.mL,
-	cacheDataWMemAc BIGINT FROM Dw.a,
-	cacheDataWMemMissL1 BIGINT FROM Dw.m1,
-	cacheDataWMemMissL2 BIGINT FROM Dw.mL,
+	cacheInstrReadAc BIGINT FROM Ir.a,
+	cacheInstrReadMissL1 BIGINT FROM Ir.m1,
+	cacheInstrReadMissL2 BIGINT FROM Ir.mL,
+	cacheDataReadAc BIGINT FROM Dr.a,
+	cacheDataReadMissL1 BIGINT FROM Dr.m1,
+	cacheDataReadMissL2 BIGINT FROM Dr.mL,
+	cacheDataWriteAc BIGINT FROM Dw.a,
+	cacheDataWriteMissL1 BIGINT FROM Dw.m1,
+	cacheDataWriteMissL2 BIGINT FROM Dw.mL,
 	branchCondTotal BIGINT FROM Bc.b,
 	branchCondMisPred BIGINT FROM Bc.mp,
 	branchIndirTotal BIGINT FROM Bi.b,
@@ -70,23 +70,29 @@ WITH REGISTERED C TYPE OSet:LineCC*
 USING LOOP VG_(OSetGen_ResetIter)(base);for (CachegrindVT_begin(tuple_iter, base);CachegrindVT_end(tuple_iter);CachegrindVT_advance(tuple_iter, base))$
 
 CREATE VIEW FilterOrderCacheQ AS
-	SELECT *
+	SELECT codeLocFile, codeLocFunc, codeLocLine,
+		cacheInstrReadAc, cacheInstrReadMissL1,
+		cacheInstrReadMissL2
 	FROM CachegrindVT
-	WHERE cacheInstrRMemAc > 100000
-	ORDER BY cacheInstrRMemMissL1, cacheInstrRMemMissL2;$
+	WHERE cacheInstrReadAc > 1000000
+	ORDER BY cacheInstrReadMissL1, cacheInstrReadMissL2;$
 
 CREATE VIEW FilterFuncCacheQ AS
-	SELECT *
+	SELECT codeLocFile, codeLocFunc, codeLocLine,
+	       SUM(cacheInstrReadAc), SUM(cacheInstrReadMissL1), SUM(cacheInstrReadMissL2),
+	       SUM(cacheDataReadAc), SUM(cacheDataReadMissL1), SUM(cacheDataReadMissL2),
+	       SUM(cacheDataWriteAc), SUM(cacheDataWriteMissL1), SUM(cacheDataWriteMissL2)
 	FROM CachegrindVT
 	WHERE codeLocFunc LIKE '%lookup%'
-	ORDER BY cacheDataRMemMissL1 desc;$
+	GROUP BY codeLocFile, codeLocFunc, codeLocLine
+	ORDER BY SUM(cacheDataReadMissL1) DESC;$
 
 CREATE VIEW GroupFuncCacheQ AS
 	SELECT codeLocFile, codeLocFunc, codeLocLine,
-	       SUM(cacheInstrRMemAc) AS instrReadAcc, SUM(cacheInstrRMemMissL1) AS instrReadMissL1, SUM(cacheInstrRMemMissL2) AS instrReadMissL2,
-	       SUM(cacheDataRMemAc) AS dataReadAcc, SUM(cacheDataRMemMissL1) AS dataReadMissL1, SUM(cacheDataRMemMissL2) AS dataReadMissL2,
-	       SUM(cacheDataWMemAc) AS dataWriteAcc, SUM(cacheDataWMemMissL1) AS dataWriteMissL1, SUM(cacheDataWMemMissL2) AS dataWriteMissL2
+	       SUM(cacheInstrReadAc), SUM(cacheInstrReadMissL1), SUM(cacheInstrReadMissL2),
+	       SUM(cacheDataReadAc), SUM(cacheDataReadMissL1), SUM(cacheDataReadMissL2),
+	       SUM(cacheDataWriteAc), SUM(cacheDataWriteMissL1), SUM(cacheDataWriteMissL2)
 	FROM CachegrindVT
-	GROUP BY codeLocFunc
-	ORDER BY dataWriteMissL1 desc;$
+	GROUP BY codeLocFile, codeLocFunc
+	ORDER BY SUM(cacheDataWriteMissL1) DESC;$
 
