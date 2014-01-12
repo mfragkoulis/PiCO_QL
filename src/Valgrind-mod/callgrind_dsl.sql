@@ -341,24 +341,26 @@ WITH REGISTERED C NAME statistics
 WITH REGISTERED C TYPE Statistics$
 
 CREATE VIEW OrderedMangleBBCCHashV AS
-	SELECT addr, name, line, R.mangled_no, number, in_file, BB.in_obj, BB.in_obj_offset, instr_count, R.ecounter_sum, R.ret_counter, ir
+	SELECT DISTINCT addr, FN.name, line, 
+		BC.mangled_no, number, in_file, 
+		BB.in_obj, BB.in_obj_offset, instr_count
 	FROM ThreadVT T 
 	JOIN BbccHashVT BC 
 	ON BC.base=T.bbcc_hash_id 
-	JOIN BbccRecArrayVT R 
-	ON R.base = BC.recursion_array_id 
 	JOIN BbVT BB 
-	ON BB.base = R.bb_id 
+	ON BB.base = BC.bb_id 
 	JOIN FnNodeVT FN 
 	ON FN.base = BB.fn_node_id 
-	JOIN FullCostVT FC 
-	ON FC.base = R.cost_id 
-	WHERE (R.ecounter_sum 
-	OR R.ret_counter) 
-	ORDER BY R.mangled_no;$
+	WHERE NOT (BC.ecounter_sum
+	OR BC.ret_counter)
+	AND is_fn_entry
+	ORDER BY BB.in_obj, in_file, FN.name;$
 
 CREATE VIEW OrderedExeCounterBBCCHashV AS
-	SELECT addr, name, line, R.mangled_no, number, in_file, BB.in_obj, BB.in_obj_offset, instr_count, R.ecounter_sum, R.ret_counter, ir
+	SELECT addr, name, line, 
+		R.mangled_no, number, in_file, 
+		BB.in_obj, BB.in_obj_offset, instr_count, 
+		SUM(R.ecounter_sum), SUM(R.ret_counter)
 	FROM ThreadVT T 
 	JOIN BbccHashVT BC 
 	ON BC.base=T.bbcc_hash_id 
@@ -371,11 +373,15 @@ CREATE VIEW OrderedExeCounterBBCCHashV AS
 	JOIN FullCostVT FC 
 	ON FC.base = R.cost_id 
 	WHERE (R.ecounter_sum 
-	OR R.ret_counter) 
-	ORDER BY R.ecounter_sum DESC;$
+	OR R.ret_counter)
+	GROUP BY BC.bb_id
+	ORDER BY SUM(R.ecounter_sum) DESC
+	LIMIT 20;$
 
 CREATE VIEW OrderedCallCounterJCCHashV AS
-	SELECT addr, name, line, mangled_no, BB.in_obj, call_counter, ecounter_sum, ir 
+	SELECT addr, name, line, 
+		mangled_no, BB.in_obj, 
+		SUM(call_counter), SUM(ecounter_sum), Ir 
 	FROM ThreadVT T 
 	JOIN JccHashVT JC 
 	ON JC.base=T.jcc_hash_id 
@@ -387,4 +393,5 @@ CREATE VIEW OrderedCallCounterJCCHashV AS
 	ON FN.base = BB.fn_node_id 
 	JOIN FullCostVT FC 
 	ON FC.base = JC.cost_id
-	ORDER BY call_counter DESC;
+	GROUP BY BC.bb_id
+	ORDER BY SUM(call_counter) DESC;
