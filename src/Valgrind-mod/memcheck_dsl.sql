@@ -1091,8 +1091,8 @@ CREATE VIEW wordBytesWastedMemProfileQ AS
 
 // Not in final form; check out the WHERE clause.
 CREATE VIEW ClusterBytesMemProfileQ AS
-	SELECT addrL AS block_addr, fn_name, min(clusterBegin) AS clusterBegin, 
-		clusterEnd, VAbitsClBegin, VAbitsClEnd
+	SELECT addrL AS block_addr, fn_name, MIN(clusterBegin) AS clusterBegin, 
+		clusterEnd, (clusterEnd - clusterBegin) AS clusterBytes, VAbitsClBegin, VAbitsClEnd
 	FROM (
 		SELECT MP1.addr_data AS addrL,MP2.addr_data as addrR,
 			MP1.fn_name AS fn_name,
@@ -1114,11 +1114,17 @@ CREATE VIEW ClusterBytesMemProfileQ AS
 	) MP
 	GROUP BY ClusterEnd;$
 
-CREATE VIEW CountClustersPerBlockMemProfileQ AS
-	SELECT block_addr, fn_name, COUNT(*) AS clusters
-	FROM ClusterBytesMemProfileQ
+CREATE VIEW BytesWastedNClustersMemProfileQ AS
+	SELECT block_addr, fn_name, SUM(bytesWasted), COUNT(*) AS clusters
+	FROM (
+		SELECT block_addr, fn_name,
+			(SELECT CASE WHEN VAbitsClBegin = 170 THEN 4 - ((VAbitsClEnd & 3 == 2) + ((VAbitsClEnd >> 2) & 3 == 2) + ((VAbitsClEnd >> 4) & 3 == 2) + ((VAbitsClEnd >> 6) & 3 == 2))
+			     	     WHEN VAbitsClEnd = 170 THEN clusterBytes - ((VAbitsClBegin & 3 == 2) + ((VAbitsClBegin >> 2) & 3 == 2) + ((VAbitsClBegin >> 4) & 3 == 2) + ((VAbitsClBegin >> 6) & 3 == 2))
+			     	     ELSE clusterBytes + 4 END) bytesWasted
+		FROM ClusterBytesMemProfileQ
+	     ) BW 
 	GROUP BY block_addr
-	ORDER BY clusters desc;$
+	ORDER BY SUM(bytesWasted) DESC, clusters DESC;$
 
 // This does not work perfectly because the error is in a
 // data address, hence you need a data description for
