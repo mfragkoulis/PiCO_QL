@@ -1000,8 +1000,8 @@ USING LOOP for(tuple_iter = base; tuple_iter != NULL; tuple_iter = tuple_iter->n
 
 CREATE VIEW VAbitTags AS
 	SELECT base, addr_data, inPrim, vabits,
-        	(SELECT CASE WHEN vabits = 170 THEN 'defined'
-		     	ELSE vabits END) VATag,
+        	//(SELECT CASE WHEN vabits = 170 THEN 'defined'
+		//     	ELSE vabits END) VATag,
         	(SELECT CASE WHEN vabits & 3 = 0 THEN 'noaccess'
 		     	WHEN vabits & 3 = 1 THEN 'undefined'
 		     	WHEN vabits & 3 = 2 THEN 'defined'
@@ -1084,7 +1084,7 @@ CREATE VIEW wordBytesWastedMemProfileQ AS
 		FROM MemProfileVT M
 		JOIN VAbitTags
 		ON base=vabits_id
-		WHERE VAtag <> 'defined'
+		WHERE vabits <> 170
 	) BW
 	GROUP BY block_addr
 	ORDER BY SUM(wordBytesWasted) DESC, clusters DESC;$
