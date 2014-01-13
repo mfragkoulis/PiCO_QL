@@ -193,7 +193,19 @@ int main(int argc, const char *argv[]) {
       cust_demand;
     LinehaulCustomer* l = NULL;
     Fleet optimised_fl, best_fl;
+#ifndef PICO_QL_TEST
+    pico_ql_register((const void *)best_fl.get_fleet(), "vehicles");
+    pico_ql_register((const void *)&test, "test");
+#endif
     for (i = 0; i <= restarts; i++) {
+#ifndef PICO_QL_TEST
+        // Code block for PicO QL
+        // The following mismatch between actual and passed
+        // variable name is ok as long as the passed variable 
+        // name (vehicles) is the same with base in DSL 
+        // description e.g. (WITH BASE = vehicles").
+        pico_ql_serve(8083);
+#endif
 	pos = 0;
 	if (i > 0) {
 	    candidate_fl = new Fleet;
@@ -297,6 +309,7 @@ int main(int argc, const char *argv[]) {
 	}
     }
 
+#ifdef PICO_QL_TEST
     // Code block for PicO QL
     // The following mismatch between actual and passed
     // variable name is ok as long as the passed variable 
@@ -305,6 +318,7 @@ int main(int argc, const char *argv[]) {
     pico_ql_register((const void *)best_fl.get_fleet(), "vehicles");
     pico_ql_register((const void *)&test, "test");
     pico_ql_serve(8083);
+#endif
     
     cout << endl << "Optimised solution after " << 
         restarts << 

@@ -39,6 +39,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <sqlite3.h>
+<% if $argK != "KERNEL" %>
+#include <swill.h>
+<% end %>
 #include "pico_ql_search.h"
 #include "pico_ql_internal.h"
 
@@ -109,6 +112,11 @@ int pico_ql_serve(sqlite3 *db) {
   return re;
 }
 <%      else %>
+
+#ifdef PICO_QL_POLL
+static bool picoQL_serving = false;
+#endif
+
 // The API with user application code. Creates the PiCO_QL thread.
 <%        if $argVLG == "VALGRIND" %>
 int pico_ql_serve() {
@@ -128,16 +136,35 @@ int pico_ql_serve(int port) {
   pthread_join(sqlite_thread, &exit_status);
 #endif
 #else
+#ifdef PICO_QL_POLL
+  if (!picoQL_serving) {
+<%        if $argVLG == "VALGRIND" %>
+    exit_status = thread_sqlite();
+<%        else %>
+    exit_status = thread_sqlite((void *)portN);
+<%        end %>
+    if (((re = (int)(long)exit_status) != SQLITE_DONE) && (re != SQLITE_OK)) {
+      printf("picoQL initialization failed.\n");
+      exit(1);
+    }
+    picoQL_serving = true;
+  }
+  re = swill_poll();
+#else
 <%        if $argVLG == "VALGRIND" %>
   exit_status = thread_sqlite();
 <%        else %>
   exit_status = thread_sqlite((void *)portN);
 <%        end %>
 #endif
+#endif
+#ifndef PICO_QL_POLL
   if (((re = (int)(long)exit_status) != SQLITE_DONE) && (re != SQLITE_OK))
     printf("PiCO QL library terminating abnormally with error code %d.\n", re);
   else
     printf("PiCO QL library terminating normally.\n\n");
+#endif
   return re;
 }
 <%      end %>
+

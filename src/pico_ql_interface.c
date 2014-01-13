@@ -284,12 +284,16 @@ static void call_swill(sqlite3 *db, int port_number) {
   swill_handle("index.html", app_index, db);
   swill_handle("serveQuery.html", serve_query, db);
   swill_handle("terminateConnection.html", terminate, db);
+#ifndef PICO_QL_POLL
   while (swill_serve()) {
 
   }
+#endif
 }
 
 #endif  /* #ifndef PICO_QL_TEST */
+
+static sqlite3_module mod;
 
 /* Executes the SQL CREATE queries, opens the sqlite 
  * database connection and calls swill or pico_ql_test 
@@ -320,10 +324,8 @@ int register_table(int argc,
     printf("\nquery to be executed: %s.\n", q[i]);
   }
 #endif
-  sqlite3_module *mod;
-  mod = (sqlite3_module *)sqlite3_malloc(sizeof(sqlite3_module));
-  fill_module(mod);
-  int output = sqlite3_create_module(db, "PicoQL", mod, NULL);
+  fill_module(&mod);
+  int output = sqlite3_create_module(db, "PicoQL", &mod, NULL);
   if (output == 1) 
     printf("Error while registering module\n");
 #ifdef PICO_QL_DEBUG
@@ -378,6 +380,5 @@ int register_table(int argc,
 #else
   re = call_test(db);
 #endif
-  sqlite3_free(mod);
   return re;
 }

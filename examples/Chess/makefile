@@ -46,6 +46,10 @@ ifdef PICO_QL_HANDLE_POLYMORPHISM
 CXXFLAGS+=-DPICO_QL_HANDLE_POLYMORPHISM
 CFLAGS+=-DPICO_QL_HANDLE_POLYMORPHISM
 endif
+ifdef PICO_QL_POLL
+CXXFLAGS+=-DPICO_QL_POLL
+CFLAGS+=-DPICO_QL_POLL
+endif
 
 # For dynamic loading of SQL functions extension library
 ifeq ($(shell uname -s), Darwin)
