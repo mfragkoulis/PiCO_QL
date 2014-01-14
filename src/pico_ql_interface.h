@@ -34,6 +34,7 @@ int register_table(int argc,
 		   const char **queries, 
 #ifdef PICO_QL_VALGRIND
 		   const char **table_names);
+int query_poll(void);
 #else
 		   const char **table_names, 
 		   int port_number);

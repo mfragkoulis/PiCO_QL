@@ -277,7 +277,7 @@ int main(int argc, char **argv) {
   }
   printf("Opened picoQL_query named pipe for web interface.\n");
 
-  fd.rs = open("picoQL_resultset", O_RDONLY, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+  fd.rs = open("picoQL_resultset", O_RDONLY | O_NONBLOCK, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
   if (fd.rs < 0) {
     printf("Opening picoQL query pipe at client side failed.\n");
     return 1;

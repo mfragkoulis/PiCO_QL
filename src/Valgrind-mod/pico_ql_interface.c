@@ -35,6 +35,12 @@
 
 #define KB 1024
 
+static int fd_picoQL_rs;
+static int fd_picoQL_query;
+static sqlite3 *db;
+static struct sqlite3_module mod;
+static int picoQL_serving = 0;
+
 /* Forwards  a query for execution to sqlite and 
  * presents the resultset of a query.
  */
@@ -165,7 +171,7 @@ static int file_prep_exec(char ***res, int *argc_slots, sqlite3_stmt *stmt) {
 }
 
 // Takes care of query preparation and execution.
-static int prep_exec(char ***res, int *argc_slots, sqlite3 *db, const char *q){
+static int prep_exec(char ***res, int *argc_slots, const char *q){
   sqlite3_stmt *stmt;
   int result, prepare;
   if ((prepare = sqlite3_prepare_v2(db, q, -1, &stmt, 0)) == SQLITE_OK) {
@@ -188,32 +194,48 @@ static int prep_exec(char ***res, int *argc_slots, sqlite3 *db, const char *q){
 }
 
 
-static int chunk_write(int fd_picoQL_rs, char *page) {
+static int chunk_write(char *page) {
   return write(fd_picoQL_rs, page, PAGE_SIZE);
 } 
+
+static void serve_exit(void) {
+  close(fd_picoQL_query);
+  close(fd_picoQL_rs);
+
+  unlink("picoQL_query");
+  unlink("picoQL_resultset");
+
+  deinit_selectors();
+
+  picoQL_serving = 0;
+}
 
 /* Builds the html page of the result set of a query 
  * along with the time it took to execute and the query 
  * itself.
  */
-static int serve_query(int fd_picoQL_query, int fd_picoQL_rs, sqlite3 *db) {
+static int serve_query(void) {
   char *query = (char *)sqlite3_malloc(sizeof(char) * PAGE_SIZE);
-  char *buf = (char *)sqlite3_malloc(sizeof(char) * PAGE_SIZE);
-  while (1) {
-    int re, rc = 0;
+  int re;
+  memset(query, 0, PAGE_SIZE);
+  re = read(fd_picoQL_query, query, PAGE_SIZE);
+  if (!strcmp(query, "exit")) {
+    serve_exit();
+    return SQLITE_OK;
+  }
+  if (strlen(query) != 0) {
+    char *buf = (char *)sqlite3_malloc(sizeof(char) * PAGE_SIZE);
+    int rc = 0;
     int j = 0;
     char **res;
     int argc_slots = 1, n = 0;
-    memset(query, 0, PAGE_SIZE);
-    printf("Waiting for a picoQL query...\n");
-    re = read(fd_picoQL_query, query, PAGE_SIZE);
+    //printf("Waiting for a picoQL query...\n");
     printf("Read query: %s.\n", query);
-    if (!strcmp(query, "exit")) break;
     res = (char **)sqlite3_malloc(sizeof(char *));
     res[0] = (char *)sqlite3_malloc(sizeof(char) * PAGE_SIZE);
     memset(buf, 0, PAGE_SIZE);
     // j for debugging, execute the query multiple times.
-    while (j < 1 && (rc = prep_exec(&res, &argc_slots, db, query)) == SQLITE_DONE) {
+    while (j < 1 && (rc = prep_exec(&res, &argc_slots, query)) == SQLITE_DONE) {
       j++;
     }
     if (rc == SQLITE_DONE) {
@@ -228,17 +250,22 @@ static int serve_query(int fd_picoQL_query, int fd_picoQL_rs, sqlite3 *db) {
       strcat(res[0], "<%RS%>-ERROR-");
     }
     while (n < argc_slots) {
-      re = chunk_write(fd_picoQL_rs, res[n]);
+      re = chunk_write(res[n]);
       sqlite3_free(res[n]);
       n++;
     }
     sqlite3_free(res);
     clear_temp_structs();
+    sqlite3_free(buf);
     printf("Done processing picoQL query:\n%s\n", query);
   }
   sqlite3_free(query);
-  sqlite3_free(buf);
-  deinit_selectors();
+  return SQLITE_OK;
+}
+
+int query_poll(void) {
+  if (picoQL_serving)
+    return serve_query();
   return SQLITE_OK;
 }
 
@@ -255,9 +282,8 @@ int register_table(int argc,
    * to 140 characters. It should be more than enough.
    */
   char sqlite_query[200];
-  int re = -1, i = 0, fd_picoQL_query, fd_picoQL_rs;
+  int re = -1, i = 0;
   SysRes sr;
-  sqlite3 *db;
   int output;
 /* Virtual table schema will be in-memory and will not
    persist. Views can be included in the DSL */
@@ -269,22 +295,22 @@ int register_table(int argc,
     sqlite3_close(db);
     return re;
   }
-  re = prep_exec(NULL, 0, db, "PRAGMA main.journal_mode=OFF;");  /* Turn off journals.*/
+  re = prep_exec(NULL, 0, "PRAGMA main.journal_mode=OFF;");  /* Turn off journals.*/
 #ifdef PICO_QL_DEBUG
   sprintf(sqlite_query, "Query to turn off main.journal returned %d.\n", re);
   printf("%s", sqlite_query);
 #endif
-  re = prep_exec(NULL, 0, db, "PRAGMA temp.journal_mode=OFF;");
+  re = prep_exec(NULL, 0, "PRAGMA temp.journal_mode=OFF;");
 #ifdef PICO_QL_DEBUG
   sprintf(sqlite_query, "Query to turn off temp.journal returned %d.\n", re);
   printf("%s", sqlite_query);
 #endif
-  re = prep_exec(NULL, 0, db, "PRAGMA page_size = 4096;");  /* Set SQLite's page size at 4096 Bytes.*/
+  re = prep_exec(NULL, 0, "PRAGMA page_size = 4096;");  /* Set SQLite's page size at 4096 Bytes.*/
 #ifdef PICO_QL_DEBUG
   sprintf(sqlite_query, "Query to set SQLite's page size at 4096 Bytes returned %d.\n", re);
   printf("%s", sqlite_query);
 #endif
-  re = prep_exec(NULL, 0, db, "PRAGMA cache_size = 10000;");  /* Set SQLite's cache size at 10000 pages.*/
+  re = prep_exec(NULL, 0, "PRAGMA cache_size = 10000;");  /* Set SQLite's cache size at 10000 pages.*/
 #ifdef PICO_QL_DEBUG
   sprintf(sqlite_query, "Query to set SQLite's cache size at 10000 pages returned %d.\n", re);
   printf("%s", sqlite_query);
@@ -294,10 +320,8 @@ int register_table(int argc,
     printf("\nQuery to be executed: %s.\n", q[i]);
   }
 #endif
-  sqlite3_module *mod;
-  mod = (sqlite3_module *)sqlite3_malloc(sizeof(sqlite3_module));
-  fill_module(mod);
-  output = sqlite3_create_module(db, "PicoQL", mod, NULL);
+  fill_module(&mod);
+  output = sqlite3_create_module(db, "PicoQL", &mod, NULL);
   if (output == 1) 
     printf("Error while registering module\n");
 #ifdef PICO_QL_DEBUG
@@ -321,8 +345,8 @@ int register_table(int argc,
     else
       strcpy(sqlite_type, "view");
     sprintf(sqlite_query, "SELECT * FROM sqlite_master WHERE type='%s' AND name='%s';", sqlite_type, sqlite_names[i]);
-    if (prep_exec(NULL, 0, db, (const char *)sqlite_query) != SQLITE_ROW) {
-      re = prep_exec(NULL, 0, db, (const char *)q[i]);
+    if (prep_exec(NULL, 0, (const char *)sqlite_query) != SQLITE_ROW) {
+      re = prep_exec(NULL, 0, (const char *)q[i]);
 #ifdef PICO_QL_DEBUG
       sprintf(sqlite_type, "returned %d.\n", re);
       printf("Query %s", q[i]);
@@ -352,7 +376,7 @@ int register_table(int argc,
 
   printf("Please execute ./picoQL-gui to initialize the web interface.\n");
 
-  fd_picoQL_query = open("picoQL_query", O_RDONLY, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP); /* Blocks until ./picoQL-gui is executed. */
+  fd_picoQL_query = open("picoQL_query", O_RDONLY | O_NONBLOCK, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP); /* Blocks until ./picoQL-gui is executed. */
   if (fd_picoQL_query < 0) {
     printf("Opening picoQL_query named pipe failed.\n");
     return SQLITE_ERROR;
@@ -365,17 +389,9 @@ int register_table(int argc,
     return SQLITE_ERROR;
   }
   printf("Opened picoQL_resultset named pipe.\n");
-
-  re = serve_query(fd_picoQL_query, fd_picoQL_rs, db);
-
-  close(fd_picoQL_query);
-  close(fd_picoQL_rs);
-
-  unlink("picoQL_query");
-  unlink("picoQL_resultset");
+  picoQL_serving = 1;
 #else
   re = call_test(db);
 #endif
-  sqlite3_free(mod);
   return re;
 }

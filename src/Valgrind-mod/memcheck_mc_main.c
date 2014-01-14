@@ -400,11 +400,17 @@ static void init_auxmap_L1_L2 ( void )
       auxmap_L1[i].ent  = NULL;
    }
 
+   /* For PiCO QL */
+   pico_ql_register(auxmap_L1, "aux_primary_L1_map");
+
    tl_assert(0 == offsetof(AuxMapEnt,base));
    tl_assert(sizeof(Addr) == sizeof(void*));
    auxmap_L2 = VG_(OSetGen_Create)( /*keyOff*/  offsetof(AuxMapEnt,base),
                                     /*fastCmp*/ NULL,
                                     VG_(malloc), "mc.iaLL.1", VG_(free) );
+
+   /* For PiCO QL */
+   pico_ql_register(auxmap_L2, "aux_primary_L2_map");
 }
 
 /* Check representation invariants; if OK return NULL; else a
@@ -2302,6 +2308,10 @@ static void init_OCache ( void )
          ocacheL1->set[set].line[line].tag = 1/*invalid*/;
       }
    }
+
+   /* For PiCO QL */
+   pico_ql_register(ocacheL1, "ocache_L1");
+
    init_ocacheL2();
 }
 
@@ -4908,6 +4918,9 @@ static void init_shadow_memory ( void )
       space expands. */
    for (i = 0; i < N_PRIMARY_MAP; i++)
       primary_map[i] = &sm_distinguished[SM_DIST_NOACCESS];
+   /* For PiCO QL */
+   pico_ql_register(primary_map, "primary_map");
+   pico_ql_register(sm_distinguished, "distinguished_sec_map");
 
    /* Auxiliary primary maps */
    init_auxmap_L1_L2();
@@ -4917,6 +4930,8 @@ static void init_shadow_memory ( void )
 
    /* Secondary V bit table */
    secVBitTable = createSecVBitTable();
+   /* For PiCO QL */
+   pico_ql_register(secVBitTable, "sec_vbit_table");
 }
 
 
@@ -4942,6 +4957,10 @@ static Bool mc_expensive_sanity_check ( void )
    SecMap* sm;
    const HChar*  errmsg;
    Bool    bad = False;
+
+   /* For PiCO QL */
+   //pico_ql_serve();
+   VG_(umsg)("Just touched PiCO QL serve.\n");
 
    if (0) VG_(printf)("expensive sanity check\n");
    if (0) return True;
@@ -6673,17 +6692,6 @@ static void mc_fini ( Int exitcode )
         "------ Valgrind's client block stats follow ---------------\n" );
       show_client_block_stats();
    }
-
-/* For PiCO QL */
-pico_ql_register(&MC_(malloc_list), "malloc_list");
-pico_ql_register(primary_map, "primary_map");
-pico_ql_register(sm_distinguished, "distinguished_sec_map");
-pico_ql_register(auxmap_L1, "aux_primary_L1_map");
-pico_ql_register(auxmap_L2, "aux_primary_L2_map");
-pico_ql_register(secVBitTable, "sec_vbit_table");
-pico_ql_register(ocacheL1, "ocache_L1");
-pico_ql_serve();
-
 }
 
 /* mark the given addr/len unaddressable for watchpoint implementation
@@ -6801,6 +6809,8 @@ static void mc_pre_clo_init(void)
    // MC_(chunk_poolalloc) must be allocated in post_clo_init
    tl_assert(MC_(chunk_poolalloc) == NULL);
    MC_(malloc_list)  = VG_(HT_construct)( "MC_(malloc_list)" );
+   /* For PiCO QL */
+   pico_ql_register(&MC_(malloc_list), "malloc_list");
    MC_(mempool_list) = VG_(HT_construct)( "MC_(mempool_list)" );
    init_prof_mem();
 
