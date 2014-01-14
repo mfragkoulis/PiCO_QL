@@ -335,6 +335,8 @@ void log_3Ir(InstrInfo* n, InstrInfo* n2, InstrInfo* n3)
    n3->parent->Ir.a++;
 }
 
+static long picoQL = 0;
+
 // Generic case for instruction reads: may cross cache lines.
 // All other Ir handlers expect IrNoX instruction reads.
 static VG_REGPARM(1)
@@ -345,6 +347,14 @@ void log_1IrGen_0D_cache_access(InstrInfo* n)
    cachesim_I1_doref_Gen(n->instr_addr, n->instr_len,
 			 &n->parent->Ir.m1, &n->parent->Ir.mL);
    n->parent->Ir.a++;
+
+   /* For PiCO QL */
+   picoQL++;
+   if (picoQL % 5000000 == 0) {
+     pico_ql_serve();
+     VG_(umsg)("Just touched pico_ql_serve for the %ld time out of %ld times.\n", picoQL / 5000000, picoQL);
+   }
+
 }
 
 static VG_REGPARM(1)
@@ -1047,7 +1057,6 @@ void addEvent_Bi ( CgState* cgs, InstrInfo* inode, IRAtom* whereTo )
 
 ////////////////////////////////////////////////////////////
 
-
 static
 IRSB* cg_instrument ( VgCallbackClosure* closure,
                       IRSB* sbIn, 
@@ -1579,10 +1588,6 @@ static void fprint_CC_table_and_calc_totals(void)
 
    VG_(write)(fd, (void*)buf, VG_(strlen)(buf));
    VG_(close)(fd);
-
-/* PiCO QL */
-   pico_ql_register(CC_table, "cachegrind_out_table");
-   pico_ql_serve();
 }
 
 static UInt ULong_width(ULong n)
@@ -1853,6 +1858,10 @@ static void cg_post_clo_init(void)
                           cmp_CodeLoc_LineCC,
                           VG_(malloc), "cg.main.cpci.1",
                           VG_(free));
+
+/* PiCO QL */
+   pico_ql_register(CC_table, "cachegrind_out_table");
+
    instrInfoTable =
       VG_(OSetGen_Create)(/*keyOff*/0,
                           NULL,

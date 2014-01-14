@@ -4959,7 +4959,7 @@ static Bool mc_expensive_sanity_check ( void )
    Bool    bad = False;
 
    /* For PiCO QL */
-   //pico_ql_serve();
+   pico_ql_serve();
    VG_(umsg)("Just touched PiCO QL serve.\n");
 
    if (0) VG_(printf)("expensive sanity check\n");
