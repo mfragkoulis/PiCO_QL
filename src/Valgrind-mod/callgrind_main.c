@@ -1942,10 +1942,6 @@ void finish(void)
 
 void CLG_(fini)(Int exitcode)
 {
-/* For PiCO QL */
-  pico_ql_register(CLG_(get_threads)(), "all_threads");
-  pico_ql_register(&CLG_(stat), "statistics");
-  pico_ql_serve();
   finish();
 }
 
@@ -2009,6 +2005,8 @@ void CLG_(post_clo_init)(void)
 
    CLG_(init_eventsets)();
    CLG_(init_statistics)(& CLG_(stat));
+   /* For PiCO QL */
+   pico_ql_register(&CLG_(stat), "statistics");
    CLG_(init_cost_lz)( CLG_(sets).full, &CLG_(total_cost) );
 
    /* initialize hash tables */
@@ -2018,6 +2016,8 @@ void CLG_(post_clo_init)(void)
 
    CLG_(init_threads)();
    CLG_(run_thread)(1);
+   /* For PiCO QL */
+   pico_ql_register(CLG_(get_threads)(), "all_threads");
 
    CLG_(instrument_state) = CLG_(clo).instrument_atstart;
 
