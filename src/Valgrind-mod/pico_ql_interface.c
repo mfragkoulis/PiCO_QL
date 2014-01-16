@@ -224,7 +224,7 @@ static int serve_query(void) {
     serve_exit();
     return SQLITE_OK;
   }
-  if (strlen(query) != 0) {
+  if (re > 0) {
     char *buf = (char *)sqlite3_malloc(sizeof(char) * PAGE_SIZE);
     int rc = 0;
     int j = 0;

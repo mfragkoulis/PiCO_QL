@@ -108,7 +108,7 @@ static void app_index(FILE *f, struct picoQL_fd *fd) {
 		"<div class=\"div_tbl\">"
 		"<span class=\"style_text\"><b>Your database schema is:</b></span><br>");
   re = write(fd->q, master_query, strlen(master_query) + 1);
-  printf("Wrote to picoQL_query named pipe query: %s.\n", master_query);
+  printf("Wrote to picoQL_query named pipe query: %s.\nSize: %d characters.\n", master_query, re);
   re = read(fd->t, q_time, PAGE_SIZE);
 
   re = read(fd->rs, buf, PAGE_SIZE);
@@ -179,7 +179,7 @@ static void serve_query(FILE *f, struct picoQL_fd *fd) {
     int nReads = 1;
 
     re = write(fd->q, query, strlen(query) + 1);
-    printf("Wrote to picoQL_query named pipe query: %s.\n", query);
+    printf("Wrote to picoQL_query named pipe query: %s.\nSize: %d characters.\n", query, re);
     re = read(fd->t, q_time, PAGE_SIZE);
     system("./ps_vlg.sh");
     gettimeofday(&start_time, NULL);
