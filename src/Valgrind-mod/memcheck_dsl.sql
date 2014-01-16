@@ -1000,8 +1000,8 @@ USING LOOP for(tuple_iter = base; tuple_iter != NULL; tuple_iter = tuple_iter->n
 
 CREATE VIEW VAbitTags AS
 	SELECT base, addr_data, inPrim, vabits,
-        	//(SELECT CASE WHEN vabits = 170 THEN 'defined'
-		//     	ELSE vabits END) VATag,
+        	(SELECT CASE WHEN vabits = 170 THEN 'defined'
+		     	ELSE 'some_undefined' END) VATag,
         	(SELECT CASE WHEN vabits & 3 = 0 THEN 'noaccess'
 		     	WHEN vabits & 3 = 1 THEN 'undefined'
 		     	WHEN vabits & 3 = 2 THEN 'defined'
@@ -1063,14 +1063,17 @@ CREATE VIEW GroupFunctionMemProfileQ AS
 	ORDER BY SUM(sizeB) DESC;$
 
 CREATE VIEW LocatePDBMemProfileQ AS
-	SELECT *
-	FROM MemProfileVT
+	SELECT M.addr_data, fn_name, 
+		sizeB, COUNT(*) AS PDBs
+	FROM MemProfileVT M
 	JOIN VAbitTags
 	ON base=vabits_id
 	WHERE VAtag_1B = 'partdefined'
 	OR VAtag_2B = 'partdefined'
 	OR VAtag_3B = 'partdefined'
-	OR VAtag_4B = 'partdefined';$
+	OR VAtag_4B = 'partdefined'
+	GROUP BY M.addr_data
+	ORDER BY PDBs;$
 
 CREATE VIEW wordBytesWastedMemProfileQ AS
 	SELECT block_addr, fn_name, 
@@ -1084,7 +1087,7 @@ CREATE VIEW wordBytesWastedMemProfileQ AS
 		FROM MemProfileVT M
 		JOIN VAbitTags
 		ON base=vabits_id
-		WHERE vabits <> 170
+		WHERE VATag <> 'defined'
 	) BW
 	GROUP BY block_addr
 	ORDER BY SUM(wordBytesWasted) DESC, clusters DESC;$

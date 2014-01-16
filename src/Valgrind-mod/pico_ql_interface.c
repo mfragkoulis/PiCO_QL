@@ -37,6 +37,7 @@
 
 static int fd_picoQL_rs;
 static int fd_picoQL_query;
+static int fd_picoQL_time;
 static sqlite3 *db;
 static struct sqlite3_module mod;
 static int picoQL_serving = 0;
@@ -194,8 +195,8 @@ static int prep_exec(char ***res, int *argc_slots, const char *q){
 }
 
 
-static int chunk_write(char *page) {
-  return write(fd_picoQL_rs, page, PAGE_SIZE);
+static int chunk_write(int fd, char *page) {
+  return write(fd, page, PAGE_SIZE);
 } 
 
 static void serve_exit(void) {
@@ -231,6 +232,7 @@ static int serve_query(void) {
     int argc_slots = 1, n = 0;
     //printf("Waiting for a picoQL query...\n");
     printf("Read query: %s.\n", query);
+    chunk_write(fd_picoQL_time, query);
     res = (char **)sqlite3_malloc(sizeof(char *));
     res[0] = (char *)sqlite3_malloc(sizeof(char) * PAGE_SIZE);
     memset(buf, 0, PAGE_SIZE);
@@ -250,7 +252,7 @@ static int serve_query(void) {
       strcat(res[0], "<%RS%>-ERROR-");
     }
     while (n < argc_slots) {
-      re = chunk_write(res[n]);
+      re = chunk_write(fd_picoQL_rs, res[n]);
       sqlite3_free(res[n]);
       n++;
     }
@@ -373,6 +375,12 @@ int register_table(int argc,
     return SQLITE_ERROR;
   }
   printf("Created picoQL_resultset named pipe.\n");
+  sr = mknod("picoQL_time", S_IFIFO | 0660, 0);
+  if (sr_isError(sr)) {
+    printf("Creating picoQL time pipe with error code %d.\n", (int)sr_Res(sr));
+    return SQLITE_ERROR;
+  }
+  printf("Created picoQL_time named pipe.\n");
 
   printf("Please execute ./picoQL-gui to initialize the web interface.\n");
 
@@ -389,6 +397,12 @@ int register_table(int argc,
     return SQLITE_ERROR;
   }
   printf("Opened picoQL_resultset named pipe.\n");
+  fd_picoQL_time = open("picoQL_time", O_WRONLY, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+  if (fd_picoQL_time < 0) {
+    printf("Opening picoQL time named pipe failed.\n");
+    return SQLITE_ERROR;
+  }
+  printf("Opened picoQL_time named pipe.\n");
   picoQL_serving = 1;
 #else
   re = call_test(db);

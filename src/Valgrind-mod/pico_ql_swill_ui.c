@@ -37,7 +37,7 @@
 #include <stdlib.h>
 #include <swill.h>
 #include <string.h>
-#include <time.h>  /* clock(), clock_t */
+#include <sys/time.h>  /* gettimeofday, struct timeval */
 #include "pico_ql_swill_access_func.h"
 
 #define PAGE_SIZE 4096
@@ -46,7 +46,7 @@
 struct picoQL_fd {
 	int q;
 	int rs;
-	//int rs_s;
+	int t;
 };
 
 /* Calls the function that prints the PiCO QL error page (.html).
@@ -67,6 +67,7 @@ static void print_pico_ql_logo(FILE *f) {
  */
 static void app_index(FILE *f, struct picoQL_fd *fd) {
   char *buf = (char *)malloc(sizeof(char) * PAGE_SIZE);
+  char *q_time = (char *)malloc(sizeof(char) * PAGE_SIZE);
   const char master_query[40] = "SELECT * FROM sqlite_master;";
   char rs_meta[20], *rs_metaP;
   int re;
@@ -108,6 +109,7 @@ static void app_index(FILE *f, struct picoQL_fd *fd) {
 		"<span class=\"style_text\"><b>Your database schema is:</b></span><br>");
   re = write(fd->q, master_query, strlen(master_query) + 1);
   printf("Wrote to picoQL_query named pipe query: %s.\n", master_query);
+  re = read(fd->t, q_time, PAGE_SIZE);
 
   re = read(fd->rs, buf, PAGE_SIZE);
   printf("Result set from picoQL_resultset named pipe ");
@@ -143,6 +145,7 @@ static void app_index(FILE *f, struct picoQL_fd *fd) {
 		"</p>"
 		"</body>"
 		"</html>");
+  free(q_time);
   free(buf);
 }
 
@@ -154,8 +157,7 @@ static void app_index(FILE *f, struct picoQL_fd *fd) {
 static void serve_query(FILE *f, struct picoQL_fd *fd) {
   const char *query = "\0";
   int error_handling = 0;
-  clock_t start_clock, finish_clock;
-  double c_time;
+  struct timeval start_time, finish_time;
 //  char rs_size_buf[10];
 //  int rs_size;
   swill_fprintf(f, "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"\n\"http://www.w3.org/TR/html4/loose.dtd\">"
@@ -172,12 +174,15 @@ static void serve_query(FILE *f, struct picoQL_fd *fd) {
   if (swill_getargs("s(query)", &query)) {
     int re;
     char *buf = (char *)malloc(sizeof(char) * PAGE_SIZE);
+    char *q_time = (char *)malloc(sizeof(char) * PAGE_SIZE);
     char rs_meta[20],  *rs_metaP;
     int nReads = 1;
 
-    start_clock = clock();
     re = write(fd->q, query, strlen(query) + 1);
     printf("Wrote to picoQL_query named pipe query: %s.\n", query);
+    re = read(fd->t, q_time, PAGE_SIZE);
+    system("./ps_vlg.sh");
+    gettimeofday(&start_time, NULL);
 
     swill_fprintf(f, "<b>For SQL query: ");
     swill_fprintf(f, "<span class=\"styled\">%s</span><br><br>", query);
@@ -202,17 +207,17 @@ static void serve_query(FILE *f, struct picoQL_fd *fd) {
       swill_fprintf(f, "%s", buf);
       nReads--;
     }
-    finish_clock = clock();
+    system("./ps_vlg.sh");
+    gettimeofday(&finish_time, NULL);
     printf("Completed reading result set.\n");
 
-    c_time = ((double)finish_clock -
-              (double)start_clock)/CLOCKS_PER_SEC;
     if (error_handling) {
       swill_fprintf(f, "<br>Please advise <a href=\"");
       swill_printurl(f, "pico_ql_error_page.html", "", 0);
       swill_fprintf(f,"\">SQLite error codes</a>.<br><br>");
     } else {
-      swill_fprintf(f,"<br>CPU time: <b>%f</b>s.<br>", c_time); 
+      swill_fprintf(f,"<br>Real time: <b>%lu.%lu</b>s.<br>", (long)(finish_time.tv_sec - start_time.tv_sec), 
+							    (long)(finish_time.tv_usec - start_time.tv_usec)); 
     }
     swill_fprintf(f, "<p class=\"aligned\">");
     swill_fprintf(f, "<a href=\"");
@@ -224,6 +229,7 @@ static void serve_query(FILE *f, struct picoQL_fd *fd) {
 		  "</p>"
 		  "</body>"
 		  "</html>");
+    free(q_time);
     free(buf);
   }
 }
@@ -283,6 +289,13 @@ int main(int argc, char **argv) {
     return 1;
   }
   printf("Opened picoQL_resultset named pipe for web interface.\n");
+
+  fd.t = open("picoQL_time", O_RDONLY, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+  if (fd.rs < 0) {
+    printf("Opening picoQL time pipe at client side failed.\n");
+    return 1;
+  }
+  printf("Opened picoQL_time named pipe for query processing time measurement.\n");
 
   printf("Please visit http://localhost:%s to be served.\n", argv[1]);
   call_swill(atoi(argv[1]), &fd);
