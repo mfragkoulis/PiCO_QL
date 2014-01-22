@@ -1044,14 +1044,21 @@ CREATE VIEW ClassifyOCacheLine AS
 		w32_id, descr_id
 	FROM OCacheL1VT;$
 
-CREATE VIEW FilterOrderMemProfileQ AS
-	SELECT fn_name, line_no, addr_data,
-		file_name, obj_name, alloc_by,
-		inPrim, SUM(sizeB)
+CREATE VIEW RangeSizeMemProfileQ AS
+	SELECT (sizeB / 256) * 256 AS size_ranges,
+	  COUNT(*) AS blocks_in_range
 	FROM MemProfileVT
-	WHERE sizeB > 1000000
-	GROUP BY file_name, fn_name, line_no
-	ORDER BY SUM(sizeB) DESC;$
+	GROUP BY size_ranges
+	ORDER BY size_ranges;$
+
+CREATE VIEW OrderSizeGetStackMemProfileQ AS
+	SELECT M.addr_data, IP.fn_name, IP.line_no, 
+                IP.addr_data, IP.file_name, 
+		IP.obj_name, sizeB
+	FROM MemProfileVT M
+	JOIN IPVT IP
+	ON base = ec_alloc_ips_id
+	ORDER BY sizeB DESC, M.addr_data;$
 
 CREATE VIEW GroupFunctionMemProfileQ AS
 	SELECT fn_name, line_no, addr_data,
