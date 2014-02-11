@@ -341,6 +341,11 @@ HOLD WITH rtnl_lock()
 RELEASE WITH rtnl_unlock()
 $
 
+CREATE LOCK SPINLOCK(x)
+HOLD WITH spin_lock(x)
+RELEASE WITH spin_unlock(x)
+$
+
 // 2.6.32.38 - atomic_t
 CREATE STRUCT VIEW VirtualMemRegion_SV (
 #if KERNEL_VERSION > 2.6.32
@@ -567,13 +572,23 @@ CREATE STRUCT VIEW Sock_SV (
        rcv_buf_size INT FROM sk_rcvbuf,
        FOREIGN KEY(socket_id) FROM sk_socket REFERENCES ESocket_VT POINTER,
 //       FOREIGN KEY(peer_process_id) FROM get_pid_task(tuple_iter->sk_peer_pid, PIDTYPE_PID) REFERENCES EProcess_VT POINTER
-       FOREIGN KEY(receive_queue_id) FROM sk_receive_queue REFERENCES ERcvQueue_VT
+       FOREIGN KEY(receive_queue_id) FROM tuple_iter REFERENCES ERcvQueue_VT POINTER
 )
 $
 
 CREATE VIRTUAL TABLE ESock_VT
 USING STRUCT VIEW Sock_SV
 WITH REGISTERED C TYPE struct sock$
+
+CREATE STRUCT VIEW ERcvQueue_SV (
+	len INT FROM len
+)$
+
+CREATE VIRTUAL TABLE ERcvQueue_VT
+USING STRUCT VIEW ERcvQueue_SV
+WITH REGISTERED C TYPE struct sock:struct sk_buff *
+USING LOOP skb_queue_walk_safe(&base->sk_receive_queue, tuple_iter, next)
+USING LOCK SPINLOCK(&base->sk_receive_queue.lock)$
 
 #if KERNEL_VERSION > 2.6.32
 CREATE STRUCT VIEW IpVsStatsEstim_SV (

@@ -2507,7 +2507,9 @@ class Lock
     when lock_ptn
       matchdata = lock_ptn.match(lock_description)
       lock_match = matchdata[1].match(/\((.+)\)/)
+        puts "Lock match: #{lock_match} - #{lock_description}"
       if lock_match
+        puts "Lock match: #{lock_match}"
         @lock_function = matchdata[2].gsub(lock_match[1], "<selector>")
         @unlock_function = matchdata[3].gsub(lock_match[1], "<selector>")
         @name = matchdata[1].gsub(/\((.+)\)/, "")  # Remove potential argument
