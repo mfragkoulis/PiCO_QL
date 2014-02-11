@@ -219,6 +219,7 @@ int init_sqlite3(void) {
   if (sb == NULL) return -ECANCELED;
   pico_ql_register(sb, "superblock");
   pico_ql_register(&balloon_stats, "xen_balloon_stats");
+  pico_ql_register((first_online_pgdat())->node_zones, "mem_zones");
   output = pico_ql_serve(db);
   if (output != SQLITE_DONE) {
     printk(KERN_ERR "Serve failed with error code %i.\n", output);

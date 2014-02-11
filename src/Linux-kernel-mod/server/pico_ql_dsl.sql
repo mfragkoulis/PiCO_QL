@@ -433,7 +433,7 @@ CREATE STRUCT VIEW VirtualMemZone_SV (
 
 CREATE VIRTUAL TABLE VirtualMemZone_VT
 USING STRUCT VIEW VirtualMemZone_SV
-WITH REGISTERED C NAME zones
+WITH REGISTERED C NAME mem_zones
 WITH REGISTERED C TYPE struct zone
 USING LOOP for_each_zone(tuple_iter)$
 
