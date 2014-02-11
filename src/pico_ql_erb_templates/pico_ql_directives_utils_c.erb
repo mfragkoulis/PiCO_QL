@@ -28,7 +28,9 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+<% if $argK != "KERNEL" %>
 #include <stdlib.h>
+<% end %>
 
 <%#include <list> %>
 <%# list include..not always. At least on fk_col_type.length > 0 %>
