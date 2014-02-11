@@ -7,6 +7,7 @@
 #include <linux/pagemap.h>
 #include <linux/fs_struct.h>
 #include <linux/mm_types.h>
+#include <linux/mmzone.h>
 #include <linux/nsproxy.h>
 #include <net/net_namespace.h>
 #include <net/sock.h>
@@ -25,6 +26,7 @@
 #include <linux/kvm_host.h>
 #endif KVM_RUNNING
 
+#define VirtualMemZone_VT_decl(X) struct zone *X
 #define EIpVsStatsEstim_VT_decl(X) struct ip_vs_estimator *X
 #define Process_VT_decl(X) struct task_struct *X
 #define EProcessChild_VT_decl(X) struct task_struct *X
@@ -105,7 +107,6 @@ struct kvm_pit {
 };
 #endif KVM_RUNNING
 
-
 long get_file_offset(struct file *f) {
   long f_pos;
   spin_lock(&f->f_lock);
@@ -163,6 +164,43 @@ unsigned get_pages_in_cache_tag(struct file *f, pgoff_t index, int tag) {
   kfree(pages);
   return nr_pages;
 };
+
+/* mm/mmzone.c 
+ * first_online_pgdat, next_online_pgdat, next_zone
+ */
+struct pglist_data *first_online_pgdat(void)
+{
+        return NODE_DATA(first_online_node);
+};
+
+struct pglist_data *next_online_pgdat(struct pglist_data *pgdat)
+{
+        int nid = next_online_node(pgdat->node_id);
+
+        if (nid == MAX_NUMNODES)
+                return NULL;
+        return NODE_DATA(nid);
+}
+
+/*
+ * next_zone - helper magic for for_each_zone()
+ */
+struct zone *next_zone(struct zone *zone)
+{
+        pg_data_t *pgdat = zone->zone_pgdat;
+
+        if (zone < pgdat->node_zones + MAX_NR_ZONES - 1)
+                zone++;
+        else {
+                pgdat = next_online_pgdat(pgdat);
+                if (pgdat)
+                        zone = pgdat->node_zones;
+                else
+                        zone = NULL;
+        }
+        return zone;
+};
+
 
 long is_socket(struct file *f) {
   if (S_ISSOCK(f->f_path.dentry->d_inode->i_mode))
@@ -385,6 +423,19 @@ $
 CREATE VIRTUAL TABLE EVirtualMem_VT
 USING STRUCT VIEW VirtualMem_SV
 WITH REGISTERED C TYPE struct mm_struct$
+
+CREATE STRUCT VIEW VirtualMemZone_SV (
+	name TEXT FROM name,
+	watermark_min BIGINT FROM watermark[WMARK_MIN],
+	watermark_low BIGINT FROM watermark[WMARK_LOW],
+	watermark_high BIGINT FROM watermark[WMARK_HIGH]
+)$
+
+CREATE VIRTUAL TABLE VirtualMemZone_VT
+USING STRUCT VIEW VirtualMemZone_SV
+WITH REGISTERED C NAME zones
+WITH REGISTERED C TYPE struct zone
+USING LOOP for_each_zone(tuple_iter)$
 
 CREATE STRUCT VIEW NetDevice_SV (
 	name TEXT FROM name,
