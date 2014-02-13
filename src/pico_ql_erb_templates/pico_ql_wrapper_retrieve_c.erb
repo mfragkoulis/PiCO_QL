@@ -127,15 +127,13 @@ void * thread_sqlite(void *data) {
 <%      query = query.chomp(", ") + ")" %>
   queries[<%= vt %>] = (char *)sqlite3_malloc(sizeof(char) * <%= query.length %>);
   strcpy(queries[<%= vt %>], "<%= query %>");
-  sqlite_names[<%= vt %>] = (char *)sqlite3_malloc(sizeof(char) * <%= @tables[vt].name.length %>);
-  strcpy(sqlite_names[<%= vt %>], "<%= @tables[vt].name %>");
+  sqlite_names[<%= vt %>] = "<%= @tables[vt].name %>";
 <%    } %>
 <%    if views_length > 0 %>
 <%      @views.each_index { |vs| %>
   queries[<%= vs + @tables.length %>] = (char *)sqlite3_malloc(sizeof(char) * <%= @views[vs].stmt.length.to_s %>);
   strcpy(queries[<%= vs + @tables.length %>], "<%= @views[vs].stmt %>");
-  sqlite_names[<%= vs + @tables.length %>] = (char *)sqlite3_malloc(sizeof(char) * <%= @views[vs].stmt.length.to_s %>);
-  strcpy(sqlite_names[<%= vs + @tables.length %>], "<%= @views[vs].name %>");
+  sqlite_names[<%= vs + @tables.length %>] = "<%= @views[vs].name %>";
 <%      } %>
 <%    end %>
   if ((failure = set_VtblImpl()) > 0) {
