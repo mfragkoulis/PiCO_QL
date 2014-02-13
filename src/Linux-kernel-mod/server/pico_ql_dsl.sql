@@ -9,6 +9,7 @@
 #include <linux/mm_types.h>
 #include <linux/mmzone.h>
 #include <linux/nsproxy.h>
+#include <linux/netdevice.h> // struct softnet_data
 #include <net/net_namespace.h>
 #include <net/sock.h>
 #include <net/netns/mib.h>
@@ -38,7 +39,7 @@
 #define EGroup_VT_begin(X, Y, Z) (X) = (int *)&(Y)[(Z)]
 #define EGroup_VT_advance(X, Y, Z) EGroup_VT_begin(X, Y, Z)
 #define NetNamespace_VT_decl(X) struct net *X
-#define ERcvQueue_VT_decl(X) struct sk_buff *X;struct sk_buff *next
+#define SoftNetData_VT_decl(X) struct sk_buff *X;struct sk_buff *next
 #if KERNEL_VERSION > 2.6.32
 #define ENetDevice_VT_decl(X) struct net_device *X
 #else
@@ -329,6 +330,14 @@ long mem_copy_pit_state(struct kvm_kpit_state *kpit_state) {
   return (long)&pit_state;
 };
 #endif KVM_RUNNING
+
+struct sk_buff *skb;
+long send_queue_head(struct sock *s) {
+  spin_lock(&s->sk_receive_queue.lock);
+  skb_queue_head(&s->sk_receive_queue, skb);
+  spin_unlock(&s->sk_receive_queue.lock);
+  return (long)skb;
+};
 $
 
 CREATE LOCK RCU
@@ -570,9 +579,9 @@ CREATE STRUCT VIEW Sock_SV (
        pending_writes INT FROM sk_write_pending,
        snd_buf_size INT FROM sk_sndbuf,
        rcv_buf_size INT FROM sk_rcvbuf,
-       FOREIGN KEY(socket_id) FROM sk_socket REFERENCES ESocket_VT POINTER,
+       FOREIGN KEY(socket_id) FROM sk_socket REFERENCES ESocket_VT POINTER
 //       FOREIGN KEY(peer_process_id) FROM get_pid_task(tuple_iter->sk_peer_pid, PIDTYPE_PID) REFERENCES EProcess_VT POINTER
-       FOREIGN KEY(receive_queue_id) FROM tuple_iter REFERENCES ERcvQueue_VT POINTER
+//       FOREIGN KEY(receive_queue_id) FROM send_queue_head(tuple_iter) REFERENCES ERcvQueue_VT POINTER
 )
 $
 
@@ -580,15 +589,16 @@ CREATE VIRTUAL TABLE ESock_VT
 USING STRUCT VIEW Sock_SV
 WITH REGISTERED C TYPE struct sock$
 
-CREATE STRUCT VIEW ERcvQueue_SV (
+CREATE STRUCT VIEW SoftNetData_SV (
 	len INT FROM len
 )$
 
-CREATE VIRTUAL TABLE ERcvQueue_VT
-USING STRUCT VIEW ERcvQueue_SV
-WITH REGISTERED C TYPE struct sock:struct sk_buff *
-USING LOOP skb_queue_walk_safe(&base->sk_receive_queue, tuple_iter, next)
-USING LOCK SPINLOCK(&base->sk_receive_queue.lock)$
+CREATE VIRTUAL TABLE SoftNetData_VT
+USING STRUCT VIEW SoftNetData_SV
+WITH REGISTERED C NAME softnet_data
+WITH REGISTERED C TYPE struct softnet_data:struct sk_buff *
+USING LOOP skb_queue_walk_safe(&base->input_pkt_queue, tuple_iter, next)
+USING LOCK SPINLOCK(&base->input_pkt_queue.lock)$
 
 #if KERNEL_VERSION > 2.6.32
 CREATE STRUCT VIEW IpVsStatsEstim_SV (

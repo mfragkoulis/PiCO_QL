@@ -28,7 +28,7 @@
 #include <net/net_namespace.h>
 #include <linux/pci.h>
 #include <linux/spinlock.h>
-
+#include <linux/netdevice.h> /* struct softnet_data */
 #include <xen/balloon.h>
 
 #include <unistd.h>
@@ -178,6 +178,26 @@ int init_sqlite3(void) {
   struct file *iterf;
   int bit = 0;
   struct super_block *sb = NULL;
+  struct softnet_data *sd = &__get_cpu_var(softnet_data);
+/*
+        struct sk_buff *skb, *tmp;
+        int count = 0;
+
+	local_irq_disable();
+        spin_lock(&sd->input_pkt_queue.lock);
+        skb_queue_walk_safe(&sd->input_pkt_queue, skb, tmp) {
+          printf("[picoQL] INPUT QUEUE: skb No. %d has length %d.\n", ++count, skb->len);
+        }
+        spin_unlock(&sd->input_pkt_queue.lock);
+
+        count = 0;
+
+        skb_queue_walk_safe(&sd->process_queue, skb, tmp) {
+          printf("[picoQL] PROCESS QUEUE: skb No. %d has length %d.\n", ++count, skb->len);
+        }
+        local_irq_enable();
+          printf("[picoQL] QUEUES: empty.\n");
+*/
   re = sqlite3_open(":memory:", &db);
 
   if (re) {
@@ -220,6 +240,7 @@ int init_sqlite3(void) {
   pico_ql_register(sb, "superblock");
   pico_ql_register(&balloon_stats, "xen_balloon_stats");
   pico_ql_register((first_online_pgdat())->node_zones, "mem_zones");
+  pico_ql_register(sd, "softnet_data");
   output = pico_ql_serve(db);
   if (output != SQLITE_DONE) {
     printk(KERN_ERR "Serve failed with error code %i.\n", output);

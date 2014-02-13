@@ -1689,7 +1689,9 @@ class VirtualTable
       loop.gsub!(/base\.|base->/, "#{base}->")
       loop.gsub!(/base/, "#{base}")
     else
-      puts "Attention: not matched 'base' in #{@loop}."
+      if $argD == "DEBUG"
+        puts "Attention: not matched 'base' in #{@loop}."
+      end
     end
     if $argD == "DEBUG"
       puts "Loop to display is #{loop}."
@@ -2228,7 +2230,9 @@ class VirtualTable
         end
       }
       if !matched
-        puts "Attention: not matched 'base' in #{@loop}."
+        if $argD == "DEBUG" 	# we hard-code '&'. For arrays of primitive types,
+          puts "Attention: not matched 'base' in #{@loop}."
+        end
       end
     end
   end
@@ -2507,9 +2511,7 @@ class Lock
     when lock_ptn
       matchdata = lock_ptn.match(lock_description)
       lock_match = matchdata[1].match(/\((.+)\)/)
-        puts "Lock match: #{lock_match} - #{lock_description}"
       if lock_match
-        puts "Lock match: #{lock_match}"
         @lock_function = matchdata[2].gsub(lock_match[1], "<selector>")
         @unlock_function = matchdata[3].gsub(lock_match[1], "<selector>")
         @name = matchdata[1].gsub(/\((.+)\)/, "")  # Remove potential argument
