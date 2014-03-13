@@ -6,6 +6,8 @@
 #include <linux/spinlock.h>
 #include <linux/pagemap.h>
 #include <linux/fs_struct.h>
+#include <linux/module.h> // struct module
+#include <linux/binfmts.h> // struct linux_binfmt
 #include <linux/mm_types.h>
 #include <linux/mmzone.h>
 #include <linux/nsproxy.h>
@@ -27,6 +29,7 @@
 #include <linux/kvm_host.h>
 #endif KVM_RUNNING
 
+#define BinFormat_VT_decl(X) struct linux_binfmt *X
 #define VirtualMemZone_VT_decl(X) struct zone *X
 #define EIpVsStatsEstim_VT_decl(X) struct ip_vs_estimator *X
 #define Process_VT_decl(X) struct task_struct *X
@@ -39,17 +42,125 @@
 #define EGroup_VT_begin(X, Y, Z) (X) = (int *)&(Y)[(Z)]
 #define EGroup_VT_advance(X, Y, Z) EGroup_VT_begin(X, Y, Z)
 #define NetNamespace_VT_decl(X) struct net *X
-#define SoftNetData_VT_decl(X) struct sk_buff *X;struct sk_buff *next
+#define ERcvQueue_VT_decl(X) struct sk_buff *X;struct sk_buff *next
 #if KERNEL_VERSION > 2.6.32
 #define ENetDevice_VT_decl(X) struct net_device *X
 #else
 #define ENetDevice_VT_decl(X) struct net_device *X; struct net_device *aux
 #endif
 #define Superblock_VT_decl(X) struct super_block *X
+#define KobjectSet_VT_decl(X) struct kobject *X
 #define EKobjectSet_VT_decl(X) struct kobject *X
 #define EKobjectList_VT_decl(X) struct kobject *X
 #if KVM_RUNNING
 #define EKVMArchPitChannelState_VT_decl(X) struct kvm_pit_channel_state *X; int i = 0
+
+/*
+struct rq {
+        raw_spinlock_t lock;
+
+        unsigned int nr_running;
+        #define CPU_LOAD_IDX_MAX 5
+        unsigned long cpu_load[CPU_LOAD_IDX_MAX];
+        unsigned long last_load_update_tick;
+#ifdef CONFIG_NO_HZ
+        u64 nohz_stamp;
+        unsigned long nohz_flags;
+#endif
+        int skip_clock_update;
+
+        struct load_weight load;
+        unsigned long nr_load_updates;
+        u64 nr_switches;
+
+        struct cfs_rq cfs;
+        struct rt_rq rt;
+
+#ifdef CONFIG_FAIR_GROUP_SCHED
+        struct list_head leaf_cfs_rq_list;
+#ifdef CONFIG_SMP
+        unsigned long h_load_throttle;
+#endif
+#endif
+
+#ifdef CONFIG_RT_GROUP_SCHED
+        struct list_head leaf_rt_rq_list;
+#endif
+
+        unsigned long nr_uninterruptible;
+
+        struct task_struct *curr, *idle, *stop;
+        unsigned long next_balance;
+        struct mm_struct *prev_mm;
+
+        u64 clock;
+        u64 clock_task;
+
+        atomic_t nr_iowait;
+
+#ifdef CONFIG_SMP
+        struct root_domain *rd;
+        struct sched_domain *sd;
+
+        unsigned long cpu_power;
+
+        unsigned char idle_balance;
+        int post_schedule;
+        int active_balance;
+        int push_cpu;
+        struct cpu_stop_work active_balance_work;
+        int cpu;
+        int online;
+
+        struct list_head cfs_tasks;
+
+        u64 rt_avg;
+        u64 age_stamp;
+        u64 idle_stamp;
+        u64 avg_idle;
+#endif
+
+#ifdef CONFIG_IRQ_TIME_ACCOUNTING
+        u64 prev_irq_time;
+#endif
+#ifdef CONFIG_PARAVIRT
+        u64 prev_steal_time;
+#endif
+#ifdef CONFIG_PARAVIRT_TIME_ACCOUNTING
+        u64 prev_steal_time_rq;
+#endif
+
+        unsigned long calc_load_update;
+        long calc_load_active;
+
+#ifdef CONFIG_SCHED_HRTICK
+#ifdef CONFIG_SMP
+        int hrtick_csd_pending;
+        struct call_single_data hrtick_csd;
+#endif
+        struct hrtimer hrtick_timer;
+#endif
+
+#ifdef CONFIG_SCHEDSTATS
+        struct sched_info rq_sched_info;
+        unsigned long long rq_cpu_time;
+
+        unsigned int yld_count;
+
+        unsigned int sched_count;
+        unsigned int sched_goidle;
+
+        unsigned int ttwu_count;
+        unsigned int ttwu_local;
+#endif
+
+#ifdef CONFIG_SMP
+        struct llist_head wake_list;
+#endif
+
+        struct sched_avg avg;
+};
+*/
 
 struct kvm_timer {
         struct hrtimer timer;
@@ -107,6 +218,35 @@ struct kvm_pit {
         struct work_struct expired;
 };
 #endif KVM_RUNNING
+
+char rem_ip[23];
+char local_ip[23];
+char * convert_ip(long ip_host_fmt, char *ip) {
+  long ip_ntw_fmt = htonl(ip_host_fmt);
+  if (ip_host_fmt == 0) return (ip = "0");
+  sprintf(ip, "%ld.%ld.%ld.%ld", (ip_ntw_fmt >> 24) & 255, (ip_ntw_fmt >> 16) & 255, (ip_ntw_fmt >> 8) & 255, ip_ntw_fmt & 255);
+  return ip;
+};
+
+long get_tx_queue(struct sock *s) {
+  struct tcp_sock *tp = tcp_sk(s);
+  return (tp->write_seq - tp->snd_una);
+};
+
+long get_rx_queue(struct sock *s) {
+  struct tcp_sock *tp = tcp_sk(s);
+  int rx_queue;
+  if (s->sk_state == TCP_LISTEN)
+    rx_queue = s->sk_ack_backlog;
+  else
+  /*
+   * because we dont lock socket, we might find a transient negative value
+   */
+    rx_queue = max_t(int, tp->rcv_nxt - tp->copied_seq, 0);
+  return rx_queue;
+};
+
+char dpath[128];
 
 long get_file_offset(struct file *f) {
   long f_pos;
@@ -331,13 +471,7 @@ long mem_copy_pit_state(struct kvm_kpit_state *kpit_state) {
 };
 #endif KVM_RUNNING
 
-struct sk_buff *skb;
-long send_queue_head(struct sock *s) {
-  spin_lock(&s->sk_receive_queue.lock);
-  skb_queue_head(&s->sk_receive_queue, skb);
-  spin_unlock(&s->sk_receive_queue.lock);
-  return (long)skb;
-};
+unsigned long flags;
 $
 
 CREATE LOCK RCU
@@ -354,6 +488,28 @@ CREATE LOCK SPINLOCK(x)
 HOLD WITH spin_lock(x)
 RELEASE WITH spin_unlock(x)
 $
+
+CREATE LOCK SPINLOCK-IRQ(x)
+HOLD WITH spin_lock_irqsave(x, flags)
+RELEASE WITH spin_unlock_irqrestore(x, flags)
+$
+
+CREATE LOCK RWLOCK(x)
+HOLD WITH read_lock(x)
+RELEASE WITH read_unlock(x)
+$
+
+CREATE STRUCT VIEW BinFormat_SV (
+	module_name TEXT FROM module->name
+)
+$
+
+CREATE VIRTUAL TABLE BinFormat_VT
+USING STRUCT VIEW BinFormat_SV
+WITH REGISTERED C NAME binary_formats
+WITH REGISTERED C TYPE struct linux_binfmt
+USING LOOP list_for_each_entry(tuple_iter, &base->lh, lh)$
+//USING LOCK RWLOCK(binfmt_lock) - not exported
 
 // 2.6.32.38 - atomic_t
 CREATE STRUCT VIEW VirtualMemRegion_SV (
@@ -489,7 +645,8 @@ CREATE STRUCT VIEW NetDevice_SV (
 	tx_heartbeat_errors BIGINT FROM stats.tx_heartbeat_errors,
 	tx_window_errors BIGINT FROM stats.tx_window_errors,
 	rx_compressed BIGINT FROM stats.rx_compressed,
-	tx_compressed BIGINT FROM stats.tx_compressed
+	tx_compressed BIGINT FROM stats.tx_compressed,
+	FOREIGN KEY(queues_kset_id) FROM queues_kset REFERENCES EKobjectSet_VT POINTER
 )
 $
 
@@ -570,6 +727,14 @@ WITH REGISTERED C TYPE struct socket$
 
 
 CREATE STRUCT VIEW Sock_SV (
+       proto_name TEXT FROM __sk_common.skc_prot->name,
+       rem_ip TEXT FROM {convert_ip(tuple_iter->__sk_common.skc_daddr, rem_ip)},
+       rem_port BIGINT FROM inet_sk(tuple_iter)->inet_dport,
+       local_ip TEXT FROM {convert_ip(tuple_iter->__sk_common.skc_rcv_saddr, local_ip)},
+       local_port BIGINT FROM inet_sk(tuple_iter)->inet_num,
+       tx_queue BIGINT FROM get_tx_queue(tuple_iter),
+       rx_queue BIGINT FROM get_rx_queue(tuple_iter),
+       is_icsk INT FROM inet_sk(tuple_iter)->is_icsk,
        timestamp_last_rcv BIGINT FROM sk_stamp.tv64,
        drops INT FROM atomic_read(&tuple_iter.sk_drops),
        errors INT FROM sk_err,
@@ -579,9 +744,10 @@ CREATE STRUCT VIEW Sock_SV (
        pending_writes INT FROM sk_write_pending,
        snd_buf_size INT FROM sk_sndbuf,
        rcv_buf_size INT FROM sk_rcvbuf,
-       FOREIGN KEY(socket_id) FROM sk_socket REFERENCES ESocket_VT POINTER
+       FOREIGN KEY(socket_id) FROM sk_socket REFERENCES ESocket_VT POINTER,
 //       FOREIGN KEY(peer_process_id) FROM get_pid_task(tuple_iter->sk_peer_pid, PIDTYPE_PID) REFERENCES EProcess_VT POINTER
-//       FOREIGN KEY(receive_queue_id) FROM send_queue_head(tuple_iter) REFERENCES ERcvQueue_VT POINTER
+       FOREIGN KEY(receive_queue_id) FROM tuple_iter REFERENCES ERcvQueue_VT POINTER,
+//       FOREIGN KEY(receive_queue_id) FROM tuple_iter REFERENCES EWriteQueue_VT POINTER
 )
 $
 
@@ -589,16 +755,15 @@ CREATE VIRTUAL TABLE ESock_VT
 USING STRUCT VIEW Sock_SV
 WITH REGISTERED C TYPE struct sock$
 
-CREATE STRUCT VIEW SoftNetData_SV (
+CREATE STRUCT VIEW SkBuff_SV (
 	len INT FROM len
 )$
 
-CREATE VIRTUAL TABLE SoftNetData_VT
-USING STRUCT VIEW SoftNetData_SV
-WITH REGISTERED C NAME softnet_data
-WITH REGISTERED C TYPE struct softnet_data:struct sk_buff *
-USING LOOP skb_queue_walk_safe(&base->input_pkt_queue, tuple_iter, next)
-USING LOCK SPINLOCK(&base->input_pkt_queue.lock)$
+CREATE VIRTUAL TABLE ERcvQueue_VT
+USING STRUCT VIEW SkBuff_SV
+WITH REGISTERED C TYPE struct sock:struct sk_buff *
+USING LOOP skb_queue_walk_safe(&base->sk_receive_queue, tuple_iter, next)
+USING LOCK SPINLOCK-IRQ(&base->sk_receive_queue.lock)$
 
 #if KERNEL_VERSION > 2.6.32
 CREATE STRUCT VIEW IpVsStatsEstim_SV (
@@ -632,6 +797,15 @@ $
 CREATE VIRTUAL TABLE ENetnsIpvs_VT
 USING STRUCT VIEW NetnsIpvs_SV
 WITH REGISTERED C TYPE struct netns_ipvs$
+
+CREATE STRUCT VIEW NetnsIpv4_SV (
+       FOREIGN KEY(fib_sock_id) FROM fibnl REFERENCES ESock_VT POINTER
+)
+$
+
+CREATE VIRTUAL TABLE ENetnsIpv4_VT
+USING STRUCT VIEW NetnsIpv4_SV
+WITH REGISTERED C TYPE struct netns_ipv4$
 #endif
 
 CREATE STRUCT VIEW NetNamespace_SV (
@@ -639,6 +813,7 @@ CREATE STRUCT VIEW NetNamespace_SV (
        count_to_free INT FROM passive.counter,
        FOREIGN KEY(nfnl_stash_sock_id) FROM nfnl_stash REFERENCES ESock_VT POINTER,
        FOREIGN KEY(netns_ipvs) FROM ipvs REFERENCES ENetnsIpvs_VT POINTER,
+       FOREIGN KEY(netns_ipv4) FROM ipv4 REFERENCES ENetnsIpv4_VT,
 #endif
        count_to_shut INT FROM count.counter,
 //       use_count INT FROM use_count.counter,
@@ -794,11 +969,19 @@ WITH REGISTERED C NAME sysfs_hypervisor_kobject
 WITH REGISTERED C TYPE struct kobject
 $
 	
+CREATE VIRTUAL TABLE KobjectSet_VT
+USING STRUCT VIEW Kobject_SV
+WITH REGISTERED C NAME net_queues_kset
+WITH REGISTERED C TYPE struct kset:struct kobject *
+USING LOOP list_for_each_entry(tuple_iter, &base->list, entry)
+USING LOCK SPINLOCK(&base->list_lock)
+$
+
 CREATE VIRTUAL TABLE EKobjectSet_VT
 USING STRUCT VIEW Kobject_SV
 WITH REGISTERED C TYPE struct kset:struct kobject *
-USING LOOP list_for_each_entry_rcu(tuple_iter, &base->list, entry)
-USING LOCK RCU
+USING LOOP list_for_each_entry(tuple_iter, &base->list, entry)
+USING LOCK SPINLOCK(&base->list_lock)
 $
 
 CREATE STRUCT VIEW Inode_SV (
@@ -844,6 +1027,8 @@ $
 
 CREATE STRUCT VIEW File_SV (
        inode_name TEXT FROM f_path.dentry->d_name.name,
+       inode_dname TEXT FROM {d_path(&tuple_iter->f_path, dpath, 128)},
+       inode_no BIGINT FROM f_path.dentry->d_inode->i_ino,
        inode_mode INT FROM f_path.dentry->d_inode->i_mode,
        inode_bytes INT FROM f_path.dentry->d_inode->i_bytes,
        inode_size_bytes BIGINT FROM i_size_read(tuple_iter->f_mapping->host),
@@ -912,6 +1097,17 @@ USING STRUCT VIEW Group_SV
 WITH REGISTERED C TYPE struct group_info*:int*
 USING LOOP for (EGroup_VT_begin(tuple_iter, base->small_block, i); i < base->ngroups; EGroup_VT_advance(tuple_iter, base->small_block, ++i))
 $
+
+//CREATE STRUCT VIEW RunQueue_SV (
+//       nr_running INT FROM nr_running
+//);
+
+//CREATE VIRTUAL TABLE RunQueue_VT
+//USING STRUCT VIEW RunQueue_SV
+//WITH REGISTERED C NAME runqueues
+//WITH REGISTERED C TYPE struct rq
+//USING LOOP
+//USING LOCK
 
 CREATE STRUCT VIEW Process_SV (
        name TEXT FROM comm,
@@ -988,6 +1184,7 @@ CREATE STRUCT VIEW Process_SV (
        FOREIGN KEY(io_id) FROM ioac REFERENCES EIO_VT,
        FOREIGN KEY(vm_id) FROM mm REFERENCES EVirtualMem_VT POINTER,
 //       FOREIGN KEY(nsproxy_id) FROM nsproxy REFERENCES ENsproxy_VT POINTER,
+       FOREIGN KEY(netns_ipv4_id) FROM nsproxy->net_ns->ipv4 REFERENCES ENetnsIpv4_VT,
        FOREIGN KEY(active_virtual_memory_id) FROM active_mm REFERENCES EVirtualMem_VT POINTER,
        FOREIGN KEY(process_signal_id) FROM signal REFERENCES EProcessSignal POINTER,
        min_flt BIGINT FROM min_flt,

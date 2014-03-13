@@ -29,9 +29,16 @@
 #include <linux/pci.h>
 #include <linux/spinlock.h>
 #include <linux/netdevice.h> /* struct softnet_data */
+#include <net/sch_generic.h> /* struct Qdisc */
+#include <net/sock.h> /* struct sock */
+#include <linux/skbuff.h>
+#include <linux/net.h>
 #include <xen/balloon.h>
 
+#include <linux/binfmts.h>
+
 #include <unistd.h>
+#include <stdlib.h> /* for calculating memory footprint */
 #include <stdio.h>
 #include <sqlite3.h>
 #include "pico_ql_search.h"
@@ -69,6 +76,7 @@ int place_result_set(const char **root_result_set, int *argc_slots) {
   root_query_result_set = (char **)root_result_set;
   query_result_set_partitions = *argc_slots;
   query_result_set = root_query_result_set[0];
+  printf("PiCO QL's peak memory footprint for this query is %lu.\n", memMaxFootprint);
   clear_temp_structs();
   PICO_QL_RS_AVAILABLE;
   return 0;
@@ -152,6 +160,10 @@ ssize_t picoQL_write(
     return -EFAULT;
   }
 
+  /* Zero memory footprint counter and max. */
+  memMaxFootprint = 0;
+  memFootprint = 0;
+
   PICO_QL_BUSY;
 
   getnstimeofday(&picoQL_ts_start);
@@ -178,11 +190,19 @@ int init_sqlite3(void) {
   struct file *iterf;
   int bit = 0;
   struct super_block *sb = NULL;
-  struct softnet_data *sd = &__get_cpu_var(softnet_data);
-/*
+
+  int i = 0;
+    struct softnet_data *sd = NULL;
+  struct kset *ks;
+  struct kobject *k;
+//  void *empty_runqueues;
+  for_each_possible_cpu(i) {
+
         struct sk_buff *skb, *tmp;
         int count = 0;
 
+    sd = &per_cpu(softnet_data, i);
+        if (sd) {
 	local_irq_disable();
         spin_lock(&sd->input_pkt_queue.lock);
         skb_queue_walk_safe(&sd->input_pkt_queue, skb, tmp) {
@@ -195,9 +215,23 @@ int init_sqlite3(void) {
         skb_queue_walk_safe(&sd->process_queue, skb, tmp) {
           printf("[picoQL] PROCESS QUEUE: skb No. %d has length %d.\n", ++count, skb->len);
         }
+
+        if (sd->output_queue) {
+                struct Qdisc *head;
+          printf("[picoQL] OUTPUT QUEUE: not null.\n");
+
+                head = sd->output_queue;
+
+                while (head) {
+          printf("[picoQL] OUTPUT QUEUE: Qdisc No. %d has state %d.\n", ++count, head->handle);
+                        head = head->next_sched;
+                }
+          }
+        } 
+    }
         local_irq_enable();
           printf("[picoQL] QUEUES: empty.\n");
-*/
+
   re = sqlite3_open(":memory:", &db);
 
   if (re) {
@@ -223,9 +257,31 @@ int init_sqlite3(void) {
   pico_ql_register(&init_task.nsproxy, "namespace_proxy");
   pico_ql_register(&net_namespace_list, "network_namespaces");
   pico_ql_register(hypervisor_kobj, "sysfs_hypervisor_kobject");
+  ks = init_net.loopback_dev->queues_kset;
+  pico_ql_register(ks, "net_queues_kset");
+  if (ks) {
+        spin_lock(&ks->list_lock);
+        list_for_each_entry(k, &ks->list, entry) {
+                if (kobject_name(k))
+			printf("kobject name is %s.\n", kobject_name(k));
+        }
+        spin_unlock(&ks->list_lock);
+  } else 
+			printf("kobject empty ? %d . If not kobject's kset is.\n", ks == NULL ? 1 : 0);
+
   pico_ql_register(&pci_bus_type, "pci_bus");
   rcu_read_lock();
   list_for_each_entry_rcu(iter, &init_task.tasks, tasks) {
+/*    if  (!strcmp(iter->comm, "sshd")) {
+    if ((iter) && (iter->mm) && (iter->mm->binfmt)) {
+      struct linux_binfmt *bfmt;
+      printf("For process %s binfmt points to module %s.\n", iter->comm, (iter->mm->binfmt->module ? iter->mm->binfmt->module->name : ""));
+      list_for_each_entry(bfmt, &iter->mm->binfmt->lh, lh) {
+        printf("In binfmt list binfmt points to module %s.\n", (bfmt->module ? bfmt->module->name : ""));
+      }
+}
+(void)bit;
+(void)iterf;*/
     for (EFile_VT_begin(iterf, iter->files->fdt->fd, (bit = find_first_bit((unsigned long *)iter->files->fdt->open_fds, iter->files->fdt->max_fds))); 
          bit < iter->files->fdt->max_fds; 
          EFile_VT_advance(iterf, iter->files->fdt->fd, (bit = find_next_bit((unsigned long *)iter->files->fdt->open_fds, iter->files->fdt->max_fds, bit + 1)))) {
@@ -233,13 +289,31 @@ int init_sqlite3(void) {
         sb = iterf->f_path.dentry->d_inode->i_sb;
         break;
       }
-    }
+  if (S_ISSOCK(iterf->f_path.dentry->d_inode->i_mode)) {
+    struct socket *skt = iterf->private_data;
+    struct sock *sk = skt->sk;
+    struct sk_buff_head *bh = &sk->sk_write_queue;
+    unsigned long flags;
+    int count = 0;
+    struct sk_buff *skb;
+        spin_lock_irqsave(&bh->lock, flags);
+      skb_queue_walk(bh, skb)
+          printf("[picoQL] SOCK QUEUE: skb No %d, length %d.\n", ++count, skb->len);
+        
+        spin_unlock_irqrestore(&bh->lock, flags);
+          printf("[picoQL] SOCK QUEUES: empty.\n");
+
   }
+    }
+//  }
+ }
   rcu_read_unlock();
   if (sb == NULL) return -ECANCELED;
+//  pico_ql_register(empty_runqueues, "runqueues");
   pico_ql_register(sb, "superblock");
   pico_ql_register(&balloon_stats, "xen_balloon_stats");
   pico_ql_register((first_online_pgdat())->node_zones, "mem_zones");
+  pico_ql_register(init_task.active_mm->binfmt, "binary_formats");
   pico_ql_register(sd, "softnet_data");
   output = pico_ql_serve(db);
   if (output != SQLITE_DONE) {

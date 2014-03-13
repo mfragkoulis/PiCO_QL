@@ -141,8 +141,32 @@ class Column
 
 # Display NULL checks
   def display_null_check(token_ac_p, iden, action, fw, space)
-    root = String.new(iden)
-    root.gsub!(/^&/, "")
+    tuple_iter_inside = false
+    iden2 = ""
+    token_ac_p.each {|tap|
+      if tap.match(/\(tuple_iter|,(\s*)tuple_iter|tuple_iter\)/)
+        puts "Matched tuple_iter in #{tap}. iden is #{iden}."
+# Make this a separate function.
+        if iden.empty?
+          useless = token_ac_p[0].split("->")
+          iden2 = useless[0]
+          token_ac_p[0].gsub!(/^(.+?)->/, "")
+        else
+          iden2 = "#{iden}"
+          iden2.chomp!("->")
+        end
+        tap.gsub!(/tuple_iter/, "#{iden2}")
+        puts "After iden substitution: #{tap}"
+        tuple_iter_inside = true
+        break
+      end
+    }
+    if tuple_iter_inside == true
+      root = ""
+    else
+      root = String.new(iden)
+      root.gsub!(/^&/, "")
+    end
     token_ac_p.each_index {|tap|
       if token_ac_p.length == 1
         fw.print "#{space}if (#{root}#{token_ac_p[0]} == NULL) "
