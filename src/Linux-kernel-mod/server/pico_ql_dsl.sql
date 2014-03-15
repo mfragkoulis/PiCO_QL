@@ -7,11 +7,9 @@
 #include <linux/pagemap.h>
 #include <linux/fs_struct.h>
 #include <linux/module.h> // struct module
-#include <linux/binfmts.h> // struct linux_binfmt
 #include <linux/mm_types.h>
 #include <linux/mmzone.h>
 #include <linux/nsproxy.h>
-#include <linux/netdevice.h> // struct softnet_data
 #include <net/net_namespace.h>
 #include <net/sock.h>
 #include <net/netns/mib.h>
@@ -29,7 +27,6 @@
 #include <linux/kvm_host.h>
 #endif KVM_RUNNING
 
-#define BinFormat_VT_decl(X) struct linux_binfmt *X
 #define VirtualMemZone_VT_decl(X) struct zone *X
 #define EIpVsStatsEstim_VT_decl(X) struct ip_vs_estimator *X
 #define Process_VT_decl(X) struct task_struct *X
@@ -498,18 +495,6 @@ CREATE LOCK RWLOCK(x)
 HOLD WITH read_lock(x)
 RELEASE WITH read_unlock(x)
 $
-
-CREATE STRUCT VIEW BinFormat_SV (
-	module_name TEXT FROM module->name
-)
-$
-
-CREATE VIRTUAL TABLE BinFormat_VT
-USING STRUCT VIEW BinFormat_SV
-WITH REGISTERED C NAME binary_formats
-WITH REGISTERED C TYPE struct linux_binfmt
-USING LOOP list_for_each_entry(tuple_iter, &base->lh, lh)$
-//USING LOCK RWLOCK(binfmt_lock) - not exported
 
 // 2.6.32.38 - atomic_t
 CREATE STRUCT VIEW VirtualMemRegion_SV (
@@ -1097,17 +1082,6 @@ USING STRUCT VIEW Group_SV
 WITH REGISTERED C TYPE struct group_info*:int*
 USING LOOP for (EGroup_VT_begin(tuple_iter, base->small_block, i); i < base->ngroups; EGroup_VT_advance(tuple_iter, base->small_block, ++i))
 $
-
-//CREATE STRUCT VIEW RunQueue_SV (
-//       nr_running INT FROM nr_running
-//);
-
-//CREATE VIRTUAL TABLE RunQueue_VT
-//USING STRUCT VIEW RunQueue_SV
-//WITH REGISTERED C NAME runqueues
-//WITH REGISTERED C TYPE struct rq
-//USING LOOP
-//USING LOCK
 
 CREATE STRUCT VIEW Process_SV (
        name TEXT FROM comm,

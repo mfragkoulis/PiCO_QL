@@ -145,7 +145,9 @@ class Column
     iden2 = ""
     token_ac_p.each {|tap|
       if tap.match(/\(tuple_iter|,(\s*)tuple_iter|tuple_iter\)/)
-        puts "Matched tuple_iter in #{tap}. iden is #{iden}."
+        if $argD == "DEBUG"
+          puts "Matched tuple_iter in #{tap}. iden is #{iden}."
+        end
 # Make this a separate function.
         if iden.empty?
           useless = token_ac_p[0].split("->")
@@ -156,7 +158,9 @@ class Column
           iden2.chomp!("->")
         end
         tap.gsub!(/tuple_iter/, "#{iden2}")
-        puts "After iden substitution: #{tap}"
+        if $argD == "DEBUG"
+          puts "After iden substitution: #{tap}"
+        end
         tuple_iter_inside = true
         break
       end
