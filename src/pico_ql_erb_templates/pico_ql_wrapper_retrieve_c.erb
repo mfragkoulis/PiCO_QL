@@ -27,6 +27,13 @@ struct Vtbl <%= vt.name %>_vtbl = {
 <%      else %>
   0,
 <%      end %>
+<%      if vt.base_var.length == 0 %>
+<%        if $argCNST = "CONSISTENT_VIEW" %>
+  <%= vt.name %>_lock,
+  <%= vt.name %>_unlock,
+<%      else %>
+  0, 0,
+<%      end %>
   <%= vt.name %>_vt_discharge_saved_results,
   <%= vt.name %>_vt_deinit_query_structs
 

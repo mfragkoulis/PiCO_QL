@@ -27,6 +27,13 @@ static int <%= @name %>_vt_init_result_set (sqlite3_vtab *vtab, sqlite3_vtab_cur
   int j = 0;
 <%      if !@base_var.empty? && !@lock.empty? %>
   picoQLTable *picoQL = (picoQLTable *)vtab;
+<%        if $argCNST == "CONSISTENT_VIEW" %>
+  picoQLTableCursor *lcsr = (picoQLTableCursor *)cur;
+  <%= sign_retype %> lany_dstr = (<%= sign_retype %>)lcsr->source;
+<%          if @loop.match(/\Wtuple_iter\W/) %>
+  <%= @name %>_decl(tuple_iter);
+<%          end %>
+<%        end %>
   if (!picoQL->locked) {
 <%        if !@lock_argument.empty? %>
 <%          if /\*/.match(@signature_pointer) == nil %>
@@ -45,6 +52,25 @@ static int <%= @name %>_vt_init_result_set (sqlite3_vtab *vtab, sqlite3_vtab_cur
 <%          end %>
 <%        else %>
     <%= @lock_class.lock_function %>;
+<%        end %>
+<%        if $argCNST == "CONSISTENT_VIEW" %>
+<%          if !@container_class.empty? %>
+<%            if !@loop.empty? %> 
+    if (!lcsr->isInstanceNULL) {
+      <%= display_loop("lany_dstr") %>
+        if (tuple_iter == NULL) continue;
+<%              if !@record_lock.empty? %>
+        <%= @lock_class.lock_function.gsub("<selector>", "#{@lock_argument}") %>;
+<%              else %>
+<%                @columns.each { |col %>
+<%                  if !col.lock.empty? %>
+        <%= col.lock_class.lock_function.gsub("<selector>", "#{@lock_argument}") %>;
+<%                  end %>
+<%                } %>
+<%              end %>
+    }
+<%            end %>
+<%          end %>
 <%        end %>
   }
   picoQL->locked += 1;
@@ -148,31 +174,33 @@ static int <%= @name %>_vt_advance_result_set_iter (sqlite3_vtab_cursor *cur,
   if (stc->offset >= stc->size)
     stc->isEof = 1;
 <%    end %>
-<%    if @base_var.empty? %>
-<%      if !@lock.empty? %>
+<%    if $argCNST != "CONSISTENT_VIEW" %>
+<%      if @base_var.empty? %>
+<%        if !@lock.empty? %>
   if (stc->isEof == 1) {
     if (stc->locked == 1) {
-<%        if !@lock_argument.empty? %>
-<%          if /\*/.match(@signature_pointer) == nil %>
-<%            sign_retype = "#{@signature}*" %>
-<%          else %>
-<%            sign_retype = "#{@signature}" %>
-<%          end %>
-<%          if @lock_argument.match(/any_dstr/) %>
+<%          if !@lock_argument.empty? %>
+<%            if /\*/.match(@signature_pointer) == nil %>
+<%              sign_retype = "#{@signature}*" %>
+<%            else %>
+<%              sign_retype = "#{@signature}" %>
+<%            end %>
+<%            if @lock_argument.match(/any_dstr/) %>
       if (!stc->isInstanceNULL) {
         <%= sign_retype %> any_dstr = (<%= sign_retype %>)stc->source;
         <%= @lock_class.unlock_function.gsub("<selector>", "#{@lock_argument}") %>;
       }
-<%          else %>
+<%            else %>
       <%= @lock_class.unlock_function.gsub("<selector>", "#{@lock_argument}") %>;
-<%          end %>
+<%            end %>
       stc->lock = 0;
-<%        else %>
+<%          else %>
       <%= @lock_class.unlock_function %>;
-<%        end %>
+<%          end %>
       stc->locked -= 1;
     }
   }
+<%        end %>
 <%      end %>
 <%    end %>
 #ifdef PICO_QL_DEBUG
@@ -206,6 +234,13 @@ static void <%= @name %>_vt_deinit_result_set (sqlite3_vtab_cursor *cur, struct 
 <%      if !@base_var.empty? %>
 <%        if !@lock.empty? %>
   if (picoQL->locked == 1) {
+<%          if $argCNST == "CONSISTENT_VIEW" %>
+    picoQLTableCursor *lcsr = (picoQLTableCursor *)cur;
+    <%= sign_retype %> lany_dstr = (<%= sign_retype %>)lcsr->source;
+<%            if @loop.match(/\Wtuple_iter\W/) %>
+    <%= @name %>_decl(tuple_iter);
+<%            end %>
+<%          end %>
 <%          if !@lock_argument.empty? %>
 <%            if /\*/.match(@signature_pointer) == nil %>
 <%              sign_retype = "#{@signature}*" %>
@@ -223,6 +258,25 @@ static void <%= @name %>_vt_deinit_result_set (sqlite3_vtab_cursor *cur, struct 
 <%            end %>
 <%          else %>
     <%= @lock_class.unlock_function %>;
+<%          end %>
+<%          if $argCNST == "CONSISTENT_VIEW" %>
+<%            if !@container_class.empty? %>
+<%              if !@loop.empty? %> 
+    if (!lcsr->isInstanceNULL) {
+      <%= display_loop("lany_dstr") %>
+        if (tuple_iter == NULL) continue;
+<%                if !@record_lock.empty? %>
+        <%= @lock_class.unlock_function.gsub("<selector>", "#{@lock_argument}") %>;
+<%                else %>
+<%                  @columns.each { |col %>
+<%                    if !col.lock.empty? %>
+        <%= col.lock_class.unlock_function.gsub("<selector>", "#{@lock_argument}") %>;
+<%                    end %>
+<%                  } %>
+<%                end %>
+    }
+<%              end %>
+<%            end %>
 <%          end %>
   }
   picoQL->locked -= 1;
@@ -331,7 +385,60 @@ static int <%= @name %>_report_charge (cursor *c, int offset, cursorCharged ***o
   return SQLITE_OK;
 }
 
+<%      if $argCNST == "CONSISTENT_VIEW" %>
+static int <%= @name %>_lock (long base, struct Vtbl *vtbl) {
+  cursor **cursors = ((<%= @name %>_vt *)vtbl)->cursors;
+  if (!((<%= @name %>_vt *)vtbl)->toOpen) return SQLITE_OK; 
+<%          if !@lock.empty? %>
+<%            if !@lock_argument.empty? %>
+<%              @lock_argument.start_with?("&") ? la = "#{@lock_argument}" : la = "&#{@lock_argument}" %>
+      stcsr->lock = (long int)<%= la %>;
+<%            end %>
+      chs = 0;
+      while (chs < (int)cursorsSize) {
+        ptc = (picoQLTableCursor *)cursors[chs]->cur;
+        if ((ptc != stcsr) && (ptc->locked) && (ptc->lock != 0) &&
+            (stcsr->lock != 0) && (ptc->lock != stcsr->lock))
+          this_lock_available = 0;
+        chs++;
+      }
+      if ((!stcsr->locked) && (this_lock_available)) {  // 1st cond needed?
+<%            if !@lock_argument.empty? %>
+        <%= @lock_class.lock_function.gsub("<selector>", "#{@lock_argument}") %>;
+<%            else %>
+        <%= @lock_class.lock_function %>;
+<%            end %>
+        stcsr->locked += 1;
+      }
+<%          end %>
+<%        end %>
+    }
+<%        if !@container_class.empty? %>
+<%          if !@loop.empty? %> 
+    if (!lcsr->isInstanceNULL) {
+      <%= display_loop("lany_dstr") %>
+        if (tuple_iter == NULL) continue;
+<%              if !@record_lock.empty? %>
+        <%= @lock_class.lock_function.gsub("<selector>", "#{@lock_argument}") %>;
+<%              else %>
+<%                @columns.each { |col %>
+<%                  if !col.lock.empty? %>
+        <%= col.lock_class.lock_function.gsub("<selector>", "#{@lock_argument}") %>;
+<%                  end %>
+<%                } %>
+<%              end %>
+    }
+<%            end %>
+<%          end %>
+<%        end %>
+}
+
+static int <%= @name %>_unlock (long base, struct Vtbl *vtbl) {
+
+}
+<%      end %>
 <%    end %>
+
 
 static void <%= @name %>_vt_discharge_saved_results (struct Vtbl *vtbl) {
 <%      @columns.each { |col| %>

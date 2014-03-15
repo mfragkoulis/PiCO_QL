@@ -211,6 +211,8 @@ struct Vtbl {
   int (*advance_result_set_iter)(sqlite3_vtab_cursor *, struct Vtbl*);
   void (*deinit_result_set)(sqlite3_vtab_cursor *, struct Vtbl*);
   int (*report_charge)(cursor *, int, cursorCharged ***, size_t *, long, struct Vtbl*);
+  int (*lock)(cursor *, int, cursorCharged ***, size_t *, long, struct Vtbl*);
+  int (*unlock)(cursor *, int, cursorCharged ***, size_t *, long, struct Vtbl*);
   void (*discharge_saved_results)(struct Vtbl*);
   void (*deinit_query_structs)(struct Vtbl*);
 };

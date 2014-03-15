@@ -48,6 +48,10 @@ class Column
 			      # No DSL keywords are allowed (for now).
     @tokenized_access_path = Array.new # Access path tokens to check for 
                                        # NULLs.
+    @lock = ""                # Custom lock to use for each column.
+                              # A uniform abstraction is defined.
+    @lock_class               # Reference to Lock template class.
+    @lock_argument = ""       # Actual lock to hold/release, if any.
     @col_type = "object"      # Record type (pointer or reference) for 
                               # special columns, the ones that refer to 
                               # other VT or UNIONS.
@@ -1283,7 +1287,8 @@ class Column
     column_ptn2 = /includes struct view (\w+)/im
     column_ptn3 = /foreign key(\s*)\((\s*)(\w+)(\s*)\) from (.+) references (\w+)(\s*)(\w*)/im
     column_ptn4 = /(\w+) (.+) from (.+) pointer/im # for UNION column
-    column_ptn5 = /(\w+) (.+) from (.+)/im
+    column_ptn5 = /(\w+) (.+) from (.+) using lock (.+)/im
+    column_ptn6 = /(\w+) (.+) from (.+)/im
     case column
     when column_ptn1a
       matchdata = column_ptn1a.match(column)
@@ -1336,6 +1341,13 @@ class Column
       @col_type = "pointer"
     when column_ptn5
       matchdata = column_ptn5.match(column)
+      @name = matchdata[1]
+      @data_type = matchdata[2]
+      @access_path = matchdata[3]
+      @lock = matchdata[4]
+      @lock, @lock_class, @lock_argument = Lock.process_lock(@lock)
+    when column_ptn6
+      matchdata = column_ptn6.match(column)
       @name = matchdata[1]
       @data_type = matchdata[2]
       @access_path = matchdata[3]
@@ -1404,6 +1416,10 @@ class VirtualTable
     @lock_root = ""       # Holds starting address of C array for locking 
                           # C containers (linked lists, arrays etc)
                           # A uniform abstraction is defined.
+    @record_lock = ""     # Custom lock to use for each record.
+                          # A uniform abstraction is defined.
+    @record_lock_class    # Reference to Lock template class.
+    @record_lock_argument = ""   # Actual lock to hold/release, if any.
     @object_class = ""    # If an object instance.
     @columns = Array.new  # References to the VT columns.
 			  # A struct view may be used by many VTs.
@@ -2175,40 +2191,15 @@ class VirtualTable
 
 # Process lock directive.
   def process_lock()
-    if @lock.match(/\(/)
-      matchdata = @lock.split(/\(|\)/)
-      lock_name = matchdata[0]
-      if matchdata[1]
-        @lock_argument = matchdata[1]
-      end
-      if !@lock_argument.empty?
-         if @lock_argument.match("base")
-           @lock.gsub!(/base\.|base->/, "any_dstr->")
-           @lock_argument.gsub!(/base\.|base->/, "any_dstr->")
-         end
-      end
-    else
-      lock_name = @lock
+    if @lock.match(/record lock (.+)/i)
+      matchdata = @lock.split(/record lock (.+)/i)
+      @record_lock = "#{matchdata[1]}"
+      @lock.gsub!(/record lock (.+)/i, "")
     end
-    $locks.each { |l|
-      if l.name == "#{lock_name}"
-        @lock_class = l 
-        break
-      end
-    }
-    if @lock_class == nil
-      puts "Lock class for lock #{@lock} not found."
-      puts "Exiting now."
-      exit(1)
+    @lock, @lock_class, @lock_argument = Lock.process_lock(@lock)
+    if !@record_lock.empty? 
+      @record_lock, @record_lock_class, @record_lock_argument = Lock.process_lock(@record_lock)
     end
-    if $argD == "DEBUG"
-      puts "Processed lock is #{@lock}"
-      puts "Processed lock name is #{@lock_class.name}"
-      puts "Processed lock argument is #{@lock_argument}"
-    end
-#TODO: NULL checking
-#NULL checking as implemented below might need improvement.
-#Hint:pointer vs instance
   end
 
 # Isolate root address of C container for NULL checking.
@@ -2533,6 +2524,47 @@ class Lock
   attr_accessor(:name, :lock_function, 
                 :unlock_function)
 
+  def self.process_lock(lock_description)
+    lock = lock_description
+    lock_argument = ""
+    if lock.match(/\(/)
+      matchdata = lock.split(/\(|\)/)
+      lock_name = matchdata[0]
+      if matchdata[1]
+        lock_argument = matchdata[1]
+      end
+      if !lock_argument.empty?
+         if lock_argument.match("base")
+           lock.gsub!(/base\.|base->/, "any_dstr->")
+           lock_argument.gsub!(/base\.|base->/, "any_dstr->")
+         end
+      end
+    else
+      lock_name = lock
+    end
+    lock_class = nil
+    $locks.each { |l|
+      if l.name == "#{lock_name}"
+        lock_class = l 
+        break
+      end
+    }
+    if lock_class == nil
+      puts "Lock class for lock #{lock} not found."
+      puts "Exiting now."
+      exit(1)
+    end
+    if $argD == "DEBUG"
+      puts "Processed lock is #{lock}"
+      puts "Processed lock name is #{lock_class.name}"
+      puts "Processed lock argument is #{lock_argument}"
+    end
+    return lock, lock_class, lock_argument
+#TODO: NULL checking
+#NULL checking as implemented below might need improvement.
+#Hint:pointer vs instance
+  end
+
   def match_lock(lock_description)
     lock_ptn = /create lock (.+) hold with (.+) release with (.+)/im
     case lock_description
@@ -2835,6 +2867,8 @@ def take_cases(argv)
     $argLB = "C"
   when /concept_check/i
     $argC = "CONCEPT_CHECK"
+  when /consistent_view/i
+    $argCNST = "CONSISTENT_VIEW"
   end
 end
 
@@ -2847,6 +2881,7 @@ if __FILE__ == $0
   $argK = ""
   $argVLG = ""
   $argC = ""
+  $argCNST = ""
   ARGV.each_index { |arg| 
     if arg > 0
       take_cases(ARGV[arg]) 
