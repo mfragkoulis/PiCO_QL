@@ -387,37 +387,46 @@ static int <%= @name %>_report_charge (cursor *c, int offset, cursorCharged ***o
 
 <%      if $argCNST == "CONSISTENT_VIEW" %>
 static int <%= @name %>_lock (long base, struct Vtbl *vtbl) {
-  cursor **cursors = ((<%= @name %>_vt *)vtbl)->cursors;
-  if (!((<%= @name %>_vt *)vtbl)->toOpen) return SQLITE_OK; 
-<%          if !@lock.empty? %>
-<%            if !@lock_argument.empty? %>
-<%              @lock_argument.start_with?("&") ? la = "#{@lock_argument}" : la = "&#{@lock_argument}" %>
-      stcsr->lock = (long int)<%= la %>;
-<%            end %>
-      chs = 0;
-      while (chs < (int)cursorsSize) {
-        ptc = (picoQLTableCursor *)cursors[chs]->cur;
-        if ((ptc != stcsr) && (ptc->locked) && (ptc->lock != 0) &&
-            (stcsr->lock != 0) && (ptc->lock != stcsr->lock))
-          this_lock_available = 0;
-        chs++;
-      }
-      if ((!stcsr->locked) && (this_lock_available)) {  // 1st cond needed?
-<%            if !@lock_argument.empty? %>
-        <%= @lock_class.lock_function.gsub("<selector>", "#{@lock_argument}") %>;
-<%            else %>
-        <%= @lock_class.lock_function %>;
-<%            end %>
-        stcsr->locked += 1;
-      }
+<%        if !@lock.empty? %>
+<%#       Make the following a separate function. It is reused. %>
+<%          if /\*/.match(@signature_pointer) == nil %>
+<%            sign_retype = "#{@signature}*" %>
+<%          else %>
+<%            sign_retype = "#{@signature}" %>
 <%          end %>
-<%        end %>
-    }
-<%        if !@container_class.empty? %>
-<%          if !@loop.empty? %> 
-    if (!lcsr->isInstanceNULL) {
-      <%= display_loop("lany_dstr") %>
-        if (tuple_iter == NULL) continue;
+<%          if /\*/.match(@pointer) == nil %>
+<%            type_retype = "#{@type}*" %>
+<%          else %>
+<%            type_retype = "#{@type}" %>
+<%          end %>
+<%          if /\[/.match(@signature) %>
+  <%= @assignable_signature.gsub("<variable_name>", "any_dstr") %>;
+<%          else %>
+  <%= sign_retype %> any_dstr;
+<%          end %>
+<%#         Function end %>
+  long **lockArray = &((<%= @name %>_vt *)vtbl)->lockArray;
+  int *lockElements = &((<%= @name %>_vt *)vtbl)->lockElements;
+  int l = 0;
+  if (!((<%= @name %>_vt *)vtbl)->toOpen) return SQLITE_OK; 
+  while (l < *lockElements) {
+    if (base == lockArray[l]) return SQLITE_OK;
+    l++;
+  }
+  (*lockElements)++;
+  *lockArray = sqlite3_realloc(*lockArray, sizeof(long) * *lockElements);
+  if (!(*lockArray)) return SQLITE_NOMEM;
+  (*lockArray)[*lockElements - 1] = <%= la %>;
+<%          if !@lock_argument.empty? %>
+<%            @lock_argument.start_with?("&") ? la = "#{@lock_argument}" : la = "&#{@lock_argument}" %>
+  <%= @lock_class.lock_function.gsub("<selector>", "#{@lock_argument}") %>;
+<%          else %>
+  <%= @lock_class.lock_function %>;
+<%          end %>
+<%          if !@container_class.empty? %>
+<%            if !@loop.empty? %> 
+  <%= display_loop("any_dstr") %>
+    if (tuple_iter == NULL) continue;
 <%              if !@record_lock.empty? %>
         <%= @lock_class.lock_function.gsub("<selector>", "#{@lock_argument}") %>;
 <%              else %>
@@ -431,6 +440,7 @@ static int <%= @name %>_lock (long base, struct Vtbl *vtbl) {
 <%            end %>
 <%          end %>
 <%        end %>
+  return SQLITE_OK;
 }
 
 static int <%= @name %>_unlock (long base, struct Vtbl *vtbl) {
