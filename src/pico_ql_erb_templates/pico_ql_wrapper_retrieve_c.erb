@@ -29,8 +29,8 @@ struct Vtbl <%= vt.name %>_vtbl = {
 <%      end %>
 <%      if vt.base_var.length == 0 %>
 <%        if $argCNST = "CONSISTENT_VIEW" %>
-  <%= vt.name %>_lock,
-  <%= vt.name %>_unlock,
+  <%= vt.name %>_lock_nested,
+  <%= vt.name %>_unlock_nested,
 <%      else %>
   0, 0,
 <%      end %>
@@ -88,8 +88,11 @@ static int set_VtblImpl(void) {
   <%= @tables[vt].name %>VT->lateMatches = 0;
   <%= @tables[vt].name %>VT->passNoVerify = 0;
   <%= @tables[vt].name %>VT->recursive = 0;
+<%        if $argCNST == "CONSISTENT_VIEW" %>
+  <%= @tables[vt].name %>VT->lockArray = NULL;
+  <%= @tables[vt].name %>VT->lockElements = 0;
+<%        end %>
 <%      end %>
-
 <%     } %>
   return SQLITE_OK;
 }
