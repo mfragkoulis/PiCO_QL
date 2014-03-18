@@ -352,7 +352,7 @@ static int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, s
 <%                if !@record_lock.empty? %>
     <%= @record_lock_class.lock_function.gsub("<selector>", "#{@record_lock_argument}") %>;
 <%                else %>
-<%                  @columns.each { |col %>
+<%                  @columns.each { |col| %>
 <%                    if !col.lock.empty? %>
     <%= col.lock_class.lock_function.gsub("<selector>", "#{col.lock_argument}") %>;
 <%                    end %>

@@ -73,7 +73,8 @@ class Column
 		:saved_results_index,
 		:pre_access_path,:access_path,
 		:post_access_path,:col_type,
-		:case,:tokenized_access_path)
+		:case,:tokenized_access_path,
+		:lock,:lock_class,:lock_argument)
 
 # Used to clone a Column object. Ruby does not support deep copies.
   def construct(name, data_type, data_type_class, 

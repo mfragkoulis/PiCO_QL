@@ -67,9 +67,9 @@ static int <%= @name %>_vt_init_result_set (sqlite3_vtab *vtab, sqlite3_vtab_cur
 <%                end %>
 <%                if $argCNST == "CONSISTENT_VIEW" %>
 <%                  if !col.related_to.empty? %>
-        while ((j < (int)vtAll.size) && (strcmp(vtAll.instanceNames[j], "<%= @related_to %>"))) {j++;}
+        while ((j < (int)vtAll.size) && (strcmp(vtAll.instanceNames[j], "<%= col.related_to %>"))) {j++;}
         if (j == (int)vtAll.size) {
-          printf("In <%= vt.name %>_init_resultset(): VT <%= @related_to %> not registered.\nExiting now.\n");
+          printf("In <%= @name %>_init_resultset(): VT <%= col.related_to %> not registered.\nExiting now.\n");
           return SQLITE_ERROR;
         } else {
           struct Vtbl *lockVT<%= col %> = vtAll.instances[j];
@@ -91,9 +91,9 @@ static int <%= @name %>_vt_init_result_set (sqlite3_vtab *vtab, sqlite3_vtab_cur
 <%              end %>
 <%              if $argCNST == "CONSISTENT_VIEW" %>
 <%                if !col.related_to.empty? %>
-        while ((j < (int)vtAll.size) && (strcmp(vtAll.instanceNames[j], "<%= @related_to %>"))) {j++;}
+        while ((j < (int)vtAll.size) && (strcmp(vtAll.instanceNames[j], "<%= col.related_to %>"))) {j++;}
         if (j == (int)vtAll.size) {
-          printf("In <%= vt.name %>_init_resultset(): VT <%= @related_to %> not registered.\nExiting now.\n");
+          printf("In <%= @name %>_init_resultset(): VT <%= col.related_to %> not registered.\nExiting now.\n");
           return SQLITE_ERROR;
         } else {
           struct Vtbl *lockVT<%= col %> = vtAll.instances[j];
@@ -328,9 +328,9 @@ static void <%= @name %>_vt_deinit_result_set (sqlite3_vtab_cursor *cur, struct 
 <%                  end %>
 <%                  if $argCNST == "CONSISTENT_VIEW" %>
 <%                    if !col.related_to.empty? %>
-        while ((j < (int)vtAll.size) && (strcmp(vtAll.instanceNames[j], "<%= @related_to %>"))) {j++;}
+        while ((j < (int)vtAll.size) && (strcmp(vtAll.instanceNames[j], "<%= col.related_to %>"))) {j++;}
         if (j == (int)vtAll.size) {
-          printf("In <%= vt.name %>_deinit_resultset(): VT <%= @related_to %> not registered.\nExiting now.\n");
+          printf("In <%= @name %>_deinit_resultset(): VT <%= col.related_to %> not registered.\nExiting now.\n");
           return SQLITE_ERROR;
         } else {
           struct Vtbl *unlockVT<%= col %> = vtAll.instances[j];
@@ -352,9 +352,9 @@ static void <%= @name %>_vt_deinit_result_set (sqlite3_vtab_cursor *cur, struct 
 <%                end %>
 <%                if $argCNST == "CONSISTENT_VIEW" %>
 <%                  if !col.related_to.empty? %>
-        while ((j < (int)vtAll.size) && (strcmp(vtAll.instanceNames[j], "<%= @related_to %>"))) {j++;}
+        while ((j < (int)vtAll.size) && (strcmp(vtAll.instanceNames[j], "<%= col.related_to %>"))) {j++;}
         if (j == (int)vtAll.size) {
-          printf("In <%= vt.name %>_deinit_resultset(): VT <%= @related_to %> not registered.\nExiting now.\n");
+          printf("In <%= @name %>_deinit_resultset(): VT <%= col.related_to %> not registered.\nExiting now.\n");
           return SQLITE_ERROR;
         } else {
           struct Vtbl *unlockVT<%= col %> = vtAll.instances[j];
@@ -655,7 +655,8 @@ static int <%= @name %>_unlock_nested (long base, struct Vtbl *vtbl) {
 <%        end %>
   return SQLITE_OK;
 }
-<%      end %>
+<%      end %><%# $argCNST == "CONSISTENT_VIEW" %>
+<%    end %><%# @base_var.empty? %>
 
 static void <%= @name %>_vt_discharge_saved_results (struct Vtbl *vtbl) {
 <%      @columns.each { |col| %>
