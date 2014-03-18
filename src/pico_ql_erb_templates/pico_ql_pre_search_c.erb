@@ -347,7 +347,10 @@ static int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, s
 <%            end %>
 <%            if !@container_class.empty? %>
 <%              if !@loop.empty? %> 
-  <%= display_loop("any_dstr") %>
+<%                loop = display_loop("any_dstr") %>
+<%                loop.gsub!(/<space>/, "    ") %>
+<%#               Generate spacing for nested loops %>
+  <%= loop %> {
     if (tuple_iter == NULL) continue;
 <%                if !@record_lock.empty? %>
     <%= @record_lock_class.lock_function.gsub("<selector>", "#{@record_lock_argument}") %>;
@@ -358,6 +361,7 @@ static int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, s
 <%                    end %>
 <%                  } %>
 <%                end %>
+  }
 <%              end %>
 <%            end %>
         stcsr->locked += 1;

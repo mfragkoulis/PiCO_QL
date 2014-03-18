@@ -27,8 +27,8 @@ struct Vtbl <%= vt.name %>_vtbl = {
 <%      else %>
   0,
 <%      end %>
-<%      if vt.base_var.length == 0 %>
-<%        if $argCNST == "CONSISTENT_VIEW" %>
+<%      if $argCNST == "CONSISTENT_VIEW" %>
+<%        if vt.base_var.length == 0 %>
   <%= vt.name %>_lock_nested,
   <%= vt.name %>_unlock_nested,
 <%        else %>

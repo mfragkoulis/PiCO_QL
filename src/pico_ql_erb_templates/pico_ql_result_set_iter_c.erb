@@ -25,38 +25,53 @@ static int <%= @name %>_vt_init_result_set (sqlite3_vtab *vtab, sqlite3_vtab_cur
   cursor **cursors = ((<%= @name %>_vt *)vtbl)->cursors;
   size_t cursorsSize = ((<%= @name %>_vt *)vtbl)->cursorsSize;
   int j = 0;
+<%      if /\*/.match(@signature_pointer) == nil %>
+<%        sign_retype = "#{@signature}*" %>
+<%      else %>
+<%        sign_retype = "#{@signature}" %>
+<%      end %>
 <%      if !@base_var.empty? && !@lock.empty? %>
   picoQLTable *picoQL = (picoQLTable *)vtab;
-<%        if $argCNST == "CONSISTENT_VIEW" %>
   picoQLTableCursor *lcsr = (picoQLTableCursor *)cur;
+<%        if $argCNST == "CONSISTENT_VIEW" %>
   <%= sign_retype %> lany_dstr = (<%= sign_retype %>)lcsr->source;
 <%          if @loop.match(/\Wtuple_iter\W/) %>
   <%= @name %>_decl(tuple_iter);
 <%          end %>
 <%        end %>
   if (!picoQL->locked) {
-<%        if !@lock_argument.empty? %>
-<%          if /\*/.match(@signature_pointer) == nil %>
-<%            sign_retype = "#{@signature}*" %>
-<%          else %>
-<%            sign_retype = "#{@signature}" %>
+    if (!lcsr->isInstanceNULL) {
+<%        arg = "false" %>
+<%        @columns.each{ |col| %>
+<%          if col.lock != nil %>
+<%            arg = "true" %>
+<%            break %>
 <%          end %>
+<%        } %>
+<%        if !@lock_argument.empty? || !@record_lock_argument.empty? || arg == "true" %>
+      <%= sign_retype %> any_dstr = (<%= sign_retype %>)lcsr->source;
+<%        end %>
+<%        if !@container_class.empty? && !@loop.empty? && arg == "true" %>
+      <%= @name %>_decl(tuple_iter);
+<%        end %>
+<%        if !@lock_argument.empty? %>
 <%          if @lock_argument.match(/any_dstr/) %>
     picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
-    if (!stcsr->isInstanceNULL) {
-      <%= sign_retype %> any_dstr = (<%= sign_retype %>)stcsr->source;
-      <%= @lock_class.lock_function.gsub("<selector>", "#{@lock_argument}") %>;
-    }
+    <%= @lock_class.lock_function.gsub("<selector>", "#{@lock_argument}") %>;
 <%          else %>
     <%= @lock_class.lock_function.gsub("<selector>", "#{@lock_argument}") %>;
 <%          end %>
 <%        else %>
     <%= @lock_class.lock_function %>;
 <%        end %>
-    if (!lcsr->isInstanceNULL) {
+ //   if (!lcsr->isInstanceNULL) {
 <%        if !@container_class.empty? %>
-<%          if !@loop.empty? %> 
-      <%= display_loop("lany_dstr") %>
+      <%= @name %>_decl(tuple_iter);
+<%          if !@loop.empty? && arg == "true" %> 
+<%                loop = display_loop("any_dstr") %>
+<%                loop.gsub!(/<space>/, "    ") %>
+<%#               Generate spacing for nested loops %>
+      <%= loop %> {
         if (tuple_iter == NULL) continue;
 <%            if !@record_lock.empty? %>
         <%= @record_lock_class.lock_function.gsub("<selector>", "#{@record_lock_argument}") %>;
@@ -80,6 +95,7 @@ static int <%= @name %>_vt_init_result_set (sqlite3_vtab *vtab, sqlite3_vtab_cur
 <%                end %>
 <%              } %>
 <%            end %>
+      }
 <%          end %>
 <%        else           %>
 <%          if !@record_lock.empty? %>
@@ -213,6 +229,20 @@ static int <%= @name %>_vt_advance_result_set_iter (sqlite3_vtab_cursor *cur,
 <%        if !@lock.empty? %>
   if (stc->isEof == 1) {
     if (stc->locked == 1) {
+      if (!stc->isInstanceNULL) {
+<%          arg = false %>
+<%          @columns.each{ |col| %>
+<%            if col.lock != nil %>
+<%              arg = true %>
+<%              break %>
+<%            end %>
+<%          } %>
+<%          if !@lock_argument.empty? || !@record_lock_argument.empty? || arg == true %>
+      <%= sign_retype %> any_dstr = (<%= sign_retype %>)stc->source;
+<%          end %>
+<%          if !@container_class.empty? && !@loop.empty? %>
+      <%= @name %>_decl(tuple_iter);
+<%          end %>
 <%          if !@lock_argument.empty? %>
 <%            if /\*/.match(@signature_pointer) == nil %>
 <%              sign_retype = "#{@signature}*" %>
@@ -220,39 +250,41 @@ static int <%= @name %>_vt_advance_result_set_iter (sqlite3_vtab_cursor *cur,
 <%              sign_retype = "#{@signature}" %>
 <%            end %>
 <%            if @lock_argument.match(/any_dstr/) %>
-      if (!stc->isInstanceNULL) {
-        <%= sign_retype %> any_dstr = (<%= sign_retype %>)stc->source;
         <%= @lock_class.unlock_function.gsub("<selector>", "#{@lock_argument}") %>;
-      }
 <%            else %>
-      <%= @lock_class.unlock_function.gsub("<selector>", "#{@lock_argument}") %>;
+        <%= @lock_class.unlock_function.gsub("<selector>", "#{@lock_argument}") %>;
 <%            end %>
-<%            if !@container_class.empty? %>
-<%              if !@loop.empty? %>
-  <%= display_loop("any_dstr") %>
-    if (tuple_iter == NULL) continue;
-<%                if !@record_lock.empty? %>
-    <%= @record_lock_class.lock_function.gsub("<selector>", "#{@record_lock_argument}") %>;
-<%                else %>
-<%                  @columns.each { |col| %>
-<%                    if !col.lock.empty? %>
-    <%= col.lock_class.lock_function.gsub("<selector>", "#{col.lock_argument}") %>;
-<%                    end %>
-<%                  } %>
-<%                end %>
-<%              end %>
-<%            else %>
-<%              @columns.each { |col| %>
-<%                if !col.lock.empty? %>
-    <%= col.lock_class.lock_function.gsub("<selector>", "#{col.lock_argument}") %>;
-<%                  end %>
-<%              } %>
-<%            end %>
-      stc->lock = 0;
 <%          else %>
-      <%= @lock_class.unlock_function %>;
+        <%= @lock_class.unlock_function %>;
 <%          end %>
+<%          if !@container_class.empty? %>
+<%            if !@loop.empty? %> 
+<%              loop = display_loop("any_dstr") %>
+<%              loop.gsub!(/<space>/, "    ") %>
+<%#             Generate spacing for nested loops %>
+        <%= loop %> {
+          if (tuple_iter == NULL) continue;
+<%              if !@record_lock.empty? %>
+          <%= @record_lock_class.lock_function.gsub("<selector>", "#{@record_lock_argument}") %>;
+<%              else %>
+<%                @columns.each { |col| %>
+<%                  if !col.lock.empty? %>
+          <%= col.lock_class.lock_function.gsub("<selector>", "#{col.lock_argument}") %>;
+<%                  end %>
+<%                } %>
+<%              end %>
+        }
+<%            end %>
+<%          else %>
+<%            @columns.each { |col| %>
+<%              if !col.lock.empty? %>
+        <%= col.lock_class.lock_function.gsub("<selector>", "#{col.lock_argument}") %>;
+<%              end %>
+<%            } %>
+<%          end %>
+      stc->lock = 0;
       stc->locked -= 1;
+      } // Think this through.
     }
   }
 <%        end %>
@@ -289,8 +321,8 @@ static void <%= @name %>_vt_deinit_result_set (sqlite3_vtab_cursor *cur, struct 
 <%      if !@base_var.empty? %>
 <%        if !@lock.empty? %>
   if (picoQL->locked == 1) {
-<%          if $argCNST == "CONSISTENT_VIEW" %>
     picoQLTableCursor *lcsr = (picoQLTableCursor *)cur;
+<%          if $argCNST == "CONSISTENT_VIEW" %>
     <%= sign_retype %> lany_dstr = (<%= sign_retype %>)lcsr->source;
 <%            if @loop.match(/\Wtuple_iter\W/) %>
     <%= @name %>_decl(tuple_iter);
@@ -317,7 +349,10 @@ static void <%= @name %>_vt_deinit_result_set (sqlite3_vtab_cursor *cur, struct 
     if (!lcsr->isInstanceNULL) {
 <%          if !@container_class.empty? %>
 <%            if !@loop.empty? %> 
-      <%= display_loop("lany_dstr") %>
+<%              loop = display_loop("any_dstr") %>
+<%              loop.gsub!(/<space>/, "    ") %>
+<%#             Generate spacing for nested loops %>
+      <%= loop %> {
         if (tuple_iter == NULL) continue;
 <%              if !@record_lock.empty? %>
         <%= @record_lock_class.unlock_function.gsub("<selector>", "#{@record_lock_argument}") %>;
@@ -341,6 +376,7 @@ static void <%= @name %>_vt_deinit_result_set (sqlite3_vtab_cursor *cur, struct 
 <%                  end %>
 <%                } %>
 <%              end %>
+      }
 <%            end %>
 <%          else %>
 <%            if !@record_lock.empty? %>
@@ -531,7 +567,7 @@ static int <%= @name %>_lock_nested (long base, struct Vtbl *vtbl) {
 <%                  elsif !col.related_to.empty? %>
         while ((j < (int)vtAll.size) && (strcmp(vtAll.instanceNames[j], "<%= @related_to %>"))) {j++;}
         if (j == (int)vtAll.size) {
-          printf("In <%= vt.name %>_init_resultset(): VT <%= @related_to %> not registered.\nExiting now.\n");
+          printf("In <%= vt.name %>_lock_nested(): VT <%= @related_to %> not registered.\nExiting now.\n");
           return SQLITE_ERROR;
         } else {
           struct Vtbl *lockVT<%= col %> = vtAll.instances[j];
@@ -552,7 +588,7 @@ static int <%= @name %>_lock_nested (long base, struct Vtbl *vtbl) {
 <%                elsif !col.related_to.empty? %>
         while ((j < (int)vtAll.size) && (strcmp(vtAll.instanceNames[j], "<%= @related_to %>"))) {j++;}
         if (j == (int)vtAll.size) {
-          printf("In <%= vt.name %>_init_resultset(): VT <%= @related_to %> not registered.\nExiting now.\n");
+          printf("In <%= vt.name %>_lock_nested(): VT <%= @related_to %> not registered.\nExiting now.\n");
           return SQLITE_ERROR;
         } else {
           struct Vtbl *lockVT<%= col %> = vtAll.instances[j];
@@ -619,7 +655,7 @@ static int <%= @name %>_unlock_nested (long base, struct Vtbl *vtbl) {
 <%                  elsif !col.related_to.empty? %>
         while ((j < (int)vtAll.size) && (strcmp(vtAll.instanceNames[j], "<%= @related_to %>"))) {j++;}
         if (j == (int)vtAll.size) {
-          printf("In <%= vt.name %>_init_resultset(): VT <%= @related_to %> not registered.\nExiting now.\n");
+          printf("In <%= vt.name %>_unlock_nested(): VT <%= @related_to %> not registered.\nExiting now.\n");
           return SQLITE_ERROR;
         } else {
           struct Vtbl *lockVT<%= col %> = vtAll.instances[j];
@@ -640,7 +676,7 @@ static int <%= @name %>_unlock_nested (long base, struct Vtbl *vtbl) {
 <%                elsif !col.related_to.empty? %>
         while ((j < (int)vtAll.size) && (strcmp(vtAll.instanceNames[j], "<%= @related_to %>"))) {j++;}
         if (j == (int)vtAll.size) {
-          printf("In <%= vt.name %>_init_resultset(): VT <%= @related_to %> not registered.\nExiting now.\n");
+          printf("In <%= vt.name %>_unlock_nested(): VT <%= @related_to %> not registered.\nExiting now.\n");
           return SQLITE_ERROR;
         } else {
           struct Vtbl *lockVT<%= col %> = vtAll.instances[j];

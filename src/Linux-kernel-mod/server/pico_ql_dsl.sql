@@ -748,8 +748,8 @@ CREATE VIRTUAL TABLE ERcvQueue_VT
 USING STRUCT VIEW SkBuff_SV
 WITH REGISTERED C TYPE struct sock:struct sk_buff *
 USING LOOP skb_queue_walk_safe(&base->sk_receive_queue, tuple_iter, next)
-USING LOCK SPINLOCK-IRQ(&base->sk_receive_queue.lock)
-RECORD LOCK RWLOCK(&tuple_iter.lock)$
+USING LOCK SPINLOCK-IRQ(&base->sk_receive_queue.lock)$
+//RECORD LOCK RWLOCK(&tuple_iter.lock)$
 
 #if KERNEL_VERSION > 2.6.32
 CREATE STRUCT VIEW IpVsStatsEstim_SV (
