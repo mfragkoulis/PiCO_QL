@@ -265,6 +265,7 @@ static int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, s
 <%          if @loop_root.length > 0 %>
           if (<%= @loop_root %> == NULL) {
 <%            if @container_class.length == 0 %>
+<%# Is there a case behind this? 20/03/14%>
     stcsr->size = 1;
 <%            else %>
 <%              @pointer.match(/\*/) ? retype = "#{@type}" : retype = "#{@type}*" %>
@@ -340,28 +341,39 @@ static int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, s
         chs++;
       }
       if ((!stcsr->locked) && (this_lock_available)) {  // 1st cond needed?
+<%            arg = "false" %>
+<%            @columns.each{ |col| %>
+<%              if !col.lock.empty? %>
+<%                arg = "true" %>
+<%                break %>
+<%              end %>
+<%            } %>
 <%            if !@lock_argument.empty? %>
+<%              if @lock_argument.match(/any_dstr/) %>
         <%= @lock_class.lock_function.gsub("<selector>", "#{@lock_argument}") %>;
+<%              else %>
+        <%= @lock_class.lock_function.gsub("<selector>", "#{@lock_argument}") %>;
+<%              end %>
 <%            else %>
         <%= @lock_class.lock_function %>;
 <%            end %>
 <%            if !@container_class.empty? %>
-<%              if !@loop.empty? %> 
+<%              if !@loop.empty? && arg == "true" %>
 <%                loop = display_loop("any_dstr") %>
 <%                loop.gsub!(/<space>/, "    ") %>
 <%#               Generate spacing for nested loops %>
-  <%= loop %> {
-    if (tuple_iter == NULL) continue;
+        <%= loop %> {
+          if (tuple_iter == NULL) continue;
 <%                if !@record_lock.empty? %>
-    <%= @record_lock_class.lock_function.gsub("<selector>", "#{@record_lock_argument}") %>;
+          <%= @record_lock_class.lock_function.gsub("<selector>", "#{@record_lock_argument}") %>;
 <%                else %>
 <%                  @columns.each { |col| %>
 <%                    if !col.lock.empty? %>
-    <%= col.lock_class.lock_function.gsub("<selector>", "#{col.lock_argument}") %>;
+          <%= col.lock_class.lock_function.gsub("<selector>", "#{col.lock_argument}") %>;
 <%                    end %>
 <%                  } %>
 <%                end %>
-  }
+        }
 <%              end %>
 <%            end %>
         stcsr->locked += 1;
