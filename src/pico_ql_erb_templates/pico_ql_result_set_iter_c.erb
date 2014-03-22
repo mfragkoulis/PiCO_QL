@@ -214,10 +214,10 @@ static int <%= @name %>_vt_advance_result_set_iter (sqlite3_vtab_cursor *cur,
   if (stc->isEof == 1) {
     if (stc->locked == 1) {
 <%#    if ((!stc->isInstanceNULL) && (stc->locked == 1)) { %>
-<%          arg = false %>
+<%          arg = "false" %>
 <%          @columns.each{ |col| %>
 <%            if !col.lock.empty? %>
-<%              arg = true %>
+<%              arg = "true" %>
 <%              break %>
 <%            end %>
 <%          } %>
@@ -235,11 +235,11 @@ static int <%= @name %>_vt_advance_result_set_iter (sqlite3_vtab_cursor *cur,
       <%= loop %> {
         if (tuple_iter == NULL) continue;
 <%              if !@record_lock.empty? %>
-        <%= @record_lock_class.lock_function.gsub("<selector>", "#{@record_lock_argument}") %>;
+        <%= @record_lock_class.unlock_function.gsub("<selector>", "#{@record_lock_argument}") %>;
 <%              else %>
 <%                @columns.each { |col| %>
 <%                  if !col.lock.empty? %>
-        <%= col.lock_class.lock_function.gsub("<selector>", "#{col.lock_argument}") %>;
+        <%= col.lock_class.unlock_function.gsub("<selector>", "#{col.lock_argument}") %>;
 <%                  end %>
 <%                } %>
 <%              end %>
@@ -248,7 +248,7 @@ static int <%= @name %>_vt_advance_result_set_iter (sqlite3_vtab_cursor *cur,
 <%          else %>
 <%            @columns.each { |col| %>
 <%              if !col.lock.empty? %>
-      <%= col.lock_class.lock_function.gsub("<selector>", "#{col.lock_argument}") %>;
+      <%= col.lock_class.unlock_function.gsub("<selector>", "#{col.lock_argument}") %>;
 <%              end %>
 <%            } %>
 <%          end %>
