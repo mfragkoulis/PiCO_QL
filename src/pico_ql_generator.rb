@@ -2535,9 +2535,14 @@ class Lock
         lock_argument = matchdata[1]
       end
       if !lock_argument.empty?
-         if lock_argument.match("base")
+         if lock_argument.match(/base\.|base->/)
            lock.gsub!(/base\.|base->/, "any_dstr->")
            lock_argument.gsub!(/base\.|base->/, "any_dstr->")
+         elsif lock_argument.match(/base/)
+      #puts "Lock is: #{lock}."
+      #puts "Lock argument is: #{lock_argument}."
+           lock.gsub!(/base/, "any_dstr")
+           lock_argument.gsub!(/base/, "any_dstr")
          end
       end
     else

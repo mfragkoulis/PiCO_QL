@@ -491,9 +491,9 @@ HOLD WITH spin_lock_irqsave(x, flags)
 RELEASE WITH spin_unlock_irqrestore(x, flags)
 $
 
-CREATE LOCK RWLOCK(x)
-HOLD WITH read_lock(x)
-RELEASE WITH read_unlock(x)
+CREATE LOCK SOCK-LOCK(x)
+HOLD WITH lock_sock(x)
+RELEASE WITH release_sock(x)
 $
 
 // 2.6.32.38 - atomic_t
@@ -738,7 +738,8 @@ $
 
 CREATE VIRTUAL TABLE ESock_VT
 USING STRUCT VIEW Sock_SV
-WITH REGISTERED C TYPE struct sock$
+WITH REGISTERED C TYPE struct sock
+USING LOCK SOCK-LOCK(base)$
 
 CREATE STRUCT VIEW SkBuff_SV (
 	len INT FROM len
@@ -749,7 +750,6 @@ USING STRUCT VIEW SkBuff_SV
 WITH REGISTERED C TYPE struct sock:struct sk_buff *
 USING LOOP skb_queue_walk_safe(&base->sk_receive_queue, tuple_iter, next)
 USING LOCK SPINLOCK-IRQ(&base->sk_receive_queue.lock)$
-//RECORD LOCK RWLOCK(&tuple_iter.lock)$
 
 #if KERNEL_VERSION > 2.6.32
 CREATE STRUCT VIEW IpVsStatsEstim_SV (
@@ -1085,7 +1085,7 @@ USING LOOP for (EGroup_VT_begin(tuple_iter, base->small_block, i); i < base->ngr
 $
 
 CREATE STRUCT VIEW Process_SV (
-       name TEXT FROM comm USING LOCK SPINLOCK(&tuple_iter->alloc_lock),
+       name TEXT FROM comm,
        pid INT FROM pid,
        tgid INT FROM tgid,
        cred_uid INT FROM cred->uid,
@@ -1145,6 +1145,7 @@ CREATE STRUCT VIEW Process_SV (
        stimescaled BIGINT FROM stimescaled,
        start_time INT FROM start_time.tv_sec,
        real_start_time INT FROM real_start_time.tv_sec,
+       thread_cpu_utime BIGINT FROM signal->cputimer.cputime.utime,
        nvcsw BIGINT FROM nvcsw,
        nivcsw BIGINT FROM nivcsw,
        link_count INT FROM link_count,
