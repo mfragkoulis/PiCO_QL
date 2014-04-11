@@ -1178,14 +1178,18 @@ class Column
           end
           if matchdata[1].match(/->/)
             @tokenized_access_path = matchdata[1].split(/->/)
-            @tokenized_access_path.pop
+            if @data_type != "TEXT" # Place a check for the char * too.
+              @tokenized_access_path.pop
+            end
           end
         else 
           puts "WARNING: Dereference in access path: #{@access_path} not part of data structure registered with PiCO QL.\n"
         end
       else
         @tokenized_access_path = @access_path.split(/->/)
-        @tokenized_access_path.pop
+        if @data_type != "TEXT"
+          @tokenized_access_path.pop
+        end
       end
       if $argD == "DEBUG"
         puts "Access path: #{@access_path}, processed tokens for NULL checking:"

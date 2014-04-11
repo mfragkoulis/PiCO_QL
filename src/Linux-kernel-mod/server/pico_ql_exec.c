@@ -88,9 +88,9 @@ int step_query(sqlite3_stmt *stmt,
 	break;
       case 5:
         if (PICO_QL_TEXT)
-	  strcat(result_set_row, "null ");
+	  strcat(result_set_row, "INVALID_P ");
         else
-	  strcat(result_set_row, "<td><b>null</td></b>");
+	  strcat(result_set_row, "<td><b>INVALID_P</td></b>");
 	break;
       }
     }
