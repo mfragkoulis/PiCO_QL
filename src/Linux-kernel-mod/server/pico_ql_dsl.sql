@@ -1145,7 +1145,6 @@ CREATE STRUCT VIEW Process_SV (
        stimescaled BIGINT FROM stimescaled,
        start_time INT FROM start_time.tv_sec,
        real_start_time INT FROM real_start_time.tv_sec,
-       thread_cpu_utime BIGINT FROM signal->cputimer.cputime.utime,
        nvcsw BIGINT FROM nvcsw,
        nivcsw BIGINT FROM nivcsw,
        link_count INT FROM link_count,
