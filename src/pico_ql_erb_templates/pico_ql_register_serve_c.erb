@@ -33,6 +33,8 @@
 <%# stripDir.gsub!(/^(?!#)(.+?)\((.*?)\)(\s*)\{(.+?)\}/m, "") %>
 <% stripDir.gsub!(/\)(\s*)\{(.+?)\};/m, "<clear_method_signature>") %>
 <% stripDir.gsub!(/\n^(.+)<clear_method_signature>/, "") %>
+<%# Remove array definition %>
+<% stripDir.gsub!(/(.+?)\[\](\s*)=(\s*)\{(.+?)};/m, "") %>
 <%# Currently works because of the ^(\w+). It could fail at some point. %>
 <% stripDir.gsub!(/^(\w+)(\s+)[^{}()](.+);$/, "") %>
 <%= stripDir %>

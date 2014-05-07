@@ -216,6 +216,55 @@ struct kvm_pit {
 };
 #endif KVM_RUNNING
 
+/*
+ * This is taken from fs/proc/array.c .
+ *
+ * The task state array is a strange "bitmap" of
+ * reasons to sleep. Thus "running" is zero, and
+ * you can test for combinations of others with
+ * simple bit tests.
+ */
+ const char * const task_state_array[] = {
+        "R (running)",          /*   0 */
+        "S (sleeping)",         /*   1 */
+        "D (disk sleep)",       /*   2 */
+        "T (stopped)",          /*   4 */
+        "t (tracing stop)",     /*   8 */
+        "Z (zombie)",           /*  16 */
+        "X (dead)",             /*  32 */
+        "x (dead)",             /*  64 */
+        "K (wakekill)",         /* 128 */
+        "W (waking)",           /* 256 */
+};
+
+/* 
+ * This is taken from include/linux/sched.h .
+ *
+ * for get_task_state() 
+ */
+#define TASK_REPORT             (TASK_RUNNING | TASK_INTERRUPTIBLE | \
+                                 TASK_UNINTERRUPTIBLE | __TASK_STOPPED | \
+                                 __TASK_TRACED)
+#define TASK_STATE_MAX          512
+
+/*
+ * This is taken from fs/proc/array.c .
+ *
+ */
+static const char *get_task_state(struct task_struct *tsk)
+{
+        unsigned int state = (tsk->state & TASK_REPORT) | tsk->exit_state;
+        const char * const *p = &task_state_array[0];
+
+        BUILD_BUG_ON(1 + ilog2(TASK_STATE_MAX) != ARRAY_SIZE(task_state_array));
+
+        while (state) {
+                p++;
+                state >>= 1;
+        }
+        return *p;
+}
+
 char rem_ip[23];
 char local_ip[23];
 char * convert_ip(long ip_host_fmt, char *ip) {
@@ -1054,7 +1103,8 @@ CREATE STRUCT VIEW Process_SV (
        ecred_fsuid INT FROM real_cred->fsuid,
        ecred_fsgid INT FROM real_cred->fsgid,
        FOREIGN KEY(group_set_id) FROM real_cred->group_info REFERENCES EGroup_VT POINTER,
-       state BIGINT FROM state,
+       state_family BIGINT FROM state,
+       state TEXT FROM get_task_state(tuple_iter),
        usage INT FROM usage.counter,
        flags INT FROM flags,
        ptrace INT FROM ptrace,
