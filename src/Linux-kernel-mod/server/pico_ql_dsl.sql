@@ -247,33 +247,25 @@ char dpath[128];
 
 long get_file_offset(struct file *f) {
   long f_pos;
-  spin_lock(&f->f_lock);
   f_pos = f->f_pos;
-  spin_unlock(&f->f_lock);
   return f_pos;
 };
 
 long get_page_offset(struct file *f) {
   long p_pos;
-  spin_lock(&f->f_lock);
   p_pos = f->f_pos >> PAGE_CACHE_SHIFT;
-  spin_unlock(&f->f_lock);
   return p_pos;
 };
 
 long get_page_in_cache(struct file *f) {
   long page;
-  spin_lock(&f->f_lock);
   page = (long)find_get_page(f->f_mapping, f->f_pos >> PAGE_CACHE_SHIFT);
-  spin_unlock(&f->f_lock);
   return page;
 };
 
 int get_pages_in_cache(struct address_space *a) {
   int pages;
-  spin_lock(&a->tree_lock);
   pages = a->nrpages;
-  spin_unlock(&a->tree_lock);
   return pages;
 };
 
@@ -283,9 +275,7 @@ unsigned get_pages_in_cache_contig(struct file *f, int current_offset) {
   struct page **pages;                       /* contiguous as the total.      */
   unsigned int nr_pages;
   if (current_offset) {
-    spin_lock(&f->f_lock);
     index = f->f_pos;
-    spin_unlock(&f->f_lock);
   }
   pages = (struct page **)kzalloc(malloc_pages * sizeof(struct page *), GFP_KERNEL);
   nr_pages = find_get_pages_contig(f->f_mapping, index, malloc_pages, pages);
@@ -461,39 +451,12 @@ struct kvm_pit_state pit_state;
  * is the same in 2.6.33 and 3.2.37 .
  */
 long mem_copy_pit_state(struct kvm_kpit_state *kpit_state) {
-  mutex_lock(&kpit_state->lock);
   memcpy(&pit_state, kpit_state, sizeof(struct kvm_pit_state));
-  mutex_unlock(&kpit_state->lock);
   return (long)&pit_state;
 };
 #endif KVM_RUNNING
 
 unsigned long flags;
-$
-
-CREATE LOCK RCU
-HOLD WITH rcu_read_lock()
-RELEASE WITH rcu_read_unlock()
-$
-
-CREATE LOCK RTNL
-HOLD WITH rtnl_lock()
-RELEASE WITH rtnl_unlock()
-$
-
-CREATE LOCK SPINLOCK(x)
-HOLD WITH spin_lock(x)
-RELEASE WITH spin_unlock(x)
-$
-
-CREATE LOCK SPINLOCK-IRQ(x)
-HOLD WITH spin_lock_irqsave(x, flags)
-RELEASE WITH spin_unlock_irqrestore(x, flags)
-$
-
-CREATE LOCK SOCK-LOCK(x)
-HOLD WITH lock_sock(x)
-RELEASE WITH release_sock(x)
 $
 
 // 2.6.32.38 - atomic_t
@@ -640,11 +603,8 @@ USING STRUCT VIEW NetDevice_SV
 WITH REGISTERED C TYPE struct net:struct net_device *
 #if KERNEL_VERSION > 2.6.32
 USING LOOP for_each_netdev_rcu(base, tuple_iter)
-USING LOCK RCU
 #else
 USING LOOP for_each_netdev_safe(base, tuple_iter, aux)
-USING LOCK RTNL
-// Test again RTNL lock
 #endif
 $
 
@@ -739,7 +699,7 @@ $
 CREATE VIRTUAL TABLE ESock_VT
 USING STRUCT VIEW Sock_SV
 WITH REGISTERED C TYPE struct sock
-USING LOCK SOCK-LOCK(base)$
+$
 
 CREATE STRUCT VIEW SkBuff_SV (
 	len INT FROM len
@@ -749,7 +709,7 @@ CREATE VIRTUAL TABLE ERcvQueue_VT
 USING STRUCT VIEW SkBuff_SV
 WITH REGISTERED C TYPE struct sock:struct sk_buff *
 USING LOOP skb_queue_walk_safe(&base->sk_receive_queue, tuple_iter, next)
-USING LOCK SPINLOCK-IRQ(&base->sk_receive_queue.lock)$
+$
 
 #if KERNEL_VERSION > 2.6.32
 CREATE STRUCT VIEW IpVsStatsEstim_SV (
@@ -770,9 +730,7 @@ CREATE VIRTUAL TABLE EIpVsStatsEstim_VT
 USING STRUCT VIEW IpVsStatsEstim_SV
 WITH REGISTERED C TYPE struct ip_vs_estimator *
 USING LOOP list_for_each_entry_rcu(tuple_iter, &base->list, list)
-USING LOCK RCU
 $
-//Equivalently USING LOCK RCU()
 
 // 2.6.32.38 - incomplete type
 CREATE STRUCT VIEW NetnsIpvs_SV (
@@ -815,7 +773,7 @@ USING STRUCT VIEW NetNamespace_SV
 WITH REGISTERED C NAME network_namespaces
 WITH REGISTERED C TYPE struct list_head *:struct net *
 USING LOOP list_for_each_entry_rcu(tuple_iter, base, list)
-USING LOCK RCU$
+$
 
 CREATE VIRTUAL TABLE ENetNamespace_VT
 USING STRUCT VIEW NetNamespace_SV
@@ -946,7 +904,6 @@ CREATE VIRTUAL TABLE EKobjectList_VT
 USING STRUCT VIEW Kobject_SV
 WITH REGISTERED C TYPE struct list_head:struct kobject *
 USING LOOP list_for_each_entry_rcu(tuple_iter, base, entry)
-USING LOCK RCU
 $
 
 CREATE VIRTUAL TABLE Kobject_VT
@@ -960,14 +917,12 @@ USING STRUCT VIEW Kobject_SV
 WITH REGISTERED C NAME net_queues_kset
 WITH REGISTERED C TYPE struct kset:struct kobject *
 USING LOOP list_for_each_entry(tuple_iter, &base->list, entry)
-USING LOCK SPINLOCK(&base->list_lock)
 $
 
 CREATE VIRTUAL TABLE EKobjectSet_VT
 USING STRUCT VIEW Kobject_SV
 WITH REGISTERED C TYPE struct kset:struct kobject *
 USING LOOP list_for_each_entry(tuple_iter, &base->list, entry)
-USING LOCK SPINLOCK(&base->list_lock)
 $
 
 CREATE STRUCT VIEW Inode_SV (
@@ -1003,7 +958,6 @@ USING STRUCT VIEW Superblock_SV
 WITH REGISTERED C NAME superblock
 WITH REGISTERED C TYPE struct super_block *
 USING LOOP list_for_each_entry_rcu(tuple_iter, &base->s_list, s_list)
-USING LOCK RCU
 $
 
 CREATE VIRTUAL TABLE ESuperblock_VT
@@ -1059,7 +1013,6 @@ CREATE VIRTUAL TABLE EFile_VT
 USING STRUCT VIEW File_SV
 WITH REGISTERED C TYPE struct fdtable:struct file*
 USING LOOP for (EFile_VT_begin(tuple_iter, base->fd, (bit = find_first_bit((unsigned long *)base->open_fds, base->max_fds))); bit < base->max_fds; EFile_VT_advance(tuple_iter, base->fd, (bit = find_next_bit((unsigned long *)base->open_fds, base->max_fds, bit + 1))))
-USING LOCK RCU
 $
 
 CREATE STRUCT VIEW FilesStruct_SV (
@@ -1185,7 +1138,6 @@ USING STRUCT VIEW Process_SV
 WITH REGISTERED C NAME processes
 WITH REGISTERED C TYPE struct task_struct *
 USING LOOP list_for_each_entry_rcu(tuple_iter, &base->tasks, tasks)
-USING LOCK RCU
 $
 
 CREATE VIRTUAL TABLE EProcess_VT
@@ -1197,14 +1149,12 @@ CREATE VIRTUAL TABLE EProcessChild_VT
 USING STRUCT VIEW Process_SV
 WITH REGISTERED C TYPE struct task_struct *
 USING LOOP list_for_each_entry_rcu(tuple_iter, &base->children, children)
-USING LOCK RCU
 $
 
 CREATE VIRTUAL TABLE EThread_VT
 USING STRUCT VIEW Process_SV
 WITH REGISTERED C TYPE struct task_struct *
 USING LOOP list_for_each_entry_rcu(tuple_iter, &base->thread_group, thread_group)
-USING LOCK RCU
 $
 
 #if KVM_RUNNING
@@ -1279,7 +1229,6 @@ CREATE VIRTUAL TABLE EKVMArchPitChannelState_VT
 USING STRUCT VIEW KVMArchPitChannelState_SV
 WITH REGISTERED C TYPE struct kvm_pit_state:struct kvm_pit_channel_state *
 USING LOOP for(tuple_iter = &base->channels[i]; i < 3; tuple_iter = &base->channels[++i])
-// USING LOCK MUTEX(&base->lock) required for kvm_kpit_state;not accessible
 $
 
 CREATE STRUCT VIEW KVM_SV (

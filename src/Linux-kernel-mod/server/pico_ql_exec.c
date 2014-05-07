@@ -1,3 +1,4 @@
+#include <linux/stop_machine.h>
 #include <linux/slab.h>
 #include <linux/types.h>
 #include <linux/string.h>
@@ -10,12 +11,20 @@
 static int serving = 0;
 static struct timespec picoQL_ts_end;
 
+struct query_data {
+  sqlite3_stmt *stmt;
+  char ***result_set;
+  int *rs_slots;
+};
+
 /* Forwards  a query for execution to sqlite and
  * presents the resultset of a query.
  */
-int step_query(sqlite3_stmt *stmt, 
-	       char ***root_result_set,
-               int *argc_slots) {
+int step_query(void *query_data) {
+  struct query_data *qd = (struct query_data *)query_data;
+  sqlite3_stmt *stmt = qd->stmt;
+  char ***root_result_set = qd->result_set;
+  int *argc_slots = qd->rs_slots;
   int col, result, rows = 0;
   char *result_set_row, *placeholder, *result_set;
   result_set_row = (char *)sqlite3_malloc(sizeof(char) * PICO_QL_RESULT_SET_SIZE);
@@ -176,10 +185,15 @@ int file_prep_exec(sqlite3* db,
   char *placeholder = (char *)sqlite3_malloc(sizeof(char) * 256);
   char *result_set;
   int result = 0;
+  /* Setup query data data structure. */
+  struct query_data qd;
+  qd.stmt = stmt;
+  qd.result_set = root_result_set;
+  qd.rs_slots = argc_slots;
 #ifdef PICO_QL_DEBUG
   printf("In file_prep_exec query to execute is %s, statement structure %lx.\n", q, (long)stmt);
 #endif
-  result = step_query(stmt, root_result_set, argc_slots);
+  result = stop_machine(step_query, &qd, NULL);
   result_set = (*root_result_set)[*argc_slots - 1];
   switch (result) {
   case SQLITE_DONE:
