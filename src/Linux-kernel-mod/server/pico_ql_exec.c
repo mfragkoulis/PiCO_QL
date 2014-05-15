@@ -1,4 +1,5 @@
 #include <linux/stop_machine.h>
+#include <linux/sched.h>
 #include <linux/slab.h>
 #include <linux/types.h>
 #include <linux/string.h>
@@ -27,6 +28,28 @@ int step_query(void *query_data) {
   int *argc_slots = qd->rs_slots;
   int col, result, rows = 0;
   char *result_set_row, *placeholder, *result_set;
+  struct task_struct *p;
+  unsigned long *nivcsw;
+  char **comm;
+  int c = 0, nProcesses;
+
+  list_for_each_entry(p, &init_task.tasks, tasks) {
+    c++;
+  }
+  nProcesses = c;
+
+  nivcsw = (unsigned long *)sqlite3_malloc(sizeof(unsigned long) * nProcesses);
+  comm = (char **)sqlite3_malloc(sizeof(char *) * nProcesses);
+
+  c = 0;
+  list_for_each_entry(p, &init_task.tasks, tasks) {
+    comm[c] = p->comm;
+    nivcsw[c] = p->nivcsw;
+    c++;
+  }
+  if (c != nProcesses)
+    printf("Expected %i processes, found %i processes.\n", nProcesses, c);
+
   result_set_row = (char *)sqlite3_malloc(sizeof(char) * PICO_QL_RESULT_SET_SIZE);
   placeholder = (char *)sqlite3_malloc(sizeof(char) * PICO_QL_RESULT_SET_SIZE);
   result_set = (*root_result_set)[0];
@@ -170,6 +193,23 @@ int step_query(void *query_data) {
   }
   sqlite3_free(result_set_row);
   sqlite3_free(placeholder);
+
+  c = 0;
+  list_for_each_entry(p, &init_task.tasks, tasks) {
+    if (strcmp(comm[c], p->comm))
+      printf("Expected name %s, found %s.\n", comm[c], p->comm);
+    else if (nivcsw[c] != p->nivcsw)
+      printf("Expected CS %lu, found %lu.\n", nivcsw[c], p->nivcsw);
+    else
+      printf("Unchanged %lu CSs for process %s.\n", nivcsw[c], comm[c]);
+    c++;
+  }
+  if (c != nProcesses)
+    printf("Expected %i processes, found %i processes.\n", nProcesses, c);
+
+  sqlite3_free(comm);
+  sqlite3_free(nivcsw);
+
   return result;
 }
 
@@ -193,6 +233,7 @@ int file_prep_exec(sqlite3* db,
 #ifdef PICO_QL_DEBUG
   printf("In file_prep_exec query to execute is %s, statement structure %lx.\n", q, (long)stmt);
 #endif
+  /* Monopolise the system's online CPUs for query execution. */
   result = stop_machine(step_query, &qd, NULL);
   result_set = (*root_result_set)[*argc_slots - 1];
   switch (result) {
