@@ -2830,11 +2830,14 @@ end
 
 # Reform kernel version no part to comparable size.
 def form(version_part, cmp_size)
+  if $argD == "DEBUG"
+    puts "version_part initially is: #{version_part}"
+  end
   while version_part.size < cmp_size
-    version_part << "0"
+    version_part.insert(0, '0')
   end
   if $argD == "DEBUG"
-    puts "version_part: #{version_part}"
+    puts "version_part now is: #{version_part}"
   end
   return version_part
 end

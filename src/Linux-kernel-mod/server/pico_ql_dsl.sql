@@ -52,6 +52,22 @@
 #if KVM_RUNNING
 #define EKVMArchPitChannelState_VT_decl(X) struct kvm_pit_channel_state *X; int i = 0
 
+int get_uid_val(kuid_t kval) {
+#if KERNEL_VERSION > 3.8.1
+  return kval.val;
+#else
+  return kval;
+#endif
+}
+
+int get_gid_val(kgid_t kval) {
+#if KERNEL_VERSION > 3.8.1
+  return kval.val;
+#else
+  return kval;
+#endif
+}
+
 /*
 struct rq {
         raw_spinlock_t lock;
@@ -224,6 +240,7 @@ struct kvm_pit {
  * you can test for combinations of others with
  * simple bit tests.
  */
+#if KERNEL_VERSION <= 3.8.1
  const char * const task_state_array[] = {
         "R (running)",          /*   0 */
         "S (sleeping)",         /*   1 */
@@ -242,10 +259,12 @@ struct kvm_pit {
  *
  * for get_task_state() 
  */
+// Defined in 3.6.10, not defined in 2.6.0
 #define TASK_REPORT             (TASK_RUNNING | TASK_INTERRUPTIBLE | \
                                  TASK_UNINTERRUPTIBLE | __TASK_STOPPED | \
                                  __TASK_TRACED)
 #define TASK_STATE_MAX          512
+
 
 /*
  * This is taken from fs/proc/array.c .
@@ -264,6 +283,29 @@ static const char *get_task_state(struct task_struct *tsk)
         }
         return *p;
 }
+
+#else
+
+static const char * const task_state_array[] = {
+        "R (running)",          /*   0 */
+        "S (sleeping)",         /*   1 */
+        "D (disk sleep)",       /*   2 */
+        "T (stopped)",          /*   4 */
+        "t (tracing stop)",     /*   8 */
+        "Z (zombie)",           /*  16 */
+        "X (dead)",             /*  32 */
+};
+
+static inline const char *get_task_state(struct task_struct *tsk)
+{
+        unsigned int state = (tsk->state | tsk->exit_state) & TASK_REPORT;
+
+        BUILD_BUG_ON(1 + ilog2(TASK_REPORT) != ARRAY_SIZE(task_state_array)-1);
+
+        return task_state_array[fls(state)];
+}
+
+#endif
 
 char rem_ip[23];
 char local_ip[23];
@@ -399,32 +441,32 @@ char *check_svm(void *dummy, char *msg) {
 
 #if KVM_RUNNING
 int is_kvm_file(struct file *f) {
-  if ((f->f_cred->uid == 107) && 
-      (f->f_cred->gid == 107) && 
+  if ((get_uid_val(f->f_cred->uid) == 107) && 
+      (get_gid_val(f->f_cred->gid) == 107) && 
       (!strcmp(f->f_path.dentry->d_name.name, "kvm-vm")))
     return 1;
   return 0;
 };
 
 long check_kvm(struct file *f) {
-  if ((f->f_cred->uid == 107) && 
-      (f->f_cred->gid == 107) && 
+  if ((get_uid_val(f->f_cred->uid) == 107) && 
+      (get_gid_val(f->f_cred->gid) == 107) && 
       (!strcmp(f->f_path.dentry->d_name.name, "kvm-vm")))
     return (long)f->private_data;
   return 0;
 };
 
 int is_kvm_vcpu_file(struct file *f) {
-  if ((f->f_cred->uid == 107) && 
-      (f->f_cred->gid == 107) &&
+  if ((get_uid_val(f->f_cred->uid) == 107) && 
+      (get_gid_val(f->f_cred->gid) == 107) &&
       (!strcmp(f->f_path.dentry->d_name.name, "kvm-vcpu")))
     return 1;
   return 0;
 };
 
 long check_kvm_vcpu(struct file *f) {
-  if ((f->f_cred->uid == 107) && 
-      (f->f_cred->gid == 107) &&
+  if ((get_uid_val(f->f_cred->uid) == 107) && 
+      (get_gid_val(f->f_cred->gid) == 107) &&
       (!strcmp(f->f_path.dentry->d_name.name, "kvm-vcpu")))
     return (long)f->private_data;
   return 0;
@@ -482,7 +524,9 @@ long kvm_vcpu_ioctl_x86_get_vcpu_events(struct kvm_vcpu *vcpu) {
   vcpu_events.nmi.pending = vcpu->arch.nmi_pending;
   vcpu_events.nmi.masked = kvm_x86_ops->get_nmi_mask(vcpu);
 
+#if KERNEL_VERSION <= 3.8.1
   vcpu_events.sipi_vector = vcpu->arch.sipi_vector;
+#endif
 
   vcpu_events.flags = (KVM_VCPUEVENT_VALID_NMI_PENDING
                          | KVM_VCPUEVENT_VALID_SIPI_VECTOR);
@@ -544,8 +588,10 @@ CREATE STRUCT VIEW VirtualMem_SV (
        FOREIGN KEY(mmap_cache_id) FROM mmap_cache REFERENCES EVirtualMemArea_VT POINTER,
        mmap_base BIGINT FROM mmap_base,
        task_size UNSIGNED BIG INT FROM task_size,
+#if KERNEL_VERSION <= 3.8.1
        cached_hole_size BIGINT FROM cached_hole_size,
        free_area_cache BIGINT FROM free_area_cache,
+#endif
        pgd BIGINT FROM pgd->pgd,
        users BIGINT FROM mm_users.counter,
        counter INT FROM mm_count.counter,
@@ -562,7 +608,11 @@ CREATE STRUCT VIEW VirtualMem_SV (
        stack_vm BIGINT FROM stack_vm,
 //       reserved_vm BIGINT FROM reserved_vm,
        def_flags BIGINT FROM def_flags,
+#if KERNEL_VERSION <= 3.8.1
        nr_ptes BIGINT FROM nr_ptes,
+#else
+       nr_ptes BIGINT FROM atomic_long_read(&tuple_iter->nr_ptes),
+#endif
        start_code BIGINT FROM start_code,
        end_code BIGINT FROM end_code,
        start_data BIGINT FROM start_data,
@@ -1036,12 +1086,21 @@ CREATE STRUCT VIEW File_SV (
        path_dentry BIGINT FROM (long)tuple_iter.f_dentry,
 //     path_mount BIGINT FROM (long)tuple_iter.f_vfsmnt,
        path_mount BIGINT FROM (long)tuple_iter.f_path.mnt,
+#if KERNEL_VERSION <= 3.8.1
        fowner_uid INT FROM f_owner.uid,
        fowner_euid INT FROM f_owner.euid,
        fcred_uid INT FROM f_cred->uid,
        fcred_euid INT FROM f_cred->euid,
        fcred_gid INT FROM f_cred->gid,
        fcred_egid INT FROM f_cred->egid,
+#else
+       fowner_uid INT FROM get_uid_val(tuple_iter->f_owner.uid),
+       fowner_euid INT FROM get_uid_val(tuple_iter->f_owner.euid),
+       fcred_uid INT FROM get_uid_val(tuple_iter->f_cred->uid),
+       fcred_euid INT FROM get_uid_val(tuple_iter->f_cred->euid),
+       fcred_gid INT FROM get_gid_val(tuple_iter->f_cred->gid),
+       fcred_egid INT FROM get_gid_val(tuple_iter->f_cred->egid),
+#endif
        fmode INT FROM f_mode,
        fra_pages INT FROM f_ra.size,
        fra_mmap_miss INT FROM f_ra.mmap_miss,
@@ -1090,6 +1149,7 @@ CREATE STRUCT VIEW Process_SV (
        name TEXT FROM comm,
        pid INT FROM pid,
        tgid INT FROM tgid,
+#if KERNEL_VERSION <= 3.8.1
        cred_uid INT FROM cred->uid,
        cred_gid INT FROM cred->gid,
        cred_euid INT FROM cred->euid,
@@ -1102,6 +1162,20 @@ CREATE STRUCT VIEW Process_SV (
        ecred_egid INT FROM real_cred->egid,
        ecred_fsuid INT FROM real_cred->fsuid,
        ecred_fsgid INT FROM real_cred->fsgid,
+#else
+       cred_uid INT FROM get_uid_val(tuple_iter->cred->uid),
+       cred_gid INT FROM get_gid_val(tuple_iter->cred->gid),
+       cred_euid INT FROM get_uid_val(tuple_iter->cred->euid),
+       cred_egid INT FROM get_gid_val(tuple_iter->cred->egid),
+       cred_fsuid INT FROM get_uid_val(tuple_iter->cred->fsuid),
+       cred_fsgid INT FROM get_gid_val(tuple_iter->cred->fsgid),
+       ecred_uid INT FROM get_uid_val(tuple_iter->real_cred->uid),
+       ecred_gid INT FROM get_gid_val(tuple_iter->real_cred->gid),
+       ecred_euid INT FROM get_uid_val(tuple_iter->real_cred->euid),
+       ecred_egid INT FROM get_gid_val(tuple_iter->real_cred->egid),
+       ecred_fsuid INT FROM get_uid_val(tuple_iter->real_cred->fsuid),
+       ecred_fsgid INT FROM get_gid_val(tuple_iter->real_cred->fsgid),
+#endif
        FOREIGN KEY(group_set_id) FROM real_cred->group_info REFERENCES EGroup_VT POINTER,
        state_family BIGINT FROM state,
        state TEXT FROM get_task_state(tuple_iter),
@@ -1169,7 +1243,11 @@ CREATE STRUCT VIEW Process_SV (
        maj_flt BIGINT FROM maj_flt,
        sas_ss_sp BIGINT FROM sas_ss_sp,
        sas_ss_size INT FROM sas_ss_size,
+#if KERNEL_VERSION <= 3.8.1
        loginuid INT FROM (uid_t)tuple_iter.loginuid, // CONFIG_AUDITSYSCALL
+#else
+       loginuid INT FROM get_uid_val(tuple_iter.loginuid), // CONFIG_AUDITSYSCALL
+#endif
        sessionid INT FROM sessionid, // CONFIG_AUDITSYSCALL
 //       self_exec_id INT FROM (u32)tuple_iter.self_exec_id,
        parent_exec_id INT FROM (u32)tuple_iter.parent_exec_id,
@@ -1227,7 +1305,9 @@ CREATE STRUCT VIEW KVMVCPUEvents_SV (
 //        nmi_masked INT FROM kvm_x86_ops->get_nmi_mask(tuple_iter),  // NULL check fails
         nmi_masked INT FROM nmi.masked,
         nmi_pad INT FROM nmi.pad,
+#if KERNEL_VERSION <= 3.8.1
 	sipi_vector INT FROM sipi_vector,
+#endif
         flags INT FROM flags
 )
 $

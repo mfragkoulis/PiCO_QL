@@ -22,7 +22,7 @@
 DISTRO := $(shell if [ -f "/etc/redhat-release" ]; then echo "fedora"; elif [ -f "/etc/debian_version" ]; then echo "debian"; fi)
 # Other places to look for distribution information: /etc/issue, /proc/version, uname -r
 ifeq ($(DISTRO),fedora)
-KERNEL_HEADER_DIR = "/home/mfg/Downloads/linux-3.8.1/include"
+KERNEL_HEADER_DIR = "/home/mfg/Downloads/linux-3.14.4/include"
 #KERNEL_HEADER_DIR = "/usr/src/kernels/`uname -r`/include"
 else ifeq ($(DISTRO),debian)
 KERNEL_HEADER_DIR = "/usr/src/linux-headers-`uname -r`/include"

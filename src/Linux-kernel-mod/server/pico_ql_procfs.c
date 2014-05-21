@@ -332,13 +332,14 @@ int init_module()
   if (re) return -ECANCELED;
   /* substitute 0664 with 0660 to provide access only to the owner
    * and the owner's group. */
-  PicoQL_Proc_File = create_proc_entry("picoQL", 0664, NULL);
+//  PicoQL_Proc_File = create_proc_entry("picoQL", 0664, NULL);
+  PicoQL_Proc_File = proc_create("picoQL", 0664, NULL, &picoQL_fops);
   if (!PicoQL_Proc_File) {
     remove_proc_entry("picoQL", NULL);
     return -ECANCELED;
   }
-  PicoQL_Proc_File->proc_iops = &picoQL_iops;
-  PicoQL_Proc_File->proc_fops = &picoQL_fops;
+//  PicoQL_Proc_File->proc_iops = &picoQL_iops;
+//  PicoQL_Proc_File->proc_fops = &picoQL_fops;
 #ifdef PICO_QL_DEBUG
   printf("Created proc entry %s.\n", PicoQL_Proc_File->name);
 #endif
@@ -351,7 +352,7 @@ void cleanup_module()
   deinit_selectors();
   sqlite3_close(db);
   sqlite3_free(mod);
-  remove_proc_entry(PicoQL_Proc_File->name, NULL);
+  remove_proc_entry("picoQL", NULL);
 #ifdef PICO_QL_DEBUG
   printf("Cleaned up after picoQL module.\n");
 #endif
