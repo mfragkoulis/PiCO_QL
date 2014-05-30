@@ -214,7 +214,9 @@ int init_sqlite3(void) {
   pico_ql_register(&init_task, "processes");
   pico_ql_register(&init_task.nsproxy, "namespace_proxy");
   pico_ql_register(&net_namespace_list, "network_namespaces");
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3,14,4)
   pico_ql_register(hypervisor_kobj, "sysfs_hypervisor_kobject");
+#endif
   ks = init_net.loopback_dev->queues_kset;
   pico_ql_register(ks, "net_queues_kset");
   pico_ql_register(&pci_bus_type, "pci_bus");
@@ -232,7 +234,9 @@ int init_sqlite3(void) {
   rcu_read_unlock();
   if (sb == NULL) return -ECANCELED;
   pico_ql_register(sb, "superblock");
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3,14,4)
   pico_ql_register(&balloon_stats, "xen_balloon_stats");
+#endif
   pico_ql_register((first_online_pgdat())->node_zones, "mem_zones");
   output = pico_ql_serve(db);
   if (output != SQLITE_DONE) {

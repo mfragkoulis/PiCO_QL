@@ -2830,8 +2830,10 @@ end
 
 # Reform kernel version no part to comparable size.
 def form(version_part, cmp_size)
+  version_part.lstrip!
+  version_part.rstrip!
   if $argD == "DEBUG"
-    puts "version_part initially is: #{version_part}"
+    puts "version_part initially is: #{version_part} and has length #{version_part.size.to_s}"
   end
   while version_part.size < cmp_size
     version_part.insert(0, '0')
@@ -2844,24 +2846,63 @@ end
 
 # Check DSL-given kernel version against 
 # this machine's kernel version.
-def kernel_version_match(condition, version, subv, ssv, sssv)
+def kernel_version_match(condition, version, subv, ssv)
   machine_kernel_version = `uname -r`
   if $argD == "DEBUG"
     puts "Machine kernel version: #{machine_kernel_version}"
+    puts "Compare if #{condition} than kernel version: #{version}.#{subv}.#{ssv}"
   end
-  matchdata = machine_kernel_version.match(/(\d)\.(\d{1,2})((\.(\d{1,3}))*)((\.(\d{1,3}))*)/) 
+  matchdata = machine_kernel_version.match(/(\d)\.(\d{1,2})(\.(\d{1,3})?)/) 
   if $argD == "DEBUG"
     puts "machine kernel version tokenized: #{matchdata.inspect}"
   end
-  version << form(subv, 2) << form(ssv, 3) << form(sssv, 3)
+  version << form(subv, 2) << form(ssv, 3)
   version_no_form = version.to_i
   machine_kernel_version_tokenized = String.new(matchdata[1])
-  machine_kernel_version_tokenized << form(matchdata[2], 2) << 
-                                      form(matchdata[5], 3) << 
-                                      form(matchdata[6], 3)
+  machine_kernel_version_tokenized << form(matchdata[2], 2)
+  if matchdata[4] != nil
+    machine_kernel_version_tokenized << form(matchdata[4], 3)
+  end
   machine_kernel_version_no_form = machine_kernel_version_tokenized.to_i
   return cmp_v(condition, machine_kernel_version_no_form, version_no_form) 
 end
+
+# Compare multiple kernel versions to the underlying one
+# in order to branch correctly to the if part or the else part.
+def compare_many_versions(versions, action_true, action_false)
+  cmp_versions = String.new(versions)
+  if $argD == "DEBUG"
+    puts "Kernel versions for comparison are: #{cmp_versions}."
+  end
+  cmp_versions.lstrip!
+  cmp_versions.rstrip!
+  if $argD == "DEBUG"
+    puts "(After cleaning up spaces) kernel versions for comparison are: #{cmp_versions}."
+  end
+  if cmp_versions.match(/\d\s?(<|<=|=|==|>=|>)/)    # #if KERNEL_VERSION < 3.2.0 >= 3.14.4
+    cmp_versions.gsub!(/(<|<=|=|==|>=|>)(\s?)(\d)/, '\1\3')
+    if $argD == "DEBUG"
+      puts "(After removing unneeded spaces) kernel versions for comparison are: #{cmp_versions}."
+    end
+    version = cmp_versions.split(" ")
+    condition = true
+    # && between the various conditions is implied
+    version.each { |v|
+      mv = v.match(/(<|<=|=|==|>=|>)(\d)\.(\d{1,2})(\.(\d{1,3})?)/)
+      if !kernel_version_match($1, $2, $3, $5)
+        condition = false
+        action = action_false
+      end
+    }
+    if condition == true
+      action = action_true
+    end
+    return true, action
+  else
+    return false, nil
+  end
+end
+   
 
 # Take cases on command-line arguments.
 def take_cases(argv)
@@ -2928,15 +2969,20 @@ if __FILE__ == $0
     end
   }
   description = $lined_description.join
+  puts "Find kernel version."
   if $argK == "KERNEL"
-    description.gsub!(/^#if KERNEL_VERSION (<|<=|=|==|>=|>) (\d)\.(\d{1,2})((\.(\d{1,3}))*)((\.(\d{1,3}))*)(\s+)(.+?)\n#((else(\s+)(.+?)\n#)*)endif/im) { |m|
+    # A further (\.(\d{1,3})?) for case e.g. 3.2.4.245 breaks the pattern
+    description.gsub!(/^#if KERNEL_VERSION((\s?(<|<=|=|==|>=|>)\s?(\d)\.(\d{1,2})(\.(\d{1,3})?))+)(\s+)(.+?)\n#((else(\s+)(.+?)\n#)*)endif/im) { |m|
       if $argD == "DEBUG"
         puts "m initially is: #{m}\n1:#{$1}\n2:#{$2}\n3:#{$3}\n4:#{$4}\n5:#{$5}\n6:#{$6}\n7:#{$7}\n8:#{$8}\n9:#{$9}\n10:#{$10}\n11:#{$11}\n12:#{$12}\n13:#{$13}\n14:#{$14}\n15:#{$15}\n16:#{$16}"
       end
-      if kernel_version_match($1, $2, $3, $6, $7)
-        m = $11
-      else
-        m = $15
+      valid, m = compare_many_versions($1, $9, $13)
+      if valid == false
+        if kernel_version_match($3, $4, $5, $7)
+          m = $9
+        else
+          m = $13
+        end
       end
       if $argD == "DEBUG"
         puts "Result of condition is: #{m}\n"

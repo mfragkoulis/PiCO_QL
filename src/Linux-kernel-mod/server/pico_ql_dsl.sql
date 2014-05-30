@@ -1382,7 +1382,7 @@ $
 #endif KVM_RUNNING
 
 
-#if KERNEL_VERSION >= 3.2.0
+#if KERNEL_VERSION >= 3.2.0 <= 3.14.4
 CREATE STRUCT VIEW XenStats_SV (
         cpu_has_vmx INT FROM check_vmx(tuple_iter),
         cpu_has_svm TEXT FROM {char *msg = (char *)sqlite3_malloc(sizeof(char) * PAGE_SIZE/4); 
