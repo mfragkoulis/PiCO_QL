@@ -2885,17 +2885,17 @@ def compare_many_versions(versions, action_true, action_false)
       puts "(After removing unneeded spaces) kernel versions for comparison are: #{cmp_versions}."
     end
     version = cmp_versions.split(" ")
-    condition = true
-    # && between the various conditions is implied
+    condition = false
+    # || between the various conditions is implied
     version.each { |v|
       mv = v.match(/(<|<=|=|==|>=|>)(\d)\.(\d{1,2})(\.(\d{1,3})?)/)
-      if !kernel_version_match($1, $2, $3, $5)
-        condition = false
-        action = action_false
+      if kernel_version_match($1, $2, $3, $5)
+        condition = true
+        action = action_true
       end
     }
-    if condition == true
-      action = action_true
+    if condition == false
+      action = action_false
     end
     return true, action
   else

@@ -3,6 +3,7 @@
 
 
 //#include <config/modversions.h>   
+#include <linux/init.h>
 #include <linux/module.h>   
 #include <linux/version.h>
 
