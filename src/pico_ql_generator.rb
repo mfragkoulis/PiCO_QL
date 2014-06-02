@@ -2969,7 +2969,6 @@ if __FILE__ == $0
     end
   }
   description = $lined_description.join
-  puts "Find kernel version."
   if $argK == "KERNEL"
     # A further (\.(\d{1,3})?) for case e.g. 3.2.4.245 breaks the pattern
     description.gsub!(/^#if KERNEL_VERSION((\s?(<|<=|=|==|>=|>)\s?(\d)\.(\d{1,2})(\.(\d{1,3})?))+)(\s+)(.+?)\n#((else(\s+)(.+?)\n#)*)endif/im) { |m|

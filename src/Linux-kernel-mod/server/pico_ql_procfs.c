@@ -345,7 +345,7 @@ int init_module()
 //  PicoQL_Proc_File->proc_iops = &picoQL_iops;
 //  PicoQL_Proc_File->proc_fops = &picoQL_fops;
 #ifdef PICO_QL_DEBUG
-  printf("Created proc entry %s.\n", PicoQL_Proc_File->name);
+  printf("Created proc entry %s.\n", "picoQL");
 #endif
   return re;
 }
