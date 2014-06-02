@@ -1005,11 +1005,13 @@ WITH REGISTERED C TYPE struct list_head:struct kobject *
 USING LOOP list_for_each_entry_rcu(tuple_iter, base, entry)
 $
 
+#if KERNEL_VERSION < 3.14.4
 CREATE VIRTUAL TABLE Kobject_VT
 USING STRUCT VIEW Kobject_SV
 WITH REGISTERED C NAME sysfs_hypervisor_kobject
 WITH REGISTERED C TYPE struct kobject
 $
+#endif
 	
 CREATE VIRTUAL TABLE KobjectSet_VT
 USING STRUCT VIEW Kobject_SV
@@ -1382,7 +1384,7 @@ $
 #endif KVM_RUNNING
 
 
-#if KERNEL_VERSION >= 3.2.0 <= 3.14.4
+#if KERNEL_VERSION >= 3.2.0 < 3.14.4
 CREATE STRUCT VIEW XenStats_SV (
         cpu_has_vmx INT FROM check_vmx(tuple_iter),
         cpu_has_svm TEXT FROM {char *msg = (char *)sqlite3_malloc(sizeof(char) * PAGE_SIZE/4); 

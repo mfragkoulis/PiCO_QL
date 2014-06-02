@@ -6,6 +6,10 @@
 #include <linux/module.h>   
 #include <linux/version.h>
 
+MODULE_AUTHOR("Marios Fragkoulis");
+MODULE_LICENSE("GPL");
+MODULE_DESCRIPTION("A relational interface to selected kernel data structures.");
+
 /* Necessary because we use proc fs */
 #include <linux/proc_fs.h>
 
@@ -362,5 +366,3 @@ void cleanup_module()
 #endif
 }
 
-MODULE_AUTHOR("Marios Fragkoulis");
-MODULE_LICENSE("GPL");
