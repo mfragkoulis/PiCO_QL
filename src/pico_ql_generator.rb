@@ -2921,8 +2921,6 @@ def take_cases(argv)
     $argLB = "C"
   when /concept_check/i
     $argC = "CONCEPT_CHECK"
-  when /consistent_view/i
-    $argCNST = "CONSISTENT_VIEW"
   end
 end
 
