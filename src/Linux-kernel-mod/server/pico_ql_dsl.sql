@@ -335,6 +335,13 @@ long get_rx_queue(struct sock *s) {
 };
 
 char dpath[128];
+char * checked_d_path(const struct path *path, char *buf, int buflen) {
+  if (path == NULL) {
+    buf = "INVALID_P";
+    return buf;
+  } else 
+    return d_path(path, buf, buflen);
+};
 
 long get_file_offset(struct file *f) {
   long f_pos;
@@ -1068,7 +1075,7 @@ $
 
 CREATE STRUCT VIEW File_SV (
        inode_name TEXT FROM f_path.dentry->d_name.name,
-       inode_dname TEXT FROM {d_path(&tuple_iter->f_path, dpath, 128)},
+       inode_dname TEXT FROM {checked_d_path(&tuple_iter->f_path, dpath, 128)},
        inode_no BIGINT FROM f_path.dentry->d_inode->i_ino,
        inode_mode INT FROM f_path.dentry->d_inode->i_mode,
        inode_bytes INT FROM f_path.dentry->d_inode->i_bytes,

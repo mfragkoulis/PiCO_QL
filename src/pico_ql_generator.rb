@@ -156,8 +156,13 @@ class Column
 # Make this a separate function.
         if iden.empty?
           useless = token_ac_p[0].split("->")
-          iden2 = useless[0]
-          token_ac_p[0].gsub!(/^(.+?)->/, "")
+          iden2.concat(useless[0])
+	  if iden2.end_with?("rs)")
+            iden2.concat("->#{useless[1]}") # ->res[rsIndex]
+            token_ac_p[0].gsub!(/^(.+?)->res\[rsIndex\]->/, "")
+          else
+            token_ac_p[0].gsub!(/^(.+?)->/, "")
+          end
         else
           iden2 = "#{iden}"
           iden2.chomp!("->")
@@ -329,6 +334,9 @@ class Column
     sub_keywords(pre_ap, nil, iden_block)
     post_ap = String.new(@post_access_path)
     sub_keywords(post_ap, nil, iden_block)
+    if !pre_ap.empty? 
+      fw.puts "#{space}    #{pre_ap}"
+    end
     null_check_action = "{\n#{space}        sqlite3_result_null(con);\n#{space}        break;\n#{space}      }"
     display_null_check(token_access_checks,
                        iden,
@@ -353,9 +361,6 @@ class Column
         fw.puts "#{space}    sqlite3_result_text(con, (const char *)textVector.back().c_str()#{sqlite3_parameters});"
         fw.puts "#else"
       end
-    end
-    if !pre_ap.empty? 
-      fw.puts "#{space}    #{pre_ap}"
     end
     fw.puts "#{space}    sqlite3_result_#{sqlite3_type}(con, #{column_cast}#{ap_copy}#{column_cast_back}#{sqlite3_parameters});"
     if !post_ap.empty?
@@ -576,12 +581,12 @@ class Column
     sub_keywords(pre_ap, nil, nil)
     post_ap = String.new(@post_access_path)
     sub_keywords(post_ap, nil, nil)
-    display_null_check(tokenized_access_path, "",
-                       null_check_action,
-                       fw, space)
     if !pre_ap.empty?
       fw.puts "#{space}#{pre_ap}"
     end
+    display_null_check(tokenized_access_path, "",
+                       null_check_action,
+                       fw, space)
     fw.puts "#{space}if (#{notC}compare_#{sqlite3_type}(#{column_cast}#{access_path}#{column_cast_back}, op, sqlite3_value_#{sqlite3_type}(val))) {"
     print_line_directive(fw)
     if !container_class.empty?
@@ -1195,7 +1200,10 @@ class Column
         puts "Access path: #{@access_path}, processed tokens for NULL checking:"
         @tokenized_access_path.each { |tap| p tap }
       end
+    elsif @data_type == "TEXT" # what about cases like "name TEXT FROM comm"
+      @tokenized_access_path.insert(0, String.new(@access_path))
     end
+
   end
 
 # Validates a column data type.
