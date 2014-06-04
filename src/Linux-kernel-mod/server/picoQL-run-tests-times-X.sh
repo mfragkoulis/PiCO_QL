@@ -2,7 +2,7 @@
 
 eval_times=$1
 i=0
-if [ "$1" == "" ]
+if [ "$1" == "-1" ]
 then
   while true ; do
     echo "" >> picoQL-run-tests-summary.dat
