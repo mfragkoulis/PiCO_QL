@@ -52,6 +52,22 @@
 #if KVM_RUNNING
 #define EKVMArchPitChannelState_VT_decl(X) struct kvm_pit_channel_state *X; int i = 0
 
+struct fdtable * get_fdtable(struct files_struct *file_struct) {
+  if (file_struct != NULL)
+    return files_fdtable(file_struct);
+  else
+    return NULL;
+};
+
+int get_max_fds(struct files_struct *file_struct) {
+  struct fdtable *fdt;
+  if ((fdt = get_fdtable(file_struct)) != NULL)
+    return fdt->max_fds;
+  else
+    return -1;
+};
+
+
 int get_uid_val(kuid_t kval) {
 #if KERNEL_VERSION > 3.8.1
   return kval.val;
@@ -448,34 +464,42 @@ char *check_svm(void *dummy, char *msg) {
 
 #if KVM_RUNNING
 int is_kvm_file(struct file *f) {
-  if ((get_uid_val(f->f_cred->uid) == 107) && 
-      (get_gid_val(f->f_cred->gid) == 107) && 
-      (!strcmp(f->f_path.dentry->d_name.name, "kvm-vm")))
-    return 1;
+  if ((f) && (f->f_cred)) {
+    if ((get_uid_val(f->f_cred->uid) == 107) && 
+       (get_gid_val(f->f_cred->gid) == 107) && 
+       (!strcmp(f->f_path.dentry->d_name.name, "kvm-vm")))
+      return 1;
+  }
   return 0;
 };
 
 long check_kvm(struct file *f) {
-  if ((get_uid_val(f->f_cred->uid) == 107) && 
-      (get_gid_val(f->f_cred->gid) == 107) && 
-      (!strcmp(f->f_path.dentry->d_name.name, "kvm-vm")))
-    return (long)f->private_data;
+  if ((f) && (f->f_cred)) {
+    if ((get_uid_val(f->f_cred->uid) == 107) && 
+        (get_gid_val(f->f_cred->gid) == 107) && 
+        (!strcmp(f->f_path.dentry->d_name.name, "kvm-vm")))
+      return (long)f->private_data;
+  }
   return 0;
 };
 
 int is_kvm_vcpu_file(struct file *f) {
-  if ((get_uid_val(f->f_cred->uid) == 107) && 
-      (get_gid_val(f->f_cred->gid) == 107) &&
-      (!strcmp(f->f_path.dentry->d_name.name, "kvm-vcpu")))
-    return 1;
+  if ((f) && (f->f_cred)) {
+    if ((get_uid_val(f->f_cred->uid) == 107) && 
+       (get_gid_val(f->f_cred->gid) == 107) &&
+       (!strcmp(f->f_path.dentry->d_name.name, "kvm-vcpu")))
+      return 1;
+  }
   return 0;
 };
 
 long check_kvm_vcpu(struct file *f) {
-  if ((get_uid_val(f->f_cred->uid) == 107) && 
-      (get_gid_val(f->f_cred->gid) == 107) &&
-      (!strcmp(f->f_path.dentry->d_name.name, "kvm-vcpu")))
-    return (long)f->private_data;
+  if ((f) && (f->f_cred)) {
+    if ((get_uid_val(f->f_cred->uid) == 107) && 
+       (get_gid_val(f->f_cred->gid) == 107) &&
+       (!strcmp(f->f_path.dentry->d_name.name, "kvm-vcpu")))
+      return (long)f->private_data;
+  }
   return 0;
 };
 
@@ -1134,7 +1158,7 @@ $
 
 CREATE STRUCT VIEW FilesStruct_SV (
        count INT FROM count.counter,
-       FOREIGN KEY(fdtablefile_id) FROM files_fdtable(tuple_iter) REFERENCES EFile_VT POINTER
+       FOREIGN KEY(fdtablefile_id) FROM get_fdtable(tuple_iter) REFERENCES EFile_VT POINTER
 )
 $
 
@@ -1240,8 +1264,8 @@ CREATE STRUCT VIEW Process_SV (
 //       FOREIGN KEY(fs_struct_id) FROM fs REFERENCES EFs POINTER,
        FOREIGN KEY(files_struct_id) FROM files REFERENCES EFilesStruct_VT POINTER,
        fs_count BIGINT FROM files->count.counter,
-       fs_fd_max_fds INT FROM files_fdtable(tuple_iter->files)->max_fds,
-       FOREIGN KEY(fs_fd_file_id) FROM files_fdtable(tuple_iter->files) REFERENCES EFile_VT POINTER,
+       fs_fd_max_fds INT FROM get_max_fds(tuple_iter->files),
+       FOREIGN KEY(fs_fd_file_id) FROM get_fdtable(tuple_iter->files) REFERENCES EFile_VT POINTER,
        FOREIGN KEY(io_id) FROM ioac REFERENCES EIO_VT,
        FOREIGN KEY(vm_id) FROM mm REFERENCES EVirtualMem_VT POINTER,
 //       FOREIGN KEY(nsproxy_id) FROM nsproxy REFERENCES ENsproxy_VT POINTER,
