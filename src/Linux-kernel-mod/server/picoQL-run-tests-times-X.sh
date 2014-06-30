@@ -1,13 +1,26 @@
 #!/bin/bash
 
+cd /home/mfg/Documents/workspace/PiCO_QL/src/Linux-kernel-mod/server
+exec 9>/var/lock/picoQL-tests
+if ! flock -n 9  ; then
+    echo "another instance is running on `date`"
+    exit 1
+else
+    echo "restarting script on `date`"
+fi
+
+if ! cat /proc/modules | grep -q pico ; then
+    insmod picoQL.ko
+fi
+
 eval_times=$1
 i=0
 if [ "$1" == "-1" ]
 then
   while true ; do
-    echo "" >> picoQL-run-tests-summary.dat
-    echo "**Test iteration: $i." >> picoQL-run-tests-summary.dat
-    ./picoQL-auto-test.sh picoQL-tests.sql >> picoQL-run-tests-summary.dat
+    echo ""
+    echo "**Test iteration: $i."
+    ./picoQL-auto-test.sh picoQL-tests.sql
     if [ "$?" = "0" ]
     then
       ((i++))
@@ -19,9 +32,10 @@ then
   done
 else
   while [ "$i" -lt "$eval_times" ] ; do
-    echo "" >> picoQL-run-tests-summary.dat
-    echo "\\n**Test iteration: $i." >> picoQL-run-tests-summary.dat
-    ./picoQL-auto-test.sh picoQL-tests.sql >> picoQL-run-tests-summary.dat
+    echo ""
+    echo "\\n**Test iteration: $i."
+    echo ""
+    ./picoQL-auto-test.sh picoQL-tests.sql
     if [ "$?" = "0" ]
     then
       ((i++))
@@ -32,3 +46,4 @@ else
     fi
   done
 fi
+echo "Script finished on `date`."

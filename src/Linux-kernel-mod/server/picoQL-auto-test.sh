@@ -14,7 +14,7 @@ function test {
        echo "Auto-tests failed."
        echo "The reason is:\n  $output"
        echo "Exiting now."
-       exit 1
+       #exit 1
    fi
    echo " " > temp
 }
@@ -34,7 +34,7 @@ echo "Calling picoQL ioctl to activate query output metadata."
 
 echo " "
 
-kvm_is_running=$(lsmod | grep 'kvm')
+kvm_is_running=$(cat /proc/modules | grep 'kvm')
 
 while read LINE; do
    if [[ $LINE != *KVM* ]] || [ "$kvm_is_running" != "" ]
@@ -44,6 +44,9 @@ while read LINE; do
      test
      ((count++))
      echo "Test $count successful." 
+     echo ""
+     echo "PiCO QL processes running:"
+     echo "`ps aux | grep pico`"
    else
      echo "Test not available: kvm not running in this system."
    fi

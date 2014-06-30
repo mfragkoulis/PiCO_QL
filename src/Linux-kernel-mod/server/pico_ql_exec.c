@@ -13,6 +13,7 @@ static int serving = 0;
 static struct timespec picoQL_ts_end;
 
 struct query_data {
+  sqlite3 *db;
   sqlite3_stmt *stmt;
   char ***result_set;
   int *rs_slots;
@@ -57,6 +58,8 @@ int step_query(void *query_data) {
       strcpy(result_set, "</tr>");
   }
   while ((result = sqlite3_step(stmt)) == SQLITE_ROW) {
+    struct timespec picoQL_exec_time_up_to_now, picoQL_ts_current;
+    long unsigned int picoQL_exec_time_up_to_now_ns;
     rows++;
     if (PICO_QL_META) {
       if (PICO_QL_TEXT)
@@ -115,14 +118,25 @@ int step_query(void *query_data) {
       if (!*root_result_set)
         return SQLITE_NOMEM;
       (*root_result_set)[*argc_slots - 1] = (char *)sqlite3_malloc(sizeof(char) * PICO_QL_RESULT_SET_SIZE);
+      if (!(*root_result_set)[*argc_slots - 1])
+        return SQLITE_NOMEM;
       result_set = (*root_result_set)[*argc_slots - 1];
       strcpy(result_set, (const char *)result_set_row);
     } else {
       strcat(result_set, (const char *)result_set_row);
     }
-#ifdef PICO_QL_DEBUG
+#if defined(PICO_QL_DEBUG) || defined(PICO_QL_DEBUG_OUTPUT)
     printf("result_set of row %i is %s.\n", rows, result_set_row); 
 #endif
+    getrawmonotonic(&picoQL_ts_current);
+    picoQL_exec_time_up_to_now = timespec_sub(picoQL_ts_current, picoQL_ts_start);
+    picoQL_exec_time_up_to_now_ns = timespec_to_ns((const struct timespec *)&picoQL_exec_time_up_to_now);
+// check execution time <= 20sec (20000000000ns)
+    if (picoQL_exec_time_up_to_now_ns > 20000000000) {
+      printf("[picoQL] Disrupting query execution to avoid NMI panic; execution has gone over 20 seconds, %luns to be precise.\n", picoQL_exec_time_up_to_now_ns);
+      sqlite3_interrupt(qd->db);
+      return SQLITE_INTERRUPT;
+    }
   }
   if (result == SQLITE_DONE) {
     struct timespec picoQL_exec_time;
@@ -151,7 +165,7 @@ int step_query(void *query_data) {
     if (PICO_QL_META) {
       strcat(placeholder, metadata);
     }
-#ifdef PICO_QL_DEBUG
+#if defined(PICO_QL_DEBUG) || defined(PICO_QL_DEBUG_OUTPUT)
     printf("picoQL query executed in %luns.\n", (long unsigned int)timespec_to_ns((const struct timespec *)&picoQL_exec_time));
 #endif
     sqlite3_free(metadata);
@@ -184,10 +198,13 @@ int file_prep_exec(sqlite3* db,
 		   char ***root_result_set,
 		   int *argc_slots) {
   char *placeholder = (char *)sqlite3_malloc(sizeof(char) * 256);
+  if (!placeholder)
+    return SQLITE_NOMEM;
   char *result_set;
   int result = 0;
   /* Setup query data data structure. */
   struct query_data qd;
+  qd.db = db;
   qd.stmt = stmt;
   qd.result_set = root_result_set;
   qd.rs_slots = argc_slots;
@@ -343,8 +360,11 @@ int register_table(sqlite3 *db,
   char *sqlite_query = (char *)sqlite3_malloc(sizeof(char) * 200);
   char *pragma_query = (char *)sqlite3_malloc(50);
   strcpy(pragma_query, "PRAGMA main.journal_mode=OFF;");
+  /* To measure query execution time. */
+  getrawmonotonic(&picoQL_ts_start);
   re = prep_exec(db, pragma_query);
   sqlite3_free(pragma_query);
+  getrawmonotonic(&picoQL_ts_start);
   re = prep_exec(db, "PRAGMA temp.journal_mode=OFF;");
 #ifdef PICO_QL_DEBUG
   for (i = 0; i < argc; i++) {
@@ -363,6 +383,7 @@ int register_table(sqlite3 *db,
         printk(KERN_ERR "Table existence query %s failed with return code %i.\n", sqlite_query, re);
         goto exit;
       }
+      getrawmonotonic(&picoQL_ts_start);
       re = prep_exec(db, (const char *)q[i]);
 #ifdef PICO_QL_DEBUG
       printf("Table registration query %s returned %i\n", q[i], re);

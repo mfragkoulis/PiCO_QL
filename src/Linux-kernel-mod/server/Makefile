@@ -30,7 +30,9 @@ else
 KERNEL_HEADER_DIR = "undefined"
 endif
 
-EXTRA_CFLAGS += -O3 -Wall -Werror -g -nostdinc -DPICO_QL_SINGLE_THREADED -DSQLITE_OMIT_FLOATING_POINT -DSQLITE_THREADSAFE=0 -DSQLITE_OMIT_LOAD_EXTENSION -DSQLITE_OMIT_BUILTIN_TEST -DNDEBUG -DSQLITE_OMIT_WAL -DPICO_QL_DEBUG
+EXTRA_CFLAGS += -O3 -Wall -Werror -g -nostdinc -DPICO_QL_SINGLE_THREADED -DSQLITE_OMIT_FLOATING_POINT -DSQLITE_THREADSAFE=0 -DSQLITE_OMIT_LOAD_EXTENSION -DSQLITE_OMIT_BUILTIN_TEST -DNDEBUG -DSQLITE_OMIT_WAL 
+#-DPICO_QL_DEBUG
+#-DPICO_QL_DEBUG_OUTPUT
 
 obj-m += picoQL.o
 picoQL-objs := sqlite3.o pico_ql_procfs.o pico_ql_search.o pico_ql_exec.o pico_ql_internal.o pico_ql_vt.o pico_ql_search_helper.o stdio.o stdlib.o time.o string.o unistd.o

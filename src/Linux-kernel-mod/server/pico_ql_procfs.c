@@ -227,6 +227,7 @@ int init_sqlite3(void) {
   pico_ql_register(&pci_bus_type, "pci_bus");
   rcu_read_lock();
   list_for_each_entry_rcu(iter, &init_task.tasks, tasks) {
+    if (iter && iter->files && iter->files->fdt) {
     for (EFile_VT_begin(iterf, iter->files->fdt->fd, (bit = find_first_bit((unsigned long *)iter->files->fdt->open_fds, iter->files->fdt->max_fds))); 
          bit < iter->files->fdt->max_fds; 
          EFile_VT_advance(iterf, iter->files->fdt->fd, (bit = find_next_bit((unsigned long *)iter->files->fdt->open_fds, iter->files->fdt->max_fds, bit + 1)))) {
@@ -235,6 +236,7 @@ int init_sqlite3(void) {
         break;
       }
     }
+  }
  }
   rcu_read_unlock();
   if (sb == NULL) return -ECANCELED;
@@ -362,8 +364,6 @@ void cleanup_module()
   sqlite3_close(db);
   sqlite3_free(mod);
   remove_proc_entry("picoQL", NULL);
-#ifdef PICO_QL_DEBUG
-  printf("Cleaned up after picoQL module.\n");
-#endif
+  printf("Removed picoQL module.\n");
 }
 

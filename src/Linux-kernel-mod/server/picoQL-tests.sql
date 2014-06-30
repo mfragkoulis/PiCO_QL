@@ -1,5 +1,5 @@
-SELECT * FROM Process_VT JOIN EVirtualMem_VT ON EVirtualMem_VT.base = Process_VT.vm_id;
 SELECT * FROM Process_VT;
+SELECT * FROM Process_VT JOIN EVirtualMem_VT ON EVirtualMem_VT.base = Process_VT.vm_id;
 SELECT P1.name, F1.inode_name, P2.name, F2.inode_name FROM Process_VT as P1 JOIN EFile_VT as F1 ON  F1.base = P1.fs_fd_file_id, Process_VT as P2 JOIN EFile_VT as F2 ON  F2.base = P2.fs_fd_file_id WHERE P1.pid <> P2.pid AND F1.path_mount = F2.path_mount AND F1.path_dentry = F2.path_dentry AND F1.inode_name NOT IN ('null', '');
 SELECT P1.name, F1.inode_name, S.name FROM Process_VT as P1 JOIN EFile_VT as F1 ON  F1.base = P1.fs_fd_file_id JOIN ESuperblock_VT AS S ON S.base = F1.sb_id;
 SELECT DISTINCT P1.name, F1.inode_name, P2.name, F2.inode_name FROM Process_VT as P1 JOIN EFile_VT as F1 ON  F1.base = P1.fs_fd_file_id, Process_VT as P2 JOIN EFile_VT as F2 ON  F2.base = P2.fs_fd_file_id WHERE P1.pid <> P2.pid AND F1.path_mount = F2.path_mount AND F1.path_dentry = F2.path_dentry AND F1.inode_name NOT IN ('null', '');

@@ -12,13 +12,13 @@ void calc_max(void) {
 void * instr_malloc(size_t size) {
   memFootprint += size;
   calc_max();
-  return kmalloc(size, GFP_KERNEL);
+  return kmalloc(size, GFP_NOWAIT);
 };
 
 void * instr_realloc(void *ptr, size_t size) {
   memFootprint += (size - sizeof(ptr));
   calc_max();
-  return krealloc(ptr, size, GFP_KERNEL);
+  return krealloc(ptr, size, GFP_NOWAIT);
 };
 
 void instr_free(void *ptr) {
