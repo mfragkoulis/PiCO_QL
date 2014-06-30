@@ -18,12 +18,14 @@
  #   See the License for the specific language governing
  #   permissions and limitations under the License.
 
+
 # Distinguish Fedora, Ubuntu distros.
 DISTRO := $(shell if [ -f "/etc/redhat-release" ]; then echo "fedora"; elif [ -f "/etc/debian_version" ]; then echo "debian"; fi)
 # Other places to look for distribution information: /etc/issue, /proc/version, uname -r
 ifeq ($(DISTRO),fedora)
-KERNEL_HEADER_DIR = "/home/mfg/Downloads/linux-3.14.4/include"
-#KERNEL_HEADER_DIR = "/usr/src/kernels/`uname -r`/include"
+#Change the else echo string if kernel is installed at custom location.
+KERNEL_DIR := $(shell if [ -f "/usr/src/kernels/`uname -r`" ]; then echo "/usr/src/kernels/`uname -r`/include"; else echo "/home/mfg/Downloads/linux-3.14.4"; fi)
+KERNEL_HEADER_DIR = "$(KERNEL_DIR)/include"
 else ifeq ($(DISTRO),debian)
 KERNEL_HEADER_DIR = "/usr/src/linux-headers-`uname -r`/include"
 else
@@ -49,6 +51,7 @@ all:
 	cp -r ../../pico_ql_erb_templates .
 	ruby pico_ql_generator.rb pico_ql_dsl.sql kernel no_mem_mgt
 	make -C /lib/modules/$(shell uname -r)/build M=$(shell pwd) modules
+	perl $(KERNEL_DIR)/scripts/sign-file sha256 $(KERNEL_DIR)/signing_key.priv $(KERNEL_DIR)/signing_key.x509 picoQL.ko
 
 clean:
 	make -C /lib/modules/$(shell uname -r)/build M=$(shell pwd) clean

@@ -197,9 +197,7 @@ int file_prep_exec(sqlite3* db,
                    const char *q,
 		   char ***root_result_set,
 		   int *argc_slots) {
-  char *placeholder = (char *)sqlite3_malloc(sizeof(char) * 256);
-  if (!placeholder)
-    return SQLITE_NOMEM;
+  char *placeholder;
   char *result_set;
   int result = 0;
   /* Setup query data data structure. */
@@ -208,6 +206,9 @@ int file_prep_exec(sqlite3* db,
   qd.stmt = stmt;
   qd.result_set = root_result_set;
   qd.rs_slots = argc_slots;
+  placeholder = (char *)sqlite3_malloc(sizeof(char) * 256);
+  if (!placeholder)
+    return SQLITE_NOMEM;
 #ifdef PICO_QL_DEBUG
   printf("In file_prep_exec query to execute is %s, statement structure %lx.\n", q, (long)stmt);
 #endif
