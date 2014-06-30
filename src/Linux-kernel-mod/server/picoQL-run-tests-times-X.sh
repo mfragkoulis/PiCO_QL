@@ -20,7 +20,7 @@ then
   while true ; do
     echo ""
     echo "**Test iteration: $i."
-    ./picoQL-auto-test.sh picoQL-tests.sql
+    ./picoQL-auto-test.sh picoQL-tests.sql >> picoQL-runner.log
     if [ "$?" = "0" ]
     then
       ((i++))
@@ -35,7 +35,7 @@ else
     echo ""
     echo "\\n**Test iteration: $i."
     echo ""
-    ./picoQL-auto-test.sh picoQL-tests.sql
+    ./picoQL-auto-test.sh picoQL-tests.sql >> picoQL-runner.log
     if [ "$?" = "0" ]
     then
       ((i++))

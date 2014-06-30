@@ -180,7 +180,7 @@ ssize_t picoQL_write(
     j++;
   }
 
-  switch rc {
+  switch (rc) {
   case SQLITE_OK:
   case SQLITE_DONE:
     return len;

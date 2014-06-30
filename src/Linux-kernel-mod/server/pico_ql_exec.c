@@ -34,7 +34,7 @@ int step_query(void *query_data) {
     return SQLITE_NOMEM;
   placeholder = (char *)sqlite3_malloc(sizeof(char) * PICO_QL_RESULT_SET_SIZE);
   if (!placeholder) {
-    re = SQLITE_NOMEM;
+    result = SQLITE_NOMEM;
     goto exit_1;
   }
   result_set = (*root_result_set)[0];
@@ -122,12 +122,12 @@ int step_query(void *query_data) {
       (*argc_slots)++;
       *root_result_set = (char **)sqlite3_realloc(*root_result_set, sizeof(char *) * (*argc_slots));
       if (!*root_result_set) {
-        re = SQLITE_NOMEM;
+        result = SQLITE_NOMEM;
         goto exit_2;
       }
       (*root_result_set)[*argc_slots - 1] = (char *)sqlite3_malloc(sizeof(char) * PICO_QL_RESULT_SET_SIZE);
       if (!(*root_result_set)[*argc_slots - 1]) {
-        re = SQLITE_NOMEM;
+        result = SQLITE_NOMEM;
         goto exit_2;
       }
       result_set = (*root_result_set)[*argc_slots - 1];
@@ -145,7 +145,7 @@ int step_query(void *query_data) {
     if (picoQL_exec_time_up_to_now_ns > 20000000000) {
       printf("[picoQL] Disrupting query execution to avoid NMI panic; execution has gone over 20 seconds, %luns to be precise.\n", picoQL_exec_time_up_to_now_ns);
       sqlite3_interrupt(qd->db);
-      re = SQLITE_INTERRUPT;
+      result = SQLITE_INTERRUPT;
       goto exit_2;
     }
   }
@@ -153,7 +153,7 @@ int step_query(void *query_data) {
     struct timespec picoQL_exec_time;
     char *metadata = (char *)sqlite3_malloc(sizeof(char) * 50);
     if (!metadata) {
-      re = SQLITE_NOMEM;
+      result = SQLITE_NOMEM;
       goto exit_2;
     }
     // printf("Query stepped successfully. Now decorating result_set of length %i, partition %i.\n", (int)strlen(result_set), *argc_slots - 1);
@@ -188,12 +188,12 @@ int step_query(void *query_data) {
       (*argc_slots)++;
       *root_result_set = (char **)sqlite3_realloc(*root_result_set, sizeof(char *) * (*argc_slots));
       if (!*root_result_set) {
-        re = SQLITE_NOMEM;
+        result = SQLITE_NOMEM;
         goto exit_2;
       }
       (*root_result_set)[*argc_slots - 1] = (char *)sqlite3_malloc(sizeof(char) * PICO_QL_RESULT_SET_SIZE);
       if (!(*root_result_set)[*argc_slots - 1]) {
-        re = SQLITE_NOMEM;
+        result = SQLITE_NOMEM;
         goto exit_2;
       }
       result_set = (*root_result_set)[*argc_slots - 1];
