@@ -76,7 +76,10 @@ int place_result_set(const char **root_result_set, int *argc_slots) {
 #endif
   root_query_result_set = (char **)root_result_set;
   query_result_set_partitions = *argc_slots;
-  query_result_set = root_query_result_set[0];
+  if (!root_query_result_set)
+    query_result_set_partitions = -ENOMEM;
+  else
+    query_result_set = root_query_result_set[0];
   printf("PiCO QL's peak memory footprint for this query is %lu.\n", memMaxFootprint);
   clear_temp_structs();
   PICO_QL_RS_AVAILABLE;
@@ -114,11 +117,21 @@ ssize_t picoQL_read(         struct file *f,
       return -EBUSY;
   }
 
+  if (query_result_set_partitions == -ENOMEM) {
+    len = -ENOMEM;
+    goto exit;
+  }
+
   if (current_partition < query_result_set_partitions) {
     len = sprintf(page, "%s", query_result_set);
     current_partition++;
     query_result_set = root_query_result_set[current_partition];
+    if (!query_result_set) {
+      len = -ENOMEM;
+      goto exit;
+    }
     if (current_partition == query_result_set_partitions) {
+exit:
       for(current_partition = 0; current_partition < query_result_set_partitions; current_partition++)
         sqlite3_free(root_query_result_set[current_partition]);
       sqlite3_free(root_query_result_set);

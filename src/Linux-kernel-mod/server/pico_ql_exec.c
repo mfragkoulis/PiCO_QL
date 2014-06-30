@@ -239,6 +239,8 @@ int file_prep_exec(sqlite3* db,
   /* Monopolise the system's online CPUs for query execution. */
   result = stop_machine(step_query, &qd, NULL);
   result_set = (*root_result_set)[*argc_slots - 1];
+  if (!result_set) // out of memory
+    goto exit;
   switch (result) {
   case SQLITE_DONE:
     if (PICO_QL_META)
@@ -304,6 +306,8 @@ int file_prep_exec(sqlite3* db,
 #ifdef PICO_QL_DEBUG
   printf("file_prep_exec returns code %i and result_set %s.\n", result, result_set);
 #endif
+
+exit:
   sqlite3_free(placeholder);
   return result;
 }
