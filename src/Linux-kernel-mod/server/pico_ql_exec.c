@@ -30,7 +30,13 @@ int step_query(void *query_data) {
   int col, result, rows = 0;
   char *result_set_row, *placeholder, *result_set;
   result_set_row = (char *)sqlite3_malloc(sizeof(char) * PICO_QL_RESULT_SET_SIZE);
+  if (!result_set_row)
+    return SQLITE_NOMEM;
   placeholder = (char *)sqlite3_malloc(sizeof(char) * PICO_QL_RESULT_SET_SIZE);
+  if (!placeholder) {
+    re = SQLITE_NOMEM;
+    goto exit_1;
+  }
   result_set = (*root_result_set)[0];
   if (PICO_QL_TEXT) {
     if (PICO_QL_META)
@@ -115,11 +121,15 @@ int step_query(void *query_data) {
     if (strlen(result_set) + strlen(result_set_row) + 3 >= PICO_QL_RESULT_SET_SIZE) {
       (*argc_slots)++;
       *root_result_set = (char **)sqlite3_realloc(*root_result_set, sizeof(char *) * (*argc_slots));
-      if (!*root_result_set)
-        return SQLITE_NOMEM;
+      if (!*root_result_set) {
+        re = SQLITE_NOMEM;
+        goto exit_2;
+      }
       (*root_result_set)[*argc_slots - 1] = (char *)sqlite3_malloc(sizeof(char) * PICO_QL_RESULT_SET_SIZE);
-      if (!(*root_result_set)[*argc_slots - 1])
-        return SQLITE_NOMEM;
+      if (!(*root_result_set)[*argc_slots - 1]) {
+        re = SQLITE_NOMEM;
+        goto exit_2;
+      }
       result_set = (*root_result_set)[*argc_slots - 1];
       strcpy(result_set, (const char *)result_set_row);
     } else {
@@ -135,12 +145,17 @@ int step_query(void *query_data) {
     if (picoQL_exec_time_up_to_now_ns > 20000000000) {
       printf("[picoQL] Disrupting query execution to avoid NMI panic; execution has gone over 20 seconds, %luns to be precise.\n", picoQL_exec_time_up_to_now_ns);
       sqlite3_interrupt(qd->db);
-      return SQLITE_INTERRUPT;
+      re = SQLITE_INTERRUPT;
+      goto exit_2;
     }
   }
   if (result == SQLITE_DONE) {
     struct timespec picoQL_exec_time;
     char *metadata = (char *)sqlite3_malloc(sizeof(char) * 50);
+    if (!metadata) {
+      re = SQLITE_NOMEM;
+      goto exit_2;
+    }
     // printf("Query stepped successfully. Now decorating result_set of length %i, partition %i.\n", (int)strlen(result_set), *argc_slots - 1);
     if (PICO_QL_TEXT) {
     } else {
@@ -172,9 +187,15 @@ int step_query(void *query_data) {
     if (strlen(result_set) + strlen(placeholder) + 53 >= PICO_QL_RESULT_SET_SIZE) { // 50 for execution time, 3 for safety
       (*argc_slots)++;
       *root_result_set = (char **)sqlite3_realloc(*root_result_set, sizeof(char *) * (*argc_slots));
-      if (!*root_result_set)
-        return SQLITE_NOMEM;
+      if (!*root_result_set) {
+        re = SQLITE_NOMEM;
+        goto exit_2;
+      }
       (*root_result_set)[*argc_slots - 1] = (char *)sqlite3_malloc(sizeof(char) * PICO_QL_RESULT_SET_SIZE);
+      if (!(*root_result_set)[*argc_slots - 1]) {
+        re = SQLITE_NOMEM;
+        goto exit_2;
+      }
       result_set = (*root_result_set)[*argc_slots - 1];
       if (PICO_QL_META)
         strcpy(result_set, (const char *)placeholder);
@@ -183,8 +204,11 @@ int step_query(void *query_data) {
         strcat(result_set, (const char *)placeholder);
     // printf("Decorated result set of length %i, partition %i.\n", (int)strlen(result_set), *argc_slots - 1);
   }
-  sqlite3_free(result_set_row);
+
+exit_2:
   sqlite3_free(placeholder);
+exit_1:
+  sqlite3_free(result_set_row);
   return result;
 }
 
@@ -288,11 +312,24 @@ int file_prep_exec(sqlite3* db,
 int prep_exec(sqlite3 *db, const char *q){
   sqlite3_stmt  *stmt;
   int re, prepare, i;
-  char **root_result_set = (char **)sqlite3_malloc(sizeof(char *));
+  char **root_result_set;
   int argc_slots = 1;
-  char *result_set = (char *)sqlite3_malloc(sizeof(char) * PICO_QL_RESULT_SET_SIZE);
-  char *placeholder = (char *)sqlite3_malloc(sizeof(char) * PICO_QL_RESULT_SET_SIZE);
-  root_result_set[0] = result_set;
+  char *result_set;
+  char *placeholder;
+  root_result_set = (char **)sqlite3_malloc(sizeof(char *));
+  if (!root_result_set)
+    return SQLITE_NOMEM;
+  root_result_set[0] = (char *)sqlite3_malloc(sizeof(char) * PICO_QL_RESULT_SET_SIZE);
+  if (!root_result_set[0]) {
+    re = SQLITE_NOMEM;
+    goto exit_1;
+  }
+  placeholder = (char *)sqlite3_malloc(sizeof(char) * PICO_QL_RESULT_SET_SIZE);
+  if (!placeholder) {
+    re = SQLITE_NOMEM;
+    goto exit_2;
+  }
+  result_set = root_result_set[0];
 #ifdef PICO_QL_DEBUG
   printf("In prep_exec query to execute is %s.\n", q);
 #endif
@@ -305,7 +342,6 @@ int prep_exec(sqlite3 *db, const char *q){
     printf("Stepping query %s returned %i.\n", q, re);
     printf("Once again: query returned %i.\n", re);
 #endif
-    goto exit;
   } else {
     printk(KERN_ERR "[picoQL] Error during query preparation: error no %i.\n", prepare);
     printk(KERN_ERR "[picoQL] Extended error code %i.\n", sqlite3_extended_errcode(db));
@@ -326,22 +362,29 @@ int prep_exec(sqlite3 *db, const char *q){
     if (PICO_QL_META)
       strcat(result_set, "1");
     re = prepare;
-    goto exit;
   }
 
-exit:
   sqlite3_finalize(stmt);
 #ifdef PICO_QL_DEBUG
   printf("Result set to place is partitioned in %i pieces. Last partition is \n%s.\n\nEnd.\n", argc_slots - 1, result_set);
 #endif
   sqlite3_free(placeholder);
-  if (serving)
+  if (serving) {
     place_result_set((const char **)root_result_set, &argc_slots);
-  else {
-    for (i=0; i < argc_slots; i++)
+    /* Memory for root_result_set is freed in 
+     * pico_ql_procfs.c: picoQL_read
+     */
+    return re;
+  } else {
+    for (i=1; i < argc_slots; i++)
       sqlite3_free(root_result_set[i]);
-    sqlite3_free(root_result_set);
   }
+
+exit_2:
+  sqlite3_free(root_result_set[0]);
+
+exit_1:
+  sqlite3_free(root_result_set);
   return re;
 }
 
@@ -358,8 +401,16 @@ int register_table(sqlite3 *db,
   /* This definition implicitly constraints a table name
    * to 140 characters. It should be more than enough.
    */
-  char *sqlite_query = (char *)sqlite3_malloc(sizeof(char) * 200);
-  char *pragma_query = (char *)sqlite3_malloc(50);
+  char *sqlite_query;
+  char *pragma_query;
+  sqlite_query = (char *)sqlite3_malloc(sizeof(char) * 200);
+  if (!sqlite_query)
+    return SQLITE_NOMEM;
+  pragma_query = (char *)sqlite3_malloc(50);
+  if (!pragma_query) {
+    re = SQLITE_NOMEM;
+    goto exit;
+  }
   strcpy(pragma_query, "PRAGMA main.journal_mode=OFF;");
   /* To measure query execution time. */
   getrawmonotonic(&picoQL_ts_start);

@@ -85,7 +85,9 @@ int place_result_set(const char **root_result_set, int *argc_slots) {
 
 
 /* The module's functions ********************** */
-/* Function to read picoQL virtual file from user space */
+/* Function to read picoQL virtual file from user space:
+ * cat /proc/picoQL
+ */
 ssize_t picoQL_read(         struct file *f,
                              char *page,
                              size_t page_len,
@@ -137,7 +139,9 @@ ssize_t picoQL_read(         struct file *f,
 
 
 /* This function receives input from the user when the
- * user writes to the /proc file. */
+ * user writes to the /proc file:
+ * echo "SELECT...;" > /proc/picoQL
+ */
 ssize_t picoQL_write(
                               struct file *file,
                               const char __user *buf,
@@ -175,7 +179,22 @@ ssize_t picoQL_write(
   while (j < 1 && (rc = prep_exec(db, QUERY_BUFFER)) == SQLITE_DONE){
     j++;
   }
-  return len;
+
+  switch rc {
+  case SQLITE_OK:
+  case SQLITE_DONE:
+    return len;
+    break;
+  case SQLITE_NOMEM:
+    return -ENOMEM;
+    break;
+  default:
+    /* Map the error code you see (include/uapi/asm-generic/errno-base.h)
+     * to the SQLite error code that rc carries. 
+     */
+    return rc;
+    break;
+  }
 }
 
 /* Structures to register as the /proc file, with
@@ -206,6 +225,8 @@ int init_sqlite3(void) {
   printf("SQLite in-memory database %lx opened successfully.\n", (long)db);
 #endif
   mod = (sqlite3_module *)sqlite3_malloc(sizeof(sqlite3_module));
+  if (!mod)
+    return -ENOMEM;
   fill_module(mod);
   output = sqlite3_create_module(db, "PicoQL", mod, NULL);
   if (output == 1) {
@@ -251,9 +272,7 @@ int init_sqlite3(void) {
     return -ECANCELED;
   } else {
     start_serving();
-#ifdef PICO_QL_DEBUG
-    printf("Serve succeeded.\n");
-#endif
+    printf("picoQL service initiated.\n");
   }
   return 0;
 }

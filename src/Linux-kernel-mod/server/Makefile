@@ -32,8 +32,7 @@ else
 KERNEL_HEADER_DIR = "undefined"
 endif
 
-EXTRA_CFLAGS += -O3 -Wall -Werror -g -nostdinc -DPICO_QL_SINGLE_THREADED -DSQLITE_OMIT_FLOATING_POINT -DSQLITE_THREADSAFE=0 -DSQLITE_OMIT_LOAD_EXTENSION -DSQLITE_OMIT_BUILTIN_TEST -DNDEBUG -DSQLITE_OMIT_WAL 
-#-DPICO_QL_DEBUG
+EXTRA_CFLAGS += -O3 -Wall -Werror -g -nostdinc -DPICO_QL_SINGLE_THREADED -DSQLITE_OMIT_FLOATING_POINT -DSQLITE_THREADSAFE=0 -DSQLITE_OMIT_LOAD_EXTENSION -DSQLITE_OMIT_BUILTIN_TEST -DNDEBUG -DSQLITE_OMIT_WAL -DPICO_QL_DEBUG
 #-DPICO_QL_DEBUG_OUTPUT
 
 obj-m += picoQL.o
@@ -45,11 +44,11 @@ rbfiles := pico_ql_generator.rb
 #c_files := pico_ql_generator.rb pico_ql_internal.h pico_ql_search_helper.c pico_ql_search_helper.h pico_ql_vt.c pico_ql_vt.h sqlite3.c sqlite3.h
 
 all:
-	$(foreach f, $(cfiles), test -f $f.o && test ../../$f.c -ot $f.o || cp ../../$f.c . ; )
-	$(foreach f, $(hfiles), test -f $f && test ../../$f -ot $f || cp ../../$f . ; )
-	$(foreach f, $(rbfiles), test -f $f && test ../../$f -ot $f || cp ../../$f . ; )
-	cp -r ../../pico_ql_erb_templates .
-	ruby pico_ql_generator.rb pico_ql_dsl.sql kernel no_mem_mgt
+	#$(foreach f, $(cfiles), test -f $f.o && test ../../$f.c -ot $f.o || cp ../../$f.c . ; )
+	#$(foreach f, $(hfiles), test -f $f && test ../../$f -ot $f || cp ../../$f . ; )
+	#$(foreach f, $(rbfiles), test -f $f && test ../../$f -ot $f || cp ../../$f . ; )
+	#cp -r ../../pico_ql_erb_templates .
+	#ruby pico_ql_generator.rb pico_ql_dsl.sql kernel no_mem_mgt
 	make -C /lib/modules/$(shell uname -r)/build M=$(shell pwd) modules
 	perl $(KERNEL_DIR)/scripts/sign-file sha256 $(KERNEL_DIR)/signing_key.priv $(KERNEL_DIR)/signing_key.x509 picoQL.ko
 
