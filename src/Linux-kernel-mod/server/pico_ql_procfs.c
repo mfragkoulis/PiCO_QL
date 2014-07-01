@@ -76,9 +76,10 @@ int place_result_set(const char **root_result_set, int *argc_slots) {
 #endif
   root_query_result_set = (char **)root_result_set;
   query_result_set_partitions = *argc_slots;
-  if (!root_query_result_set)
+  if (!root_query_result_set) {
+    printf("[picoQL] [place_result_set()] Error: out of memory (root_query_result_set).");
     query_result_set_partitions = -ENOMEM;
-  else
+  } else
     query_result_set = root_query_result_set[0];
   printf("PiCO QL's peak memory footprint for this query is %lu.\n", memMaxFootprint);
   clear_temp_structs();
@@ -118,18 +119,21 @@ ssize_t picoQL_read(         struct file *f,
   }
 
   if (query_result_set_partitions == -ENOMEM) {
+    printf("[picoQL] [picoQL_read] Error: out of memory (root_query_result_set). Heading to exit.");
     len = -ENOMEM;
     goto exit;
   }
 
   if (current_partition < query_result_set_partitions) {
-    len = sprintf(page, "%s", query_result_set);
-    current_partition++;
-    query_result_set = root_query_result_set[current_partition];
     if (!query_result_set) {
+      printf("[picoQL] [picoQL_read] Error: out of memory (query_result_set). Heading to exit.");
       len = -ENOMEM;
       goto exit;
     }
+    len = sprintf(page, "%s", query_result_set);
+    current_partition++;
+    /* The last seat (current_partition == q_r_s_p) is always empty. */
+    query_result_set = root_query_result_set[current_partition];
     if (current_partition == query_result_set_partitions) {
 exit:
       for(current_partition = 0; current_partition < query_result_set_partitions; current_partition++)

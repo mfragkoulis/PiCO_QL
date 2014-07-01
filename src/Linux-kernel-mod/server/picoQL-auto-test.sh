@@ -14,7 +14,7 @@ function test {
        echo "Auto-tests failed."
        echo "The reason is:\n  $output"
        echo "Exiting now."
-       #exit 1
+       exit 1
    fi
    echo " " > temp
 }
