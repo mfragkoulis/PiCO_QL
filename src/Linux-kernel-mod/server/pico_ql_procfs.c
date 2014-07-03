@@ -80,7 +80,15 @@ int place_result_set(const char **root_result_set, int *argc_slots) {
     printf("[picoQL] [place_result_set()] Error: out of memory (root_query_result_set).");
     query_result_set_partitions = -ENOMEM;
   } else
-    query_result_set = root_query_result_set[0];
+    for(current_partition = 0; current_partition < query_result_set_partitions; current_partition++) {
+      if (!root_query_result_set[current_partition]) {
+        printf("[picoQL] [place_result_set()] Error: out of memory (query_result_set).");
+        query_result_set_partitions = -ENOMEM;
+      }
+    }
+    if (query_result_set_partitions != -ENOMEM)
+      query_result_set = root_query_result_set[0];
+  }
   printf("PiCO QL's peak memory footprint for this query is %lu.\n", memMaxFootprint);
   clear_temp_structs();
   PICO_QL_RS_AVAILABLE;
@@ -119,7 +127,6 @@ ssize_t picoQL_read(         struct file *f,
   }
 
   if (query_result_set_partitions == -ENOMEM) {
-    printf("[picoQL] [picoQL_read] Error: out of memory (root_query_result_set). Heading to exit.");
     len = -ENOMEM;
     goto exit;
   }
@@ -131,6 +138,10 @@ ssize_t picoQL_read(         struct file *f,
       goto exit;
     }
     len = sprintf(page, "%s", query_result_set);
+#ifdef PICO_QL_DEBUG
+      printf("Consumed query partition %i of total %i. PICO_QL_RS_ACTIVE is %i, PICO_QL_READY is %i.\n", 
+             current_partition, query_result_set_partitions, PICO_QL_RS_ACTIVE, PICO_QL_READY);
+#endif
     current_partition++;
     /* The last seat (current_partition == q_r_s_p) is always empty. */
     query_result_set = root_query_result_set[current_partition];
@@ -144,10 +155,6 @@ exit:
       current_partition = 0;
       PICO_QL_RS_NAVAILABLE;
       PICO_QL_AVAILABLE;
-#ifdef PICO_QL_DEBUG
-      printf("Consumed query partition %i. Another %i to go. PICO_QL_RS_ACTIVE is %i, PICO_QL_READY is %i.\n", 
-             current_partition, query_result_set_partitions, PICO_QL_RS_ACTIVE, PICO_QL_READY);
-#endif
     }
   }
   // Perhaps check malloc/free sync. (SMP?)

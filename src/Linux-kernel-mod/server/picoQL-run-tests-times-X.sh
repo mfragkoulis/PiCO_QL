@@ -26,8 +26,8 @@ then
       ((i++))
     else
       echo "Auto tests failed."
-      echo "Exiting now."
-      exit 1
+      #echo "Exiting now."
+      #exit 1
     fi
   done
 else
@@ -41,8 +41,8 @@ else
       ((i++))
     else
       echo "Auto tests failed."
-      echo "Exiting now."
-      exit 1
+      #echo "Exiting now."
+      #exit 1
     fi
   done
 fi

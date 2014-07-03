@@ -1,20 +1,40 @@
 #!/bin/bash
 
+let count=0
 
 function test {
-   output=`cat /proc/picoQL`
-   while [ ! -n "$output" ]; do
+   ((count++))
+   local busy_counter=0
+   local output=`cat /proc/picoQL`
+   local error=""
+   local code=$?
+   #echo "/proc/picoQL read returns code $code."
+   while [ "$code" -eq -11 ]; do
+       ((busy_counter++))
        sleep 1
+       echo "Busy loop waiting for query output; $busy_counter seconds."
        output=`cat /proc/picoQL`
+       code=$?
+       #if [ "$counter" -gt 30 ]; then
+           #output="Waited 30 seconds for query output. Someone else might have consumed it or an error happened. Check system or picoQL log."
+       #fi
    done
-   echo "$output" > temp
+   if [ "$code" -ne 0 ]; then
+       error="/proc/picoQL read returned with error code $code."
+   fi
+   echo "" > temp
+   echo "" >> total
+   echo "$output" >> temp
+   echo "$error" >> temp
    echo "$output" >> total
+   echo "$error" >> total
    if ! egrep -q -i ' rows in result set.' temp
    then
-       echo "Auto-tests failed."
-       echo "The reason is:\n  $output"
-       echo "Exiting now."
-       exit 1
+       echo "Test $count failed."
+       echo "The reason is: "
+       echo "$error"
+   else
+       echo "Test $count successful."
    fi
    echo " " > temp
 }
@@ -23,7 +43,6 @@ function test {
 exec 7<&0
 exec < $1
 
-let count=0
 
 # Activate metadata to facilitate testing.
 # Script's source code is available. 
@@ -42,11 +61,6 @@ while read LINE; do
      echo "$LINE" > /proc/picoQL
      sleep 1
      test
-     ((count++))
-     echo "Test $count successful." 
-     echo ""
-     echo "PiCO QL processes running:"
-     echo "`ps aux | grep pico`"
    else
      echo "Test not available: kvm not running in this system."
    fi
