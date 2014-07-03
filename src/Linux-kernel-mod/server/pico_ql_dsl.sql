@@ -54,7 +54,7 @@
 
 struct fdtable * get_fdtable(struct files_struct *file_struct) {
   if (file_struct != NULL)
-    return files_fdtable(file_struct);
+    return file_struct->fdt;
   else
     return NULL;
 };

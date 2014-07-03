@@ -8,7 +8,7 @@ function test {
    local output=`cat /proc/picoQL`
    local error=""
    local code=$?
-   #echo "/proc/picoQL read returns code $code."
+   # echo "/proc/picoQL read returns code $code."
    while [ "$code" -eq -11 ]; do
        ((busy_counter++))
        sleep 1

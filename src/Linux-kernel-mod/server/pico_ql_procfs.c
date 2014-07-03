@@ -79,13 +79,14 @@ int place_result_set(const char **root_result_set, int *argc_slots) {
   if (!root_query_result_set) {
     printf("[picoQL] [place_result_set()] Error: out of memory (root_query_result_set).");
     query_result_set_partitions = -ENOMEM;
-  } else
-    for(current_partition = 0; current_partition < query_result_set_partitions; current_partition++) {
+  } else {
+    for (current_partition = 0; current_partition < query_result_set_partitions; current_partition++) {
       if (!root_query_result_set[current_partition]) {
         printf("[picoQL] [place_result_set()] Error: out of memory (query_result_set).");
         query_result_set_partitions = -ENOMEM;
       }
     }
+    current_partition = 0;
     if (query_result_set_partitions != -ENOMEM)
       query_result_set = root_query_result_set[0];
   }
@@ -132,11 +133,6 @@ ssize_t picoQL_read(         struct file *f,
   }
 
   if (current_partition < query_result_set_partitions) {
-    if (!query_result_set) {
-      printf("[picoQL] [picoQL_read] Error: out of memory (query_result_set). Heading to exit.");
-      len = -ENOMEM;
-      goto exit;
-    }
     len = sprintf(page, "%s", query_result_set);
 #ifdef PICO_QL_DEBUG
       printf("Consumed query partition %i of total %i. PICO_QL_RS_ACTIVE is %i, PICO_QL_READY is %i.\n", 
