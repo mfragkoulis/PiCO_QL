@@ -1,5 +1,5 @@
 PiCO QL is a C/C++ plug-in library that sets up an
-SQL SELECT interface over C/C++ data structures.
+SQL SELECT web-accessible interactive interface over C/C++ data structures.
 
 For C++ applications, PiCO QL supports querying of
 containers compatible with the C++ SGI
@@ -42,7 +42,7 @@ PLATFORMS
    Kernel:
      Tested on:
        Architectures: x86_64, amd64
-       Distributions - kernels: Fedora 18 - 3.6.9, 
+       Distributions - kernels: Fedora 18 - 3.6.9, 3.8.2, 3.9.2, 3.14.4
                                 Debian 7.1 - 3.2.0, 
                                 Ubuntu server 10.04 - 2.6.32
 
@@ -51,8 +51,9 @@ TESTING
 * Userspace: Commits are verified against: 
 ** [https://github.com/mfragkoulis/PiCO_QL/blob/master/examples test cases] by executing a [https://github.com/mfragkoulis/PiCO_QL/blob/master/examples/test_all.sh script].
 ** [http://valgrind.org/ Valgrind] (installed in Debian GNU/Linux 6.0.7 - kernel 2.6.32).
-* Kernel: Commits are verified against an array of [https://github.com/mfragkoulis/PiCO_QL/blob/master/src/Linux-kernel-mod/server/picoQL-tests.sql SQL queries] by executing a [https://github.com/mfragkoulis/PiCO_QL/blob/master/src/Linux-kernel-mod/server/picoQL-auto-test.sh script].
-
+* Kernel: Commits are verified
+** against an array of [https://github.com/mfragkoulis/PiCO_QL/blob/master/src/Linux-kernel-mod/server/picoQL-tests.sql SQL queries] by executing a [https://github.com/mfragkoulis/PiCO_QL/blob/master/src/Linux-kernel-mod/server/picoQL-auto-test.sh script].
+** by executing the [http://linux-test-project.github.io Linux Test Project (LTP)] test suite (not done for every commit).
 
 DEPENDENCIES
 
