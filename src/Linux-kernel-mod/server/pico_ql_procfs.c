@@ -27,6 +27,7 @@ MODULE_DESCRIPTION("A relational interface to selected kernel data structures.")
 
 #include <asm/uaccess.h>  /* for get_user and put_user */
 #include <linux/sched.h>
+#include <linux/mmzone.h> /* sysctl_lowmem_reserve_ratio */
 #include <linux/nsproxy.h>
 #include <linux/fs.h>
 #include <linux/fdtable.h>
@@ -222,6 +223,9 @@ ssize_t picoQL_write(
 
 /* Directory entry */
 static struct proc_dir_entry *PicoQL_Proc_File;
+  
+/* Temp solution for testing. */
+static int mysysctl_lowmem_reserve_ratio[MAX_NR_ZONES-1] = {256, 256, 32};
 
 /* Module initialization and cleanup ******************* */
 
@@ -233,7 +237,6 @@ int init_sqlite3(void) {
   struct super_block *sb = NULL;
 
   struct kset *ks;
-
   re = sqlite3_open(":memory:", &db);
 
   if (re) {
@@ -258,6 +261,7 @@ int init_sqlite3(void) {
     printf("Module registered successfully.");
 #endif
   pico_ql_register(&init_task, "processes");
+  pico_ql_register(mysysctl_lowmem_reserve_ratio, "sysctl_lowmem");
   pico_ql_register(&init_task.nsproxy, "namespace_proxy");
   pico_ql_register(&net_namespace_list, "network_namespaces");
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3,14,4)

@@ -28,6 +28,8 @@
 #endif KVM_RUNNING
 
 #define VirtualMemZone_VT_decl(X) struct zone *X
+#define SysctlLowmemRR_VT_decl(X) int X
+#define ELowmemReserve_VT_decl(X) int X
 #define EIpVsStatsEstim_VT_decl(X) struct ip_vs_estimator *X
 #define Process_VT_decl(X) struct task_struct *X
 #define EProcessChild_VT_decl(X) struct task_struct *X
@@ -407,6 +409,111 @@ unsigned get_pages_in_cache_tag(struct file *f, pgoff_t index, int tag) {
   return nr_pages;
 };
 
+static char * const n_a = "N/A";
+
+/* mm/page_alloc.c */
+static char * const zone_names[] = {
+#ifdef CONFIG_ZONE_DMA
+         "DMA",
+#endif
+#ifdef CONFIG_ZONE_DMA32
+         "DMA32",
+#endif
+         "Normal",
+#ifdef CONFIG_HIGHMEM
+         "HighMem",
+#endif
+         "Movable",
+};
+
+char * retrieve_zone_name(int zone) {
+  switch (zone) {
+#ifdef CONFIG_ZONE_DMA
+  case ZONE_DMA:
+    return zone_names[ZONE_DMA];
+#endif
+#ifdef CONFIG_ZONE_DMA32
+  case ZONE_DMA32:
+    return zone_names[ZONE_DMA32];
+#endif
+  case ZONE_NORMAL:
+    return zone_names[ZONE_NORMAL];
+#ifdef CONFIG_HIGHMEM
+  case ZONE_HIGHMEM:
+    return zone_names[ZONE_HIGHMEM];
+#endif
+  case ZONE_MOVABLE:
+    return zone_names[ZONE_MOVABLE];
+  }
+  return n_a;
+};
+
+int retrieve_lowmem(int *lrr, int zone) {
+  if (!lrr) return -1;
+  switch (zone) {
+#ifdef CONFIG_ZONE_DMA
+  case ZONE_DMA:
+    return lrr[ZONE_DMA];
+#endif
+#ifdef CONFIG_ZONE_DMA32
+  case ZONE_DMA32:
+    return lrr[ZONE_DMA32];
+#endif
+  case ZONE_NORMAL:
+    return lrr[ZONE_NORMAL];
+#ifdef CONFIG_HIGHMEM
+  case ZONE_HIGHMEM:
+    return lrr[ZONE_HIGHMEM];
+#endif
+  }
+  return -1;
+};
+
+int retrieve_priority(struct zone *z) {
+  if (!z) return -1;
+  if (!strcmp(z->name, "DMA")) {
+#ifdef CONFIG_ZONE_DMA
+    return ZONE_DMA;
+#endif
+  } else if (!strcmp(z->name, "DMA32")) {
+#ifdef CONFIG_ZONE_DMA32
+    return ZONE_DMA32;
+#endif
+  } else if (!strcmp(z->name, "Normal")) {
+    return ZONE_NORMAL;
+  } else if (!strcmp(z->name, "Highmem")) {
+#ifdef CONFIG_HIGHMEM
+    return ZONE_HIGHMEM;
+#endif
+  } else if (!strcmp(z->name, "Movable")) {
+    return ZONE_MOVABLE;
+  }
+  return -1;
+};
+
+long retrieve_protection(struct zone *z, int zone) {
+  if (!z) return -1;
+  switch (zone) {
+#ifdef CONFIG_ZONE_DMA
+  case ZONE_DMA:
+    return z->lowmem_reserve[ZONE_DMA];
+#endif
+#ifdef CONFIG_ZONE_DMA32
+  case ZONE_DMA32:
+    return z->lowmem_reserve[ZONE_DMA32];
+#endif
+  case ZONE_NORMAL:
+    return z->lowmem_reserve[ZONE_NORMAL];
+#ifdef CONFIG_HIGHMEM
+  case ZONE_HIGHMEM:
+    return z->lowmem_reserve[ZONE_HIGHMEM];
+#endif
+  case ZONE_MOVABLE:
+    return z->lowmem_reserve[ZONE_MOVABLE];
+  }
+  return -1;
+};
+
 /* mm/mmzone.c 
  * first_online_pgdat, next_online_pgdat, next_zone
  */
@@ -674,9 +781,15 @@ WITH REGISTERED C TYPE struct mm_struct$
 
 CREATE STRUCT VIEW VirtualMemZone_SV (
 	name TEXT FROM name,
+	priority INT FROM retrieve_priority(tuple_iter),
 	watermark_min BIGINT FROM watermark[WMARK_MIN],
 	watermark_low BIGINT FROM watermark[WMARK_LOW],
-	watermark_high BIGINT FROM watermark[WMARK_HIGH]
+	watermark_high BIGINT FROM watermark[WMARK_HIGH],
+	free_pages BIGINT FROM atomic_long_read(&tuple_iter->vm_stat[NR_FREE_PAGES]
+),
+	spanned_pages BIGINT FROM spanned_pages,
+	managed_pages BIGINT FROM managed_pages,
+	FOREIGN KEY(lowmem_zone_protection_id) FROM tuple_iter REFERENCES ELowmemReserve_VT POINTER
 )$
 
 CREATE VIRTUAL TABLE VirtualMemZone_VT
@@ -684,6 +797,29 @@ USING STRUCT VIEW VirtualMemZone_SV
 WITH REGISTERED C NAME mem_zones
 WITH REGISTERED C TYPE struct zone
 USING LOOP for_each_zone(tuple_iter)$
+
+CREATE STRUCT VIEW LowmemReserve_SV (
+        page_type TEXT FROM retrieve_zone_name(tuple_iter),
+	page_type_priority INT FROM tuple_iter,
+	lowmem_reserve INT FROM {retrieve_protection(base, tuple_iter)}
+)$
+
+CREATE VIRTUAL TABLE ELowmemReserve_VT
+USING STRUCT VIEW LowmemReserve_SV
+WITH REGISTERED C TYPE struct zone *:int
+USING LOOP for (tuple_iter = 0; tuple_iter < MAX_NR_ZONES; tuple_iter++)$
+
+CREATE STRUCT VIEW SysctlLowmemRR_SV (
+        page_type TEXT FROM retrieve_zone_name(tuple_iter),
+	page_type_priority INT FROM tuple_iter,
+	lowmem_reserve INT FROM {retrieve_lowmem(pqlPub_sysctl_lowmem, tuple_iter)}
+)$
+
+CREATE VIRTUAL TABLE SysctlLowmemRR_VT
+USING STRUCT VIEW SysctlLowmemRR_SV
+WITH REGISTERED C NAME sysctl_lowmem
+WITH REGISTERED C TYPE int *:int
+USING LOOP for (tuple_iter = 0; tuple_iter < MAX_NR_ZONES-1; tuple_iter++)$
 
 CREATE STRUCT VIEW NetDevice_SV (
 	name TEXT FROM name,

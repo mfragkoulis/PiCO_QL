@@ -209,10 +209,10 @@ class Column
          access_path.match(/tuple_iter->|tuple_iter\.|tuple_iter,|tuple_iter\)/)
         access_path.gsub!(/tuple_iter/, "#{iter}") 
       end
-      #if access_path.match(/base->|base\.|base,|base\)/)
-      #  access_path.gsub!(/base(\.|->)/, "any_dstr->")
-      #  access_path.gsub!(/base/, "any_dstr") 
-      #end
+      if access_path.match(/base->|base\.|base,|base\)/)
+        access_path.gsub!(/base(\.|->)/, "any_dstr->")
+        access_path.gsub!(/base/, "any_dstr") 
+      end
     elsif pre_post_ap
       if iter != nil &&
          pre_post_ap.match(/tuple_iter->|tuple_iter\.|tuple_iter,|tuple_iter\)/)
@@ -1517,7 +1517,8 @@ class VirtualTable
             iden = "*#{iden}"
           elsif !access_path.match(/first/) &&
                  !access_path.match(/second/) &&
-                 @pointer.end_with?("*") &&
+                 (@pointer.end_with?("*") ||
+                  data_type == "TEXT") && # See configure_search for the case.
                  iden.end_with?(".")
             iden.chomp!(".")
             iden.concat("->")
@@ -1656,7 +1657,12 @@ class VirtualTable
             idenN = "*#{idenN}"
           elsif !ap.match(/first|key()/) &&
               !ap.match(/second|value()/) &&
-              @pointer.end_with?("*")
+              (@pointer.end_with?("*") ||
+               data_type == "TEXT") # @pointer == "", so iden == "tuple_iter."
+				    # so NULL check is not generated
+				    # correctly for access paths like
+				    # retrieve_zone_name(tuple_iter)
+				    # which takes an int and returns char * .
             if idenF.end_with?(".")
               idenF.chomp!(".")
               idenF.concat("->")
