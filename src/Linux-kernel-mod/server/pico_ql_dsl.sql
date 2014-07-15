@@ -27,6 +27,11 @@
 #include <linux/kvm_host.h>
 #endif KVM_RUNNING
 
+#define EKmemCacheSlabFull_VT_decl(X) struct page *X
+#define EKmemCacheNode_VT_decl(X) struct kmem_cache_node *X;int node = 0
+#define EKmemCacheNode_VT_begin(X, Y, Z) (X) = (Y)[(Z)]
+#define EKmemCacheNode_VT_advance(X, Y, Z) EKmemCacheNode_VT_begin(X, Y, Z)
+#define KmemCache_VT_decl(X) struct kmem_cache *X
 #define VirtualMemZone_VT_decl(X) struct zone *X
 #define SysctlLowmemRR_VT_decl(X) int X
 #define ELowmemReserve_VT_decl(X) int X
@@ -36,7 +41,7 @@
 #define EThread_VT_decl(X) struct task_struct *X
 #define EFile_VT_decl(X) struct file *X = NULL; int bit = 0
 #define EFile_VT_begin(X, Y, Z) (X) = (Y)[(Z)]
-#define EFile_VT_advance(X, Y, Z) EFile_VT_begin(X,Y,Z)
+#define EFile_VT_advance(X, Y, Z) EFile_VT_begin(X, Y, Z)
 #define EGroup_VT_decl(X) int *X; int i = 0
 #define EGroup_VT_begin(X, Y, Z) (X) = (int *)&(Y)[(Z)]
 #define EGroup_VT_advance(X, Y, Z) EGroup_VT_begin(X, Y, Z)
@@ -300,7 +305,7 @@ static const char *get_task_state(struct task_struct *tsk)
                 state >>= 1;
         }
         return *p;
-}
+};
 
 #else
 
@@ -321,7 +326,7 @@ static inline const char *get_task_state(struct task_struct *tsk)
         BUILD_BUG_ON(1 + ilog2(TASK_REPORT) != ARRAY_SIZE(task_state_array)-1);
 
         return task_state_array[fls(state)];
-}
+};
 
 #endif
 
@@ -408,6 +413,38 @@ unsigned get_pages_in_cache_tag(struct file *f, pgoff_t index, int tag) {
   kfree(pages);
   return nr_pages;
 };
+
+/*
+ * The slab lists for all objects.
+ */
+struct kmem_cache_node {
+        spinlock_t list_lock;
+
+#ifdef CONFIG_SLAB
+        struct list_head slabs_partial; /* partial list first, better asm code */
+        struct list_head slabs_full;
+        struct list_head slabs_free;
+        unsigned long free_objects;
+        unsigned int free_limit;
+        unsigned int colour_next;       /* Per-node cache coloring */
+        struct array_cache *shared;     /* shared per node */
+        struct array_cache **alien;     /* on other nodes */
+        unsigned long next_reap;        /* updated without locking */
+        int free_touched;               /* updated without locking */
+#endif
+
+#ifdef CONFIG_SLUB
+        unsigned long nr_partial;
+        struct list_head partial;
+#ifdef CONFIG_SLUB_DEBUG
+        atomic_long_t nr_slabs;
+        atomic_long_t total_objects;
+        struct list_head full;
+#endif
+#endif
+
+};
+
 
 static char * const n_a = "N/A";
 
@@ -778,6 +815,41 @@ $
 CREATE VIRTUAL TABLE EVirtualMem_VT
 USING STRUCT VIEW VirtualMem_SV
 WITH REGISTERED C TYPE struct mm_struct$
+
+CREATE STRUCT VIEW KmemCacheSlab_SV (
+	objects INT FROM objects,
+	inuse INT FROM inuse,
+	active INT FROM active
+)$
+
+CREATE VIRTUAL TABLE EKmemCacheSlabFull_VT
+USING STRUCT VIEW KmemCacheSlab_SV
+WITH REGISTERED C TYPE struct kmem_cache_node:struct page *
+USING LOOP list_for_each_entry(tuple_iter, &base->full, lru)$
+
+CREATE STRUCT VIEW KmemCacheNode_SV (
+	nr_slabs BIGINT FROM atomic_long_read(&tuple_iter->nr_slabs),
+	total_objects BIGINT FROM atomic_long_read(&tuple_iter->total_objects),
+	nr_partial BIGINT FROM nr_partial,
+	FOREIGN KEY(full_slabs_id) FROM tuple_iter REFERENCES EKmemCacheSlabFull_VT POINTER,
+	FOREIGN KEY(partial_slabs_id) FROM tuple_iter REFERENCES EKmemCacheSlabPartial_VT
+)$
+
+CREATE VIRTUAL TABLE EKmemCacheNode_VT
+USING STRUCT VIEW KmemCacheNode_SV
+WITH REGISTERED C TYPE struct kmem_cache:struct kmem_cache_node *
+USING LOOP for (EKmemCacheNode_VT_begin(tuple_iter, base->node, (node = first_online_node)); node < MAX_NUMNODES; EKmemCacheNode_VT_advance(tuple_iter, base->node, (node = next_online_node(node))))$
+
+CREATE STRUCT VIEW KmemCache_SV (
+	name TEXT FROM name,
+	FOREIGN KEY(nodes_id) FROM tuple_iter REFERENCES EKmemCacheNode_VT POINTER
+)$
+
+CREATE VIRTUAL TABLE KmemCache_VT
+USING STRUCT VIEW KmemCache_SV
+WITH REGISTERED C NAME kmem_caches
+WITH REGISTERED C TYPE struct kmem_cache
+USING LOOP list_for_each_entry(tuple_iter, &base->list, list)$
 
 CREATE STRUCT VIEW VirtualMemZone_SV (
 	name TEXT FROM name,

@@ -27,6 +27,7 @@ MODULE_DESCRIPTION("A relational interface to selected kernel data structures.")
 
 #include <asm/uaccess.h>  /* for get_user and put_user */
 #include <linux/sched.h>
+#include <linux/slab.h> /* struct kmem_cache, kmalloc_caches */
 #include <linux/mmzone.h> /* sysctl_lowmem_reserve_ratio */
 #include <linux/nsproxy.h>
 #include <linux/fs.h>
@@ -237,6 +238,7 @@ int init_sqlite3(void) {
   struct super_block *sb = NULL;
 
   struct kset *ks;
+  int i;
   re = sqlite3_open(":memory:", &db);
 
   if (re) {
@@ -262,6 +264,13 @@ int init_sqlite3(void) {
 #endif
   pico_ql_register(&init_task, "processes");
   pico_ql_register(mysysctl_lowmem_reserve_ratio, "sysctl_lowmem");
+  for (i = KMALLOC_SHIFT_LOW; i <= KMALLOC_SHIFT_HIGH; i++) {
+    if (kmalloc_caches[i]) {
+      //printf("kmalloc_caches[%d] is: %lx", i, (long)kmalloc_caches);
+      pico_ql_register(kmalloc_caches[i], "kmem_caches");
+      break;
+    }
+  }
   pico_ql_register(&init_task.nsproxy, "namespace_proxy");
   pico_ql_register(&net_namespace_list, "network_namespaces");
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3,14,4)
