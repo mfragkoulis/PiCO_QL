@@ -27,6 +27,7 @@
 #include <linux/kvm_host.h>
 #endif KVM_RUNNING
 
+#define EKmemCacheSlabObject_VT_decl(X) void *X
 #define EKmemCacheSlabFull_VT_decl(X) struct page *X
 #define EKmemCacheNode_VT_decl(X) struct kmem_cache_node *X;int node = 0
 #define EKmemCacheNode_VT_begin(X, Y, Z) (X) = (Y)[(Z)]
@@ -445,6 +446,13 @@ struct kmem_cache_node {
 
 };
 
+#define for_each_object(__p, __s, __addr, __objects) \
+        for (__p = (__addr); __p < (__addr) + (__objects) * (__s)->size;\
+                        __p += (__s)->size)
+
+long get_it(void *it) {
+  return (long)it;
+};
 
 static char * const n_a = "N/A";
 
@@ -827,6 +835,15 @@ USING STRUCT VIEW KmemCacheSlab_SV
 WITH REGISTERED C TYPE struct kmem_cache_node:struct page *
 USING LOOP list_for_each_entry(tuple_iter, &base->full, lru)$
 
+CREATE STRUCT VIEW KMemCacheSlabObject_SV (
+	addr BIGINT FROM get_it(tuple_iter)
+)$
+
+CREATE VIRTUAL TABLE EKmemCacheSlabObject_VT
+USING STRUCT VIEW KMemCacheSlabObject_SV
+WITH REGISTERED C TYPE struct page:void *
+USING LOOP for_each_object(tuple_iter, base->slab_cache, page_address(base), base->objects)$
+
 CREATE STRUCT VIEW KmemCacheNode_SV (
 	nr_slabs BIGINT FROM atomic_long_read(&tuple_iter->nr_slabs),
 	total_objects BIGINT FROM atomic_long_read(&tuple_iter->total_objects),
@@ -842,7 +859,9 @@ USING LOOP for (EKmemCacheNode_VT_begin(tuple_iter, base->node, (node = first_on
 
 CREATE STRUCT VIEW KmemCache_SV (
 	name TEXT FROM name,
-	FOREIGN KEY(nodes_id) FROM tuple_iter REFERENCES EKmemCacheNode_VT POINTER
+	FOREIGN KEY(nodes_id) FROM tuple_iter REFERENCES EKmemCacheNode_VT POINTER,
+	cache_cpu_id BIGINT FROM this_cpu_ptr(tuple_iter->cpu_slab)->tid,
+	FOREIGN KEY(slab_alloc_id) FROM this_cpu_ptr(tuple_iter->cpu_slab)->page REFERENCES EKmemCacheSlabObject_VT POINTER
 )$
 
 CREATE VIRTUAL TABLE KmemCache_VT
@@ -1282,14 +1301,14 @@ $
 CREATE STRUCT VIEW Superblock_SV (
 	name TEXT FROM s_id,
 	subtype TEXT FROM s_subtype,
-	fs_name TEXT FROM s_type->name,
-        dentry_root_name TEXT FROM s_root->d_name.name,
+	//fs_name TEXT FROM s_type->name,
+        //dentry_root_name TEXT FROM s_root->d_name.name,
 	blocksize BIGINT FROM s_blocksize,
 	max_file_size INT FROM s_maxbytes,
 	count INT FROM s_count,
 	flags BIGINT FROM s_flags,
-	magic BIGINT FROM s_magic,
-	fs_flags INT FROM s_type->fs_flags
+	magic BIGINT FROM s_magic
+	//fs_flags INT FROM s_type->fs_flags
 )
 $
 
