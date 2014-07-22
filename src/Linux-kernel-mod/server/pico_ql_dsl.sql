@@ -1154,12 +1154,12 @@ WITH REGISTERED C TYPE struct nsproxy
 $
 
 CREATE STRUCT VIEW IO_SV (
-       bytes_read BIGINT FROM rchar, //CONFIG_TASK_XACCT
-       bytes_written BIGINT FROM wchar, //CONFIG_TASK_XACCT
+       read_bytes_syscall BIGINT FROM rchar, //CONFIG_TASK_XACCT
+       write_bytes_syscall BIGINT FROM wchar, //CONFIG_TASK_XACCT
        syscalls_read BIGINT FROM syscr, //CONFIG_TASK_XACCT
        syscalls_write BIGINT FROM syscw, //CONFIG_TASK_XACCT
-       bytes_read_store BIGINT FROM read_bytes, //CONFIG_TASK_IO_ACCOUNTING
-       bytes_write_store BIGINT FROM write_bytes, //CONFIG_TASK_IO_ACCOUNTING
+       read_bytes_store BIGINT FROM read_bytes, //CONFIG_TASK_IO_ACCOUNTING
+       write_bytes_store BIGINT FROM write_bytes, //CONFIG_TASK_IO_ACCOUNTING
        cancelled_write_bytes BIGINT FROM cancelled_write_bytes //CONFIG_TASK_IO_ACCOUNTING
 )
 $
