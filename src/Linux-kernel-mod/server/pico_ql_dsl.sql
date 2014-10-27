@@ -8,8 +8,10 @@
 #include <linux/fs_struct.h>
 #include <linux/module.h> // struct module
 #include <linux/mm_types.h>
+#include <linux/binfmts.h>
 #include <linux/mmzone.h>
 #include <linux/nsproxy.h>
+#include <linux/user_namespace.h>
 #include <net/net_namespace.h>
 #include <net/sock.h>
 #include <net/netns/mib.h>
@@ -37,8 +39,12 @@
 #define SysctlLowmemRR_VT_decl(X) int X
 #define ELowmemReserve_VT_decl(X) int X
 #define EIpVsStatsEstim_VT_decl(X) struct ip_vs_estimator *X
+#define BinaryFormat_VT_decl(X) struct linux_binfmt *X
 #define Process_VT_decl(X) struct task_struct *X
 #define EProcessChild_VT_decl(X) struct task_struct *X
+#define EUidGidMap_VT_decl(X) struct uid_gid_extent *X; int idx = 0
+#define EUidGidMap_VT_begin(X, Y, Z) (X) = &(Y)->extent[(Z)]
+#define EUidGidMap_VT_advance(X, Y, Z) EUidGidMap_VT_begin(X, Y, Z)
 #define EThread_VT_decl(X) struct task_struct *X
 #define EFile_VT_decl(X) struct file *X = NULL; int bit = 0
 #define EFile_VT_begin(X, Y, Z) (X) = (Y)[(Z)]
@@ -766,6 +772,22 @@ USING STRUCT VIEW VirtualMemArea_SV
 WITH REGISTERED C TYPE struct vm_area_struct
 $
 
+CREATE STRUCT VIEW BinaryFormat_SV (
+	load_bin_addr BIGINT FROM (long)tuple_iter->load_binary,
+	load_shlib_addr BIGINT FROM (long)tuple_iter->load_shlib,
+	core_dump_addr BIGINT FROM (long)tuple_iter->core_dump
+)$
+
+CREATE VIRTUAL TABLE EBinaryFormat_VT
+USING STRUCT VIEW BinaryFormat_SV
+WITH REGISTERED C TYPE struct linux_binfmt$
+
+CREATE VIRTUAL TABLE BinaryFormat_VT
+USING STRUCT VIEW BinaryFormat_SV
+WITH REGISTERED C NAME linux_binfmt
+WITH REGISTERED C TYPE struct linux_binfmt
+USING LOOP list_for_each_entry(tuple_iter, &base->lh, lh)$
+
 CREATE STRUCT VIEW VirtualMem_SV (
        FOREIGN KEY(mmap_id) FROM mmap REFERENCES EVirtualMemArea_VT POINTER,
        FOREIGN KEY(mmap_cache_id) FROM mmap_cache REFERENCES EVirtualMemArea_VT POINTER,
@@ -1327,6 +1349,8 @@ $
 CREATE STRUCT VIEW File_SV (
        inode_name TEXT FROM f_path.dentry->d_name.name,
        inode_dname TEXT FROM {checked_d_path(&tuple_iter->f_path, dpath, 128)},
+       inode_uid INT FROM get_uid_val(tuple_iter->f_path.dentry->d_inode->i_uid),
+       inode_gid INT FROM get_gid_val(tuple_iter->f_path.dentry->d_inode->i_gid),
        inode_no BIGINT FROM f_path.dentry->d_inode->i_ino,
        inode_mode INT FROM f_path.dentry->d_inode->i_mode,
        inode_bytes INT FROM f_path.dentry->d_inode->i_bytes,
@@ -1405,6 +1429,16 @@ WITH REGISTERED C TYPE struct group_info*:int*
 USING LOOP for (EGroup_VT_begin(tuple_iter, base->small_block, i); i < base->ngroups; EGroup_VT_advance(tuple_iter, base->small_block, ++i))
 $
 
+CREATE STRUCT VIEW UidGidMap_SV (
+	first INT FROM lower_first,
+	last INT FROM count
+)$
+
+CREATE VIRTUAL TABLE EUidGidMap_VT
+USING STRUCT VIEW UidGidMap_SV
+WITH REGISTERED C TYPE struct uid_gid_map:struct uid_gid_extent *
+USING LOOP for (EUidGidMap_VT_begin(tuple_iter, base, idx); idx < base->nr_extents; EUidGidMap_VT_advance(tuple_iter, base, ++idx))$
+
 CREATE STRUCT VIEW Process_SV (
        name TEXT FROM comm,
        pid INT FROM pid,
@@ -1436,6 +1470,8 @@ CREATE STRUCT VIEW Process_SV (
        ecred_fsuid INT FROM get_uid_val(tuple_iter->real_cred->fsuid),
        ecred_fsgid INT FROM get_gid_val(tuple_iter->real_cred->fsgid),
 #endif
+       has_file_capability INT FROM {ns_capable(tuple_iter->cred->user_ns, CAP_FOWNER)},
+       FOREIGN KEY(uidgid_map_id) FROM cred->user_ns->uid_map REFERENCES EUidGidMap_VT,
        FOREIGN KEY(group_set_id) FROM real_cred->group_info REFERENCES EGroup_VT POINTER,
        state_family BIGINT FROM state,
        state TEXT FROM get_task_state(tuple_iter),
@@ -1495,6 +1531,7 @@ CREATE STRUCT VIEW Process_SV (
        FOREIGN KEY(fs_fd_file_id) FROM get_fdtable(tuple_iter->files) REFERENCES EFile_VT POINTER,
        FOREIGN KEY(io_id) FROM ioac REFERENCES EIO_VT,
        FOREIGN KEY(vm_id) FROM mm REFERENCES EVirtualMem_VT POINTER,
+       FOREIGN KEY(binfmt_id) FROM mm->binfmt REFERENCES EBinaryFormat_VT POINTER,
 //       FOREIGN KEY(nsproxy_id) FROM nsproxy REFERENCES ENsproxy_VT POINTER,
        FOREIGN KEY(netns_ipv4_id) FROM nsproxy->net_ns->ipv4 REFERENCES ENetnsIpv4_VT,
        FOREIGN KEY(active_virtual_memory_id) FROM active_mm REFERENCES EVirtualMem_VT POINTER,

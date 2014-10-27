@@ -1515,8 +1515,9 @@ class VirtualTable
               (access_path == "second" &&
                @pointer.end_with?("*"))
             iden = "*#{iden}"
-          elsif !access_path.match(/first/) &&
-                 !access_path.match(/second/) &&
+          elsif access_path != "first" &&  # match(/first/) was too restrictive: 
+						# it matched e.g. lower_first
+                 access_path != "second" &&
                  (@pointer.end_with?("*") ||
                   data_type == "TEXT") && # See configure_search for the case.
                  iden.end_with?(".")
@@ -1529,8 +1530,8 @@ class VirtualTable
       # is object after transformations
       if !@container_class.empty?
         if !access_path.empty? &&
-           !access_path.match(/first/) &&
-           !access_path.match(/second/) &&
+           access_path != "first" &&
+           access_path != "second" &&
            @pointer.end_with?("*") &&
            iden.end_with?(".")
           iden.chomp!(".")
@@ -1621,9 +1622,9 @@ class VirtualTable
     when "union"
       if !ap.empty? 
         if (@type.gsub(/ /,"").match(/(\w+)\*,/) &&
-            ap.match(/first/)) || 
+            ap == "first") || 
             (@type.gsub(/ /,"").match(/,(\w+)\*/) &&
-            ap.match(/second/)) ||
+            ap == "second") ||
             @type.gsub(/ /,"").match(/(\w+)\*/)
           if idenF.end_with?(".") && !@pointer.empty?
             idenF.chomp!(".")
@@ -1655,8 +1656,8 @@ class VirtualTable
                @pointer.end_with?("*"))
             idenF = "*#{idenF}"
             idenN = "*#{idenN}"
-          elsif !ap.match(/first|key()/) &&
-              !ap.match(/second|value()/) &&
+          elsif ap != "first" && ap != "key()"  &&
+              ap != "second" && ap != "value()" &&
               (@pointer.end_with?("*") ||
                data_type == "TEXT") # @pointer == "", so iden == "tuple_iter."
 				    # so NULL check is not generated
@@ -1678,8 +1679,8 @@ class VirtualTable
 # is object after transformations
       if !@container_class.empty?
         if !ap.empty? &&
-            !ap.match(/first/) &&
-            !ap.match(/second/) &&
+            ap != "first" &&
+            ap != "second" &&
             @pointer.end_with?("*")
           if idenF.end_with?(".")
             idenF.chomp!(".")
@@ -1814,7 +1815,7 @@ class VirtualTable
     space = "#{$s}"
     optimize = false
     if @container_class.match(/map$/i) && @type.end_with?("::iterator") &&  # unordered?
-       access_path.match(/first|key\(\)/)
+       (access_path == "first" || access_path == "key()")
       if @container_class == "QMap" || @container_class == "QMultiMap"
         upBoundF = "upperBound"
         loBoundF = "lowerBound"

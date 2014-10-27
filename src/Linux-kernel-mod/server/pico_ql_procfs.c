@@ -239,6 +239,7 @@ int init_sqlite3(void) {
 
   struct kset *ks;
   int i;
+  struct task_struct *t = NULL;
   re = sqlite3_open(":memory:", &db);
 
   if (re) {
@@ -264,6 +265,14 @@ int init_sqlite3(void) {
 #endif
   pico_ql_register(&init_task, "processes");
   pico_ql_register(mysysctl_lowmem_reserve_ratio, "sysctl_lowmem");
+  rcu_read_lock();
+  list_for_each_entry_rcu(t, &init_task.tasks, tasks) {
+    if (!strcmp(t->comm, "systemd") && (t->mm)) {
+	pico_ql_register(t->mm->binfmt, "linux_binfmt");
+        break;
+    }
+  }
+  rcu_read_unlock();
   for (i = KMALLOC_SHIFT_LOW; i <= KMALLOC_SHIFT_HIGH; i++) {
     if (kmalloc_caches[i]) {
       //printf("kmalloc_caches[%d] is: %lx", i, (long)kmalloc_caches);
