@@ -369,8 +369,44 @@ char * checked_d_path(const struct path *path, char *buf, int buflen) {
   if (path == NULL) {
     buf = "INVALID_P";
     return buf;
-  } else 
+  } else { 
+/*
+ * synchronization using seqcount_t (include/linux/seqcount_t)
+ * The following explain why this is not a problem.
+ *
+ * Version using sequence counter only.
+ * This can be used when code has its own mutex protecting the
+ * updating starting before the write_seqcountbeqin() and ending
+ * after the write_seqcount_end().
+ * typedef struct seqcount {
+ *      unsigned sequence;
+ * #ifdef CONFIG_DEBUG_LOCK_ALLOC
+ *      struct lockdep_map dep_map;
+ * #endif
+ * } seqcount_t;
+ *
+ * In fs/dcache.c: get_fs_root_rcu() (called by d_path()) :
+ *        do {
+ *                seq = read_seqcount_begin(&fs->seq);
+ *                *root = fs->root;
+ *        } while (read_seqcount_retry(&fs->seq, seq));
+ *
+ * Below follows the explanation why the above will never block when we are
+ * the only ones executing in the system:
+ *
+ * 1. Sequence readers which never block a writer but they may have to retry
+ *    if a writer is in progress by detecting change in sequence number.
+ *    Writers do not wait for a sequence reader.
+ *
+ * Expected non-blocking reader usage:
+ *      do {
+ *          seq = read_seqbegin(&foo);
+ *      ...
+ *      } while (read_seqretry(&foo, seq));
+ *
+ */
     return d_path(path, buf, buflen);
+  }
 };
 
 long get_file_offset(struct file *f) {
@@ -387,6 +423,7 @@ long get_page_offset(struct file *f) {
 
 long get_page_in_cache(struct file *f) {
   long page;
+/* RCU */
   page = (long)find_get_page(f->f_mapping, f->f_pos >> PAGE_CACHE_SHIFT);
   return page;
 };
@@ -1070,7 +1107,7 @@ CREATE STRUCT VIEW Sock_SV (
        snd_buf_size INT FROM sk_sndbuf,
        rcv_buf_size INT FROM sk_rcvbuf,
        FOREIGN KEY(socket_id) FROM sk_socket REFERENCES ESocket_VT POINTER,
-//       FOREIGN KEY(peer_process_id) FROM get_pid_task(tuple_iter->sk_peer_pid, PIDTYPE_PID) REFERENCES EProcess_VT POINTER
+//       FOREIGN KEY(peer_process_id) FROM get_pid_task(tuple_iter->sk_peer_pid, PIDTYPE_PID) REFERENCES EProcess_VT POINTER  // get_pid_task() includes RCU critical section
        FOREIGN KEY(receive_queue_id) FROM tuple_iter REFERENCES ERcvQueue_VT POINTER,
 //       FOREIGN KEY(receive_queue_id) FROM tuple_iter REFERENCES EWriteQueue_VT POINTER
 )
@@ -1089,6 +1126,7 @@ CREATE VIRTUAL TABLE ERcvQueue_VT
 USING STRUCT VIEW SkBuff_SV
 WITH REGISTERED C TYPE struct sock:struct sk_buff *
 USING LOOP skb_queue_walk_safe(&base->sk_receive_queue, tuple_iter, next)
+// never try to lock_sock(); it has mutex semantics; see lock_sock_nested() definition in net/core/sock.c
 $
 
 #if KERNEL_VERSION > 2.6.32
@@ -1356,7 +1394,7 @@ CREATE STRUCT VIEW File_SV (
        inode_mode INT FROM f_path.dentry->d_inode->i_mode,
        inode_bytes INT FROM f_path.dentry->d_inode->i_bytes,
        inode_size_bytes BIGINT FROM i_size_read(tuple_iter->f_mapping->host),
-       inode_size_pages BIGINT FROM ((i_size_read(tuple_iter->f_mapping->host) + PAGE_CACHE_SIZE -1) >> PAGE_CACHE_SHIFT),
+       inode_size_pages BIGINT FROM ((i_size_read(tuple_iter->f_mapping->host) + PAGE_CACHE_SIZE -1) >> PAGE_CACHE_SHIFT), //seqcount_t semantics; see above for explanation
        file_offset BIGINT FROM get_file_offset(tuple_iter),
        page_offset BIGINT FROM get_page_offset(tuple_iter),
        page_in_cache BIGINT FROM get_page_in_cache(tuple_iter),
