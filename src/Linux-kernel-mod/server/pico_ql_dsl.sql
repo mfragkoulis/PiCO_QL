@@ -791,6 +791,7 @@ USING LOOP list_for_each_entry(tuple_iter, &base->lh, lh)$
 CREATE STRUCT VIEW VirtualMem_SV (
        FOREIGN KEY(mmap_id) FROM mmap REFERENCES EVirtualMemArea_VT POINTER,
        FOREIGN KEY(mmap_cache_id) FROM mmap_cache REFERENCES EVirtualMemArea_VT POINTER,
+//       total_rss BIGINT FROM get_mm_rss(tuple_iter),
        mmap_base BIGINT FROM mmap_base,
        task_size UNSIGNED BIG INT FROM task_size,
 #if KERNEL_VERSION <= 3.8.1
