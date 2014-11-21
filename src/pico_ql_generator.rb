@@ -121,7 +121,7 @@ class Column
     root.gsub!(/^&/, "")
     token_ac_p.each_index { |tap|
       if $argD == "DEBUG"
-        puts "tap is #{tap.to_s}, token to check is: #{token_ac_p[tap]}"
+        puts "tap is #{tap.to_s}, token to check is: #{token_ac_p[tap]}, iden is #{iden}."
       end
       if tap > 0
         token_ac_p[tap].insert(0, "#{token_ac_p[tap-1]}->")
@@ -1201,7 +1201,7 @@ class Column
         end
       else
         @tokenized_access_path = @access_path.split(/->/)
-        if @data_type != "TEXT"
+        if @data_type != "TEXT" || @data_type_class == "string" # see comment below about "string"
           @tokenized_access_path.pop
         end
       end
@@ -1525,9 +1525,9 @@ class VirtualTable
               (access_path == "second" &&
                @pointer.end_with?("*"))
             iden = "*#{iden}"
-          elsif access_path != "first" &&  # match(/first/) was too restrictive: 
+          elsif !access_path.match(/first((.|->)*)/) &&  # match(/first/) was too restrictive: 
 						# it matched e.g. lower_first
-                 access_path != "second" &&
+                 !access_path.match(/second(.|->)/) &&
                  @pointer.end_with?("*") #||
                   #data_type == "TEXT") && # See configure_search for the case.
                  #iden.end_with?(".")
@@ -1660,23 +1660,21 @@ class VirtualTable
             idenN = "*#{idenN}"
           end
         else
-          puts "CS: #{idenF} - #{ap}"
           if (ap == "first" && 
               @pointer.match(/\*,/)) ||
               (ap == "second" &&
                @pointer.end_with?("*"))
             idenF = "*#{idenF}"
             idenN = "*#{idenN}"
-          elsif ap != "first" && ap != "key()"  &&
-              ap != "second" && ap != "value()" &&
-              (@pointer.end_with?("*")) #||
+          elsif !ap.match(/first((.|->)*)/) && !ap.match(/key\(\)(.|->)/)  &&
+              (!ap.match(/second(.|->)/) && !ap.match(/value\(\)(.|->)/) &&
+              @pointer.end_with?("*")) #||
               # (data_type == "TEXT" && 
               #  data_type_class != "string")) # @pointer == "", so iden == "tuple_iter."
 				    # so NULL check is not generated
 				    # correctly for access paths like
 				    # retrieve_zone_name(tuple_iter)
 				    # which takes an int and returns char * .
-		puts "data type #{data_type}, data type class #{data_type_class}, @pointer #{@pointer}."
             if idenF.end_with?(".")
               idenF.chomp!(".")
               idenF.concat("->")
@@ -1685,7 +1683,6 @@ class VirtualTable
               idenN.chomp!(".")
               idenN.concat("->")
             end
-            puts "CS-: #{idenF} - #{ap}"
           end
         end
       end
@@ -1714,7 +1711,6 @@ class VirtualTable
         idenN = "&#{idenN}"
       end
     end
-          puts "CS+: #{idenF} - #{ap}"
     ap_copyF = String.new(ap)
     ap_copyN = String.new(ap)
     if !access_path.start_with?("tuple_iter") && access_path.match(/tuple_iter/)  # Substitute
@@ -1742,24 +1738,22 @@ class VirtualTable
           ap_copyN.gsub!(/tuple_iter\)/, "#{idenN.chomp("->")})")
         end
       end
-#      if $argD == "DEBUG"
+      if $argD == "DEBUG"
         puts "configure_search: substituting \"tuple_iter\" in access path:"
         puts "  F-#{idenF}, #{ap_copyF}"
         puts "  N-#{idenN}, #{ap_copyN}"
-#      end
+      end
       access_pathF = "#{ap_copyF}"
       access_pathN = "#{ap_copyN}"
     elsif !access_path.match(/tuple_iter/) # tuple_iter omitted; the usual case.
       access_pathF = "#{idenF}#{ap_copyF}"
       access_pathN = "#{idenN}#{ap_copyN}"
-          puts "CS*: #{idenF} - #{access_pathF}"
     elsif access_path.start_with?("tuple_iter.") # access path configured by user. expandable.
       idenF = "tuple_iter."
       idenN = "(*resIterC)."
       access_pathF = "#{ap_copyF}"
       access_pathN = "#{ap_copyN}"
     end
-          puts "CS*: #{idenF} - #{access_pathF}"
     return access_pathF, access_pathN, idenF, idenN
   end
 
