@@ -2832,6 +2832,19 @@ class InputDescription
   
 end
 
+# Checks if KVM is running in the host system
+# to include (or not) KVM relational interface correspondingly.
+def check_kvm(description)
+  kvm_is_running = system("lsmod | grep 'kvm'")
+  if $argD == "DEBUG"
+    puts "kvm is running? #{kvm_is_running.to_s}\n"
+  end
+  description.gsub!(/^#if KVM_RUNNING\n(.+?)\n#endif KVM_RUNNING/m) { |m|
+    kvm_is_running ? m = $1 : m = ""
+    "#{m}"   # The actual substitution.
+  }
+  return description
+end
 
 # Compare kernel version numbers
 def cmp_v(condition, lhs, rhs)
@@ -2928,7 +2941,48 @@ def compare_many_versions(versions, action_true, action_false)
     return false, nil
   end
 end
-   
+
+# Checks the kernel version of the host machine
+# against ifdefs in the relational specification
+# to include columns that are version(-range) specific.
+def check_kernel_version(description)
+  # A further (\.(\d{1,3})?) for case e.g. 3.2.4.245 breaks the pattern
+  description.gsub!(/^#if KERNEL_VERSION((\s?(<|<=|=|==|>=|>)\s?(\d)\.(\d{1,2})(\.(\d{1,3})?))+)(\s+)(.+?)\n#((else(\s+)(.+?)\n#)*)endif/im) { |m|
+    if $argD == "DEBUG"
+      puts "m initially is: #{m}\n1:#{$1}\n2:#{$2}\n3:#{$3}\n4:#{$4}\n5:#{$5}\n6:#{$6}\n7:#{$7}\n8:#{$8}\n9:#{$9}\n10:#{$10}\n11:#{$11}\n12:#{$12}\n13:#{$13}\n14:#{$14}\n15:#{$15}\n16:#{$16}"
+    end
+    valid, m = compare_many_versions($1, $9, $13)
+    if valid == false
+      if kernel_version_match($3, $4, $5, $7)
+        m = $9
+      else
+        m = $13
+      end
+    end
+    if $argD == "DEBUG"
+      puts "Result of condition is: #{m}\n"
+    end
+    "#{m}"   # The actual substitution.
+  }
+  return description
+end
+
+def clean_lined_description()
+  $lined_description.each { |line|  # Strip white-space.
+    line.squeeze!(" ")
+    if / ,|, /.match(line)
+      line.gsub!(/ ,|, /, ",") 
+    end
+    #      if / \(/.match(line) : line.gsub!(/ \(/, "(") end
+    if /\( /.match(line)
+      line.gsub!(/\( /, "(") 
+    end
+    #      if /\) /.match(line) : line.gsub!(/\) /, ")") end
+    if / \)/.match(line) 
+      line.gsub!(/ \)/, ")") 
+    end
+  }
+end
 
 # Take cases on command-line arguments.
 def take_cases(argv)
@@ -2978,48 +3032,11 @@ if __FILE__ == $0
     puts e.message
     exit(1)
   end
-  $lined_description.each { |line|  # Strip white-space.
-    line.squeeze!(" ")
-    if / ,|, /.match(line)
-      line.gsub!(/ ,|, /, ",") 
-    end
-    #      if / \(/.match(line) : line.gsub!(/ \(/, "(") end
-    if /\( /.match(line)
-      line.gsub!(/\( /, "(") 
-    end
-    #      if /\) /.match(line) : line.gsub!(/\) /, ")") end
-    if / \)/.match(line) 
-      line.gsub!(/ \)/, ")") 
-    end
-  }
+  clean_lined_description()
   description = $lined_description.join
   if $argK == "KERNEL"
-    # A further (\.(\d{1,3})?) for case e.g. 3.2.4.245 breaks the pattern
-    description.gsub!(/^#if KERNEL_VERSION((\s?(<|<=|=|==|>=|>)\s?(\d)\.(\d{1,2})(\.(\d{1,3})?))+)(\s+)(.+?)\n#((else(\s+)(.+?)\n#)*)endif/im) { |m|
-      if $argD == "DEBUG"
-        puts "m initially is: #{m}\n1:#{$1}\n2:#{$2}\n3:#{$3}\n4:#{$4}\n5:#{$5}\n6:#{$6}\n7:#{$7}\n8:#{$8}\n9:#{$9}\n10:#{$10}\n11:#{$11}\n12:#{$12}\n13:#{$13}\n14:#{$14}\n15:#{$15}\n16:#{$16}"
-      end
-      valid, m = compare_many_versions($1, $9, $13)
-      if valid == false
-        if kernel_version_match($3, $4, $5, $7)
-          m = $9
-        else
-          m = $13
-        end
-      end
-      if $argD == "DEBUG"
-        puts "Result of condition is: #{m}\n"
-      end
-      "#{m}"   # The actual substitution.
-    }
-    kvm_is_running = system("lsmod | grep 'kvm'")
-    if $argD == "DEBUG"
-      puts "kvm is running? #{kvm_is_running.to_s}\n"
-    end
-    description.gsub!(/^#if KVM_RUNNING\n(.+?)\n#endif KVM_RUNNING/m) { |m|
-      kvm_is_running ? m = $1 : m = ""
-      "#{m}"   # The actual substitution.
-    }
+    description = check_kernel_version(description)
+    description = check_kvm(description)
   end
   begin
     token_description = description.split(/\$/)
