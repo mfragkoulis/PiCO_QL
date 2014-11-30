@@ -2755,11 +2755,8 @@ class RelationalInterface
     end
   end
 
-# The method cleans the user description from duplicate 
-# and unnecessary spaces and conducts case analysis 
-# according to which, the description is promoted to the 
-# appropriate class. Required directives are also extracted.
-  def register_datastructures()
+# Clean relational specification.
+  def clean_spec()
     if $argD == "DEBUG"
       puts "Description before whitespace cleanup: "
       @specification.each { |x| p x }
@@ -2799,6 +2796,14 @@ class RelationalInterface
       puts "Description after whitespace cleanup: "
       @specification.each { |x| p x }
     end
+  end
+
+# The method cleans the relational specification from duplicate 
+# and unnecessary spaces and conducts case analysis 
+# according to which, each specification instance is promoted to the 
+# appropriate class. Required directives are also extracted.
+  def register_datastructures()
+    clean_spec()
     $struct_views = Array.new
     $union_views = Array.new
     $locks = Array.new
