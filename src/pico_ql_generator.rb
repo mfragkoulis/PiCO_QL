@@ -2629,11 +2629,11 @@ class Lock
 end
 
 
-# Models the input description.
-class InputDescription
-  def initialize(description)
-    # original description tokenised in an Array using '$' delimeter
-    @description = description
+# Models the target relational interface.
+class RelationalInterface
+  def initialize(specification)
+    # original input description tokenised in an Array using '$' delimeter
+    @specification = specification
     # array with entries the identity of each virtual table
     @tables = Array.new
     @views = Array.new
@@ -2762,14 +2762,14 @@ class InputDescription
   def register_datastructures()
     if $argD == "DEBUG"
       puts "Description before whitespace cleanup: "
-      @description.each { |x| p x }
+      @specification.each { |x| p x }
     end
-    token_d = @description
-    token_d = token_d.select { |x| x =~ /(\S+)/ }
-    token_d[0].lstrip!
-    if token_d[0].match(/#include|#ifndef|#define/) # Acknowledge boilerplate C
-      @directives = token_d[0]			     # code section in the upper
-      token_d.delete_at(0)			     # part of the DSL description.
+    token_spec = @specification
+    token_spec = token_d.select { |x| x =~ /(\S+)/ }
+    token_spec[0].lstrip!
+    if token_spec[0].match(/#include|#ifndef|#define/) # Acknowledge boilerplate C
+      @directives = token_spec[0]			     # code section in the upper
+      token_spec.delete_at(0)			     # part of the DSL description.
       if $argD == "DEBUG"
         line = 0        	      # Put compiler line directives in include directives.
         if @directives.match(/\n/)
@@ -2780,7 +2780,7 @@ class InputDescription
         puts "Directives: #{@directives}"
       end
     end
-    token_d.each { |x|            
+    token_spec.each { |x|            
       if /\/\*(.+?)\*\//m.match(x)  		 # Clean multi-line comments
         x.gsub!(/\/\*(.+?)\*\//m, "") 		 # from the body of the DSL description.
       end
@@ -2794,17 +2794,17 @@ class InputDescription
         x.gsub!(/ ,|, /, ",") 
       end
     }
-    @description = token_d.select{ |x| x =~ /(\S+)/ }
+    @specification = token_spec.select{ |x| x =~ /(\S+)/ }
     if $argD == "DEBUG"
       puts "Description after whitespace cleanup: "
-      @description.each { |x| p x }
+      @specification.each { |x| p x }
     end
     $struct_views = Array.new
     $union_views = Array.new
     $locks = Array.new
     $table_index = Hash.new
     w = 0
-    @description.each { |stmt|
+    @specification.each { |stmt|
       if $argD == "DEBUG"
         puts "\nDESCRIPTION No: " + w.to_s + "\n"
       end
@@ -3045,7 +3045,7 @@ if __FILE__ == $0
     exit(1)
   end
   $s = "        "    # Global variable for space abbreviation.
-  ip = InputDescription.new(token_description)
-  ip.register_datastructures()
-  ip.generate()
+  relI = RelationalInterface.new(token_description)
+  relI.register_datastructures()
+  relI.generate()
 end
