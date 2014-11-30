@@ -2765,7 +2765,7 @@ class RelationalInterface
       @specification.each { |x| p x }
     end
     token_spec = @specification
-    token_spec = token_d.select { |x| x =~ /(\S+)/ }
+    token_spec = token_spec.select { |x| x =~ /(\S+)/ }
     token_spec[0].lstrip!
     if token_spec[0].match(/#include|#ifndef|#define/) # Acknowledge boilerplate C
       @directives = token_spec[0]			     # code section in the upper
