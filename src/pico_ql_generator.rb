@@ -56,6 +56,8 @@ class Column
                               # special columns, the ones that refer to 
                               # other VT or UNIONS.
     @case = ucase             # switch case for union view fields
+    @union_view = UnionView.new # Reference to the object that holds a UNION
+                                # column's cases, i.e. "columns".
     @@int_data_types        = ["int", "integer", "tinyint", 
                                "smallint", "mediumint", "int2",
                                "bool", "boolean", "numeric"]
@@ -235,18 +237,12 @@ class Column
 
 # Generate code for column of type UNION in retrieve function.
   def retrieve_union(fw, vt, iden, token_access_checks, space)
-    u = UnionView.new
-    $union_views.each { |uv| 
-      if uv.name == @name
-        u = uv
-      end 
-    }
     union_access_path = String.new(@access_path)
-    if u.switch.match(/tuple_iter/)
-      switch = String.new(u.switch)
+    if @union_view.switch.match(/tuple_iter/)
+      switch = String.new(@union_view.switch)
       switch.gsub!(/tuple_iter/, "#{iden}")
     else
-      switch = String.new("#{iden}#{u.switch}")
+      switch = String.new("#{iden}#{@union_view.switch}")
       if !@access_path.end_with?(".") && !@access_path.end_with?("->")
         union_access_path.concat(".")
       end
@@ -256,8 +252,8 @@ class Column
 # if struct1.struct2.union then access path would be 
 # (any_dstr->)struct2.union . reasonable to await struct2.union_mode
 # from user?
-    u.columns.each_index { |col|
-      c = u.columns[col]
+    @union_view.columns.each_index { |col|
+      c = @union_view.columns[col]
       fw.puts "#{space}    case #{c.case}:"
       fw.puts "#{space}      {"
       space.concat("    ")
@@ -851,12 +847,6 @@ class Column
     if !container_class.empty?
       null_check_action = "continue;"
     end
-    u = UnionView.new
-    $union_views.each { |uv| 
-      if uv.name == @name
-         u = uv
-      end 
-    }
     space = "#{$s}  "
     if !container_class.empty?
       space.concat("  ")
@@ -865,8 +855,8 @@ class Column
                        null_check_action,
                        fw, space)
 # Imitating Column::process_access_path(). Not able to access from here. 
-    if u.switch.match(/->/)
-      tokenized_switch_path = u.switch.split(/->/)
+    if @union_view.switch.match(/->/)
+      tokenized_switch_path = @union_view.switch.split(/->/)
       tokenized_switch_path.pop
       if $argD == "DEBUG"
         tokenized_switch_path.each { |t| p t}
@@ -877,14 +867,14 @@ class Column
                          null_check_action,
                          fw, space)
     end
-    if u.switch.match(/tuple_iter/)
-      switch = String.new(u.switch)
+    if @union_view.switch.match(/tuple_iter/)
+      switch = String.new(@union_view.switch)
       switch.gsub!(/tuple_iter/, "#{root_access_path}")
     else
-      switch = String.new("#{root_access_path}#{u.switch}")
+      switch = String.new("#{root_access_path}#{@union_view.switch}")
     end
     fw.puts "#{space}switch (#{switch}) {"
-    u.columns.each { |col|
+    @union_view.columns.each { |col|
       fw.puts "#{space}case #{col.case}:"
       fw.puts "#{space}  {"
       space.concat("    ")
@@ -1218,7 +1208,7 @@ class Column
 
 # Validates a column data type.
 # The following data types are the ones accepted by sqlite.
-  def verify_data_type()
+  def verify_data_type(union_views)
     dt = @data_type.downcase
     tmp_text_array = Array.new
     tmp_text_array.replace(@@text_match_data_types)
@@ -1238,6 +1228,11 @@ class Column
       elsif dt == "union"
         @data_type_class = "#{dt}"
         @data_type = "NUMERIC"
+        union_views.each { |uv| 
+          if uv.name == @name
+             @union_view = uv
+          end 
+        }
         return 0
       elsif dt == "enum"
 # union view: union_mode data type possibility (?)
@@ -1251,11 +1246,12 @@ class Column
     end
   end
 
-  def manage_inclusion(matchdata, access_type_link)
-    this_struct_view = $struct_views.last
+  # Struct view inheritance implementation.
+  def manage_inclusion(matchdata, access_type_link, struct_views)
+    this_struct_view = struct_views.last
     this_columns = this_struct_view.columns
     col_type_text = 0
-    $struct_views.each { |vs| 
+    struct_views.each { |vs| 
       if vs.name == matchdata[1]     # Search all struct_view 
                                      # definitions to find the one 
                                      # specified and include it.
@@ -1295,7 +1291,7 @@ class Column
 
 # Matches each column description against a pattern and extracts 
 # column traits.
-  def set(column)
+  def set(column, struct_views, union_views)
     col_type_text = 0
     column.lstrip!
     column.rstrip!
@@ -1315,19 +1311,19 @@ class Column
     case column
     when column_ptn1a
       matchdata = column_ptn1a.match(column)
-      col_type_text = manage_inclusion(matchdata, "->")
+      col_type_text = manage_inclusion(matchdata, "->", struct_views)
       return col_type_text
     when column_ptn1b
       matchdata = column_ptn1b.match(column)
-      col_type_text = manage_inclusion(matchdata, ".")
+      col_type_text = manage_inclusion(matchdata, ".", struct_views)
       return col_type_text
     when column_ptn2         # Include a struct_view 
                              # definition without adapting.
       matchdata = column_ptn2.match(column)
-      $struct_views.each { |vs| 
+      struct_views.each { |vs| 
         if vs.name == matchdata[1]
-          $struct_views.last.columns = 
-	    $struct_views.last.columns_delete_last() | 
+          struct_views.last.columns = 
+	    struct_views.last.columns_delete_last() | 
             vs.columns
 	  col_type_text = vs.include_text_col
 	end
@@ -1376,7 +1372,7 @@ class Column
       @access_path = matchdata[3]
     end
     register_line()
-    col_type_text = verify_data_type()
+    col_type_text = verify_data_type(union_views)
     if @access_path == "tuple_iter"
       @access_path.gsub!(/tuple_iter/,"")
     end
@@ -2288,7 +2284,7 @@ class VirtualTable
   end
 
 # Matches VT definitions against prototype patterns.
-  def match_table(table_description)
+  def match_table(table_description, struct_views, table_index)
     table_ptn1 = /^create virtual table (\w+) using struct view (\w+) with registered c name (.+) with registered c type (.+) using loop (.+) using lock (.+)/im
     table_ptn2 = /^create virtual table (\w+) using struct view (\w+) with registered c type (.+) using loop (.+) using lock (.+)/im
     table_ptn3 = /^create virtual table (\w+) using struct view (\w+) with registered c type (.+) using lock (.+)/im
@@ -2355,7 +2351,7 @@ class VirtualTable
       @signature = matchdata[3]
     end
     verify_signature()
-    $struct_views.each { |sv| 
+    struct_views.each { |sv| 
       if sv.name == struct_view_name 
         @struct_view = sv 
       end 
@@ -2372,12 +2368,12 @@ class VirtualTable
       puts "Cannot match struct_view for table #{@name}."
       exit(1)
     end
-    $table_index[@name] = @signature
+    table_index[@name] = @signature
     if @base_var.empty?             # base column for embedded structs.
-      @columns.push(Column.new("")).last.set("base INT FROM base")
+      @columns.push(Column.new("")).last.set("base INT FROM base", nil, nil)
     end  			    # access path is just a placeholder; never used
     if !@container_class.empty? && $argLB == "CPP"
-      @columns.push(Column.new("")).last.set("rownum INT FROM rownum") # ditto
+      @columns.push(Column.new("")).last.set("rownum INT FROM rownum", nil, nil) # ditto
     end
     @include_text_col = @struct_view.include_text_col
     @columns = @columns | @struct_view.columns  # A struct view may be used by many VTs
@@ -2408,7 +2404,7 @@ class StructView
 
 # Matches a struct view definition against the prototype pattern and 
 # extracts the characteristics.
-  def match_struct_view(struct_view_description)
+  def match_struct_view(struct_view_description, struct_views, union_views)
     if $argD == "DEBUG"
       puts "Struct view description is: #{struct_view_description}"
     end
@@ -2431,7 +2427,7 @@ class StructView
       end
     end
     begin
-      columns_str.each { |c| @include_text_col += @columns.push(Column.new("")).last.set(c) }
+      columns_str.each { |c| @include_text_col += @columns.push(Column.new("")).last.set(c, struct_views, union_views) }
     rescue Exception => e
       puts e.message
       exit(1)
@@ -2493,7 +2489,7 @@ class UnionView
   attr_accessor(:name,:switch,:columns,:include_text_col)
 
 # Match union view definition to DSL specification.
-  def match_union_view(union_view_description)
+  def match_union_view(union_view_description, struct_views, union_views)
     if $argD == "DEBUG"
       puts "Union view description is: #{union_view_description}"
     end
@@ -2527,7 +2523,7 @@ class UnionView
     utokened.each { |x| 
       matchdata = / (\w+) then (.+)/im.match(x)
       if matchdata
-        @include_text_col += @columns.push(Column.new(matchdata[1])).last.set(matchdata[2])
+        @include_text_col += @columns.push(Column.new(matchdata[1])).last.set(matchdata[2], struct_views, union_views)
       else
         puts "Invalid description for union column: #{x}"
         puts "Exiting now"
@@ -2632,14 +2628,23 @@ end
 # Models the target relational interface.
 class RelationalInterface
   def initialize(specification)
-    # original input description tokenised in an Array using '$' delimeter
-    @specification = specification
-    # array with entries the identity of each virtual table
-    @tables = Array.new
-    @views = Array.new
-    @directives = ""
+    @specification = specification # original input description tokenised in an 
+                                   # Array using '$' delimeter.
+    @struct_views = Array.new      # array that holds the structure (columns and
+                                   # related info) of each virtual table.
+    @tables = Array.new            # array that holds the programmatic interface
+                                   # specifics of each virtual table (VT).
+    @views = Array.new             # array that holds defined standard 
+                                   # relational views.
+    @union_views = Array.new       # array that holds defined views of C, C++ 
+                                   # union structures.
+    @locks = Array.new             # array that holds VT lock specifications.
+    @table_index = Hash.new        # map[VT.name] -> VT.signature
+    @directives = ""               # embedded C, C++ code (macros, 
+                                   # functions etc).
   end
-  attr_accessor(:description,:tables,:views,:directives)
+  attr_accessor(:specification,:struct_views,:tables,:views,:union_views,
+                :locks,:table_index,:directives)
 
 # Get the context of code evaluation.
   def get_binding
@@ -2804,10 +2809,6 @@ class RelationalInterface
 # appropriate class. Required directives are also extracted.
   def register_datastructures()
     clean_spec()
-    $struct_views = Array.new
-    $union_views = Array.new
-    $locks = Array.new
-    $table_index = Hash.new
     w = 0
     @specification.each { |stmt|
       if $argD == "DEBUG"
@@ -2817,21 +2818,24 @@ class RelationalInterface
       stmt.rstrip!
       case stmt
       when /^create struct view/im
-        $struct_views.push(StructView.new).last.match_struct_view(stmt)
+        @struct_views.push(StructView.new).last.match_struct_view(stmt, 
+                                                   @struct_views, @union_views)
       when /^create virtual table/im
-        @tables.push(VirtualTable.new).last.match_table(stmt)
+        @tables.push(VirtualTable.new).last.match_table(stmt, @struct_views, 
+                                                        @table_index)
       when /^create view (\w+) as/im
         @views.push(RelationalView.new(stmt)).last.extract_name()
       when /^create union view/im
-        $union_views.push(UnionView.new).last.match_union_view(stmt)
+        @union_views.push(UnionView.new).last.match_union_view(stmt, 
+                                                   @struct_views, @union_views)
       when /^create lock/im
-        $locks.push(Lock.new).last.match_lock(stmt)
+        @locks.push(Lock.new).last.match_lock(stmt)
       end
       w += 1
     }
     if $argD == "DEBUG"
       puts "Table index entries:"
-      $table_index.each_pair { |k,v| p "#{k}-#{v}"}
+      @table_index.each_pair { |k,v| p "#{k}-#{v}"}
     end
   end
   

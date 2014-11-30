@@ -242,7 +242,7 @@ typedef struct <%= vt.name %>VtblImpl {
 <%      i = 0 %>
 <%      vt.columns.each { |col| %>
 <%       if col.related_to.length > 0 %>
-<%        col.fk_col_type = $table_index[col.related_to] %>
+<%        col.fk_col_type = @table_index[col.related_to] %>
 <%        if $argM == "MEM_MGT" && col.fk_method_ret == 1 %>
   typedef struct saved_results_<%= i %> {
     struct <%= col.fk_col_type.chomp('*') %> **captcha;
