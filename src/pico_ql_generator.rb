@@ -48,10 +48,8 @@ class Column
 			      # No DSL keywords are allowed (for now).
     @tokenized_access_path = Array.new # Access path tokens to check for 
                                        # NULLs.
-    @lock = ""                # Custom lock to use for each column.
+    @lock = nil               # Reference to class Lock.
                               # A uniform abstraction is defined.
-    @lock_class               # Reference to Lock template class.
-    @lock_argument = ""       # Actual lock to hold/release, if any.
     @col_type = "object"      # Record type (pointer or reference) for 
                               # special columns, the ones that refer to 
                               # other VT or UNIONS.
@@ -1246,6 +1244,51 @@ class Column
     end
   end
 
+  def process_lock(lock_specification, locks)
+    lock_argument = ""
+    if lock_specification.match(/\(/)
+      matchdata = lock_specification.split(/\(|\)/)
+      lock_name = matchdata[0]
+      if matchdata[1]
+        lock_argument = matchdata[1]
+      end
+      if !lock_argument.empty?
+         if lock_argument.match(/base\.|base->/)
+           lock_specification.gsub!(/base\.|base->/, "any_dstr->")
+           lock_argument.gsub!(/base\.|base->/, "any_dstr->")
+         elsif lock_argument.match(/base/)
+      #puts "Lock is: #{lock}."
+      #puts "Lock argument is: #{lock_argument}."
+           lock_specification.gsub!(/base/, "any_dstr")
+           lock_argument.gsub!(/base/, "any_dstr")
+         end
+      end
+    else
+      lock_name = lock_specification
+    end
+    locks.each { |l|
+      if l.name == "#{lock_name}"
+        @lock = l
+        @lock.argument = "#{lock_argument}"
+        @lock.col_specification = "#{lock_specification}"
+        break
+      end
+    }
+    if @lock == nil
+      puts "Lock class for lock #{lock_name} not found."
+      puts "Exiting now."
+      exit(1)
+    end
+    if $argD == "DEBUG"
+      puts "Processed lock is #{@lock.specification}"
+      puts "Processed lock name is #{@lock.name}"
+      puts "Processed lock argument is #{@lock.argument}"
+    end
+#TODO: NULL checking
+#NULL checking as implemented below might need improvement.
+#Hint:pointer vs instance
+  end
+
   # Struct view inheritance implementation.
   def manage_inclusion(matchdata, access_type_link, struct_views)
     this_struct_view = struct_views.last
@@ -1289,17 +1332,17 @@ class Column
     return col_type_text
   end
 
-# Matches each column description against a pattern and extracts 
-# column traits.
-  def set(column, struct_views, union_views)
+# Matches each column specification against a pattern and extracts 
+# column elements.
+  def set(column, struct_views, union_views, locks)
     col_type_text = 0
     column.lstrip!
     column.rstrip!
-    if $argD == "DEBUG"
-      puts "Column is: #{column}"
-    end
     if column.match(/\n/)
       column.gsub!(/\n/, "")
+    end
+    if $argD == "DEBUG"
+      puts "Column is: #{column}"
     end
     column_ptn1a = /includes struct view (\w+) from (.+) pointer/im
     column_ptn1b = /includes struct view (\w+) from (.+)/im
@@ -1317,19 +1360,17 @@ class Column
       matchdata = column_ptn1b.match(column)
       col_type_text = manage_inclusion(matchdata, ".", struct_views)
       return col_type_text
-    when column_ptn2         # Include a struct_view 
-                             # definition without adapting.
+    when column_ptn2  # Include a struct_view definition without adapting.
       matchdata = column_ptn2.match(column)
       struct_views.each { |vs| 
         if vs.name == matchdata[1]
           struct_views.last.columns = 
-	    struct_views.last.columns_delete_last() | 
-            vs.columns
-	  col_type_text = vs.include_text_col
+	    struct_views.last.columns_delete_last() |  # Delete last column
+            vs.columns				       # entry (empty) and do
+	  col_type_text = vs.include_text_col	       # Array union.
 	end
       }
       return col_type_text
-# ?            name = "#{matchdata[1]}#{coln.name}"
     when column_ptn3
       matchdata = column_ptn3.match(column)
       @name = matchdata[3]
@@ -1337,18 +1378,15 @@ class Column
       @related_to = matchdata[6]
       @access_path = matchdata[5]
       begin
-        !@related_to.empty?
         if @access_path.match(/(.+)\)/)    # Returning from a method.
           @fk_method_ret = 1
         end
         if matchdata[8].empty?
           @col_type = "object"
 	elsif matchdata[8].downcase == "pointer"
-          @col_type = "pointer"   # In
-        end                # columns that reference other VTs
-                           # users have to declare the type for generating
-                           # correct access statement.
-      rescue
+          @col_type = "pointer"  # In columns that reference other VTs, users
+        end   # have to declare the instance type (pointer or object) 
+      rescue  # for generating correct access statement.
         puts "Referenced virtual table not registered.\\n"
         exit(1)
       end
@@ -1363,8 +1401,7 @@ class Column
       @name = matchdata[1]
       @data_type = matchdata[2]
       @access_path = matchdata[3]
-      @lock = matchdata[4]
-      @lock, @lock_class, @lock_argument = Lock.process_lock(@lock)
+      process_lock(matchdata[4], locks)
     when column_ptn6
       matchdata = column_ptn6.match(column)
       @name = matchdata[1]
@@ -2370,10 +2407,10 @@ class VirtualTable
     end
     table_index[@name] = @signature
     if @base_var.empty?             # base column for embedded structs.
-      @columns.push(Column.new("")).last.set("base INT FROM base", nil, nil)
+      @columns.push(Column.new("")).last.set("base INT FROM base", nil, nil, nil)
     end  			    # access path is just a placeholder; never used
     if !@container_class.empty? && $argLB == "CPP"
-      @columns.push(Column.new("")).last.set("rownum INT FROM rownum", nil, nil) # ditto
+      @columns.push(Column.new("")).last.set("rownum INT FROM rownum", nil, nil, nil) # ditto
     end
     @include_text_col = @struct_view.include_text_col
     @columns = @columns | @struct_view.columns  # A struct view may be used by many VTs
@@ -2403,23 +2440,23 @@ class StructView
   attr_accessor(:name,:columns,:include_text_col)
 
 # Matches a struct view definition against the prototype pattern and 
-# extracts the characteristics.
-  def match_struct_view(struct_view_description, struct_views, union_views)
+# extracts a virtual table's columns.
+  def match_struct_view(struct_view_description, struct_views, union_views, locks)
     if $argD == "DEBUG"
       puts "Struct view description is: #{struct_view_description}"
     end
     pattern = /^create struct view (\w+)(\s*)\((.+)(\s*)\)/im
     matchdata = pattern.match(struct_view_description)
-    if matchdata                     # First record of table_data contains the whole 
-      @name = matchdata[1]           # description of the structview.
+    if matchdata                # First record of matchdata contains the whole 
+      @name = matchdata[1]      # match (specification of the struct view).
       all_columns = String.new(matchdata[3]) 
       columns_str = Array.new
-      if all_columns.match(/\{(.+?)\}/)       # For access paths in code block format
-        all_columns.gsub!(/\{(.+?)\}/) { |m|  # we need to substitute "," in the code
-          m.gsub!(/,/, "#")                   # block with "#" to allow splitting the
-          "#{m}"                              # column descriptions using the SQL-reminiscent
-        }                                     # "," delimeter. Seek alternative.
-      end
+      if all_columns.match(/\{(.+?)\}/)  # For access paths in code block format
+        all_columns.gsub!(/\{(.+?)\}/) { |m|  # we need to substitute "," 
+	  m.gsub!(/,/, "#")		      # in the code block with "#" to 
+	  "#{m}"			      # allow splitting the column 
+	}				      # descriptions using the 
+      end				      # SQL-reminiscent "," delimeter. 
       if all_columns.match(/,/)
         columns_str = all_columns.split(/,/)
       else
@@ -2427,7 +2464,10 @@ class StructView
       end
     end
     begin
-      columns_str.each { |c| @include_text_col += @columns.push(Column.new("")).last.set(c, struct_views, union_views) }
+      columns_str.each { |c| 
+        @include_text_col += @columns.push(Column.new("")).last.set(c, 
+                                             struct_views, union_views, locks)
+      }
     rescue Exception => e
       puts e.message
       exit(1)
@@ -2489,7 +2529,7 @@ class UnionView
   attr_accessor(:name,:switch,:columns,:include_text_col)
 
 # Match union view definition to DSL specification.
-  def match_union_view(union_view_description, struct_views, union_views)
+  def match_union_view(union_view_description, struct_views, union_views, locks)
     if $argD == "DEBUG"
       puts "Union view description is: #{union_view_description}"
     end
@@ -2523,7 +2563,7 @@ class UnionView
     utokened.each { |x| 
       matchdata = / (\w+) then (.+)/im.match(x)
       if matchdata
-        @include_text_col += @columns.push(Column.new(matchdata[1])).last.set(matchdata[2], struct_views, union_views)
+        @include_text_col += @columns.push(Column.new(matchdata[1])).last.set(matchdata[2], struct_views, union_views, locks)
       else
         puts "Invalid description for union column: #{x}"
         puts "Exiting now"
@@ -2547,55 +2587,13 @@ class Lock
     @name = ""
     @lock_function = ""
     @unlock_function = ""
+    @argument = ""
+    @col_specification = ""
   end
   attr_accessor(:name, :lock_function, 
-                :unlock_function)
+                :unlock_function,:lock_argument,
+                :col_specification)
 
-  def self.process_lock(lock_description)
-    lock = lock_description
-    lock_argument = ""
-    if lock.match(/\(/)
-      matchdata = lock.split(/\(|\)/)
-      lock_name = matchdata[0]
-      if matchdata[1]
-        lock_argument = matchdata[1]
-      end
-      if !lock_argument.empty?
-         if lock_argument.match(/base\.|base->/)
-           lock.gsub!(/base\.|base->/, "any_dstr->")
-           lock_argument.gsub!(/base\.|base->/, "any_dstr->")
-         elsif lock_argument.match(/base/)
-      #puts "Lock is: #{lock}."
-      #puts "Lock argument is: #{lock_argument}."
-           lock.gsub!(/base/, "any_dstr")
-           lock_argument.gsub!(/base/, "any_dstr")
-         end
-      end
-    else
-      lock_name = lock
-    end
-    lock_class = nil
-    $locks.each { |l|
-      if l.name == "#{lock_name}"
-        lock_class = l 
-        break
-      end
-    }
-    if lock_class == nil
-      puts "Lock class for lock #{lock} not found."
-      puts "Exiting now."
-      exit(1)
-    end
-    if $argD == "DEBUG"
-      puts "Processed lock is #{lock}"
-      puts "Processed lock name is #{lock_class.name}"
-      puts "Processed lock argument is #{lock_argument}"
-    end
-    return lock, lock_class, lock_argument
-#TODO: NULL checking
-#NULL checking as implemented below might need improvement.
-#Hint:pointer vs instance
-  end
 
   def match_lock(lock_description)
     lock_ptn = /create lock (.+) hold with (.+) release with (.+)/im
@@ -2819,7 +2817,7 @@ class RelationalInterface
       case stmt
       when /^create struct view/im
         @struct_views.push(StructView.new).last.match_struct_view(stmt, 
-                                                   @struct_views, @union_views)
+                                                   @struct_views, @union_views, @locks)
       when /^create virtual table/im
         @tables.push(VirtualTable.new).last.match_table(stmt, @struct_views, 
                                                         @table_index)
@@ -2827,7 +2825,7 @@ class RelationalInterface
         @views.push(RelationalView.new(stmt)).last.extract_name()
       when /^create union view/im
         @union_views.push(UnionView.new).last.match_union_view(stmt, 
-                                                   @struct_views, @union_views)
+                                                   @struct_views, @union_views, @locks)
       when /^create lock/im
         @locks.push(Lock.new).last.match_lock(stmt)
       end
