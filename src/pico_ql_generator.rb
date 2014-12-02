@@ -120,17 +120,24 @@ class Column
     root = String.new(iden)
     root.gsub!(/^&/, "")
     token_ac_p.each_index { |tap|
-      if $argD == "DEBUG"
+      #if $argD == "DEBUG"
         puts "tap is #{tap.to_s}, token to check is: #{token_ac_p[tap]}, iden is #{iden}."
-      end
+      #end
       if tap > 0
         token_ac_p[tap].insert(0, "#{token_ac_p[tap-1]}->")
       else
-        token_ac_p[0].insert(0, root)
+        if !iden.empty?
+          if !token_ac_p[0].match(/tuple_iter/)
+            token_ac_p[0].insert(0, root)
+          else
+            root.gsub!(/(->|\.)$/, "")
+            token_ac_p[0].gsub!(/tuple_iter/, root)
+          end
+        end
       end
-      if $argD == "DEBUG"
+      #if $argD == "DEBUG"
         puts "After tapping token is: #{token_ac_p[tap]}"
-      end
+      #end
     }
     return token_ac_p
   end
@@ -150,13 +157,13 @@ class Column
     iden2 = ""
     token_ac_p.each {|tap|
       if tap.match(/\(tuple_iter|,(\s*)tuple_iter|tuple_iter\)/)
-        if $argD == "DEBUG"
+        #if $argD == "DEBUG"
           puts "Matched tuple_iter in #{tap}. iden is #{iden}."
-        end
+        #end
 # Make this a separate function.
 # The rationale is to substitute tuple_iter with res[rsIndex].
-        if iden.empty?
-	  if iden2.end_with?("rs)")
+        if iden.empty? # search case
+	  if iden2.end_with?("rs)") # ??? empty.
             if token_ac_p[0].match("->")
               useless = token_ac_p[0].split("->")
             elsif token_ac_p[0].match(".")
@@ -172,14 +179,14 @@ class Column
           #else
           #  token_ac_p[0].gsub!(/^(.+?)(->|.)/, "")
           end
-        #else
-        #  iden2 = "#{iden}"
-        #  iden2.chomp!("->")
+       else  # retrieve case.
+         iden2 = "#{iden}"
+         iden2.chomp!("->")
+         tap.gsub!(/tuple_iter/, "#{iden2}")  # see inet_sk(any_dstr)
         end
-        #tap.gsub!(/^(.*)tuple_iter/, "#{iden2}")
-        if $argD == "DEBUG"
+        #if $argD == "DEBUG"
           puts "After iden substitution: #{tap}"
-        end
+        #end
         tuple_iter_inside = true
         break
       end
@@ -322,10 +329,10 @@ class Column
           ap_copy.gsub!(/tuple_iter\)/, "#{iden.chomp("->")})")
         end
       end
-      if $argD == "DEBUG"
+      #if $argD == "DEBUG"
         puts "retrieve_data: substituting \"tuple_iter\" in access path:"
         puts "  #{iden}, #{ap_copy}"
-      end
+      #end
     elsif !access_path.match(/tuple_iter/)
       ap_copy = "#{iden}#{ap_copy}"
     end
@@ -1149,9 +1156,9 @@ class Column
     else
       @access_path.chomp!(";") # In case users end an access path in C fashion
     end
-    if $argD == "DEBUG"
+    #if $argD == "DEBUG"
       puts "Access path to process is #{@access_path}."
-    end
+    #end
     if @access_path.match(/->/)
       if @access_path.match(/tuple_iter->/) ||
          @access_path.match(/tuple_iter\./)
@@ -1193,14 +1200,18 @@ class Column
           @tokenized_access_path.pop
         end
       end
-      if $argD == "DEBUG"
-        puts "Access path: #{@access_path}, processed tokens for NULL checking:"
-        @tokenized_access_path.each { |tap| p tap }
-      end
-    elsif @data_type == "TEXT" && !@data_type_class == "string" # "string" refers to the C++ String class; \
-   								# we don't want to check those.
+    elsif @data_type == "TEXT" && 
+          @data_type_class != "string"  # "string" refers to the C++ String 
+                                         # class;we don't want to check those.
       @tokenized_access_path.insert(0, String.new(@access_path))
     end
+    #if $argD == "DEBUG"
+      puts "Access path: #{@access_path}."
+      puts "Data type: #{@data_type}."
+      puts "Data type class: #{@data_type_class}."
+      puts "Processed tokens for NULL checking:"
+      @tokenized_access_path.each { |tap| p tap }
+    #end
 
   end
 
@@ -1553,17 +1564,19 @@ class VirtualTable
             iden = "*#{iden}"
           end
         else
-          if (access_path == "first" && 
+          if $argLB == "CPP" && (access_path == "first" && 
               @pointer.match(/\*,/)) ||
               (access_path == "second" &&
                @pointer.end_with?("*"))
             iden = "*#{iden}"
-          elsif !access_path.match(/first((.|->)*)/) &&  # match(/first/) was too restrictive: 
+          elsif $argLB == "CPP" && (access_path.match(/first((.|->)*)/) ||  # match(/first/) was too restrictive: 
 						# it matched e.g. lower_first
-                 !access_path.match(/second(.|->)/) &&
+                 access_path.match(/second(.|->)/)) &&
                  @pointer.end_with?("*") #||
-                  #data_type == "TEXT") && # See configure_search for the case.
+                 #data_type == "TEXT") && # See configure_search for the case.
                  #iden.end_with?(".")
+          else
+            puts "acp: #{access_path}"
             iden.chomp!(".")
             iden.concat("->")
           end
@@ -1693,14 +1706,15 @@ class VirtualTable
             idenN = "*#{idenN}"
           end
         else
-          if (ap == "first" && 
+          if $argLB == "CPP" && (ap == "first" && 
               @pointer.match(/\*,/)) ||
               (ap == "second" &&
                @pointer.end_with?("*"))
             idenF = "*#{idenF}"
             idenN = "*#{idenN}"
-          elsif !ap.match(/first((.|->)*)/) && !ap.match(/key\(\)(.|->)/)  &&
-              (!ap.match(/second(.|->)/) && !ap.match(/value\(\)(.|->)/) &&
+          elsif $argLB == "CPP" && (ap.match(/first((.|->)*)/) || 
+              ap.match(/key\(\)(.|->)/))  ||
+              ((ap.match(/second(.|->)/) || ap.match(/value\(\)(.|->)/)) &&
               @pointer.end_with?("*")) #||
               # (data_type == "TEXT" && 
               #  data_type_class != "string")) # @pointer == "", so iden == "tuple_iter."
@@ -1708,6 +1722,7 @@ class VirtualTable
 				    # correctly for access paths like
 				    # retrieve_zone_name(tuple_iter)
 				    # which takes an int and returns char * .
+          else
             if idenF.end_with?(".")
               idenF.chomp!(".")
               idenF.concat("->")
@@ -1771,11 +1786,11 @@ class VirtualTable
           ap_copyN.gsub!(/tuple_iter\)/, "#{idenN.chomp("->")})")
         end
       end
-      if $argD == "DEBUG"
+      #if $argD == "DEBUG"
         puts "configure_search: substituting \"tuple_iter\" in access path:"
         puts "  F-#{idenF}, #{ap_copyF}"
         puts "  N-#{idenN}, #{ap_copyN}"
-      end
+      #end
       access_pathF = "#{ap_copyF}"
       access_pathN = "#{ap_copyN}"
     elsif !access_path.match(/tuple_iter/) # tuple_iter omitted; the usual case.
