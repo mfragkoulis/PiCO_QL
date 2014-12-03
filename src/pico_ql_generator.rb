@@ -120,9 +120,9 @@ class Column
     root = String.new(iden)
     root.gsub!(/^&/, "")
     token_ac_p.each_index { |tap|
-      #if $argD == "DEBUG"
+      if $argD == "DEBUG"
         puts "tap is #{tap.to_s}, token to check is: #{token_ac_p[tap]}, iden is #{iden}."
-      #end
+      end
       if tap > 0
         token_ac_p[tap].insert(0, "#{token_ac_p[tap-1]}->")
       else
@@ -135,9 +135,9 @@ class Column
           end
         end
       end
-      #if $argD == "DEBUG"
+      if $argD == "DEBUG"
         puts "After tapping token is: #{token_ac_p[tap]}"
-      #end
+      end
     }
     return token_ac_p
   end
@@ -157,9 +157,9 @@ class Column
     iden2 = ""
     token_ac_p.each {|tap|
       if tap.match(/\(tuple_iter|,(\s*)tuple_iter|tuple_iter\)/)
-        #if $argD == "DEBUG"
+        if $argD == "DEBUG"
           puts "Matched tuple_iter in #{tap}. iden is #{iden}."
-        #end
+        end
 # Make this a separate function.
 # The rationale is to substitute tuple_iter with res[rsIndex].
         if iden.empty? # search case
@@ -184,9 +184,9 @@ class Column
          iden2.chomp!("->")
          tap.gsub!(/tuple_iter/, "#{iden2}")  # see inet_sk(any_dstr)
         end
-        #if $argD == "DEBUG"
+        if $argD == "DEBUG"
           puts "After iden substitution: #{tap}"
-        #end
+        end
         tuple_iter_inside = true
         break
       end
@@ -329,10 +329,10 @@ class Column
           ap_copy.gsub!(/tuple_iter\)/, "#{iden.chomp("->")})")
         end
       end
-      #if $argD == "DEBUG"
+      if $argD == "DEBUG"
         puts "retrieve_data: substituting \"tuple_iter\" in access path:"
         puts "  #{iden}, #{ap_copy}"
-      #end
+      end
     elsif !access_path.match(/tuple_iter/)
       ap_copy = "#{iden}#{ap_copy}"
     end
@@ -904,7 +904,8 @@ class Column
       end
       un_col_ac_t = Array.new
       array_string_copy_deep(col.tokenized_access_path, un_col_ac_t)
-      configure_token_access_checks(un_col_ac_t, total_access_path)
+      configure_token_access_checks(un_col_ac_t, 
+            "#{union_access_path}")
       if $argD == "DEBUG"
         puts "sqlite3_type: #{sqlite3_type}"
         puts "column_cast: #{column_cast}"
@@ -1156,9 +1157,9 @@ class Column
     else
       @access_path.chomp!(";") # In case users end an access path in C fashion
     end
-    #if $argD == "DEBUG"
+    if $argD == "DEBUG"
       puts "Access path to process is #{@access_path}."
-    #end
+    end
     if @access_path.match(/->/)
       if @access_path.match(/tuple_iter->/) ||
          @access_path.match(/tuple_iter\./)
@@ -1205,13 +1206,13 @@ class Column
                                          # class;we don't want to check those.
       @tokenized_access_path.insert(0, String.new(@access_path))
     end
-    #if $argD == "DEBUG"
+    if $argD == "DEBUG"
       puts "Access path: #{@access_path}."
       puts "Data type: #{@data_type}."
       puts "Data type class: #{@data_type_class}."
       puts "Processed tokens for NULL checking:"
       @tokenized_access_path.each { |tap| p tap }
-    #end
+    end
 
   end
 
@@ -1575,8 +1576,7 @@ class VirtualTable
                  @pointer.end_with?("*") #||
                  #data_type == "TEXT") && # See configure_search for the case.
                  #iden.end_with?(".")
-          else
-            puts "acp: #{access_path}"
+          elsif @pointer.end_with?("*")
             iden.chomp!(".")
             iden.concat("->")
           end
@@ -1714,15 +1714,15 @@ class VirtualTable
             idenN = "*#{idenN}"
           elsif $argLB == "CPP" && (ap.match(/first((.|->)*)/) || 
               ap.match(/key\(\)(.|->)/))  ||
-              ((ap.match(/second(.|->)/) || ap.match(/value\(\)(.|->)/)) &&
-              @pointer.end_with?("*")) #||
+              (ap.match(/second(.|->)/) || ap.match(/value\(\)(.|->)/))
+              #!@pointer.end_with?("*")) #||
               # (data_type == "TEXT" && 
               #  data_type_class != "string")) # @pointer == "", so iden == "tuple_iter."
 				    # so NULL check is not generated
 				    # correctly for access paths like
 				    # retrieve_zone_name(tuple_iter)
 				    # which takes an int and returns char * .
-          else
+          elsif @pointer.end_with?("*")
             if idenF.end_with?(".")
               idenF.chomp!(".")
               idenF.concat("->")
@@ -1786,11 +1786,9 @@ class VirtualTable
           ap_copyN.gsub!(/tuple_iter\)/, "#{idenN.chomp("->")})")
         end
       end
-      #if $argD == "DEBUG"
+      if $argD == "DEBUG"
         puts "configure_search: substituting \"tuple_iter\" in access path:"
-        puts "  F-#{idenF}, #{ap_copyF}"
-        puts "  N-#{idenN}, #{ap_copyN}"
-      #end
+      end
       access_pathF = "#{ap_copyF}"
       access_pathN = "#{ap_copyN}"
     elsif !access_path.match(/tuple_iter/) # tuple_iter omitted; the usual case.
@@ -1801,6 +1799,10 @@ class VirtualTable
       idenN = "(*resIterC)."
       access_pathF = "#{ap_copyF}"
       access_pathN = "#{ap_copyN}"
+    end
+    if $argD == "DEBUG"
+      puts "  F-#{idenF}, #{ap_copyF}"
+      puts "  N-#{idenN}, #{ap_copyN}"
     end
     return access_pathF, access_pathN, idenF, idenN
   end

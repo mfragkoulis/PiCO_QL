@@ -51,7 +51,7 @@
 <%         type = vt.type.gsub(/(\s*)/, "").gsub(/,/, "").gsub(/</, "").gsub(/>/, "").gsub(/:{2}/, "").gsub(/\*/, "ptr") %>
 <%         /\*/.match(vt.signature_pointer) == nil ? retype = "*" : retype = "" %>
 <%         if $argD == "DEBUG" %>
-<%           externDefs.concat("\n// C NAME (pico_ql_table_)#{vt.base_var}_#{type} in line #{(vt.base_var_line + 1).to_s} #{$argF}") %>
+<%           externDefs.concat("\n// C NAME (pico_ql_table_)#{vt.base_var}_#{type} in line #{(vt.base_var_line + 1).to_s} \"#{$argF}\"") %>
 <%         end %>
 <%         if /\[/.match(vt.signature) %>
 <%           externDefs.concat("\nextern #{vt.assignable_signature.gsub("<variable_name>", "pico_ql_table_#{vt.base_var}")}_#{type};") %>
@@ -61,7 +61,7 @@
 <%           externDefs.concat("\n#define pqlPub_#{vt.base_var} pico_ql_table_#{vt.base_var}_#{type}") %>
 <%         end %>
 <%         if $argD == "DEBUG" %>
-<%           externDefs.concat("\n#line #{(vt.signature_line + 1).to_s} #{$argF}") %>
+<%           externDefs.concat("\n#line #{(vt.signature_line + 1).to_s} \"#{$argF}\"") %>
 <%         end %>
 <%       end %>
 <%     } %>
