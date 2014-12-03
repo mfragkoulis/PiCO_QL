@@ -182,6 +182,7 @@ class Column
        else  # retrieve case.
          iden2 = "#{iden}"
          iden2.chomp!("->")
+         iden2.chomp!(".")  # see e.g. retrieve_zone_name(tuple_iter)
          tap.gsub!(/tuple_iter/, "#{iden2}")  # see inet_sk(any_dstr)
         end
         if $argD == "DEBUG"
