@@ -30,8 +30,22 @@ static int <%= @name %>_vt_init_result_set (sqlite3_vtab *vtab, sqlite3_vtab_cur
 <%      else %>
 <%        sign_retype = "#{@signature}" %>
 <%      end %>
-  (void)vtab;
-  (void)cur;
+<%      if !@base_var.empty? && @lock != nil %>
+  picoQLTable *picoQL = (picoQLTable *)vtab;
+  picoQLTableCursor *lcsr = (picoQLTableCursor *)cur;
+  if ((!lcsr->isInstanceNULL) && (!picoQL->locked)) {
+<%        if !@lock.argument.empty? %>
+    <%= sign_retype %> any_dstr = (<%= sign_retype %>)lcsr->source;
+    <%= @lock.lock_function.gsub("<selector>", "#{@lock.argument}") %>;
+<%        else %>
+    <%= @lock.lock_function %>;
+<%        end %>
+  }
+  picoQL->locked += 1;
+<%      else %>
+   (void)vtab;
+   (void)cur;
+<%      end %>
   while ((j < (int)cursorsSize) &&
          (cursors[j]->cur != cur)) {j++;}
   if (j == (int)cursorsSize) {
@@ -127,6 +141,28 @@ static int <%= @name %>_vt_advance_result_set_iter (sqlite3_vtab_cursor *cur,
   if (stc->offset >= stc->size)
     stc->isEof = 1;
 <%    end %>
+<%    if @base_var.empty? %>
+<%      if @lock != nil %>
+  if (stc->isEof == 1) {
+    if (stc->locked == 1) {
+<%        if !@lock.argument.empty? %>
+<%          if @lock.argument.match(/any_dstr/) %>
+      if (!stc->isInstanceNULL) {
+        <%= sign_retype %> any_dstr = (<%= sign_retype %>)stc->source;
+        <%= @lock.unlock_function.gsub("<selector>", "#{@lock.argument}") %>;
+      }
+<%          else %>
+      <%= @lock.unlock_function.gsub("<selector>", "#{@lock.argument}") %>;
+<%          end %>
+      stc->lock = 0;
+<%        else %>
+      <%= @lock.unlock_function %>;
+<%        end %>
+      stc->locked -= 1;
+    } 
+  }
+<%      end %>
+<%    end %>
 #ifdef PICO_QL_DEBUG
   printf("Table %s, stc->isEof: %d\n\n", ((picoQLTable *)cur->pVtab)->zName, stc->isEof);
   printf("stc->offset: %d, stc->size: %d\n", stc->offset, stc->size);
@@ -137,21 +173,44 @@ static int <%= @name %>_vt_advance_result_set_iter (sqlite3_vtab_cursor *cur,
 static void <%= @name %>_vt_deinit_result_set (sqlite3_vtab_cursor *cur, struct Vtbl *vtbl) {
   cursor **cursors = ((<%= @name %>_vt *)vtbl)->cursors;
   size_t cursorsSize = ((<%= @name %>_vt *)vtbl)->cursorsSize;
+<%    if !@base_var.empty? && @lock != nil %>
+  picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
+<%    end %>
   int j = 0;
   while ((j < (int)cursorsSize) && (cursors[j]->cur != cur)) {j++;}
   if (j == (int)cursorsSize) {
     printf("In <%= @name %>_vt_deinit_resultSet: Cursor %li not registered.\n", (long int)cur);
   } else {
-<%      if @container_class.length > 0 %>
+<%    if @container_class.length > 0 %>
     ResultSet *res = cursors[j]->res;
     sqlite3_free(res->resBts);
     sqlite3_free(((<%= @name %>ResultSetImpl *)res)->res);
     ((<%= @name %>ResultSetImpl *)res)->r.malloced = 0;
     sqlite3_free((<%= @name %>ResultSetImpl *)res);
-<%      end %>
+<%    end %>
     cursors[j]->cur = NULL;
     cursors[j]->open = 0;
   }
+<%    if !@base_var.empty? %>
+<%      if @lock != nil %>
+  if (picoQL->locked == 1) {
+<%        if !@lock.argument.empty? %>
+<%          if @lock.argument.match(/any_dstr/) %>
+    picoQLTableCursor *lcsr = (picoQLTableCursor *)cur;
+    if (!stcsr->isInstanceNULL) {
+      <%= sign_retype %> any_dstr = (<%= sign_retype %>)lcsr->source;
+      <%= @lock.unlock_function.gsub("<selector>", "#{@lock.argument}") %>;
+    }
+<%          else %>
+    <%= @lock.unlock_function.gsub("<selector>", "#{@lock.argument}") %>;
+<%          end %>
+<%        else %>
+    <%= @lock.unlock_function %>;
+<%        end %>
+  }
+  picoQL->locked -= 1;
+<%      end %>
+<%    end %>
 }
 
 <%    if @base_var.length == 0 %>
@@ -279,6 +338,8 @@ static void <%= @name %>_vt_deinit_query_structs (struct Vtbl *vtbl) {
     printf("Table %s picoQL is %lx; freeing query structs.\n", ((<%= @name %>_vt *)vtbl)->name, (long)((<%= @name %>_vt *)vtbl)->picoQL);
 #endif
     ((<%= @name %>_vt *)vtbl)->picoQL->toOpen = 0;
+    assert(((<%= @name %>_vt *)vtbl)->picoQL->locked == 0);
+    ((<%= @name %>_vt *)vtbl)->picoQL->locked = 0;
     ((<%= @name %>_vt *)vtbl)->picoQL = NULL;
   }
 }

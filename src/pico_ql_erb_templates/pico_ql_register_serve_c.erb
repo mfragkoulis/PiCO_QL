@@ -31,7 +31,7 @@
 <% stripDir = String.new(directives) %>
 <%# The following requires attention. Experimental hack. %>
 <%# stripDir.gsub!(/^(?!#)(.+?)\((.*?)\)(\s*)\{(.+?)\}/m, "") %>
-<% stripDir.gsub!(/\)(\s*)\{(.+?)\};/m, "<clear_method_signature>") %>
+<% stripDir.gsub!(/\)(\s*)\{((.+?)*)\}(;*)/m, "<clear_method_signature>") %>
 <% stripDir.gsub!(/\n^(.+)<clear_method_signature>/, "") %>
 <%# Remove array definition %>
 <% stripDir.gsub!(/(.+?)\[\](\s*)=(\s*)\{(.+?)\};/m, "") %>

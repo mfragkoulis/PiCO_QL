@@ -1257,51 +1257,6 @@ class Column
     end
   end
 
-  def process_lock(lock_specification, locks)
-    lock_argument = ""
-    if lock_specification.match(/\(/)
-      matchdata = lock_specification.split(/\(|\)/)
-      lock_name = matchdata[0]
-      if matchdata[1]
-        lock_argument = matchdata[1]
-      end
-      if !lock_argument.empty?
-         if lock_argument.match(/base\.|base->/)
-           lock_specification.gsub!(/base\.|base->/, "any_dstr->")
-           lock_argument.gsub!(/base\.|base->/, "any_dstr->")
-         elsif lock_argument.match(/base/)
-      #puts "Lock is: #{lock}."
-      #puts "Lock argument is: #{lock_argument}."
-           lock_specification.gsub!(/base/, "any_dstr")
-           lock_argument.gsub!(/base/, "any_dstr")
-         end
-      end
-    else
-      lock_name = lock_specification
-    end
-    locks.each { |l|
-      if l.name == "#{lock_name}"
-        @lock = l
-        @lock.argument = "#{lock_argument}"
-        @lock.col_specification = "#{lock_specification}"
-        break
-      end
-    }
-    if @lock == nil
-      puts "Lock class for lock #{lock_name} not found."
-      puts "Exiting now."
-      exit(1)
-    end
-    if $argD == "DEBUG"
-      puts "Processed lock is #{@lock.specification}"
-      puts "Processed lock name is #{@lock.name}"
-      puts "Processed lock argument is #{@lock.argument}"
-    end
-#TODO: NULL checking
-#NULL checking as implemented below might need improvement.
-#Hint:pointer vs instance
-  end
-
   # Struct view inheritance implementation.
   def manage_inclusion(matchdata, access_type_link, struct_views)
     this_struct_view = struct_views.last
@@ -1414,7 +1369,8 @@ class Column
       @name = matchdata[1]
       @data_type = matchdata[2]
       @access_path = matchdata[3]
-      process_lock(matchdata[4], locks)
+      @lock = Lock.new()
+      @lock.process_lock(matchdata[4], locks)
     when column_ptn6
       matchdata = column_ptn6.match(column)
       @name = matchdata[1]
@@ -1477,18 +1433,9 @@ class VirtualTable
     @loop_root = ""       # Holds starting address of C array for NULL 
                           # checking C containers (linked lists, arrays etc)
                           # A uniform abstraction is defined.
-    @lock = ""            # Custom lock to use for iterating C containers
+    @lock = nil           # Reference to Lock to use for iterating C containers
                           # (linked lists, arrays, etc.)
                           # A uniform abstraction is defined.
-    @lock_class		  # Reference to Lock template class.
-    @lock_argument = ""   # Actual lock to hold/release, if any.
-    @lock_root = ""       # Holds starting address of C array for locking 
-                          # C containers (linked lists, arrays etc)
-                          # A uniform abstraction is defined.
-    @record_lock = ""     # Custom lock to use for each record.
-                          # A uniform abstraction is defined.
-    @record_lock_class    # Reference to Lock template class.
-    @record_lock_argument = ""   # Actual lock to hold/release, if any.
     @object_class = ""    # If an object instance.
     @columns = Array.new  # References to the VT columns.
 			  # A struct view may be used by many VTs.
@@ -2271,18 +2218,6 @@ class VirtualTable
     end
   end
 
-# Process lock directive.
-  def process_lock()
-    if @lock.match(/record lock (.+)/i)
-      matchdata = @lock.split(/record lock (.+)/i)
-      @record_lock = "#{matchdata[1]}"
-      @lock.gsub!(/record lock (.+)/i, "")
-    end
-    @lock, @lock_class, @lock_argument = Lock.process_lock(@lock)
-    if !@record_lock.empty? 
-      @record_lock, @record_lock_class, @record_lock_argument = Lock.process_lock(@record_lock)
-    end
-  end
 
 # Isolate root address of C container for NULL checking.
   def process_loop()
@@ -2339,7 +2274,7 @@ class VirtualTable
   end
 
 # Matches VT definitions against prototype patterns.
-  def match_table(table_description, struct_views, table_index)
+  def match_table(table_description, struct_views, table_index, locks)
     table_ptn1 = /^create virtual table (\w+) using struct view (\w+) with registered c name (.+) with registered c type (.+) using loop (.+) using lock (.+)/im
     table_ptn2 = /^create virtual table (\w+) using struct view (\w+) with registered c type (.+) using loop (.+) using lock (.+)/im
     table_ptn3 = /^create virtual table (\w+) using struct view (\w+) with registered c type (.+) using lock (.+)/im
@@ -2360,8 +2295,8 @@ class VirtualTable
       @signature = matchdata[4]
       @loop = matchdata[5]
       process_loop()
-      @lock = matchdata[6]
-      process_lock()
+      @lock = Lock.new
+      @lock.process_lock(matchdata[6], locks)
     when table_ptn2
       matchdata = table_ptn2.match(table_description)
       @name = matchdata[1]
@@ -2369,15 +2304,15 @@ class VirtualTable
       @signature = matchdata[3]
       @loop = matchdata[4]
       process_loop()
-      @lock = matchdata[5]
-      process_lock()
+      @lock = Lock.new
+      @lock.process_lock(matchdata[5], locks)
     when table_ptn3
       matchdata = table_ptn3.match(table_description)
       @name = matchdata[1]
       struct_view_name = matchdata[2]
       @signature = matchdata[3]
-      @lock = matchdata[4]
-      process_lock()
+      @lock = Lock.new
+      @lock.process_lock(matchdata[4], locks)
     when table_ptn4
       matchdata = table_ptn4.match(table_description)
       @name = matchdata[1]
@@ -2609,8 +2544,59 @@ class Lock
     @col_specification = ""
   end
   attr_accessor(:name, :lock_function, 
-                :unlock_function,:lock_argument,
+                :unlock_function,:argument,
                 :col_specification)
+
+
+
+  def process_lock(lock_signature, all_locks)
+    lock_argument = ""
+    if lock_signature.match(/\(/)
+      matchdata = lock_signature.split(/\(|\)/)
+      lock_name = matchdata[0]
+      if matchdata[1]
+        lock_argument = matchdata[1]
+      end
+      if !lock_argument.empty?
+         if lock_argument.match(/base\.|base->/)
+           lock_signature.gsub!(/base\.|base->/, "any_dstr->")
+           lock_argument.gsub!(/base\.|base->/, "any_dstr->")
+         elsif lock_argument.match(/base/)
+      #puts "Lock is: #{lock}."
+      #puts "Lock argument is: #{lock_argument}."
+           lock_signature.gsub!(/base/, "any_dstr")
+           lock_argument.gsub!(/base/, "any_dstr")
+         end
+      end
+    else
+      lock_name = lock_signature
+    end
+    all_locks.each { |l|
+      if l.name == "#{lock_name}"
+        @name = "#{l.name}"
+        @lock_function = "#{l.lock_function}"
+        @unlock_function = "#{l.unlock_function}"
+        @argument = "#{lock_argument}"
+        @col_specification = "#{lock_signature}"
+        break
+      end
+    }
+    if @name == nil
+      puts "Lock class for lock #{lock_name} not found."
+      puts "Exiting now."
+      exit(1)
+    end
+    if $argD == "DEBUG"
+      puts "Processed lock name is #{@name}"
+      puts "Processed lock function is #{@lock_function}"
+      puts "Processed unlock function is #{@unlock_function}"
+      puts "Processed lock argument is #{@argument}"
+      puts "Processed lock is #{@col_specification}"
+    end
+#TODO: NULL checking
+#NULL checking as implemented below might need improvement.
+#Hint:pointer vs instance
+  end
 
 
   def match_lock(lock_description)
@@ -2637,7 +2623,7 @@ class Lock
       puts "Lock class #{@name} registered."
     end
   end
-  
+
 end
 
 
@@ -2838,7 +2824,7 @@ class RelationalInterface
                                                    @struct_views, @union_views, @locks)
       when /^create virtual table/im
         @tables.push(VirtualTable.new).last.match_table(stmt, @struct_views, 
-                                                        @table_index)
+                                                        @table_index, @locks)
       when /^create view (\w+) as/im
         @views.push(RelationalView.new(stmt)).last.extract_name()
       when /^create union view/im

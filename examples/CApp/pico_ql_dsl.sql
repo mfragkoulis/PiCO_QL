@@ -10,6 +10,14 @@
 #define Number_decl(X) int *X; int num = 0
 #define Number_advance(X, Y, Z) X = &Y[Z]
 #define ENumber_decl(X) int *X; int enm = 0
+
+void hold_lock() {}
+void release_lock() {}
+$
+
+CREATE LOCK PSEUDOLOCK
+HOLD WITH hold_lock()
+RELEASE WITH release_lock()
 $
 
 CREATE UNION VIEW price (
@@ -61,7 +69,8 @@ CREATE VIRTUAL TABLE Money
 USING STRUCT VIEW Money
 //WITH REGISTERED C NAME money
 WITH REGISTERED C TYPE struct Money*
-USING LOOP for(tuple_iter = base; tuple_iter != NULL; tuple_iter = tuple_iter->next)$
+USING LOOP for(tuple_iter = base; tuple_iter != NULL; tuple_iter = tuple_iter->next)
+USING LOCK PSEUDOLOCK$
 //.cpp C TYPE vector<Money>;
 
 CREATE VIRTUAL TABLE MoneyList

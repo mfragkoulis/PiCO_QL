@@ -177,6 +177,10 @@ static int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, s
   } else {
 <%      if @base_var.length == 0 %>
     if (first_constr) {
+<%        if @lock != nil %>
+      int this_lock_available = 1;
+      picoQLTableCursor *ptc = NULL;
+<%        end %>
       if (equals(picoQL->azColumn[nCol], "base")) {
         int chSize = chargedSize;
         int cuchkSize = checkedSize;
@@ -320,6 +324,32 @@ static int <%= @name %>_vt_search (sqlite3_vtab_cursor *cur, int op, int nCol, s
         printf("Empty instantiation (out of context) for VT <%= @name %>.\n");
         return SQLITE_OK;
       }
+<%        if @lock != nil %>
+<%          if !@lock.argument.empty? %>
+<%            @lock.argument.start_with?("&") ? la = "#{@lock.argument}" : la = "&#{@lock.argument}" %>
+      stcsr->lock = (long int)<%= la %>;
+<%          end %>
+      chs = 0;
+      while (chs < (int)cursorsSize) {
+        ptc = (picoQLTableCursor *)cursors[chs]->cur;
+        if ((ptc != stcsr) && (ptc->locked) && (ptc->lock != 0) &&
+            (stcsr->lock != 0) && (ptc->lock != stcsr->lock))
+          this_lock_available = 0;
+        chs++;
+      }
+      if ((!stcsr->locked) && (this_lock_available)) {  // 1st cond needed?
+<%            if !@lock.argument.empty? %>
+<%              if @lock.argument.match(/any_dstr/) %>
+        <%= @lock.lock_function.gsub("<selector>", "#{@lock.argument}") %>;
+<%              else %>
+        <%= @lock.lock_function.gsub("<selector>", "#{@lock.argument}") %>;
+<%              end %>
+<%            else %>
+        <%= @lock.lock_function %>;
+<%            end %>
+        stcsr->locked += 1;
+      }
+<%        end %>
     }
 <%      end %>
 #ifdef PICO_QL_DEBUG

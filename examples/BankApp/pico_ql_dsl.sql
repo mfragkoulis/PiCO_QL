@@ -13,6 +13,7 @@
 
 using namespace std;
 $
+
 // SuperAccount description
 CREATE STRUCT VIEW SuperAccount (
        balance DOUBLE FROM get_balance(),

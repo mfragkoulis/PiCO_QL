@@ -32,7 +32,7 @@
 <% stripDir = String.new(directives) %>
 <%# The following requires attention. Experimental hack. %>
 <%# stripDir.gsub!(/^(?!#)(.+?)\((.*?)\)(\s*)\{(.+?)\}/m, "") %>
-<% stripDir.gsub!(/\)(\s*)\{(.+?)\};/m, "<clear_method_signature>") %>
+<% stripDir.gsub!(/\)(\s*)\{((.+?)*)\}(;*)/m, "<clear_method_signature>") %>
 <% stripDir.gsub!(/\n^(.+)<clear_method_signature>/, "") %>
 <%# Currently works because of the ^(\w+). It could fail at some point. %>
 <%# "using namespace ...;" matches but could be the only exception. So hacking it. %>

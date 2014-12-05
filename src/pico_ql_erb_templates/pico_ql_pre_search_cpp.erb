@@ -291,9 +291,9 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
         printf("Empty instantiation (out of context) for VT <%= @name %>.\n");
         return SQLITE_OK;
       }
-<%        if !@lock.empty? %>
-<%          if !@lock_argument.empty? %>
-<%            @lock_argument.start_with?("&") ? la = "#{@lock_argument}" : la = "&#{@lock_argument}" %>
+<%        if @lock != nil %>
+<%          if !@lock.argument.empty? %>
+<%            @lock.argument.start_with?("&") ? la = "#{@lock.argument}" : la = "&#{@lock.argument}" %>
       stcsr->lock = (long int)<%= la %>;
 <%          end %>
       bool this_lock_available = true;
@@ -305,10 +305,10 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
           this_lock_available = false;
       }
       if ((!stcsr->locked) && (this_lock_available)) {  // 1st cond needed?
-<%          if !@lock_argument.empty? %>
-        <%= @lock_class.lock_function.gsub("<selector>", "#{@lock_argument}") %>;
+<%          if !@lock.argument.empty? %>
+        <%= @lock.lock_function.gsub("<selector>", "#{@lock.argument}") %>;
 <%          else %>
-        <%= @lock_class.lock_function %>();
+        <%= @lock.lock_function %>;
 <%          end %>
         stcsr->locked += 1;
       }

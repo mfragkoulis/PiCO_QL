@@ -37,25 +37,25 @@ size_t <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, sqlite3_vtab *vtab
 
 int <%= @name %>_vt::operator() (sqlite3_vtab *vtab, sqlite3_vtab_cursor *cur) {
   picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
-<%      if !@base_var.empty? && !@lock.empty? %>
+<%      if !@base_var.empty? && @lock != nil %>
   picoQLTable *picoQL = (picoQLTable *)vtab;
   if (!picoQL->locked) {
-<%        if !@lock_argument.empty? %>
+<%        if !@lock.argument.empty? %>
 <%          if /\*/.match(@signature_pointer) == nil %>
 <%                sign_retype = "#{@signature}*" %>
 <%          else %>
 <%                sign_retype = "#{@signature}" %>
 <%          end %>
-<%          if @lock_argument.match(/any_dstr/) %>
+<%          if @lock.argument.match(/any_dstr/) %>
     if (!stcsr->isInstanceNULL) {
       <%= sign_retype %> any_dstr = (<%= sign_retype %>)stcsr->source;
-      <%= @lock_class.lock_function.gsub("<selector>", "#{@lock_argument}") %>;
+      <%= @lock.lock_function.gsub("<selector>", "#{@lock.argument}") %>;
     }
 <%          else %>
-    <%= @lock_class.lock_function.gsub("<selector>", "#{@lock_argument}") %>;
+    <%= @lock.lock_function.gsub("<selector>", "#{@lock.argument}") %>;
 <%          end %>
 <%        else %>
-    <%= @lock_class.lock_function %>;
+    <%= @lock.lock_function %>;
 <%        end %>
   }
   picoQL->locked += 1;
@@ -135,26 +135,26 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur) {
     stc->isEof = 1;
 <%    end %>
 <%    if @base_var.empty? %>
-<%      if !@lock.empty? %>
+<%      if @lock != nil %>
   if (stc->isEof == 1) {
     if (stc->locked == 1) {
-<%        if !@lock_argument.empty? %>
+<%        if !@lock.argument.empty? %>
 <%          if /\*/.match(@signature_pointer) == nil %>
 <%            sign_retype = "#{@signature}*" %>
 <%          else %>
 <%            sign_retype = "#{@signature}" %>
 <%          end %>
-<%          if @lock_argument.match(/any_dstr/) %>
+<%          if @lock.argument.match(/any_dstr/) %>
       if (!stc->isInstanceNULL) {
         <%= sign_retype %> any_dstr = (<%= sign_retype %>)stc->source;
-        <%= @lock_class.unlock_function.gsub("<selector>", "#{@lock_argument}") %>;
+        <%= @lock.unlock_function.gsub("<selector>", "#{@lock.argument}") %>;
       }
 <%          else %>
-      <%= @lock_class.unlock_function.gsub("<selector>", "#{@lock_argument}") %>;
+      <%= @lock.unlock_function.gsub("<selector>", "#{@lock.argument}") %>;
 <%          end %>
       stc->lock = 0;
 <%        else %>
-      <%= @lock_class.unlock_function %>;
+      <%= @lock.unlock_function %>;
 <%        end %>
       stc->locked -= 1;
     }
@@ -186,26 +186,26 @@ void <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, void *shadowRes) {
   } else
     printf("No such cursor %li inserted\n", (long int)cur);
 <%      if !@base_var.empty? %>
-<%        if !@lock.empty? %>
+<%        if @lock != nil %>
   picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
   if (picoQL->locked == 1) {
-<%          if !@lock_argument.empty? %>
+<%          if !@lock.argument.empty? %>
 <%            if /\*/.match(@signature_pointer) == nil %>
 <%              sign_retype = "#{@signature}*" %>
 <%            else %>
 <%              sign_retype = "#{@signature}" %>
 <%            end %>
-<%            if @lock_argument.match(/any_dstr/) %>
+<%            if @lock.argument.match(/any_dstr/) %>
     picoQLTableCursor *stcsr = (picoQLTableCursor *)cur;
     if (!stcsr->isInstanceNULL) {
       <%= sign_retype %> any_dstr = (<%= sign_retype %>)stcsr->source;
-      <%= @lock_class.unlock_function.gsub("<selector>", "#{@lock_argument}") %>;
+      <%= @lock.unlock_function.gsub("<selector>", "#{@lock.argument}") %>;
     }
 <%            else %>
-    <%= @lock_class.unlock_function.gsub("<selector>", "#{@lock_argument}") %>;
+    <%= @lock.unlock_function.gsub("<selector>", "#{@lock.argument}") %>;
 <%            end %>
 <%          else %>
-    <%= @lock_class.unlock_function %>;
+    <%= @lock.unlock_function %>;
 <%          end %>
   }
   picoQL->locked -= 1;
