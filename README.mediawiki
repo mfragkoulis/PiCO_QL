@@ -49,7 +49,7 @@ waiting to be executed.
 ==Platforms==
 
    Userspace (built-in examples):
-     Tested under Mac OS X 10.6.7-8, 10.8.5
+     Tested under Mac OS X 10.6.7-8, 10.8.5, 10.10.5
                   Linux 2.6
    Linux kernel module:
      Tested on:
@@ -69,7 +69,7 @@ waiting to be executed.
 ** against an array of [https://github.com/mfragkoulis/PiCO_QL/blob/master/src/Linux-kernel-mod/server/picoQL-tests.sql SQL queries] by executing a [https://github.com/mfragkoulis/PiCO_QL/blob/master/src/Linux-kernel-mod/server/picoQL-auto-test.sh script].
 ** by executing the [http://linux-test-project.github.io Linux Test Project (LTP)] test suite (not done for every commit).
 
-DEPENDENCIES
+==Dependencies==
 
 * [http://www.ruby-lang.org/en Ruby]
    Part of the library's source code (the
@@ -94,7 +94,7 @@ DEPENDENCIES
    implemented by Boost, for containers modelled 
    after the ForwardContainer and ForwardIterator concepts
 
-PiCO QL PACKAGE STRUCTURE
+==Package Structure==
 
 * At the ''examples/'' directory, users can browse:
 Several implemented userspace application example scenarios 
