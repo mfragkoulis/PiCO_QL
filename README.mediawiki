@@ -34,7 +34,7 @@ Fast track roll your own probes] tutorial in the
 [https://github.com/mfragkoulis/PiCO_QL/wiki/the-PiCO-QL-Linux-kernel-module-tutorial 
 PiCO QL LKM wiki].
 
-PLATFORMS
+==Platforms==
 
    Userspace:
      Tested under Mac OS X 10.6.7-8, 10.8.5
@@ -46,7 +46,7 @@ PLATFORMS
                                 Debian 7.1 - 3.2.0, 
                                 Ubuntu server 10.04 - 2.6.32
 
-TESTING
+==Testing==
 
 * Userspace: Commits are verified against: 
 ** [https://github.com/mfragkoulis/PiCO_QL/blob/master/examples test cases] by executing a [https://github.com/mfragkoulis/PiCO_QL/blob/master/examples/test_all.sh script].
@@ -55,7 +55,7 @@ TESTING
 ** against an array of [https://github.com/mfragkoulis/PiCO_QL/blob/master/src/Linux-kernel-mod/server/picoQL-tests.sql SQL queries] by executing a [https://github.com/mfragkoulis/PiCO_QL/blob/master/src/Linux-kernel-mod/server/picoQL-auto-test.sh script].
 ** by executing the [http://linux-test-project.github.io Linux Test Project (LTP)] test suite (not done for every commit).
 
-DEPENDENCIES
+==Dependencies==
 
 * [http://www.ruby-lang.org/en Ruby]
    Part of the library's source code (the
@@ -80,7 +80,7 @@ DEPENDENCIES
    implemented by Boost, for containers modelled 
    after the ForwardContainer and ForwardIterator concepts
 
-PiCO QL PACKAGE STRUCTURE
+==Package Structure==
 
 * At the ''examples/'' directory, users can browse:
 Several implemented userspace application example scenarios 
