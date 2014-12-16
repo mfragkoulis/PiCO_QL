@@ -70,28 +70,10 @@ waiting to be executed.
 
 ==Dependencies==
 
-* [http://www.ruby-lang.org/en Ruby]
-   Part of the library's source code (the
-   parser/code generator) is written in Ruby.
-
-* [http://www.sqlite.org SQLite3]
-   While PiCO QL does not use a database or other store
-   to copy and/or store data, it uses the virtual
-   table (VT) mechanism of Sqlite3 to provide a relational
-   representation of the underlying data model.
-
-* [http://swill.sourceforge.net SWILL]
-   Once plugged in an application, PiCO QL uses the same 
-   or a separate thread and utilises the SWILL library to
-   present a local server with a web-like, user
-   friendly query interface. In case of the kernel
-   configuration this interface wraps the /proc interface.
-
-* [http://www.boost.org Boost]
-   For C++ the library accepts any container iterable
-   in some fashion and provides concept checks (compile-time),
-   implemented by Boost, for containers modelled 
-   after the ForwardContainer and ForwardIterator concepts
+* [http://www.ruby-lang.org/en Ruby]    Part of the library's source code (the parser/code generator) is written in Ruby.
+* [http://www.sqlite.org SQLite3]   While PiCO QL does not use a database or other store to copy and/or store data, it uses the virtual table (VT) mechanism of Sqlite3 to provide a relational representation of the underlying data model.
+* [http://swill.sourceforge.net SWILL] Once plugged in an application, PiCO QL uses the same or a separate thread and utilises the SWILL library to present a local server with a web-like, user   friendly query interface. In case of the kernel configuration this interface wraps the /proc interface.
+* [http://www.boost.org Boost] For C++ the library accepts any container iterable in some fashion and provides concept checks (compile-time), implemented by Boost, for containers modelled after the ForwardContainer and ForwardIterator concepts.
 
 ==Package Structure==
 
