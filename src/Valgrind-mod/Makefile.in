@@ -167,7 +167,8 @@ time_@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT): time.c
 pico_ql_search.c: $(rbfiles) pico_ql_erb_templates/$(erbfiles) $(VG_TOOL)_dsl.sql
 	ruby pico_ql_generator.rb $(VG_TOOL)_dsl.sql valgrind no_mem_mgt
 
-pico_ql_internal.c: pico_ql_search.c
+pico_ql_internal.c: $(rbfiles) pico_ql_erb_templates/$(erbfiles) $(VG_TOOL)_dsl.sql
+	ruby pico_ql_generator.rb $(VG_TOOL)_dsl.sql valgrind no_mem_mgt
 
 picoQL-gui: pico_ql_swill_ui.o pico_ql_logo.o pico_ql_error_page.o
 	$(CC) $(UI_CFLAGS) -lswill $^ -o $@
