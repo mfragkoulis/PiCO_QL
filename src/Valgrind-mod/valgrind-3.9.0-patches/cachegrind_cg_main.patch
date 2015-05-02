@@ -1,0 +1,55 @@
+--- cache_main.c	2015-05-02 15:19:56.000000000 +0300
++++ cachegrind_cg_main.c	2014-01-14 16:34:56.000000000 +0200
+@@ -50,6 +50,9 @@
+ #include "cg_sim.c"
+ #include "cg_branchpred.c"
+ 
++/* For PiCO QL */
++#include "pico_ql_search.h"
++
+ /*------------------------------------------------------------*/
+ /*--- Constants                                            ---*/
+ /*------------------------------------------------------------*/
+@@ -332,6 +335,8 @@
+    n3->parent->Ir.a++;
+ }
+ 
++static long picoQL = 0;
++
+ // Generic case for instruction reads: may cross cache lines.
+ // All other Ir handlers expect IrNoX instruction reads.
+ static VG_REGPARM(1)
+@@ -342,6 +347,14 @@
+    cachesim_I1_doref_Gen(n->instr_addr, n->instr_len,
+ 			 &n->parent->Ir.m1, &n->parent->Ir.mL);
+    n->parent->Ir.a++;
++
++   /* For PiCO QL */
++   picoQL++;
++   if (picoQL % 5000000 == 0) {
++     pico_ql_serve();
++     VG_(umsg)("Just touched pico_ql_serve for the %ld time out of %ld times.\n", picoQL / 5000000, picoQL);
++   }
++
+ }
+ 
+ static VG_REGPARM(1)
+@@ -1044,7 +1057,6 @@
+ 
+ ////////////////////////////////////////////////////////////
+ 
+-
+ static
+ IRSB* cg_instrument ( VgCallbackClosure* closure,
+                       IRSB* sbIn, 
+@@ -1846,6 +1858,10 @@
+                           cmp_CodeLoc_LineCC,
+                           VG_(malloc), "cg.main.cpci.1",
+                           VG_(free));
++
++/* PiCO QL */
++   pico_ql_register(CC_table, "cachegrind_out_table");
++
+    instrInfoTable =
+       VG_(OSetGen_Create)(/*keyOff*/0,
+                           NULL,

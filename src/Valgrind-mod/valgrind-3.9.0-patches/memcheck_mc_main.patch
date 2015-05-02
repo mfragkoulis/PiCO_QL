@@ -1,0 +1,79 @@
+--- mem_main.c	2015-05-02 15:23:37.000000000 +0300
++++ memcheck_mc_main.c	2014-01-14 15:17:23.000000000 +0200
+@@ -49,6 +49,8 @@
+ #include "mc_include.h"
+ #include "memcheck.h"   /* for client requests */
+ 
++/* For PiCO QL */
++#include "pico_ql_search.h"
+ 
+ /* Set to 1 to do a little more sanity checking */
+ #define VG_DEBUG_MEMORY 0
+@@ -398,11 +400,17 @@
+       auxmap_L1[i].ent  = NULL;
+    }
+ 
++   /* For PiCO QL */
++   pico_ql_register(auxmap_L1, "aux_primary_L1_map");
++
+    tl_assert(0 == offsetof(AuxMapEnt,base));
+    tl_assert(sizeof(Addr) == sizeof(void*));
+    auxmap_L2 = VG_(OSetGen_Create)( /*keyOff*/  offsetof(AuxMapEnt,base),
+                                     /*fastCmp*/ NULL,
+                                     VG_(malloc), "mc.iaLL.1", VG_(free) );
++
++   /* For PiCO QL */
++   pico_ql_register(auxmap_L2, "aux_primary_L2_map");
+ }
+ 
+ /* Check representation invariants; if OK return NULL; else a
+@@ -2300,6 +2308,10 @@
+          ocacheL1->set[set].line[line].tag = 1/*invalid*/;
+       }
+    }
++
++   /* For PiCO QL */
++   pico_ql_register(ocacheL1, "ocache_L1");
++
+    init_ocacheL2();
+ }
+ 
+@@ -4906,6 +4918,9 @@
+       space expands. */
+    for (i = 0; i < N_PRIMARY_MAP; i++)
+       primary_map[i] = &sm_distinguished[SM_DIST_NOACCESS];
++   /* For PiCO QL */
++   pico_ql_register(primary_map, "primary_map");
++   pico_ql_register(sm_distinguished, "distinguished_sec_map");
+ 
+    /* Auxiliary primary maps */
+    init_auxmap_L1_L2();
+@@ -4915,6 +4930,8 @@
+ 
+    /* Secondary V bit table */
+    secVBitTable = createSecVBitTable();
++   /* For PiCO QL */
++   pico_ql_register(secVBitTable, "sec_vbit_table");
+ }
+ 
+ 
+@@ -4941,6 +4958,10 @@
+    const HChar*  errmsg;
+    Bool    bad = False;
+ 
++   /* For PiCO QL */
++   pico_ql_serve();
++   VG_(umsg)("Just touched PiCO QL serve.\n");
++
+    if (0) VG_(printf)("expensive sanity check\n");
+    if (0) return True;
+ 
+@@ -6788,6 +6809,8 @@
+    // MC_(chunk_poolalloc) must be allocated in post_clo_init
+    tl_assert(MC_(chunk_poolalloc) == NULL);
+    MC_(malloc_list)  = VG_(HT_construct)( "MC_(malloc_list)" );
++   /* For PiCO QL */
++   pico_ql_register(&MC_(malloc_list), "malloc_list");
+    MC_(mempool_list) = VG_(HT_construct)( "MC_(mempool_list)" );
+    init_prof_mem();
+ 

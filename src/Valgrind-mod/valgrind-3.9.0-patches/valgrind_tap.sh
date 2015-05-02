@@ -21,15 +21,21 @@
 #   See the License for the specific language governing
 #   permissions and limitations under the License.
 
-cp valgrind_configure ../../../configure
-cp cachegrind_Makefile.in ../../../cachegrind/Makefile.in
-cp cachegrind_cg_main.c ../../../cachegrind/cg_main.c
-cp memcheck_Makefile.in ../../../memcheck/Makefile.in
-cp memcheck_mc_main.c ../../../memcheck/mc_main.c
-cp memcheck_mc_errors.c ../../../memcheck/mc_errors.c
-cp callgrind_Makefile.in ../../../callgrind/Makefile.in
-cp callgrind_main.c ../../../callgrind/main.c
-cp callgrind_bbcc.c ../../../callgrind/bbcc.c
+# Run the script from within the directory it is located.
+
+PATCHDIR="PiCO_QL/src/Valgrind-mod/valgrind-3.9.0-patches"
+OPTS="-N"
+
+cd ../../../../
+patch $OPTS cachegrind/Makefile.in < $PATCHDIR/cachegrind_Makefile.patch
+patch $OPTS configure < $PATCHDIR/valgrind_configure.patch
+patch $OPTS cachegrind/cg_main.c < $PATCHDIR/cachegrind_cg_main.patch
+patch $OPTS memcheck/Makefile.in < $PATCHDIR/memcheck_Makefile.patch
+patch $OPTS memcheck/mc_main.c < $PATCHDIR/memcheck_mc_main.patch
+patch $OPTS memcheck/mc_errors.c < $PATCHDIR/memcheck_mc_main.patch
+patch $OPTS callgrind/Makefile.in < $PATCHDIR/callgrind_Makefile.patch
+patch $OPTS callgrind/main.c < $PATCHDIR/callgrind_main.patch
+patch $OPTS callgrind/bbcc.c < $PATCHDIR/callgrind_bbcc.patch
 printf "\nNow you can configure, compile, and install Valgrind\n \
 in the usual manner by executing \n\n \
 ./configure && make && make install\n\n \

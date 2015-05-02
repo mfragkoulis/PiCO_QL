@@ -27,6 +27,9 @@ PICO_QL_CFLAGS_@VGCONF_ARCH_SEC@_@VGCONF_OS@+=-Werror -DPICO_QL_SINGLE_THREADED 
 #-DPICO_QL_DEBUG
 # Removed -Wwrite-strings
 
+# Valgrind's bin folder location to install binary interfaces.
+DISTDIR=../../../bin
+
 #Complete list of flags: 
 # -DHAVE_CONFIG_H -I../../cachegrind -I../.. -I. -I../../include -I../../VEX/pub -DVGA_amd64=1 -DVGO_darwin=1 -DVGP_amd64_darwin=1 -DVGPV_amd64_darwin_vanilla=1 -arch x86_64 -O2 -g -Wall -Wmissing-prototypes -Wshadow -Wpointer-arith -Wstrict-prototypes -Wmissing-declarations -Wno-format-zero-length -fno-strict-aliasing -fno-builtin -mmacosx-version-min=10.5 -fno-stack-protector -Wno-long-long -fno-stack-protector
 
@@ -72,7 +75,10 @@ OBJ_@VGCONF_ARCH_PRI@_@VGCONF_OS@ = pico_ql_search_$(VG_TOOL)_@VGCONF_ARCH_PRI@_
 				    unistd_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT) \
 				    time_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT)
 
-libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@: $(OBJ_@VGCONF_ARCH_PRI@_@VGCONF_OS@) picoQL-gui
+
+# ui is an artificial dependence to force building and installation of the 
+# picoQL interface binary (only if its dependencies have been updated).
+libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@: ui $(OBJ_@VGCONF_ARCH_PRI@_@VGCONF_OS@)
 	ar rcs libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@.a $(OBJ_@VGCONF_ARCH_PRI@_@VGCONF_OS@) 
 
 pico_ql_search_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT): pico_ql_search.c pico_ql_search.h pico_ql_internal.h
@@ -125,7 +131,7 @@ OBJ_@VGCONF_ARCH_SEC@_@VGCONF_OS@ = pico_ql_search_$(VG_TOOL)_@VGCONF_ARCH_SEC@_
 				    unistd_@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT) \
 				    time_@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT)
 
-@VGCONF_HAVE_PLATFORM_SEC_TRUE@libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@: $(OBJ_@VGCONF_ARCH_SEC@_@VGCONF_OS@)
+@VGCONF_HAVE_PLATFORM_SEC_TRUE@libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@: gen $(OBJ_@VGCONF_ARCH_SEC@_@VGCONF_OS@)
 @VGCONF_HAVE_PLATFORM_SEC_TRUE@	ar rcs libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@.a $(OBJ_@VGCONF_ARCH_SEC@_@VGCONF_OS@)
 
 pico_ql_search_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT): pico_ql_search.c pico_ql_search.h pico_ql_internal.h
@@ -170,8 +176,9 @@ pico_ql_search.c: $(rbfiles) pico_ql_erb_templates/$(erbfiles) $(VG_TOOL)_dsl.sq
 pico_ql_internal.c: $(rbfiles) pico_ql_erb_templates/$(erbfiles) $(VG_TOOL)_dsl.sql
 	ruby pico_ql_generator.rb $(VG_TOOL)_dsl.sql valgrind no_mem_mgt
 
-picoQL-gui: pico_ql_swill_ui.o pico_ql_logo.o pico_ql_error_page.o
+picoQL-$(VG_TOOL)-gui: pico_ql_swill_ui.o pico_ql_logo.o pico_ql_error_page.o
 	$(CC) $(UI_CFLAGS) -lswill $^ -o $@
+	cp $@ $(DISTDIR)
 
 pico_ql_swill_ui.o: pico_ql_swill_ui.c pico_ql_swill_access_func.h
 
@@ -185,7 +192,9 @@ cmp:
 seed:
 	cp pico_ql_test_current.txt pico_ql_test_success.txt
 
-gen: prep pico_ql_search.c pico_ql_internal.c
+gen: src-prep pico_ql_search.c pico_ql_internal.c
+
+ui: ui-prep picoQL-$(VG_TOOL)-gui
 
 locfiles := errno stdio string unistd time pico_ql_interface
 
@@ -206,17 +215,17 @@ erbfiles := pico_ql_directives_utils_c.erb pico_ql_register_serve_c.erb \
 	   pico_ql_result_set_iter_c.erb pico_ql_pre_search_c.erb pico_ql_pre_retrieve_c.erb \
 	   pico_ql_post_search.erb pico_ql_post_retrieve.erb pico_ql_wrapper_result_set_iter_c.erb \
 	   pico_ql_search_h.erb pico_ql_wrapper_search_c.erb pico_ql_wrapper_retrieve_c.erb
- 
-prep:
-#	mv pico_ql_test.c test.c
+
+src-prep:
 	$(foreach f, $(cfiles), [ -f $f_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT) ] && test ../$f.c -ot $f_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT) || cp ../$f.c . ; )
-	$(foreach f, $(uifiles), [ -f $f.o ] && test ../$f.c -ot $f.o || cp ../$f.c . ; )
 	$(foreach f, $(hfiles), [ -f $f ] && test ../$f -ot $f || cp ../$f . ; )
 	$(foreach f, $(rbfiles), [ -f $f ] && test ../$f -ot $f || cp ../$f . ; )
 	test -d pico_ql_erb_templates || mkdir pico_ql_erb_templates
 	$(foreach f, $(erbfiles), [ -f $f ] && test ../pico_ql_erb_templates/$f -ot pico_ql_erb_templates/$f || cp ../pico_ql_erb_templates/$f pico_ql_erb_templates/ ; )
-#	mv test.c pico_ql_test.c
-#	gcc -g -fPIC -shared math_func_sqlitext.c -o math_func_sqlitext.$(SUFFIX)
+
+ui-prep:
+	$(foreach f, $(uifiles), [ -f $f.o ] && test ../$f.c -ot $f.o || cp ../$f.c . ; )
+	$(foreach f, $(hfiles), [ -f $f ] && test ../$f -ot $f || cp ../$f . ; )
 
 
 .PHONY= clean-picoQL
@@ -226,7 +235,7 @@ clean-picoQL_@VGCONF_ARCH_PRI@_@VGCONF_OS@: clean-picoQL-obj_@VGCONF_ARCH_PRI@_@
 
 clean-picoQL-bin_@VGCONF_ARCH_PRI@_@VGCONF_OS@:
 	test ! -f "libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@.a" || rm libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@.a
-	test ! -f "picoQL-gui" || rm picoQL-gui
+	test ! -f "picoQL-$(VG_TOOL)-gui" || rm picoQL-$(VG_TOOL)-gui
 
 clean-picoQL-obj_@VGCONF_ARCH_PRI@_@VGCONF_OS@:
 	$(foreach f, $(cfiles), test ! -f $f_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT) || rm $f_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT) ; )

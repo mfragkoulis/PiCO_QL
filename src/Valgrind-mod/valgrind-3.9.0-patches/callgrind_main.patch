@@ -1,0 +1,30 @@
+--- call_main.c	2015-05-02 15:21:42.000000000 +0300
++++ callgrind_main.c	2014-01-15 16:02:08.000000000 +0200
+@@ -40,6 +40,9 @@
+ 
+ #include "cg_branchpred.c"
+ 
++/* For PiCO QL */
++#include "pico_ql_search.h"
++
+ /*------------------------------------------------------------*/
+ /*--- Global variables                                     ---*/
+ /*------------------------------------------------------------*/
+@@ -2002,6 +2005,8 @@
+ 
+    CLG_(init_eventsets)();
+    CLG_(init_statistics)(& CLG_(stat));
++   /* For PiCO QL */
++   pico_ql_register(&CLG_(stat), "statistics");
+    CLG_(init_cost_lz)( CLG_(sets).full, &CLG_(total_cost) );
+ 
+    /* initialize hash tables */
+@@ -2011,6 +2016,8 @@
+ 
+    CLG_(init_threads)();
+    CLG_(run_thread)(1);
++   /* For PiCO QL */
++   pico_ql_register(CLG_(get_threads)(), "all_threads");
+ 
+    CLG_(instrument_state) = CLG_(clo).instrument_atstart;
+ 

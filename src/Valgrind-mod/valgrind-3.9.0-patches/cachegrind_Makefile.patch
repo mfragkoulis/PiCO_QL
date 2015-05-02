@@ -1,0 +1,87 @@
+--- cache_Makefile.in	2015-05-02 15:19:35.000000000 +0300
++++ cachegrind_Makefile.in	2015-05-02 13:52:10.000000000 +0300
+@@ -72,6 +72,7 @@
+ 
+ # On Android we must ask for non-executable stack, not sure why.
+ @VGCONF_PLATFORMS_INCLUDE_ARM_LINUX_TRUE@@VGCONF_PLATVARIANT_IS_ANDROID_TRUE@am__append_2 = -Wl,-z,noexecstack
++# picoQL-($VG_TOOL)-gui is built and installed in picoQL Makefile.
+ bin_PROGRAMS = cg_merge$(EXEEXT)
+ @VGCONF_PLATFORMS_INCLUDE_X86_DARWIN_TRUE@am__append_3 = -Wl,-read_only_relocs -Wl,suppress
+ noinst_PROGRAMS = cachegrind-@VGCONF_ARCH_PRI@-@VGCONF_OS@$(EXEEXT) \
+@@ -775,14 +776,30 @@
+ clean-binPROGRAMS:
+ 	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
+ 
++# For PiCO QL
++VG_TOOL := cachegrind
++export VG_TOOL
++PICO_QL_srcdir = ../PiCO_QL/src/Valgrind-mod
++PICO_QL_CFLAGS_@VGCONF_ARCH_PRI@_@VGCONF_OS@ := $(DEFS) $(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CFLAGS) -Wno-long-long -fno-stack-protector
++export PICO_QL_CFLAGS_@VGCONF_ARCH_PRI@_@VGCONF_OS@
++PICO_QL_CFLAGS_@VGCONF_ARCH_SEC@_@VGCONF_OS@ := $(DEFS) $(cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CFLAGS) -Wno-long-long -fno-stack-protector
++export PICO_QL_CFLAGS_@VGCONF_ARCH_SEC@_@VGCONF_OS@
++
++libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@:
++	$(MAKE) -C $(PICO_QL_srcdir) libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@
++
++@VGCONF_HAVE_PLATFORM_SEC_TRUE@libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@:
++@VGCONF_HAVE_PLATFORM_SEC_TRUE@	$(MAKE) -C $(PICO_QL_srcdir) libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@ 
++
++# For PiCO QL
+ clean-noinstPROGRAMS:
+ 	-test -z "$(noinst_PROGRAMS)" || rm -f $(noinst_PROGRAMS)
+-cachegrind-@VGCONF_ARCH_PRI@-@VGCONF_OS@$(EXEEXT): $(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_OBJECTS) $(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_DEPENDENCIES) $(EXTRA_cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_DEPENDENCIES) 
++cachegrind-@VGCONF_ARCH_PRI@-@VGCONF_OS@$(EXEEXT): $(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_OBJECTS) $(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_DEPENDENCIES) $(EXTRA_cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_DEPENDENCIES) libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@
+ 	@rm -f cachegrind-@VGCONF_ARCH_PRI@-@VGCONF_OS@$(EXEEXT)
+-	$(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_LINK) $(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_OBJECTS) $(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_LDADD) $(LIBS)
+-cachegrind-@VGCONF_ARCH_SEC@-@VGCONF_OS@$(EXEEXT): $(cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_OBJECTS) $(cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_DEPENDENCIES) $(EXTRA_cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_DEPENDENCIES) 
++	$(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_LINK) $(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_OBJECTS) $(PICO_QL_srcdir)/libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@.a $(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_LDADD) $(LIBS)
++cachegrind-@VGCONF_ARCH_SEC@-@VGCONF_OS@$(EXEEXT): $(cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_OBJECTS) $(cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_DEPENDENCIES) $(EXTRA_cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_DEPENDENCIES) libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@
+ 	@rm -f cachegrind-@VGCONF_ARCH_SEC@-@VGCONF_OS@$(EXEEXT)
+-	$(cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_LINK) $(cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_OBJECTS) $(cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_LDADD) $(LIBS)
++	$(cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_LINK) $(cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_OBJECTS) $(PICO_QL_srcdir)/libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@.a $(cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_LDADD) $(LIBS)
+ cg_merge$(EXEEXT): $(cg_merge_OBJECTS) $(cg_merge_DEPENDENCIES) $(EXTRA_cg_merge_DEPENDENCIES) 
+ 	@rm -f cg_merge$(EXEEXT)
+ 	$(cg_merge_LINK) $(cg_merge_OBJECTS) $(cg_merge_LDADD) $(LIBS)
+@@ -850,8 +867,13 @@
+ @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+ @am__fastdepCC_FALSE@	$(COMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
+ 
+-cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@-cg_main.o: cg_main.c
+-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -MT cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@-cg_main.o -MD -MP -MF $(DEPDIR)/cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@-cg_main.Tpo -c -o cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@-cg_main.o `test -f 'cg_main.c' || echo '$(srcdir)/'`cg_main.c
++# For PiCO QL
++picoQL-gen:
++	$(MAKE) -C $(PICO_QL_srcdir) gen
++
++# For PiCO QL
++cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@-cg_main.o: cg_main.c picoQL-gen
++@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) -I$(PICO_QL_srcdir) $(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -MT cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@-cg_main.o -MD -MP -MF $(DEPDIR)/cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@-cg_main.Tpo -c -o cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@-cg_main.o `test -f 'cg_main.c' || echo '$(srcdir)/'`cg_main.c
+ @am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@-cg_main.Tpo $(DEPDIR)/cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@-cg_main.Po
+ @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='cg_main.c' object='cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@-cg_main.o' libtool=no @AMDEPBACKSLASH@
+ @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@@ -878,8 +900,9 @@
+ @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+ @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -c -o cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@-cg_arch.obj `if test -f 'cg_arch.c'; then $(CYGPATH_W) 'cg_arch.c'; else $(CYGPATH_W) '$(srcdir)/cg_arch.c'; fi`
+ 
++# For PiCO QL
+ cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@-cg_main.o: cg_main.c
+-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -MT cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@-cg_main.o -MD -MP -MF $(DEPDIR)/cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@-cg_main.Tpo -c -o cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@-cg_main.o `test -f 'cg_main.c' || echo '$(srcdir)/'`cg_main.c
++@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) -I$(PICO_QL_srcdir) $(cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -MT cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@-cg_main.o -MD -MP -MF $(DEPDIR)/cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@-cg_main.Tpo -c -o cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@-cg_main.o `test -f 'cg_main.c' || echo '$(srcdir)/'`cg_main.c
+ @am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@-cg_main.Tpo $(DEPDIR)/cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@-cg_main.Po
+ @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='cg_main.c' object='cachegrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@-cg_main.o' libtool=no @AMDEPBACKSLASH@
+ @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@@ -1148,7 +1171,13 @@
+ maintainer-clean-generic:
+ 	@echo "This command is intended for maintainers to use"
+ 	@echo "it deletes files that may require special tools to rebuild."
+-clean: clean-recursive
++
++# For PiCO QL
++clean: clean-recursive clean-picoQL
++
++# For PiCO QL
++clean-picoQL:
++	$(MAKE) -C $(PICO_QL_srcdir) clean-picoQL
+ 
+ clean-am: clean-binPROGRAMS clean-generic clean-local \
+ 	clean-noinstPROGRAMS mostlyclean-am

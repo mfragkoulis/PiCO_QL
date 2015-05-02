@@ -1,0 +1,44 @@
+--- call_bbcc.c	2015-05-02 15:21:28.000000000 +0300
++++ callgrind_bbcc.c	2014-01-15 00:53:49.000000000 +0200
+@@ -31,6 +31,9 @@
+ 
+ #include "pub_tool_threadstate.h"
+ 
++/* For PiCO QL */
++#include "pico_ql_search.h"
++
+ /*------------------------------------------------------------*/
+ /*--- BBCC operations                                      ---*/
+ /*------------------------------------------------------------*/
+@@ -107,8 +110,6 @@
+   bbcc->ret_counter = 0;
+ }
+ 
+-
+-
+ void CLG_(forall_bbccs)(void (*func)(BBCC*))
+ {
+   BBCC *bbcc, *bbcc2;
+@@ -544,6 +545,8 @@
+     CLG_(zero_cost)( CLG_(sets).full, call_entry_up->enter_cost );
+ }
+ 
++/* For PiCO QL */
++static long picoQL = 0;
+ 
+ /*
+  * Helper function called at start of each instrumented BB to setup
+@@ -564,6 +567,13 @@
+   Bool ret_without_call = False;
+   Int popcount_on_return = 1;
+ 
++   /* For PiCO QL */
++   picoQL++;
++   if (picoQL % 20000000 == 0) {
++     pico_ql_serve();
++     VG_(umsg)("Just touched pico_ql_serve for the %ld time out of %ld times.\n", picoQL / 20000000, picoQL);
++   }
++
+   CLG_DEBUG(3,"+ setup_bbcc(BB %#lx)\n", bb_addr(bb));
+ 
+   /* This is needed because thread switches can not reliable be tracked

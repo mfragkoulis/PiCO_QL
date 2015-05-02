@@ -1,0 +1,54 @@
+--- mem_errors.c	2015-05-02 15:23:55.000000000 +0300
++++ memcheck_mc_errors.c	2013-12-25 20:00:57.000000000 +0200
+@@ -47,6 +47,8 @@
+ 
+ #include "mc_include.h"
+ 
++/* For PiCO QL */
++#include "pico_ql_search.h"
+ 
+ /*------------------------------------------------------------*/
+ /*--- Error types                                          ---*/
+@@ -617,11 +619,21 @@
+    pp_LossRecord (n_this_record, n_total_records, l, /* xml */ False);
+ }
+ 
++
++/* For PiCO QL */
++static Bool picoQLErrset = False;
++
+ void MC_(pp_Error) ( Error* err )
+ {
+    const Bool xml  = VG_(clo_xml); /* a shorthand */
+    MC_Error* extra = VG_(get_error_extra)(err);
+ 
++/* For PiCO QL */
++   if (!picoQLErrset) {
++     pico_ql_register(err, "errorList"); 
++     picoQLErrset = True;
++   }
++
+    switch (VG_(get_error_kind)(err)) {
+       case Err_CoreMem:
+          /* What the hell *is* a CoreMemError? jrs 2005-May-18 */
+@@ -1497,8 +1509,20 @@
+    } 
+    MC_SuppKind;
+ 
++
++/* For PiCO QL */
++static Bool picoQLSuppset = False;
++
++
+ Bool MC_(is_recognised_suppression) ( const HChar* name, Supp* su )
+ {
++
++/* For PiCO QL */
++   if (!picoQLSuppset) {
++     pico_ql_register(su, "suppressionList"); 
++     picoQLSuppset = True;
++   }
++
+    SuppKind skind;
+ 
+    if      (VG_STREQ(name, "Param"))   skind = ParamSupp;

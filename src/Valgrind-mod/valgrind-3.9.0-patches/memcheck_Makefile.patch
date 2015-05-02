@@ -1,0 +1,101 @@
+--- mem_Makefile.in	2015-05-02 15:22:30.000000000 +0300
++++ memcheck_Makefile.in	2013-12-25 20:07:16.000000000 +0200
+@@ -785,14 +785,30 @@
+ 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
+ $(am__aclocal_m4_deps):
+ 
++# For PiCO QL
++PICO_QL_srcdir = ../PiCO_QL/src/Valgrind-mod
++VG_TOOL := memcheck
++export VG_TOOL
++PICO_QL_CFLAGS_@VGCONF_ARCH_PRI@_@VGCONF_OS@ := $(DEFS) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CFLAGS) -Wno-long-long -fno-stack-protector
++export PICO_QL_CFLAGS_@VGCONF_ARCH_PRI@_@VGCONF_OS@
++PICO_QL_CFLAGS_@VGCONF_ARCH_SEC@_@VGCONF_OS@ := $(DEFS) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CFLAGS) -Wno-long-long -fno-stack-protector
++export PICO_QL_CFLAGS_@VGCONF_ARCH_SEC@_@VGCONF_OS@
++
++libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@:
++	$(MAKE) -C $(PICO_QL_srcdir) libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@
++
++@VGCONF_HAVE_PLATFORM_SEC_TRUE@libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@: 
++@VGCONF_HAVE_PLATFORM_SEC_TRUE@	$(MAKE) -C $(PICO_QL_srcdir) libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@
++
++# For PiCO QL
+ clean-noinstPROGRAMS:
+ 	-test -z "$(noinst_PROGRAMS)" || rm -f $(noinst_PROGRAMS)
+-memcheck-@VGCONF_ARCH_PRI@-@VGCONF_OS@$(EXEEXT): $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_OBJECTS) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_DEPENDENCIES) $(EXTRA_memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_DEPENDENCIES) 
++memcheck-@VGCONF_ARCH_PRI@-@VGCONF_OS@$(EXEEXT): $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_OBJECTS) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_DEPENDENCIES) $(EXTRA_memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_DEPENDENCIES) libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@
+ 	@rm -f memcheck-@VGCONF_ARCH_PRI@-@VGCONF_OS@$(EXEEXT)
+-	$(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_LINK) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_OBJECTS) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_LDADD) $(LIBS)
+-memcheck-@VGCONF_ARCH_SEC@-@VGCONF_OS@$(EXEEXT): $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_OBJECTS) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_DEPENDENCIES) $(EXTRA_memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_DEPENDENCIES) 
++	$(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_LINK) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_OBJECTS) $(PICO_QL_srcdir)/libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@.a $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_LDADD) $(LIBS)
++memcheck-@VGCONF_ARCH_SEC@-@VGCONF_OS@$(EXEEXT): $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_OBJECTS) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_DEPENDENCIES) $(EXTRA_memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_DEPENDENCIES) libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@
+ 	@rm -f memcheck-@VGCONF_ARCH_SEC@-@VGCONF_OS@$(EXEEXT)
+-	$(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_LINK) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_OBJECTS) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_LDADD) $(LIBS)
++	$(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_LINK) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_OBJECTS) $(PICO_QL_srcdir)/libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@.a $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_LDADD) $(LIBS)
+ vgpreload_memcheck-@VGCONF_ARCH_PRI@-@VGCONF_OS@.so$(EXEEXT): $(vgpreload_memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_so_OBJECTS) $(vgpreload_memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_so_DEPENDENCIES) $(EXTRA_vgpreload_memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_so_DEPENDENCIES) 
+ 	@rm -f vgpreload_memcheck-@VGCONF_ARCH_PRI@-@VGCONF_OS@.so$(EXEEXT)
+ 	$(vgpreload_memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_so_LINK) $(vgpreload_memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_so_OBJECTS) $(vgpreload_memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_so_LDADD) $(LIBS)
+@@ -865,8 +881,13 @@
+ @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+ @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -c -o memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_malloc_wrappers.obj `if test -f 'mc_malloc_wrappers.c'; then $(CYGPATH_W) 'mc_malloc_wrappers.c'; else $(CYGPATH_W) '$(srcdir)/mc_malloc_wrappers.c'; fi`
+ 
+-memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_main.o: mc_main.c
+-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -MT memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_main.o -MD -MP -MF $(DEPDIR)/memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_main.Tpo -c -o memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_main.o `test -f 'mc_main.c' || echo '$(srcdir)/'`mc_main.c
++# For PiCO QL
++picoQL-gen:
++	$(MAKE) -C $(PICO_QL_srcdir) gen
++
++# For PiCO QL
++memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_main.o: mc_main.c picoQL-gen
++@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) -I$(PICO_QL_srcdir) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -MT memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_main.o -MD -MP -MF $(DEPDIR)/memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_main.Tpo -c -o memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_main.o `test -f 'mc_main.c' || echo '$(srcdir)/'`mc_main.c
+ @am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_main.Tpo $(DEPDIR)/memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_main.Po
+ @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='mc_main.c' object='memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_main.o' libtool=no @AMDEPBACKSLASH@
+ @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@@ -907,8 +928,9 @@
+ @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+ @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -c -o memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_machine.obj `if test -f 'mc_machine.c'; then $(CYGPATH_W) 'mc_machine.c'; else $(CYGPATH_W) '$(srcdir)/mc_machine.c'; fi`
+ 
++# For PiCO QL
+ memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_errors.o: mc_errors.c
+-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -MT memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_errors.o -MD -MP -MF $(DEPDIR)/memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_errors.Tpo -c -o memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_errors.o `test -f 'mc_errors.c' || echo '$(srcdir)/'`mc_errors.c
++@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) -I$(PICO_QL_srcdir) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -MT memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_errors.o -MD -MP -MF $(DEPDIR)/memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_errors.Tpo -c -o memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_errors.o `test -f 'mc_errors.c' || echo '$(srcdir)/'`mc_errors.c
+ @am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_errors.Tpo $(DEPDIR)/memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_errors.Po
+ @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='mc_errors.c' object='memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_errors.o' libtool=no @AMDEPBACKSLASH@
+ @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@@ -949,8 +971,9 @@
+ @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+ @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -c -o memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_malloc_wrappers.obj `if test -f 'mc_malloc_wrappers.c'; then $(CYGPATH_W) 'mc_malloc_wrappers.c'; else $(CYGPATH_W) '$(srcdir)/mc_malloc_wrappers.c'; fi`
+ 
++# For PiCO QL
+ memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_main.o: mc_main.c
+-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -MT memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_main.o -MD -MP -MF $(DEPDIR)/memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_main.Tpo -c -o memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_main.o `test -f 'mc_main.c' || echo '$(srcdir)/'`mc_main.c
++@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) -I$(PICO_QL_srcdir) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -MT memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_main.o -MD -MP -MF $(DEPDIR)/memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_main.Tpo -c -o memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_main.o `test -f 'mc_main.c' || echo '$(srcdir)/'`mc_main.c
+ @am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_main.Tpo $(DEPDIR)/memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_main.Po
+ @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='mc_main.c' object='memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_main.o' libtool=no @AMDEPBACKSLASH@
+ @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@@ -991,8 +1014,9 @@
+ @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+ @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -c -o memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_machine.obj `if test -f 'mc_machine.c'; then $(CYGPATH_W) 'mc_machine.c'; else $(CYGPATH_W) '$(srcdir)/mc_machine.c'; fi`
+ 
++# For PiCO QL
+ memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_errors.o: mc_errors.c
+-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -MT memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_errors.o -MD -MP -MF $(DEPDIR)/memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_errors.Tpo -c -o memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_errors.o `test -f 'mc_errors.c' || echo '$(srcdir)/'`mc_errors.c
++@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) -I$(PICO_QL_srcdir) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -MT memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_errors.o -MD -MP -MF $(DEPDIR)/memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_errors.Tpo -c -o memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_errors.o `test -f 'mc_errors.c' || echo '$(srcdir)/'`mc_errors.c
+ @am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_errors.Tpo $(DEPDIR)/memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_errors.Po
+ @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='mc_errors.c' object='memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_errors.o' libtool=no @AMDEPBACKSLASH@
+ @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@@ -1282,7 +1306,13 @@
+ maintainer-clean-generic:
+ 	@echo "This command is intended for maintainers to use"
+ 	@echo "it deletes files that may require special tools to rebuild."
+-clean: clean-recursive
++
++# For PiCO QL
++clean: clean-recursive clean-picoQL
++
++# For PiCO QL
++clean-picoQL:
++	$(MAKE) -C $(PICO_QL_srcdir) clean-picoQL
+ 
+ clean-am: clean-generic clean-local clean-noinstPROGRAMS \
+ 	mostlyclean-am

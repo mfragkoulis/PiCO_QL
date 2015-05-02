@@ -72,8 +72,8 @@ DIST_COMMON = $(noinst_HEADERS) $(srcdir)/Makefile.am \
 
 # On Android we must ask for non-executable stack, not sure why.
 @VGCONF_PLATFORMS_INCLUDE_ARM_LINUX_TRUE@@VGCONF_PLATVARIANT_IS_ANDROID_TRUE@am__append_2 = -Wl,-z,noexecstack
-# For PiCO QL
-bin_PROGRAMS = cg_merge$(EXEEXT) picoQL-gui
+# picoQL-($VG_TOOL)-gui is built and installed in picoQL Makefile.
+bin_PROGRAMS = cg_merge$(EXEEXT)
 @VGCONF_PLATFORMS_INCLUDE_X86_DARWIN_TRUE@am__append_3 = -Wl,-read_only_relocs -Wl,suppress
 noinst_PROGRAMS = cachegrind-@VGCONF_ARCH_PRI@-@VGCONF_OS@$(EXEEXT) \
 	$(am__EXEEXT_1)
@@ -779,8 +779,6 @@ clean-binPROGRAMS:
 # For PiCO QL
 VG_TOOL := cachegrind
 export VG_TOOL
-picoQL-gui: picoQL-gen libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@
-
 PICO_QL_srcdir = ../PiCO_QL/src/Valgrind-mod
 PICO_QL_CFLAGS_@VGCONF_ARCH_PRI@_@VGCONF_OS@ := $(DEFS) $(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(cachegrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CFLAGS) -Wno-long-long -fno-stack-protector
 export PICO_QL_CFLAGS_@VGCONF_ARCH_PRI@_@VGCONF_OS@
@@ -788,7 +786,7 @@ PICO_QL_CFLAGS_@VGCONF_ARCH_SEC@_@VGCONF_OS@ := $(DEFS) $(cachegrind_@VGCONF_ARC
 export PICO_QL_CFLAGS_@VGCONF_ARCH_SEC@_@VGCONF_OS@
 
 libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@:
-	$(MAKE) -C $(PICO_QL_srcdir) libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@ && cp $(PICO_QL_srcdir)/picoQL-gui .
+	$(MAKE) -C $(PICO_QL_srcdir) libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@
 
 @VGCONF_HAVE_PLATFORM_SEC_TRUE@libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@:
 @VGCONF_HAVE_PLATFORM_SEC_TRUE@	$(MAKE) -C $(PICO_QL_srcdir) libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@ 
