@@ -81,10 +81,10 @@ OBJ_@VGCONF_ARCH_PRI@_@VGCONF_OS@ = pico_ql_search_$(VG_TOOL)_@VGCONF_ARCH_PRI@_
 libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@: ui $(OBJ_@VGCONF_ARCH_PRI@_@VGCONF_OS@)
 	ar rcs libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@.a $(OBJ_@VGCONF_ARCH_PRI@_@VGCONF_OS@) 
 
-pico_ql_search_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT): pico_ql_search.c pico_ql_search.h pico_ql_internal.h
+pico_ql_search_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT): pico_ql_search_$(VG_TOOL).c pico_ql_search.h pico_ql_internal.h
 	$(CC) $(PICO_QL_CFLAGS_@VGCONF_ARCH_PRI@_@VGCONF_OS@) -c $< -o $@ 
 
-pico_ql_internal_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT): pico_ql_internal.c pico_ql_internal.h pico_ql_interface.h pico_ql_search_helper.h
+pico_ql_internal_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT): pico_ql_internal_$(VG_TOOL).c pico_ql_internal.h pico_ql_interface.h pico_ql_search_helper.h
 	$(CC) $(PICO_QL_CFLAGS_@VGCONF_ARCH_PRI@_@VGCONF_OS@) -c $< -o $@ 
 
 pico_ql_vt_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT): pico_ql_vt.c pico_ql_vt.h pico_ql_internal.h
@@ -131,13 +131,13 @@ OBJ_@VGCONF_ARCH_SEC@_@VGCONF_OS@ = pico_ql_search_$(VG_TOOL)_@VGCONF_ARCH_SEC@_
 				    unistd_@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT) \
 				    time_@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT)
 
-@VGCONF_HAVE_PLATFORM_SEC_TRUE@libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@: gen $(OBJ_@VGCONF_ARCH_SEC@_@VGCONF_OS@)
+@VGCONF_HAVE_PLATFORM_SEC_TRUE@libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@: $(OBJ_@VGCONF_ARCH_SEC@_@VGCONF_OS@)
 @VGCONF_HAVE_PLATFORM_SEC_TRUE@	ar rcs libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@.a $(OBJ_@VGCONF_ARCH_SEC@_@VGCONF_OS@)
 
-pico_ql_search_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT): pico_ql_search.c pico_ql_search.h pico_ql_internal.h
+pico_ql_search_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT): pico_ql_search_$(VG_TOOL).c pico_ql_search.h pico_ql_internal.h
 	$(CC) $(PICO_QL_CFLAGS_@VGCONF_ARCH_SEC@_@VGCONF_OS@) -c $< -o $@ 
 
-pico_ql_internal_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT): pico_ql_internal.c pico_ql_internal.h pico_ql_interface.h pico_ql_search_helper.h
+pico_ql_internal_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT): pico_ql_internal_$(VG_TOOL).c pico_ql_internal.h pico_ql_interface.h pico_ql_search_helper.h
 	$(CC) $(PICO_QL_CFLAGS_@VGCONF_ARCH_SEC@_@VGCONF_OS@) -c $< -o $@ 
 
 pico_ql_vt_@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT): pico_ql_vt.c pico_ql_vt.h pico_ql_internal.h
@@ -170,13 +170,16 @@ unistd_@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT): unistd.c
 time_@VGCONF_ARCH_SEC@_@VGCONF_OS@$(EXT): time.c
 	$(CC) $(PICO_QL_CFLAGS_@VGCONF_ARCH_SEC@_@VGCONF_OS@) -c $< -o $@
 
-pico_ql_search.c: $(rbfiles) pico_ql_erb_templates/$(erbfiles) $(VG_TOOL)_dsl.sql
+# pico_ql_search.h is also generated but it is identical for all tools so no need to diverge.
+pico_ql_search_$(VG_TOOL).c: $(rbfiles) pico_ql_erb_templates/$(erbfiles) $(VG_TOOL)_dsl.sql
 	ruby pico_ql_generator.rb $(VG_TOOL)_dsl.sql valgrind no_mem_mgt
+	mv pico_ql_search.c $@
 
-pico_ql_internal.c: $(rbfiles) pico_ql_erb_templates/$(erbfiles) $(VG_TOOL)_dsl.sql
+pico_ql_internal_$(VG_TOOL).c: $(rbfiles) pico_ql_erb_templates/$(erbfiles) $(VG_TOOL)_dsl.sql
 	ruby pico_ql_generator.rb $(VG_TOOL)_dsl.sql valgrind no_mem_mgt
+	mv pico_ql_internal.c $@
 
-picoQL-$(VG_TOOL)-gui: pico_ql_swill_ui.o pico_ql_logo.o pico_ql_error_page.o
+picoQL-gui: pico_ql_swill_ui.o pico_ql_logo.o pico_ql_error_page.o
 	$(CC) $(UI_CFLAGS) -lswill $^ -o $@
 	cp $@ $(DISTDIR)
 
@@ -192,9 +195,9 @@ cmp:
 seed:
 	cp pico_ql_test_current.txt pico_ql_test_success.txt
 
-gen: src-prep pico_ql_search.c pico_ql_internal.c
+gen: src-prep pico_ql_search_$(VG_TOOL).c pico_ql_internal_$(VG_TOOL).c
 
-ui: ui-prep picoQL-$(VG_TOOL)-gui
+ui: ui-prep picoQL-gui
 
 locfiles := errno stdio string unistd time pico_ql_interface
 
@@ -235,7 +238,7 @@ clean-picoQL_@VGCONF_ARCH_PRI@_@VGCONF_OS@: clean-picoQL-obj_@VGCONF_ARCH_PRI@_@
 
 clean-picoQL-bin_@VGCONF_ARCH_PRI@_@VGCONF_OS@:
 	test ! -f "libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@.a" || rm libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@.a
-	test ! -f "picoQL-$(VG_TOOL)-gui" || rm picoQL-$(VG_TOOL)-gui
+	test ! -f "picoQL-gui" || rm picoQL-gui
 
 clean-picoQL-obj_@VGCONF_ARCH_PRI@_@VGCONF_OS@:
 	$(foreach f, $(cfiles), test ! -f $f_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT) || rm $f_@VGCONF_ARCH_PRI@_@VGCONF_OS@$(EXT) ; )
@@ -245,9 +248,9 @@ clean-picoQL-obj_@VGCONF_ARCH_PRI@_@VGCONF_OS@:
 	$(foreach f, $(uifiles), test ! -f $f$(EXT) || rm $f$(EXT) ; )
 
 clean-picoQL-gen:
-	test ! -f "pico_ql_search.c" || rm pico_ql_search.c
+	test ! -f "pico_ql_search_$(VG_TOOL).c" || rm pico_ql_search_$(VG_TOOL).c
 	test ! -f "pico_ql_search.h" || rm pico_ql_search.h
-	test ! -f "pico_ql_internal.c" || rm pico_ql_internal.c
+	test ! -f "pico_ql_internal_$(VG_TOOL).c" || rm pico_ql_internal_$(VG_TOOL).c
 
 clean-picoQL_@VGCONF_ARCH_SEC@_@VGCONF_OS@: clean-picoQL-obj_@VGCONF_ARCH_SEC@_@VGCONF_OS@ clean-picoQL-bin_@VGCONF_ARCH_SEC@_@VGCONF_OS@
 
