@@ -59,10 +59,10 @@ endif
 
 all: prep capp
 
-OBJ=main.o pico_ql_search.o pico_ql_internal.o pico_ql_vt.o pico_ql_logo.o pico_ql_error_page.o pico_ql_interface.o pico_ql_search_helper.o pico_ql_test.o
+OBJ=main.o pico_ql_search.o pico_ql_internal.o pico_ql_vt.o pico_ql_logo.o pico_ql_error_page.o pico_ql_interface.o pico_ql_search_helper.o pico_ql_test.o sqlite3.o
 
 capp: $(OBJ)
-	$(GC) -lswill -lsqlite3 $(CXXFLAGS) $(OBJ) -o $@
+	$(GC) -lswill $(CXXFLAGS) $(OBJ) -o $@
 
 main.o: main.c Money.h Monetary_System.h MoneyArray.h pico_ql_search.h
 
@@ -81,6 +81,8 @@ pico_ql_interface.o: pico_ql_interface.c pico_ql_interface.h pico_ql_vt.h pico_q
 pico_ql_search_helper.o: pico_ql_search_helper.c pico_ql_search_helper.h pico_ql_internal.h
 
 pico_ql_test.o: pico_ql_test.c pico_ql_test.h pico_ql_internal.h
+
+sqlite3.o: sqlite3.c sqlite3.h
 
 cmp:
 	diff pico_ql_test_current.txt pico_ql_test_success.txt

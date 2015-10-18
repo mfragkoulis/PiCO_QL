@@ -41,7 +41,7 @@ then
 fi
 echo "-> Building."
 make clean > /dev/null
-if ! make PICO_QL_JOIN_THREADS=1 > /dev/null
+if ! make PICO_QL_JOIN_THREADS=1 PICO_QL_HANDLE_TEXT_ARRAY=1 > /dev/null
 then
   echo "Failure in this step.Troubleshoot."
   exit
@@ -69,7 +69,7 @@ then
 fi
 echo "-> Building."
 make clean > /dev/null
-if ! make PICO_QL_JOIN_THREADS=1 > /dev/null
+if ! make PICO_QL_JOIN_THREADS=1 PICO_QL_HANDLE_TEXT_ARRAY=1 > /dev/null
 then
   echo "Failure in this step.Troubleshoot."
   exit
