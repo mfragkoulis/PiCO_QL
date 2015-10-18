@@ -70,6 +70,8 @@ int <%= @name %>_vt::operator() (sqlite3_vtab *vtab, sqlite3_vtab_cursor *cur) {
     pair<map<sqlite3_vtab_cursor *, ResultSet>::iterator, bool> inserted = cursors.insert(pair<sqlite3_vtab_cursor *, ResultSet>(cur, r));
 #ifdef PICO_QL_DEBUG
     printf("Table %s, Cursor: inserted %i, max size %i, resBts size %i\n", ((picoQLTable *)cur->pVtab)->zName, (int)inserted.second, stcsr->max_size, (int)cursors[cur].resBts.size());
+#else
+    (void)inserted;
 #endif
   } else {
     ResultSet *rs = &cursors[cur];
@@ -80,6 +82,8 @@ int <%= @name %>_vt::operator() (sqlite3_vtab *vtab, sqlite3_vtab_cursor *cur) {
     pair<set<sqlite3_vtab_cursor *>::iterator, bool> inserted = cursors.insert(cur);
 #ifdef PICO_QL_DEBUG
     printf("Table %s, sqlite3_cursor %lx: inserted %i\n", ((picoQLTable *)cur->pVtab)->zName, (long)cur, (int)inserted.second);
+#else
+    (void)inserted;
 #endif
   }  
 <%      end %>
