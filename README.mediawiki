@@ -2,6 +2,9 @@ PiCO QL is a C/C++ plug-in library that sets up an
 SQL SELECT web-accessible online interactive interface over C/C++ data structures.
 SQL queries access the application's data structures in place.
 
+This branch contains releases of the generic PiCO_QL plugin for C/C++ applications.
+It is not guaranteed to work in the kernel or Valgrind contexts.
+
 For C++ applications, PiCO QL supports querying of
 containers compatible with the C++ SGI
 [http://www.sgi.com/tech/stl/ForwardContainer.html forward container]
