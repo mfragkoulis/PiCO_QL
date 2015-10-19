@@ -46,10 +46,11 @@ users can query the metadata using SQL queries.
 Synchronization issues are skipped using a simple stop-the-clock implementation to poll for a query
 waiting to be executed.
 
-==Platforms== Userspace (built-in examples):
+==Platforms==
 
+   Userspace (built-in examples):
    Tested under Mac OS X 10.6.7-8, 10.8.5, 10.10.5
-                  Linux 2.6
+     Linux 2.6
    Linux kernel module:
      Tested on:
        Architectures: x86_64, amd64
@@ -58,7 +59,7 @@ waiting to be executed.
                                 Ubuntu server 10.04 - 2.6.32
    Valgrind extension:
      Tested under Mac OS X 10.6.7-8, 10.8.5
-    
+
 ==Testing==
 
 * Userspace: Commits are verified against: 
