@@ -46,10 +46,9 @@ users can query the metadata using SQL queries.
 Synchronization issues are skipped using a simple stop-the-clock implementation to poll for a query
 waiting to be executed.
 
-==Platforms==
+==Platforms== Userspace (built-in examples):
 
-   Userspace (built-in examples):
-     Tested under Mac OS X 10.6.7-8, 10.8.5, 10.10.5
+   Tested under Mac OS X 10.6.7-8, 10.8.5, 10.10.5
                   Linux 2.6
    Linux kernel module:
      Tested on:
@@ -59,7 +58,7 @@ waiting to be executed.
                                 Ubuntu server 10.04 - 2.6.32
    Valgrind extension:
      Tested under Mac OS X 10.6.7-8, 10.8.5
-       
+    
 ==Testing==
 
 * Userspace: Commits are verified against: 
@@ -70,32 +69,12 @@ waiting to be executed.
 
 ==DEPENDENCIES==
 
-* [http://www.ruby-lang.org/en Ruby]
-   Part of the library's source code (the
-   parser/code generator) is written in Ruby.
+* [http://www.ruby-lang.org/en Ruby] Part of the library's source code (the parser/code generator) is written in Ruby.
+* [http://www.sqlite.org SQLite3] While PiCO QL does not use a database or other store to copy and/or store data, it uses the virtual table (VT) mechanism of Sqlite3 to provide a relational representation of the underlying data model. The PiCO QL source code includes SQLite, so it does not have to be installed in your system.
+* [http://swill.sourceforge.net SWILL] Once plugged in an application, PiCO QL uses the same  or a separate thread and utilises the SWILL library to present a local server with a web-like, user friendly query interface. In case of the kernel configuration this interface wraps the /proc interface.
+* [http://www.boost.org Boost] For C++ the library accepts any container iterable in some fashion and provides concept checks (compile-time), implemented by Boost, for containers modelled after the ForwardContainer and ForwardIterator concepts
 
-* [http://www.sqlite.org SQLite3]
-   While PiCO QL does not use a database or other store
-   to copy and/or store data, it uses the virtual
-   table (VT) mechanism of Sqlite3 to provide a relational
-   representation of the underlying data model.
-   The PiCO QL source code includes SQLite, so it does not
-   have to be installed in your system.
-
-* [http://swill.sourceforge.net SWILL]
-   Once plugged in an application, PiCO QL uses the same 
-   or a separate thread and utilises the SWILL library to
-   present a local server with a web-like, user
-   friendly query interface. In case of the kernel
-   configuration this interface wraps the /proc interface.
-
-* [http://www.boost.org Boost]
-   For C++ the library accepts any container iterable
-   in some fashion and provides concept checks (compile-time),
-   implemented by Boost, for containers modelled 
-   after the ForwardContainer and ForwardIterator concepts
-
-==PiCO QL PACKAGE STRUCTURE==
+==Package structure==
 
 * At the ''examples/'' directory, users can browse:
 Several implemented userspace application example scenarios 
