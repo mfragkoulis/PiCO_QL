@@ -68,7 +68,7 @@ waiting to be executed.
 * Kernel: Commits are verified against an array of [https://github.com/mfragkoulis/PiCO_QL/blob/master/src/Linux-kernel-mod/server/picoQL-tests.sql SQL queries] by executing a [https://github.com/mfragkoulis/PiCO_QL/blob/master/src/Linux-kernel-mod/server/picoQL-auto-test.sh script].
 
 
-==DEPENDENCIES==
+==Dependencies==
 
 * [http://www.ruby-lang.org/en Ruby] Part of the library's source code (the parser/code generator) is written in Ruby.
 * [http://www.sqlite.org SQLite3] While PiCO QL does not use a database or other store to copy and/or store data, it uses the virtual table (VT) mechanism of Sqlite3 to provide a relational representation of the underlying data model. The PiCO QL source code includes SQLite, so it does not have to be installed in your system.
