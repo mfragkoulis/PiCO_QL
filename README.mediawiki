@@ -46,7 +46,7 @@ waiting to be executed.
 ==Platforms==
 
    Userspace (built-in examples):
-     Tested under Mac OS X 10.6.7-8, 10.8.5
+     Tested under Mac OS X 10.6.7-8, 10.8.5, 10.10.5
                   Linux 2.6
    Linux kernel module:
      Tested on:
@@ -76,6 +76,8 @@ DEPENDENCIES
    to copy and/or store data, it uses the virtual
    table (VT) mechanism of Sqlite3 to provide a relational
    representation of the underlying data model.
+   The PiCO QL source code includes SQLite, so it does not
+   have to be installed in your system.
 
 * [http://swill.sourceforge.net SWILL]
    Once plugged in an application, PiCO QL uses the same 
