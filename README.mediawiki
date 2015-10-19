@@ -68,7 +68,7 @@ waiting to be executed.
 * Kernel: Commits are verified against an array of [https://github.com/mfragkoulis/PiCO_QL/blob/master/src/Linux-kernel-mod/server/picoQL-tests.sql SQL queries] by executing a [https://github.com/mfragkoulis/PiCO_QL/blob/master/src/Linux-kernel-mod/server/picoQL-auto-test.sh script].
 
 
-DEPENDENCIES
+==DEPENDENCIES==
 
 * [http://www.ruby-lang.org/en Ruby]
    Part of the library's source code (the
@@ -95,7 +95,7 @@ DEPENDENCIES
    implemented by Boost, for containers modelled 
    after the ForwardContainer and ForwardIterator concepts
 
-PiCO QL PACKAGE STRUCTURE
+==PiCO QL PACKAGE STRUCTURE==
 
 * At the ''examples/'' directory, users can browse:
 Several implemented userspace application example scenarios 
