@@ -46,6 +46,9 @@ int SuperAccount::get_isbn() const {
     return isbn;
 }
 
+void SuperAccount::set_isbn(int i) {
+    isbn = i;
+}
 double SuperAccount::get_rate() {
     return balance / 100;
 }

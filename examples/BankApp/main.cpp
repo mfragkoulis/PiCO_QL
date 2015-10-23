@@ -20,6 +20,7 @@
  */
 
 #include <cstdio>
+#include <cstdlib> /* rand() */
 #include <string>
 #include <map>
 #include <list>
@@ -109,10 +110,15 @@ int main() {
     pico_ql_register((const void *)&specialaccounts, "specialaccounts");
     pico_ql_serve(8081);
     
-    for (it = superaccounts.begin(); it != superaccounts.end(); it++) {
-	printf("%i\n", it->second.get_isbn());
-	
+    printf("Continue");
+    while (1) {
+        for (it = superaccounts.begin(); it != superaccounts.end(); it++) {
+	    it->second.set_isbn(rand());
+            //printf("new isbn: %d", it->second.get_isbn());
+        }
+        sleep(2);
     }
+
     return 0;
 }
 

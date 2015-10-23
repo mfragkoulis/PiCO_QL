@@ -37,6 +37,7 @@ class SuperAccount {
   float get_balance() const;
   const char * get_account_no() const;
   int get_isbn() const;
+  void set_isbn(int i);
   virtual double get_rate();
 
 };
