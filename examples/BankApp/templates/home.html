@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+</head>
+
+<body>
+<script>
+
+var query_interval = undefined;
+
+function handle_result(result) {
+    document.open()
+    var json_data = JSON.parse(result);
+    document.write(json_data['resultset']);
+}
+
+function ask_query() {
+    var httpRequest = new XMLHttpRequest();
+    httpRequest.onload = function() {
+        handle_result(httpRequest.responseText);
+    }
+    httpRequest.open('GET', "/ask");
+    httpRequest.setRequestHeader("HTTP_CHOOSE_RESPONSE_TYPE", "application/json");
+    httpRequest.send();
+}
+
+ask_query();
+query_interval = window.setInterval(ask_query, 500);
+
+</script>
+</body>
+</html>
