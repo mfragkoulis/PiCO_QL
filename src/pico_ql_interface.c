@@ -34,48 +34,98 @@
 /* Forwards  a query for execution to sqlite and 
  * presents the resultset of a query.
  */
-int step_query(FILE *f, sqlite3_stmt *stmt) {
+int step_query(FILE *f, sqlite3_stmt *stmt, const char *response_type) {
   int col, result, rows = 0;
-  swill_fprintf(f, "<table>");
-  swill_fprintf(f, "</tr>");
-  for (col = 0; col < sqlite3_column_count(stmt); col++) {
-    swill_fprintf(f, "<td><b>%s</td></b>", 
-		  sqlite3_column_name(stmt, col));
-  }
-  swill_fprintf(f, "</tr>");
-  while ((result = sqlite3_step(stmt)) == SQLITE_ROW) {
-    rows++;
-    swill_fprintf(f, "<tr>");
+  if ((!strcmp(response_type, "text/html"))) {
+    swill_fprintf(f, "<table>");
+    swill_fprintf(f, "</tr>");
+  } else
+    swill_fprintf(f, "[");
+  if (!strcmp(response_type, "text/html")) {
     for (col = 0; col < sqlite3_column_count(stmt); col++) {
-      switch (sqlite3_column_type(stmt, col)) {
-      case 1:
-	swill_fprintf(f, "<td><b>%li</b></td>", 
-		      (long)sqlite3_column_int64(stmt, col));
-	break;
-      case 2:
-	swill_fprintf(f, "<td><b>%f</b></td>", 
-		      sqlite3_column_double(stmt, col));
-	break;
-      case 3:
-	swill_fprintf(f, "<td><b>%s</b></td>", 
-		      sqlite3_column_text(stmt, col));
-	break;
-      case 4:
-	swill_fprintf(f, "<td><b>%s</b></td>", 
-		      (char *)sqlite3_column_blob(stmt, 
-						  col));
-	break;
-      case 5:
-	swill_fprintf(f, "<td><b>(null)</td></b>");
-	break;
-      }
+      swill_fprintf(f, "<td><b>%s</td></b>",
+		    sqlite3_column_name(stmt, col));
     }
     swill_fprintf(f, "</tr>");
   }
-  swill_fprintf(f,"</table>");
-  swill_fprintf(f, "<br>");
-  swill_fprintf(f, "<b>%i rows in result set.</b><br>", rows);
-  swill_fprintf(f, "<br>");
+  while ((result = sqlite3_step(stmt)) == SQLITE_ROW) {
+    rows++;
+    if (!strcmp(response_type, "text/html"))
+      swill_fprintf(f, "<tr>");
+    else
+      if (rows == 1)
+        swill_fprintf(f, " {");
+      else
+        swill_fprintf(f, ", {");
+    for (col = 0; col < sqlite3_column_count(stmt); col++) {
+        if (!strcmp(response_type, "application/json")) {
+          if (col != 0)
+            swill_fprintf(f, ",");
+        }
+      switch (sqlite3_column_type(stmt, col)) {
+      case 1:
+        if (!strcmp(response_type, "text/html")) {
+	  swill_fprintf(f, "<td><b>%li</b></td>",
+		        (long)sqlite3_column_int64(stmt, col));
+        } else {
+	  swill_fprintf(f, " \"%s\" : %li",
+                        sqlite3_column_name(stmt, col),
+		        (long)sqlite3_column_int64(stmt, col));
+        }
+	break;
+      case 2:
+        if (!strcmp(response_type, "text/html")) {
+	  swill_fprintf(f, "<td><b>%f</b></td>", 
+		      sqlite3_column_double(stmt, col));
+        } else {
+	  swill_fprintf(f, " \"%s\" : %f",
+                        sqlite3_column_name(stmt, col),
+		        sqlite3_column_double(stmt, col));
+        }
+	break;
+      case 3:
+        if (!strcmp(response_type, "text/html")) {
+	  swill_fprintf(f, "<td><b>%s</b></td>", 
+		      sqlite3_column_text(stmt, col));
+        } else {
+	  swill_fprintf(f, " \"%s\" : \"%s\"",
+                        sqlite3_column_name(stmt, col),
+		        sqlite3_column_text(stmt, col));
+        }
+	break;
+      case 4:
+        if (!strcmp(response_type, "text/html")) {
+	  swill_fprintf(f, "<td><b>%s</b></td>", 
+		      (char *)sqlite3_column_blob(stmt, 
+						  col));
+        } else {
+	  swill_fprintf(f, " \"%s\" : \"%s\"",
+                        sqlite3_column_name(stmt, col),
+		        (char *)sqlite3_column_blob(stmt, col));
+        }
+	break;
+      case 5:
+        if (!strcmp(response_type, "text/html")) {
+	  swill_fprintf(f, "<td><b>(null)</td></b>");
+        } else {
+	  swill_fprintf(f, " \"%s\" : \"(null)\"",
+                        sqlite3_column_name(stmt, col));
+        }
+	break;
+      }
+    }
+    if (!strcmp(response_type, "text/html"))
+      swill_fprintf(f, "</tr>");
+    else
+      swill_fprintf(f, " }");
+  }
+  if (!strcmp(response_type, "text/html")) {
+    swill_fprintf(f,"</table>");
+    swill_fprintf(f, "<br>");
+    swill_fprintf(f, "<b>%i rows in result set.</b><br>", rows);
+    swill_fprintf(f, "<br>");
+  } else
+    swill_fprintf(f, " ]");
   return result;
 }
 
@@ -83,44 +133,57 @@ int step_query(FILE *f, sqlite3_stmt *stmt) {
  * Collects and acts on the result status of a query 
  * execution.
  */
-int file_prep_exec(FILE *f, sqlite3_stmt *stmt) {
+int file_prep_exec(FILE *f, sqlite3_stmt *stmt, const char *response_type) {
   int result = 0;
-  result = step_query(f, stmt);
+  result = step_query(f, stmt, response_type);
   switch (result) {
   case SQLITE_DONE:
 #ifdef PICO_QL_DEBUG
-    swill_fprintf(f, "<b>DONE<br></b>");
+    if (!strcmp(response_type, "text/html"))
+      swill_fprintf(f, "<b>DONE<br></b>");
+    else
+      swill_fprintf(f, "DONE\n");
 #endif
     break;
   case SQLITE_OK:
 #ifdef PICO_QL_DEBUG
-    swill_fprintf(f, "<b>OK<br></b>");
+    if (!strcmp(response_type, "text/html"))
+      swill_fprintf(f, "<b>OK<br></b>");
+    else
+      swill_fprintf(f, "OK\n");
 #endif
     break;
   case SQLITE_ERROR:
+  if (!strcmp(response_type, "text/html"))
     swill_fprintf(f, "<b>SQL error or missing database.\n</b>");
+  else
+    swill_fprintf(f, "SQL error or missing database.\n");
     break;
   case SQLITE_MISUSE:
+  if (!strcmp(response_type, "text/html"))
     swill_fprintf(f, "<b>Library used incorrectly.<br></b>");
+  else
+    swill_fprintf(f, "Library used incorrectly.\n");
     break;
   }
   return result;
 }
 
 // Takes care of query preparation and execution.
-int prep_exec(FILE *f, sqlite3 *db, const char *q){
+int prep_exec(FILE *f, sqlite3 *db, const char *q, const char *response_type) {
   sqlite3_stmt  *stmt;
   int result, prepare;
   if ((prepare = sqlite3_prepare_v2(db, q, -1, &stmt, 0)) == SQLITE_OK) {
     if (f) {
-      result = file_prep_exec(f, stmt);
+      result = file_prep_exec(f, stmt, response_type);
       fprintf(f, "\n");
-    } else
+    } else {
       /* Step only: queries with no resultset (check if 
        * table exists). For those queries preparation 
        * will always succeed.
        */ 
       result = sqlite3_step(stmt);
+    }
   } else {
     if (f) {
       swill_fprintf(f, "Error in preparation of query: error no %i\n", prepare);
@@ -185,7 +248,7 @@ void app_index(FILE *f, sqlite3 *db) {
 		"</div>"
 		"<div class=\"div_tbl\">"
 		"<span class=\"style_text\"><b>Your database schema is:</b></span>");
-  prep_exec(f, db, "SELECT * FROM sqlite_master;");
+  prep_exec(f, db, "SELECT * FROM sqlite_master;", "text/html");
   swill_fprintf(f, "</div>"
 		"<br>"
 		"<p class=\"aligned\">");
@@ -204,7 +267,15 @@ void app_index(FILE *f, sqlite3 *db) {
  */
 void serve_query(FILE *f, sqlite3 *db) {
   const char *query = "\0";
-  swill_fprintf(f, "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"\n\"http://www.w3.org/TR/html4/loose.dtd\">"
+  char response_type[50];
+  char *rt = swill_getheader("Http_Choose_Response_Type");
+  if (rt)
+    strcpy(response_type, rt);
+  else
+    strcpy(response_type, "text/html");   /* default */
+  //swill_fprintf(f, "Response type should be: %s", response_type);
+  if (!strcmp(response_type, "text/html"))
+    swill_fprintf(f, "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"\n\"http://www.w3.org/TR/html4/loose.dtd\">"
 		"<html>"
 		"<head>"
 		"<style type=\"text/css\">"
@@ -221,42 +292,53 @@ void serve_query(FILE *f, sqlite3 *db) {
     double c_time;
     start_clock = clock();
     int j = 0;
-    swill_fprintf(f, "<b>For SQL query: ");
-    swill_fprintf(f, "<span class=\"styled\">%s</span><br><br>", query);
-    swill_fprintf(f, "Result set is:</b><br><br>");
+    if (!strcmp(response_type, "text/html")) {
+      swill_fprintf(f, "<b>For SQL query: ");
+      swill_fprintf(f, "<span class=\"styled\">%s</span><br><br>", query);
+      swill_fprintf(f, "Result set is:</b><br><br>");
+    }
     // j for debugging, execute the query multiple times.
-    while (j < 1 && (rc = prep_exec(f, db, query)) == SQLITE_DONE) {
+    while (j < 1 && (rc = prep_exec(f, db, query, response_type)) == SQLITE_DONE) {
       j++;
     }
     if (rc == SQLITE_DONE) {
       finish_clock = clock();
       c_time = ((double)finish_clock - 
 		(double)start_clock)/CLOCKS_PER_SEC;
-      swill_fprintf(f, "<b>\nQUERY SUCCESSFUL! </b><br><br>");
-      swill_fprintf(f,"CPU time: <b>%f</b>s.<br><br>", c_time);
+      if (!strcmp(response_type, "text/html")) {
+        swill_fprintf(f, "<b>\nQUERY SUCCESSFUL! </b><br><br>");
+        swill_fprintf(f,"CPU time: <b>%f</b>s.<br><br>", c_time);
+      }
     } else {
-      swill_fprintf(f, "<br><b>Extended error message:<br><b>%s</b><br><br>", sqlite3_errmsg(db));
-      swill_fprintf(f, "Extended error code <b>%i.<br>Please advise </b><a href=\"", sqlite3_extended_errcode(db));
-      swill_printurl(f, "pico_ql_error_page.html", "", 0);
-      swill_fprintf(f,"\">SQLite error codes</a>.<br><br>");
+      if (!strcmp(response_type, "text/html")) {
+        swill_fprintf(f, "<br><b>Extended error message:<br><b>%s</b><br><br>", sqlite3_errmsg(db));
+        swill_fprintf(f, "Extended error code <b>%i.<br>Please advise </b><a href=\"", sqlite3_extended_errcode(db));
+        swill_printurl(f, "pico_ql_error_page.html", "", 0);
+        swill_fprintf(f,"\">SQLite error codes</a>.<br><br>");
+      }
     }
-    swill_fprintf(f, "<p class=\"aligned\">");
-    swill_fprintf(f, "<a href=\"");
-    swill_printurl(f,"index.html", "", 0);
-    swill_fprintf(f,"\">[ Input new Query ]</a>");
-    swill_fprintf(f, "<a href=\"");
-    swill_printurl(f,"terminateConnection.html", "", 0);
-    swill_fprintf(f,"\">[ Terminate Server Connection ]</a>"
+    if (!strcmp(response_type, "text/html")) {
+      swill_fprintf(f, "<p class=\"aligned\">");
+      swill_fprintf(f, "<a href=\"");
+      swill_printurl(f,"index.html", "", 0);
+      swill_fprintf(f,"\">[ Input new Query ]</a>");
+      swill_fprintf(f, "<a href=\"");
+      swill_printurl(f,"terminateConnection.html", "", 0);
+      swill_fprintf(f,"\">[ Terminate Server Connection ]</a>"
 		  "</p>"
 		  "</body>"
 		  "</html>");
+    }
   }
   clear_temp_structs();
 }
 
 // Terminates connection to the embedded web-server.
 void terminate(FILE *f, sqlite3 *db) {
-  swill_fprintf(f, "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"\n\"http://www.w3.org/TR/html4/loose.dtd\">"
+  char response_type[50];
+  strcpy(response_type, swill_getheader("Http_Choose_Response_Type"));
+  if (!strcmp(response_type, "text/html")) {
+    swill_fprintf(f, "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"\n\"http://www.w3.org/TR/html4/loose.dtd\">"
 		"<html>"
 		"<head>"
 		"<style type=\"text/css\">"
@@ -264,11 +346,14 @@ void terminate(FILE *f, sqlite3 *db) {
 		"</style>"
 		"</head>"
 		"<body>");
+  }
   deinit_selectors();
   sqlite3_close(db);
-  swill_fprintf(f, "<b>TERMINATED CONNECTION...</b>"
+  if (!strcmp(response_type, "text/html")) {
+    swill_fprintf(f, "<b>TERMINATED CONNECTION...</b>"
 		"</body>"
 		"</html>");
+  }
   swill_close();
 }
 
@@ -332,8 +417,8 @@ int register_table(int argc,
     else
       strcpy(sqlite_type, "view");
     sprintf(sqlite_query, "SELECT * FROM sqlite_master WHERE type='%s' AND name='%s';", sqlite_type, sqlite_names[i]);
-    if (prep_exec(NULL, db, (const char *)sqlite_query) != SQLITE_ROW) {
-      re = prep_exec(NULL, db, (const char *)q[i]);
+    if (prep_exec(NULL, db, (const char *)sqlite_query, NULL) != SQLITE_ROW) {
+      re = prep_exec(NULL, db, (const char *)q[i], NULL);
 #ifdef PICO_QL_DEBUG
       printf("Query %s returned %i\n", q[i], re);
 #endif

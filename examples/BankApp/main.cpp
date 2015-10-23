@@ -111,6 +111,7 @@ int main() {
     pico_ql_serve(8081);
     
     printf("Continue");
+/* For testing json web service
     while (1) {
         for (it = superaccounts.begin(); it != superaccounts.end(); it++) {
 	    it->second.set_isbn(rand());
@@ -118,7 +119,7 @@ int main() {
         }
         sleep(2);
     }
-
+*/
     return 0;
 }
 

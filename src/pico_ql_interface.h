@@ -34,7 +34,7 @@ int register_table(int argc,
 		   const char **queries, 
 		   const char **table_names, 
 		   int port_number);
-int prep_exec(FILE *f, sqlite3 *db, const char *q);
+int prep_exec(FILE *f, sqlite3 *db, const char *q, const char *response_type);
 
 #ifdef __cplusplus
 }
