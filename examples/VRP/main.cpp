@@ -31,6 +31,10 @@
 #include "Truck.h"
 #include "Fleet.h"
 #include "mtrand.h"
+
+#ifndef PICO_QL_SINGLE_THREADED
+#include "pthread.h"     // For PiCO_QL
+#endif
 #include "pico_ql_search.h"     // For PiCO_QL
 
 using namespace std;
@@ -304,8 +308,15 @@ int main(int argc, const char *argv[]) {
     // description e.g. (WITH BASE = vehicles").
     pico_ql_register((const void *)best_fl.get_fleet(), "vehicles");
     pico_ql_register((const void *)&test, "test");
-    pico_ql_serve(8083);
-    
+
+#ifndef PICO_QL_SINGLE_THREADED
+    void *exit_status = NULL;
+    pthread_t t;
+    pico_ql_serve(8083, &t);
+#else
+    pico_ql_serve(8083, NULL);
+#endif
+
     cout << endl << "Optimised solution after " << 
         restarts << 
 	" restarts includes " << best_fl.get_size() << 
@@ -324,7 +335,11 @@ int main(int argc, const char *argv[]) {
 	      double(start_clock)) / CLOCKS_PER_SEC;
     cout << "Ellapsed time given by c++ : " << c_time << 
       "s." << endl << endl;
-    
+
+#ifndef PICO_QL_SINGLE_THREADED
+    pthread_join(t, &exit_status);
+#endif
+
     best_fl.deallocate();    
     for (it1 = positions.begin(); it1 != positions.end(); it1++)
 	delete (*it1);

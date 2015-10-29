@@ -23,6 +23,9 @@
 #include "Position.h"
 #include <stdio.h>
 /* PiCO_QL header */
+#ifndef PICO_QL_SINGLE_THREADED
+#include <pthread.h>
+#endif
 #include "pico_ql_search.h"
 /*-------------*/
 
@@ -94,7 +97,13 @@ int main() {
     (*iter).push_back(ChessPiece("knight", "black"));
     (*iter).push_back(ChessPiece("rook", "black"));
 
-    pico_ql_serve(8082);
+#ifndef PICO_QL_SINGLE_THREADED
+    void *exit_status = NULL;
+    pthread_t t;
+    pico_ql_serve(8082, &t);
+#else
+    pico_ql_serve(8082, NULL);
+#endif
 //    move(Position(1, 'c'), Position(2, 'c'));
 
 /*                                                                              
@@ -111,6 +120,9 @@ int main() {
 	endl << endl;          
     }
 */
+#ifndef PICO_QL_SINGLE_THREADED
+    pthread_join(t, &exit_status);
+#endif
     return 0;
 }
 

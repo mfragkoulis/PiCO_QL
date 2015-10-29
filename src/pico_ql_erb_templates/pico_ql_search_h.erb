@@ -34,7 +34,9 @@ namespace picoQL {
 <%    if $argK == "KERNEL" %>
   int pico_ql_serve(sqlite3 *db);
 <%    else %>
-  int pico_ql_serve(int port_number);
+#include <pthread.h>
+
+  int pico_ql_serve(int port_number, pthread_t *t);
 <%    end %>
   void pico_ql_register(const void *collection, const char * col_name);
 

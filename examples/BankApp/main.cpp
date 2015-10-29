@@ -29,6 +29,9 @@
 #include "Account.h"
 #include "SuperAccount.h"
 /* PiCO_QL header */
+#ifndef PICO_QL_SINGLE_THREADED
+#include <pthread.h>
+#endif
 #include "pico_ql_search.h"
 /*------------*/
 
@@ -108,9 +111,14 @@ int main() {
     pico_ql_register((const void *)accountsNULL, "accountsNULL");
     pico_ql_register((const void *)&superaccounts, "superaccounts");
     pico_ql_register((const void *)&specialaccounts, "specialaccounts");
-    pico_ql_serve(8081);
-    
-    printf("Continue");
+
+#ifndef PICO_QL_SINGLE_THREADED
+    pthread_t t;
+    pico_ql_serve(8081, &t);
+#else
+    pico_ql_serve(8081, NULL);
+#endif    
+
 /* For testing json web service
     while (1) {
         for (it = superaccounts.begin(); it != superaccounts.end(); it++) {
@@ -120,6 +128,10 @@ int main() {
         sleep(2);
     }
 */
+#ifndef PICO_QL_SINGLE_THREADED
+    void *exit_status = NULL;
+    pthread_join(t, &exit_status);
+#endif
     return 0;
 }
 

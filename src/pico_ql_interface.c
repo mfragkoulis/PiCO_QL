@@ -336,7 +336,11 @@ void serve_query(FILE *f, sqlite3 *db) {
 // Terminates connection to the embedded web-server.
 void terminate(FILE *f, sqlite3 *db) {
   char response_type[50];
-  strcpy(response_type, swill_getheader("Http_Choose_Response_Type"));
+  char *rt = swill_getheader("Http_Choose_Response_Type");
+  if (rt)
+    strcpy(response_type, rt);
+  else
+    strcpy(response_type, "text/html");   /* default */
   if (!strcmp(response_type, "text/html")) {
     swill_fprintf(f, "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"\n\"http://www.w3.org/TR/html4/loose.dtd\">"
 		"<html>"

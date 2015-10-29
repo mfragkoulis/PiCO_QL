@@ -4,6 +4,10 @@
 #include "Monetary_System.h"
 #include "Money.h"
 #include "MoneyArray.h"
+
+#ifndef PICO_QL_SINGLE_THREADED
+#include <pthread.h>
+#endif
 #include "pico_ql_search.h"
 
 /* .cpp
@@ -106,11 +110,22 @@ int main() {
   pico_ql_register(M, "money");
   pico_ql_register(&ms, "monetary_system");
   pico_ql_register(&ma, "money_array");
-  pico_ql_serve(8080);
+#ifndef PICO_QL_SINGLE_THREADED
+  void *exit_status = NULL;
+  pthread_t t;
+  pico_ql_serve(8080, &t);
+#else
+  pico_ql_serve(8080, NULL);
+#endif
   printf("Money M Price main: %f\n", M->prc.main);
   printf("Money N Price main: %f\n", N->prc.main);
   printf("Money O Price main: %f\n", O->prc.main);
   //  printf("Money Price sub: %i\n", O->prc.sub);
+
+#ifndef PICO_QL_SINGLE_THREADED
+  pthread_join(t, &exit_status);
+#endif
+
   free(M);
   free(N);
   free(O);
