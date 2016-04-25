@@ -93,6 +93,10 @@ int register_vt(picoQLTable *picoQL) {
 <%        if $argD == "DEBUG" %>
 #line <%= @tables[vt].base_var_line + 1 %> "<%= $argF %>" 
 <%        end %>
+    picoQL->dataStream = (void **)&pico_ql_table_<%= @tables[vt].base_var %>_<%= @tables[vt].type.gsub(/(\s*)/, "").gsub(/\*/, "ptr") %>;
+#ifdef PICO_QL_DEBUG
+    printf("New data source for virtual table <%= @tables[vt].name %>.\n");
+#endif
     if (pico_ql_table_<%= @tables[vt].base_var %>_<%= @tables[vt].type.gsub(/(\s*)/, "").gsub(/\*/, "ptr") %> == NULL)
       return SQLITE_ERROR;
     picoQL->data = (void *)pico_ql_table_<%= @tables[vt].base_var %>_<%= @tables[vt].type.gsub(/(\s*)/, "").gsub(/\*/, "ptr") %>;

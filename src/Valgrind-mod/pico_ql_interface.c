@@ -22,9 +22,14 @@
  *   permissions and limitations under the License.
  */
 
-#ifdef __linux__
-#include <fcntl.h> /* O_* */
-#endif
+// Instead of 
+//#ifdef __linux__
+//#include <fcntl.h> /* O_* */
+//#endif
+// for THIS MACHINE do
+#define O_RDONLY        00000000
+#define O_WRONLY        00000001
+#define O_NONBLOCK      00004000
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -363,19 +368,19 @@ int register_table(int argc,
   }
   start_serving();
 #ifndef PICO_QL_TEST
-  sr = mknod("picoQL_query", S_IFIFO | 0660, 0);
+  sr = mknod("/home/mfg/test/picoQL_query", S_IFIFO | 0660, 0);
   if (sr_isError(sr)) {
     printf("Creating picoQL query pipe with error code %d.\n", (int)sr_Res(sr));
     return SQLITE_ERROR;
   }
   printf("Created picoQL_query named pipe.\n");
-  sr = mknod("picoQL_resultset", S_IFIFO | 0660, 0);
+  sr = mknod("/home/mfg/test/picoQL_resultset", S_IFIFO | 0660, 0);
   if (sr_isError(sr)) {
     printf("Creating picoQL result set pipe with error code %d.\n", (int)sr_Res(sr));
     return SQLITE_ERROR;
   }
   printf("Created picoQL_resultset named pipe.\n");
-  sr = mknod("picoQL_time", S_IFIFO | 0660, 0);
+  sr = mknod("/home/mfg/test/picoQL_time", S_IFIFO | 0660, 0);
   if (sr_isError(sr)) {
     printf("Creating picoQL time pipe with error code %d.\n", (int)sr_Res(sr));
     return SQLITE_ERROR;
@@ -384,20 +389,20 @@ int register_table(int argc,
 
   printf("Please execute ./picoQL-gui to initialize the web interface.\n");
 
-  fd_picoQL_query = open("picoQL_query", O_RDONLY | O_NONBLOCK, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP); /* Blocks until ./picoQL-gui is executed. */
+  fd_picoQL_query = open("/home/mfg/test/picoQL_query", O_RDONLY | O_NONBLOCK, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP); /* Blocks until ./picoQL-gui is executed. */
   if (fd_picoQL_query < 0) {
     printf("Opening picoQL_query named pipe failed.\n");
     return SQLITE_ERROR;
   }
   printf("Opened picoQL_query named pipe.\n");
 
-  fd_picoQL_rs = open("picoQL_resultset", O_WRONLY, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+  fd_picoQL_rs = open("/home/mfg/test/picoQL_resultset", O_WRONLY, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
   if (fd_picoQL_rs < 0) {
     printf("Opening picoQL result set named pipe failed.\n");
     return SQLITE_ERROR;
   }
   printf("Opened picoQL_resultset named pipe.\n");
-  fd_picoQL_time = open("picoQL_time", O_WRONLY, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+  fd_picoQL_time = open("/home/mfg/test/picoQL_time", O_WRONLY, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
   if (fd_picoQL_time < 0) {
     printf("Opening picoQL time named pipe failed.\n");
     return SQLITE_ERROR;

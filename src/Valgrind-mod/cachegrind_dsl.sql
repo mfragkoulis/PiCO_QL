@@ -1,9 +1,9 @@
 #include "pub_tool_oset.h"          // OSet 
 
-#define CachegrindVT_decl(X) LineCC* X; 
-#define CachegrindVT_begin(X,Y) X = (LineCC *)VG_(OSetGen_Next)(Y)
-#define CachegrindVT_advance(X,Y) X = (LineCC *)VG_(OSetGen_Next)(Y)
-#define CachegrindVT_end(X) X != NULL
+#define CacheProfile_decl(X) LineCC* X; 
+#define CacheProfile_begin(X,Y) X = (LineCC *)VG_(OSetGen_Next)(Y)
+#define CacheProfile_advance(X,Y) X = (LineCC *)VG_(OSetGen_Next)(Y)
+#define CacheProfile_end(X) X != NULL
 
 typedef
    struct {
@@ -45,54 +45,23 @@ typedef struct {
 $
 
 CREATE STRUCT VIEW CacheV (
-	codeLocFile TEXT FROM loc.file,
-	codeLocFunc TEXT FROM loc.fn,
-	codeLocLine INT FROM loc.line,
-	cacheInstrReadAc BIGINT FROM Ir.a,
-	cacheInstrReadMissL1 BIGINT FROM Ir.m1,
-	cacheInstrReadMissL2 BIGINT FROM Ir.mL,
-	cacheDataReadAc BIGINT FROM Dr.a,
+	codeLocationFile TEXT FROM loc.file,
+	codeLocationFunction TEXT FROM loc.fn,
+	codeLocationLine INT FROM loc.line,
+	cacheInstructionReadAccesses BIGINT FROM Ir.a,
+	cacheInstructionReadMissL1 BIGINT FROM Ir.m1,
+	cacheInstructionReadMissL2 BIGINT FROM Ir.mL,
+	cacheDataReadAccesses BIGINT FROM Dr.a,
 	cacheDataReadMissL1 BIGINT FROM Dr.m1,
 	cacheDataReadMissL2 BIGINT FROM Dr.mL,
-	cacheDataWriteAc BIGINT FROM Dw.a,
+	cacheDataWriteAccesses BIGINT FROM Dw.a,
 	cacheDataWriteMissL1 BIGINT FROM Dw.m1,
 	cacheDataWriteMissL2 BIGINT FROM Dw.mL,
-	branchCondTotal BIGINT FROM Bc.b,
-	branchCondMisPred BIGINT FROM Bc.mp,
-	branchIndirTotal BIGINT FROM Bi.b,
-	branchIndirMisPred BIGINT FROM Bi.mp
 )$
 
-CREATE VIRTUAL TABLE CachegrindVT
+CREATE VIRTUAL TABLE CacheProfile
 USING STRUCT VIEW CacheV
 WITH REGISTERED C NAME cachegrind_out_table
 WITH REGISTERED C TYPE OSet:LineCC*
-USING LOOP VG_(OSetGen_ResetIter)(base);for (CachegrindVT_begin(tuple_iter, base);CachegrindVT_end(tuple_iter);CachegrindVT_advance(tuple_iter, base))$
-
-CREATE VIEW FilterOrderCacheQ AS
-	SELECT codeLocFile, codeLocFunc, codeLocLine,
-		cacheInstrReadAc, cacheInstrReadMissL1,
-		cacheInstrReadMissL2
-	FROM CachegrindVT
-	WHERE cacheInstrReadAc > 1000000
-	ORDER BY cacheInstrReadMissL1, cacheInstrReadMissL2;$
-
-CREATE VIEW FilterFuncCacheQ AS
-	SELECT codeLocFile, codeLocFunc, codeLocLine,
-	       SUM(cacheInstrReadAc), SUM(cacheInstrReadMissL1), SUM(cacheInstrReadMissL2),
-	       SUM(cacheDataReadAc), SUM(cacheDataReadMissL1), SUM(cacheDataReadMissL2),
-	       SUM(cacheDataWriteAc), SUM(cacheDataWriteMissL1), SUM(cacheDataWriteMissL2)
-	FROM CachegrindVT
-	WHERE codeLocFunc LIKE '%lookup%'
-	GROUP BY codeLocFile, codeLocFunc, codeLocLine
-	ORDER BY SUM(cacheDataReadMissL1) DESC;$
-
-CREATE VIEW GroupFuncCacheQ AS
-	SELECT codeLocFile, codeLocFunc, codeLocLine,
-	       SUM(cacheInstrReadAc), SUM(cacheInstrReadMissL1), SUM(cacheInstrReadMissL2),
-	       SUM(cacheDataReadAc), SUM(cacheDataReadMissL1), SUM(cacheDataReadMissL2),
-	       SUM(cacheDataWriteAc), SUM(cacheDataWriteMissL1), SUM(cacheDataWriteMissL2)
-	FROM CachegrindVT
-	GROUP BY codeLocFile, codeLocFunc
-	ORDER BY SUM(cacheDataWriteMissL1) DESC;$
+USING LOOP VG_(OSetGen_ResetIter)(base);for (CacheProfile_begin(tuple_iter, base);CacheProfile_end(tuple_iter);CacheProfile_advance(tuple_iter, base))$
 

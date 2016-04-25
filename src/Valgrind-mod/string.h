@@ -1,6 +1,7 @@
 #ifndef _STRING_H
 #define _STRING_H
 
+#include <stddef.h>
 #include "pub_tool_libcbase.h"
 
 #define strcat(X,Y) VG_(strcat)(X,Y)
@@ -20,7 +21,9 @@
 #define random() VG_(random)(0)  // 0 instead of int *pSeed
 #define srandomdev() VG_(random)(0)  // __APPLE__
 
-typedef SizeT size_t;
+// Left out for compiling on Stereo (mfg - 30/05/2015)
+// Call stddef.h for it.
+//typedef SizeT size_t;
 char *strerror(int errnum);
 
 size_t strlcat(char * restr_dst, const char * restr_src, size_t size);

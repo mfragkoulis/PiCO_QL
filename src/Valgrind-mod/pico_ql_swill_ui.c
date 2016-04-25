@@ -276,21 +276,21 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
-  fd.q = open("picoQL_query", O_WRONLY, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+  fd.q = open("/home/mfg/test/picoQL_query", O_WRONLY, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
   if (fd.q < 0) {
     printf("Opening picoQL query pipe at client side failed.\n");
     return 1;
   }
   printf("Opened picoQL_query named pipe for web interface.\n");
 
-  fd.rs = open("picoQL_resultset", O_RDONLY, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+  fd.rs = open("/home/mfg/test/picoQL_resultset", O_RDONLY, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
   if (fd.rs < 0) {
     printf("Opening picoQL query pipe at client side failed.\n");
     return 1;
   }
   printf("Opened picoQL_resultset named pipe for web interface.\n");
 
-  fd.t = open("picoQL_time", O_RDONLY, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+  fd.t = open("/home/mfg/test/picoQL_time", O_RDONLY, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
   if (fd.rs < 0) {
     printf("Opening picoQL time pipe at client side failed.\n");
     return 1;

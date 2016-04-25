@@ -18,8 +18,9 @@
 #define PAGE_SIZE VKI_PAGE_SIZE 
 #include <sys/stat.h>
 #include "pub_tool_basics.h" // OffT (instead of off_t)
-typedef vki_mode_t mode_t;  /* mode_t not defined */
-typedef OffT off_t;
+// Left out for compiling on Stereo (mfg - 30/05/2015)
+//typedef vki_mode_t mode_t;  /* mode_t not defined */
+//typedef OffT off_t;
 struct statfs;
 
 /* VG: matched: Open new file and obtain its file descriptor */

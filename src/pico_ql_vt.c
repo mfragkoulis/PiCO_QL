@@ -148,6 +148,8 @@ int init_vtable(int iscreate,
     temp += n;
     assert(temp <= &((char *)picoQL)[nByte]);
   }
+  
+  picoQL->dataStream = NULL;
 
   create(db, argc, argv, query);
 #ifdef PICO_QL_DEBUG
@@ -460,6 +462,18 @@ int open_vtable(sqlite3_vtab *pVtab,
   memset(pCsr, 0, sizeof(picoQLTableCursor));
   pCsr->pVtab = &st->vtab;
   stc = (picoQLTableCursor *)pCsr;
+  /* If application calls pico_ql_register() after virtual
+   * table registration or multiple times dataStream holds
+   * the sharpest pointer to data.
+   */
+  if (st->dataStream != NULL) {
+    st->data = *(st->dataStream);
+    stc->isInstanceNULL = 0;
+    stc->isInstanceEmpty = 0;
+#ifdef PICO_QL_DEBUG
+    printf("New data source available for VT %s in address %lx\n\n", st->zName,(long)*(st->dataStream));
+#endif
+  }
   /* Keep copy of initial data. Might change in search. 
    * Useful when multiple instances of the VT are open.
    */

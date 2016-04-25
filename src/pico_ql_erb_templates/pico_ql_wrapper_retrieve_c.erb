@@ -125,16 +125,16 @@ void * thread_sqlite(void *data) {
 <%        query += "#{c.name} #{c.data_type}, " %>
 <%      } %>
 <%      query = query.chomp(", ") + ")" %>
-  queries[<%= vt %>] = (char *)sqlite3_malloc(sizeof(char) * <%= query.length %>);
+  queries[<%= vt %>] = (char *)sqlite3_malloc(sizeof(char) * <%= query.length + 1 %>);
   strcpy(queries[<%= vt %>], "<%= query %>");
-  sqlite_names[<%= vt %>] = (char *)sqlite3_malloc(sizeof(char) * <%= @tables[vt].name.length %>);
+  sqlite_names[<%= vt %>] = (char *)sqlite3_malloc(sizeof(char) * <%= @tables[vt].name.length + 1 %>);
   strcpy(sqlite_names[<%= vt %>], "<%= @tables[vt].name %>");
 <%    } %>
 <%    if views_length > 0 %>
 <%      @views.each_index { |vs| %>
-  queries[<%= vs + @tables.length %>] = (char *)sqlite3_malloc(sizeof(char) * <%= @views[vs].stmt.length.to_s %>);
+  queries[<%= vs + @tables.length %>] = (char *)sqlite3_malloc(sizeof(char) * <%= (@views[vs].stmt.length + 1).to_s %>);
   strcpy(queries[<%= vs + @tables.length %>], "<%= @views[vs].stmt %>");
-  sqlite_names[<%= vs + @tables.length %>] = (char *)sqlite3_malloc(sizeof(char) * <%= @views[vs].stmt.length.to_s %>);
+  sqlite_names[<%= vs + @tables.length %>] = (char *)sqlite3_malloc(sizeof(char) * <%= (@views[vs].stmt.length + 1).to_s %>);
   strcpy(sqlite_names[<%= vs + @tables.length %>], "<%= @views[vs].name %>");
 <%      } %>
 <%    end %>
@@ -155,10 +155,18 @@ void * thread_sqlite(void *data) {
   }
 
   exit:
-    for (i = 0; i < <%= (@tables.length + views.length).to_s %>; i++)
+#ifdef PICO_QL_DEBUG
+    printf("register_table(): proceeding to deallocate memory and exit.");
+#endif
+    for (i = 0; i < <%= (@tables.length + views.length).to_s %>; i++) {
       sqlite3_free(queries[i]);
+      sqlite3_free(sqlite_names[i]);
+    }
     sqlite3_free(queries);
     sqlite3_free(sqlite_names);
+#ifdef PICO_QL_DEBUG
+    printf("register_table(): deallocated memory; exiting now.");
+#endif
     return re;
 }
 
