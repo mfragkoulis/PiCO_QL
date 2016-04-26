@@ -337,12 +337,13 @@ int register_table(int argc,
 #endif
 #ifndef __APPLE__
 #ifndef SQLITE_OMIT_LOAD_EXTENSION
-// sqlite3_load_extension() calls
+/* sqlite3_load_extension() calls
   if (sqlite3_enable_load_extension(db, 1))
     printf("Extension loading failed.\n");
   if (sqlite3_load_extension(db, "math_func_sqlitext", NULL, NULL))
     printf("Extension loading failed.\n");
-// sqlite3_create_function() calls
+//sqlite3_create_function() calls
+*/
 #endif
 #endif
   for (i = 0; i < argc; i++) {

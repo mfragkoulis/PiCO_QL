@@ -117,3 +117,55 @@ WITH REGISTERED C TYPE thread_info **:thread_info *
 USING LOOP for(ApplicationThread_begin(tuple_iter, base, i); ApplicationThread_end(i, VG_N_THREADS); ApplicationThread_advance(tuple_iter, base, ++i))$
 
 
+CREATE VIEW OrderedMangleBasicBlockQ AS
+        SELECT DISTINCT memoryAddress,FN.codeLocationFunction, codeLocationLine,
+                contextBaseNumber, codeLocationFile,
+                codeLocationObject, codeLocationObjectOffset, instructionCount
+        FROM ApplicationThread T
+        JOIN BasicBlockCostCentersAll BC
+        ON BC.base=T.basicBlockCostCentersAllId
+        JOIN BasicBlock BB
+        ON BB.base = BC.basicBlockId
+        JOIN FunctionNode FN
+        ON FN.base = BB.functionNodeId
+        WHERE NOT BC.executionCounterSum
+        ORDER BY BB.codeLocationObject, codeLocationFile, codeLocationFunction;$
+
+CREATE VIEW OrderedExeCounterBasicBlockQ AS
+        SELECT memoryAddress, codeLocationFunction, codeLocationLine,
+                contextBaseNumber, codeLocationFile,
+                BB.codeLocationObjectOffset, instructionCount,
+                SUM(R.executionCounterSum), SUM(FC.instructionFetches)
+        FROM ApplicationThread T
+        JOIN BasicBlockCostCentersAll BC
+        ON BC.base=T.basicBlockCostCentersAllId
+        JOIN BasicBlockCostCenterRecursion R
+        ON R.base = BC.basicBlockCostCenterRecursionId
+        JOIN BasicBlock BB
+        ON BB.base = R.basicBlockId
+        JOIN FunctionNode FN
+        ON FN.base = BB.functionNodeid
+        JOIN FullCost FC
+        ON FC.base = R.costId
+        GROUP BY BC.basicBlockId
+        ORDER BY SUM(R.executionCounterSum) DESC
+        LIMIT 20;$
+
+CREATE VIEW OrderedCallCounterJumpCallQ AS
+        SELECT memoryAddress, codeLocationFunction, codeLocationLine,
+                codeLocationObject,
+                SUM(callCounter), SUM(executionCounterSum), InstructionFetches
+        FROM ApplicationThread T
+        JOIN JumpCallCostCentersAll JC
+        ON JC.base=T.jumpCallCostCentersAllId
+        JOIN BasicBlockCostCenter BC
+        ON BC.base=JC.fromBasicBlockCostCenterId
+        JOIN BasicBlock BB
+        ON BB.base = BC.basicBlockId
+        JOIN FunctionNode FN
+        ON FN.base = BB.functionNodeId
+        JOIN FullCost FC
+        ON FC.base = JC.costId
+        GROUP BY BC.basicBlockID
+        ORDER BY SUM(callCounter) DESC;
+

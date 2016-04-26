@@ -7,6 +7,10 @@
 #include "pub_tool_errormgr.h"      // typedef struct _Error Error, typedef struct _Supp Supp
 #include "pub_tool_xarray.h"        // typedef struct _XArray XArray
 
+#define MemProfileVT_decl(X) MC_Chunk* X;
+#define MemProfileVT_begin(X,Y) X = (MC_Chunk *)VG_(HT_Next)(Y)
+#define MemProfileVT_advance(X,Y) X = (MC_Chunk *)VG_(HT_Next)(Y)
+#define MemProfileVT_end(X) X != NULL
 
 #define ExecutionContext_decl(X) Addr X;int i = 0 
 #define ExecutionContext_begin(X,Y,Z) X = Y[Z]
@@ -17,6 +21,15 @@
 #define ErrorProfile_begin(X,Y,Z) X = Y[Z]
 #define ErrorProfile_advance(X,Y,Z) X = Y[Z]
 #define ErrorProfile_end(X,Y) X != Y
+
+typedef
+   enum {
+      MC_AllocMalloc = 0,
+      MC_AllocNew    = 1,
+      MC_AllocNewVec = 2,
+      MC_AllocCustom = 3
+   }
+   MC_AllocKind;
 
 
 struct _ExeContext {
@@ -34,6 +47,17 @@ struct _ExeContext {
    Addr ips[0];
 };
 
+typedef
+   struct _MC_Chunk {
+      struct _MC_Chunk* next;
+      Addr         data;            // Address of the actual block.
+      SizeT        szB : (sizeof(SizeT)*8)-2; // Size requested; 30 or 62 bits.
+      MC_AllocKind allockind : 2;   // Which operation did the allocation.
+      ExeContext*  where[0];
+      /* Variable-length array. The size depends on MC_(clo_keep_stacktraces).
+         This array optionally stores the alloc and/or free stack trace. */
+   }
+   MC_Chunk;
 
 
 // Different kinds of blocks.
@@ -325,9 +349,13 @@ Error_PiCO_QL* errors;
 
 
 
-
 //#define BUF_LEN 4096
 #define BUF_LEN 1024
+static HChar alloc_by[BUF_LEN];
+static HChar obj_name[BUF_LEN];
+static HChar dir_name[BUF_LEN];
+static HChar file_name[BUF_LEN];
+static HChar fn_name[BUF_LEN];
 static HChar exec_obj_name[BUF_LEN];
 static HChar exec_dir_name[BUF_LEN];
 static HChar exec_file_name[BUF_LEN];
@@ -391,7 +419,30 @@ static long get_stub(MC_Error *e) {
   return (long)e;
 };
 
+
 $
+
+CREATE STRUCT VIEW MemProfileV (
+        addr_data BIGINT FROM data,
+        obj_name TEXT FROM {getObjName(tuple_iter->where[0]->ips[1], obj_name)},
+        dir_name TEXT FROM {getDirName(tuple_iter->where[0]->ips[1], file_name, dir_name)},
+        file_name TEXT FROM {getFileName(tuple_iter->where[0]->ips[1], file_name, dir_name)},
+        fn_name TEXT FROM {getFnName(tuple_iter->where[0]->ips[1], fn_name)},
+        line_no INT FROM {getLOCNo(tuple_iter->where[0]->ips[1], file_name, dir_name)},
+        alloc_by TEXT FROM {getFnName(tuple_iter->where[0]->ips[0], alloc_by)},
+        sizeB BIGINT FROM szB,
+        allocKind INT FROM allockind,
+        excnt_alloc_id INT FROM where[0]->ecu,
+        excnt_free_id INT FROM where[1]->ecu
+)$
+
+CREATE VIRTUAL TABLE MemProfileVT
+USING STRUCT VIEW MemProfileV
+WITH REGISTERED C NAME malloc_list
+WITH REGISTERED C TYPE VgHashTable:MC_Chunk*
+USING LOOP VG_(HT_ResetIter)(*base);for (MemProfileVT_begin(tuple_iter, *base);MemProfileVT_end(tuple_iter);MemProfileVT_advance(tuple_iter, *base))$
+
+
 
 CREATE STRUCT VIEW IPV (
 	object_file TEXT FROM {getObjName(tuple_iter, exec_obj_name)},
@@ -526,4 +577,32 @@ CREATE VIEW InspectErrorView AS
 			     WHEN kind = 7 THEN 'Err_User'
 			     WHEN kind = 11 THEN 'Err_Leak'
 			     WHEN kind = 12 THEN 'Err_IllegalMempool' END) error_kind_tag, *
-	FROM ErrorProfile;
+	FROM ErrorProfile;$
+
+	
+CREATE VIEW RangeSizeMemProfileQ AS
+	SELECT (sizeB / 256) * 256 AS size_ranges,
+	  COUNT(*) AS blocks_in_range
+	FROM MemProfileVT
+	GROUP BY size_ranges
+	ORDER BY size_ranges;$
+
+CREATE VIEW SizePerLOCMemProfileQ AS
+	SELECT fn_name, line_no, addr_data,
+		file_name, obj_name,
+		 SUM(sizeB)*4 AS totalSizePerLOC
+	FROM MemProfileVT
+	GROUP BY file_name, fn_name, line_no
+        HAVING totalSizePerLOC > 1000000
+	ORDER BY totalSizePerLOC DESC;$
+
+CREATE VIEW GroupFunctionMemProfileQ AS
+	SELECT fn_name, line_no, addr_data,
+		file_name, obj_name, alloc_by,
+		 SUM(sizeB)
+	FROM MemProfileVT
+        WHERE fn_name LIKE '%insert%'
+	GROUP BY file_name, fn_name
+	ORDER BY SUM(sizeB) DESC;$
+
+

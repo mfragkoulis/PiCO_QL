@@ -65,3 +65,30 @@ WITH REGISTERED C NAME cachegrind_out_table
 WITH REGISTERED C TYPE OSet:LineCC*
 USING LOOP VG_(OSetGen_ResetIter)(base);for (CacheProfile_begin(tuple_iter, base);CacheProfile_end(tuple_iter);CacheProfile_advance(tuple_iter, base))$
 
+CREATE VIEW FilterOrderCacheQ AS
+        SELECT codeLocationFile, codeLocationFunction, codeLocationLine,
+                cacheInstructionReadAccesses, cacheInstructionReadMissL1,
+                cacheInstructionReadMissL2
+        FROM CacheProfile
+        WHERE cacheInstructionReadAccesses > 1000000
+        ORDER BY cacheInstructionReadMissL1, cacheInstructionReadMissL2;$
+
+CREATE VIEW FilterFuncCacheQ AS
+        SELECT codeLocationFile, codeLocationFunction, codeLocationLine,
+               SUM(cacheInstructionReadAccesses), SUM(cacheInstructionReadMissL1), SUM(cacheInstructionReadMissL2),
+               SUM(cacheDataReadAccesses), SUM(cacheDataReadMissL1), SUM(cacheDataReadMissL2),
+               SUM(cacheDataWriteAccesses), SUM(cacheDataWriteMissL1), SUM(cacheDataWriteMissL2)
+        FROM CacheProfile
+        WHERE codeLocationFunction LIKE '%lookup%'
+        GROUP BY codeLocationFile, codeLocationFunction, codeLocationLine
+        ORDER BY SUM(cacheDataReadMissL1) DESC;$
+
+CREATE VIEW GroupFuncCacheQ AS
+        SELECT codeLocationFile, codeLocationFunction, codeLocationLine,
+               SUM(cacheInstructionReadAccesses), SUM(cacheInstructionReadMissL1), SUM(cacheInstructionReadMissL2),
+               SUM(cacheDataReadAccesses), SUM(cacheDataReadMissL1), SUM(cacheDataReadMissL2),
+               SUM(cacheDataWriteAccesses), SUM(cacheDataWriteMissL1), SUM(cacheDataWriteMissL2)
+        FROM CacheProfile
+        GROUP BY codeLocationFile, codeLocationFunction
+        ORDER BY SUM(cacheDataWriteMissL1) DESC;$
+
