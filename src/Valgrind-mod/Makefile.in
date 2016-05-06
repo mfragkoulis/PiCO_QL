@@ -185,7 +185,6 @@ picoQL-gui: pico_ql_swill_ui.o pico_ql_logo.o pico_ql_error_page.o
 	$(CC) $(UI_CFLAGS) -lswill $^ -o $@
 	test -d ../../../bin || mkdir ../../../bin
 	cp $@ $(DISTDIR)
-	chmod +x ps_vlg.sh
 
 pico_ql_swill_ui.o: pico_ql_swill_ui.c pico_ql_swill_access_func.h
 

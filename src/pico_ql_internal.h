@@ -105,6 +105,7 @@ namespace picoQL {
       int nColumn;
       char **azColumn;
       void *data;
+      void **dataStream;
       char *zErr;
     } picoQLTable;  // The virtual table struct.
     
