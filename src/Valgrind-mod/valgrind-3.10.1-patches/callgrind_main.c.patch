@@ -1,0 +1,10 @@
+43,45d42
+< /* For PiCO QL */
+< #include "pico_ql_search.h"
+< 
+2016,2017d2012
+<    /* For PiCO QL */
+<    pico_ql_register(&CLG_(stat), "statistics");
+2027,2028d2021
+<    /* For PiCO QL */
+<    pico_ql_register(CLG_(get_threads)(), "all_threads");

@@ -1,0 +1,69 @@
+827,842d826
+< # For PiCO QL
+< VG_TOOL := callgrind
+< export VG_TOOL
+< 
+< PICO_QL_srcdir = ../PiCO_QL/src/Valgrind-mod
+< PICO_QL_CFLAGS_@VGCONF_ARCH_PRI@_@VGCONF_OS@ := $(DEFS) $(callgrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(callgrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CFLAGS) -Wno-long-long -fno-stack-protector
+< export PICO_QL_CFLAGS_@VGCONF_ARCH_PRI@_@VGCONF_OS@
+< PICO_QL_CFLAGS_@VGCONF_ARCH_SEC@_@VGCONF_OS@ := $(DEFS) $(callgrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(callgrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CFLAGS) -Wno-long-long -fno-stack-protector
+< export PICO_QL_CFLAGS_@VGCONF_ARCH_SEC@_@VGCONF_OS@
+< 
+< libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@:
+< 	$(MAKE) -C $(PICO_QL_srcdir) libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@
+< 
+< @VGCONF_HAVE_PLATFORM_SEC_TRUE@libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@:
+< @VGCONF_HAVE_PLATFORM_SEC_TRUE@	$(MAKE) -C $(PICO_QL_srcdir) libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@
+< 
+845c829
+< callgrind-@VGCONF_ARCH_PRI@-@VGCONF_OS@$(EXEEXT): $(callgrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_OBJECTS) $(callgrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_DEPENDENCIES) $(EXTRA_callgrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_DEPENDENCIES) libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@
+---
+> callgrind-@VGCONF_ARCH_PRI@-@VGCONF_OS@$(EXEEXT): $(callgrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_OBJECTS) $(callgrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_DEPENDENCIES) $(EXTRA_callgrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_DEPENDENCIES) 
+847,848c831,832
+< 	$(callgrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_LINK) $(callgrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_OBJECTS) $(PICO_QL_srcdir)/libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@.a $(callgrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_LDADD) $(LIBS)
+< callgrind-@VGCONF_ARCH_SEC@-@VGCONF_OS@$(EXEEXT): $(callgrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_OBJECTS) $(callgrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_DEPENDENCIES) $(EXTRA_callgrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_DEPENDENCIES) libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@
+---
+> 	$(callgrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_LINK) $(callgrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_OBJECTS) $(callgrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_LDADD) $(LIBS)
+> callgrind-@VGCONF_ARCH_SEC@-@VGCONF_OS@$(EXEEXT): $(callgrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_OBJECTS) $(callgrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_DEPENDENCIES) $(EXTRA_callgrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_DEPENDENCIES) 
+850c834
+< 	$(callgrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_LINK) $(callgrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_OBJECTS) $(PICO_QL_srcdir)/libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@.a $(callgrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_LDADD) $(LIBS)
+---
+> 	$(callgrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_LINK) $(callgrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_OBJECTS) $(callgrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_LDADD) $(LIBS)
+952,957c936,937
+< # For PiCO QL
+< picoQL-gen:
+< 	$(MAKE) -C $(PICO_QL_srcdir) gen
+< 
+< callgrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@-bbcc.o: bbcc.c picoQL-gen
+< @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) -I$(PICO_QL_srcdir) $(callgrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(callgrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -MT callgrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@-bbcc.o -MD -MP -MF $(DEPDIR)/callgrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@-bbcc.Tpo -c -o callgrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@-bbcc.o `test -f 'bbcc.c' || echo '$(srcdir)/'`bbcc.c
+---
+> callgrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@-bbcc.o: bbcc.c
+> @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(callgrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(callgrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -MT callgrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@-bbcc.o -MD -MP -MF $(DEPDIR)/callgrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@-bbcc.Tpo -c -o callgrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@-bbcc.o `test -f 'bbcc.c' || echo '$(srcdir)/'`bbcc.c
+1096d1075
+< # For PiCO QL
+1098c1077
+< @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) -I$(PICO_QL_srcdir) $(callgrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(callgrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -MT callgrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@-main.o -MD -MP -MF $(DEPDIR)/callgrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@-main.Tpo -c -o callgrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@-main.o `test -f 'main.c' || echo '$(srcdir)/'`main.c
+---
+> @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(callgrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(callgrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -MT callgrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@-main.o -MD -MP -MF $(DEPDIR)/callgrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@-main.Tpo -c -o callgrind_@VGCONF_ARCH_PRI@_@VGCONF_OS@-main.o `test -f 'main.c' || echo '$(srcdir)/'`main.c
+1153d1131
+< # For PiCO_QL
+1155c1133
+< @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) -I$(PICO_QL_srcdir) $(callgrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(callgrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -MT callgrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@-bbcc.o -MD -MP -MF $(DEPDIR)/callgrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@-bbcc.Tpo -c -o callgrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@-bbcc.o `test -f 'bbcc.c' || echo '$(srcdir)/'`bbcc.c
+---
+> @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(callgrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(callgrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -MT callgrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@-bbcc.o -MD -MP -MF $(DEPDIR)/callgrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@-bbcc.Tpo -c -o callgrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@-bbcc.o `test -f 'bbcc.c' || echo '$(srcdir)/'`bbcc.c
+1294d1271
+< # For PiCO QL
+1296c1273
+< @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) -I$(PICO_QL_srcdir) $(callgrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(callgrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -MT callgrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@-main.o -MD -MP -MF $(DEPDIR)/callgrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@-main.Tpo -c -o callgrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@-main.o `test -f 'main.c' || echo '$(srcdir)/'`main.c
+---
+> @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(callgrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(callgrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -MT callgrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@-main.o -MD -MP -MF $(DEPDIR)/callgrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@-main.Tpo -c -o callgrind_@VGCONF_ARCH_SEC@_@VGCONF_OS@-main.o `test -f 'main.c' || echo '$(srcdir)/'`main.c
+1586,1592c1563
+< 
+< # For PiCO QL
+< clean: clean-recursive clean-picoQL
+< 
+< # For PiCO QL
+< clean-picoQL:
+< 	$(MAKE) -C $(PICO_QL_srcdir) clean-picoQL
+---
+> clean: clean-recursive
