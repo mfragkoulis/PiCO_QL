@@ -1,70 +1,70 @@
-850,865d849
-< # For PiCO QL
-< PICO_QL_srcdir = ../PiCO_QL/src/Valgrind-mod
-< VG_TOOL := memcheck
-< export VG_TOOL
-< PICO_QL_CFLAGS_@VGCONF_ARCH_PRI@_@VGCONF_OS@ := $(DEFS) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CFLAGS) -Wno-long-long -fno-stack-protector
-< export PICO_QL_CFLAGS_@VGCONF_ARCH_PRI@_@VGCONF_OS@
-< PICO_QL_CFLAGS_@VGCONF_ARCH_SEC@_@VGCONF_OS@ := $(DEFS) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CFLAGS) -Wno-long-long -fno-stack-protector
-< export PICO_QL_CFLAGS_@VGCONF_ARCH_SEC@_@VGCONF_OS@
-< 
-< libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@:
-< 	$(MAKE) -C $(PICO_QL_srcdir) libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@
-< 
-< @VGCONF_HAVE_PLATFORM_SEC_TRUE@libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@: 
-< @VGCONF_HAVE_PLATFORM_SEC_TRUE@	$(MAKE) -C $(PICO_QL_srcdir) libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@
-< 
-< # For PiCO QL
-868c852
-< memcheck-@VGCONF_ARCH_PRI@-@VGCONF_OS@$(EXEEXT): $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_OBJECTS) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_DEPENDENCIES) $(EXTRA_memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_DEPENDENCIES) libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@
+849a850,865
+> # For PiCO QL
+> PICO_QL_srcdir = ../PiCO_QL/src/Valgrind-mod
+> VG_TOOL := memcheck
+> export VG_TOOL
+> PICO_QL_CFLAGS_@VGCONF_ARCH_PRI@_@VGCONF_OS@ := $(DEFS) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CFLAGS) -Wno-long-long -fno-stack-protector
+> export PICO_QL_CFLAGS_@VGCONF_ARCH_PRI@_@VGCONF_OS@
+> PICO_QL_CFLAGS_@VGCONF_ARCH_SEC@_@VGCONF_OS@ := $(DEFS) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CFLAGS) -Wno-long-long -fno-stack-protector
+> export PICO_QL_CFLAGS_@VGCONF_ARCH_SEC@_@VGCONF_OS@
+> 
+> libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@:
+> 	$(MAKE) -C $(PICO_QL_srcdir) libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@
+> 
+> @VGCONF_HAVE_PLATFORM_SEC_TRUE@libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@: 
+> @VGCONF_HAVE_PLATFORM_SEC_TRUE@	$(MAKE) -C $(PICO_QL_srcdir) libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@
+> 
+> # For PiCO QL
+852c868
+< memcheck-@VGCONF_ARCH_PRI@-@VGCONF_OS@$(EXEEXT): $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_OBJECTS) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_DEPENDENCIES) $(EXTRA_memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_DEPENDENCIES) 
 ---
-> memcheck-@VGCONF_ARCH_PRI@-@VGCONF_OS@$(EXEEXT): $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_OBJECTS) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_DEPENDENCIES) $(EXTRA_memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_DEPENDENCIES) 
-870,871c854,855
-< 	$(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_LINK) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_OBJECTS) $(PICO_QL_srcdir)/libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@.a $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_LDADD) $(LIBS)
-< memcheck-@VGCONF_ARCH_SEC@-@VGCONF_OS@$(EXEEXT): $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_OBJECTS) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_DEPENDENCIES) $(EXTRA_memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_DEPENDENCIES) libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@
+> memcheck-@VGCONF_ARCH_PRI@-@VGCONF_OS@$(EXEEXT): $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_OBJECTS) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_DEPENDENCIES) $(EXTRA_memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_DEPENDENCIES) libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@
+854,855c870,871
+< 	$(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_LINK) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_OBJECTS) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_LDADD) $(LIBS)
+< memcheck-@VGCONF_ARCH_SEC@-@VGCONF_OS@$(EXEEXT): $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_OBJECTS) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_DEPENDENCIES) $(EXTRA_memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_DEPENDENCIES) 
 ---
-> 	$(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_LINK) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_OBJECTS) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_LDADD) $(LIBS)
-> memcheck-@VGCONF_ARCH_SEC@-@VGCONF_OS@$(EXEEXT): $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_OBJECTS) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_DEPENDENCIES) $(EXTRA_memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_DEPENDENCIES) 
-873c857
-< 	$(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_LINK) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_OBJECTS) $(PICO_QL_srcdir)/libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@.a $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_LDADD) $(LIBS)
+> 	$(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_LINK) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_OBJECTS) $(PICO_QL_srcdir)/libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_PRI@_@VGCONF_OS@.a $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_LDADD) $(LIBS)
+> memcheck-@VGCONF_ARCH_SEC@-@VGCONF_OS@$(EXEEXT): $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_OBJECTS) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_DEPENDENCIES) $(EXTRA_memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_DEPENDENCIES) libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@
+857c873
+< 	$(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_LINK) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_OBJECTS) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_LDADD) $(LIBS)
 ---
-> 	$(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_LINK) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_OBJECTS) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_LDADD) $(LIBS)
-946,952c930,931
-< # For PiCO QL
-< picoQL-gen:
-< 	$(MAKE) -C $(PICO_QL_srcdir) gen
-< 
-< # For PiCO QL
-< memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_main.o: mc_main.c picoQL-gen
-< @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) -I$(PICO_QL_srcdir) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -MT memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_main.o -MD -MP -MF $(DEPDIR)/memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_main.Tpo -c -o memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_main.o `test -f 'mc_main.c' || echo '$(srcdir)/'`mc_main.c
+> 	$(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_LINK) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_OBJECTS) $(PICO_QL_srcdir)/libpicoQL_$(VG_TOOL)_@VGCONF_ARCH_SEC@_@VGCONF_OS@.a $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_LDADD) $(LIBS)
+930,931c946,952
+< memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_main.o: mc_main.c
+< @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -MT memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_main.o -MD -MP -MF $(DEPDIR)/memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_main.Tpo -c -o memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_main.o `test -f 'mc_main.c' || echo '$(srcdir)/'`mc_main.c
 ---
-> memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_main.o: mc_main.c
-> @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -MT memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_main.o -MD -MP -MF $(DEPDIR)/memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_main.Tpo -c -o memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_main.o `test -f 'mc_main.c' || echo '$(srcdir)/'`mc_main.c
-993d971
-< # For PiCO QL
-995c973
-< @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) -I$(PICO_QL_srcdir) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -MT memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_errors.o -MD -MP -MF $(DEPDIR)/memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_errors.Tpo -c -o memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_errors.o `test -f 'mc_errors.c' || echo '$(srcdir)/'`mc_errors.c
+> # For PiCO QL
+> picoQL-gen:
+> 	$(MAKE) -C $(PICO_QL_srcdir) gen
+> 
+> # For PiCO QL
+> memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_main.o: mc_main.c picoQL-gen
+> @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) -I$(PICO_QL_srcdir) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -MT memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_main.o -MD -MP -MF $(DEPDIR)/memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_main.Tpo -c -o memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_main.o `test -f 'mc_main.c' || echo '$(srcdir)/'`mc_main.c
+971a993
+> # For PiCO QL
+973c995
+< @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -MT memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_errors.o -MD -MP -MF $(DEPDIR)/memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_errors.Tpo -c -o memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_errors.o `test -f 'mc_errors.c' || echo '$(srcdir)/'`mc_errors.c
 ---
-> @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -MT memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_errors.o -MD -MP -MF $(DEPDIR)/memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_errors.Tpo -c -o memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_errors.o `test -f 'mc_errors.c' || echo '$(srcdir)/'`mc_errors.c
-1036d1013
-< # For PiCO QL
-1038c1015
-< @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) -I$(PICO_QL_srcdir) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -MT memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_main.o -MD -MP -MF $(DEPDIR)/memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_main.Tpo -c -o memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_main.o `test -f 'mc_main.c' || echo '$(srcdir)/'`mc_main.c
+> @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) -I$(PICO_QL_srcdir) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -MT memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_errors.o -MD -MP -MF $(DEPDIR)/memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_errors.Tpo -c -o memcheck_@VGCONF_ARCH_PRI@_@VGCONF_OS@-mc_errors.o `test -f 'mc_errors.c' || echo '$(srcdir)/'`mc_errors.c
+1013a1036
+> # For PiCO QL
+1015c1038
+< @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -MT memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_main.o -MD -MP -MF $(DEPDIR)/memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_main.Tpo -c -o memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_main.o `test -f 'mc_main.c' || echo '$(srcdir)/'`mc_main.c
 ---
-> @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -MT memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_main.o -MD -MP -MF $(DEPDIR)/memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_main.Tpo -c -o memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_main.o `test -f 'mc_main.c' || echo '$(srcdir)/'`mc_main.c
-1079d1055
-< # For PiCO QL
-1081c1057
-< @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) -I$(PICO_QL_srcdir) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -MT memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_errors.o -MD -MP -MF $(DEPDIR)/memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_errors.Tpo -c -o memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_errors.o `test -f 'mc_errors.c' || echo '$(srcdir)/'`mc_errors.c
+> @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) -I$(PICO_QL_srcdir) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -MT memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_main.o -MD -MP -MF $(DEPDIR)/memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_main.Tpo -c -o memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_main.o `test -f 'mc_main.c' || echo '$(srcdir)/'`mc_main.c
+1055a1079
+> # For PiCO QL
+1057c1081
+< @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -MT memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_errors.o -MD -MP -MF $(DEPDIR)/memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_errors.Tpo -c -o memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_errors.o `test -f 'mc_errors.c' || echo '$(srcdir)/'`mc_errors.c
 ---
-> @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -MT memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_errors.o -MD -MP -MF $(DEPDIR)/memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_errors.Tpo -c -o memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_errors.o `test -f 'mc_errors.c' || echo '$(srcdir)/'`mc_errors.c
-1371,1377c1347
-< 
-< # For PiCO QL
-< clean: clean-recursive clean-picoQL
-< 
-< # For PiCO QL
-< clean-picoQL:
-< 	$(MAKE) -C $(PICO_QL_srcdir) clean-picoQL
+> @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) -I$(PICO_QL_srcdir) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CPPFLAGS) $(CPPFLAGS) $(memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CFLAGS) $(CFLAGS) -MT memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_errors.o -MD -MP -MF $(DEPDIR)/memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_errors.Tpo -c -o memcheck_@VGCONF_ARCH_SEC@_@VGCONF_OS@-mc_errors.o `test -f 'mc_errors.c' || echo '$(srcdir)/'`mc_errors.c
+1347c1371,1377
+< clean: clean-recursive
 ---
-> clean: clean-recursive
+> 
+> # For PiCO QL
+> clean: clean-recursive clean-picoQL
+> 
+> # For PiCO QL
+> clean-picoQL:
+> 	$(MAKE) -C $(PICO_QL_srcdir) clean-picoQL

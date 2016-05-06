@@ -1,72 +1,72 @@
-50,52c50
-< /* For PiCO QL */
-< #include "pico_ql_search.h"
-< #include "pub_tool_errormgr.h"
+50c50,52
+< 
 ---
+> /* For PiCO QL */
+> #include "pico_ql_search.h"
+> #include "pub_tool_errormgr.h"
+55a58,78
+> /* PiCO_QL */
+> struct _Error {
+>    struct _Error* next;
+>    // Unique tag.  This gives the error a unique identity (handle) by
+>    // which it can be referred to afterwords.  Currently only used for
+>    // XML printing.
+>    UInt unique;
+>    // NULL if unsuppressed; or ptr to suppression record.
+>    Supp* supp;
+>    Int count;
 > 
-58,78d55
-< /* PiCO_QL */
-< struct _Error {
-<    struct _Error* next;
-<    // Unique tag.  This gives the error a unique identity (handle) by
-<    // which it can be referred to afterwords.  Currently only used for
-<    // XML printing.
-<    UInt unique;
-<    // NULL if unsuppressed; or ptr to suppression record.
-<    Supp* supp;
-<    Int count;
-< 
-<    // The tool-specific part
-<    ThreadId tid;           // Initialised by core
-<    ExeContext* where;      // Initialised by core
-<    ErrorKind ekind;        // Used by ALL.  Must be in the range (0..)
-<    Addr addr;              // Used frequently
-<    const HChar* string;    // Used frequently
-<    void* extra;            // For any tool-specific extras
-< };
-< 
-< 
-430,438d406
-< /* For PiCO QL */
-< static Bool picoQLErrset = False;
-< typedef struct {
-<    Error** errlist;
-<    int size;
-<    int malloced;
-< } Error_PiCO_QL;
-< extern Error_PiCO_QL* errors;
-< 
-442,460d409
-< /* For PiCO QL */
-<    if (!picoQLErrset) {
-<      errors = VG_(malloc)("errors**", sizeof(Error_PiCO_QL));
-<      VG_(printf)("ErrorVT lives at address %lx", (long)errors);
-<      errors->malloced = 100;
-<      errors->size = 0;
-<      errors->errlist = VG_(malloc)("errors**", sizeof(Error*) * errors->malloced);
-<      pico_ql_register(errors, "errorList");
-<      picoQLErrset = True;
-<    }
-<    if (errors->malloced == errors->size) {
-<      errors->malloced += 2 * errors->size;
-<      errors->errlist = VG_(realloc)("errors**", errors->errlist, sizeof(Error*) * errors->malloced);
-<    }
-<    errors->size++;
-<    errors->errlist[errors->size-1] = VG_(malloc)("errors*", sizeof(Error));
-<    VG_(memcpy)(errors->errlist[errors->size-1], err, sizeof(Error));
-<    VG_(printf)("errlist in ErrorVT hosts %d errors", errors->size);
-< 
-463d411
-< 
-1320,1322d1267
-< /* For PiCO QL */
-< static Bool picoQLSuppset = False;
-< 
-1325,1331d1269
-< 
-< /* For PiCO QL */
-<    if (!picoQLSuppset) {
-<      pico_ql_register(su, "suppressionList");
-<      picoQLSuppset = True;
-<    }
-< 
+>    // The tool-specific part
+>    ThreadId tid;           // Initialised by core
+>    ExeContext* where;      // Initialised by core
+>    ErrorKind ekind;        // Used by ALL.  Must be in the range (0..)
+>    Addr addr;              // Used frequently
+>    const HChar* string;    // Used frequently
+>    void* extra;            // For any tool-specific extras
+> };
+> 
+> 
+406a430,438
+> /* For PiCO QL */
+> static Bool picoQLErrset = False;
+> typedef struct {
+>    Error** errlist;
+>    int size;
+>    int malloced;
+> } Error_PiCO_QL;
+> extern Error_PiCO_QL* errors;
+> 
+409a442,460
+> /* For PiCO QL */
+>    if (!picoQLErrset) {
+>      errors = VG_(malloc)("errors**", sizeof(Error_PiCO_QL));
+>      VG_(printf)("ErrorVT lives at address %lx", (long)errors);
+>      errors->malloced = 100;
+>      errors->size = 0;
+>      errors->errlist = VG_(malloc)("errors**", sizeof(Error*) * errors->malloced);
+>      pico_ql_register(errors, "errorList");
+>      picoQLErrset = True;
+>    }
+>    if (errors->malloced == errors->size) {
+>      errors->malloced += 2 * errors->size;
+>      errors->errlist = VG_(realloc)("errors**", errors->errlist, sizeof(Error*) * errors->malloced);
+>    }
+>    errors->size++;
+>    errors->errlist[errors->size-1] = VG_(malloc)("errors*", sizeof(Error));
+>    VG_(memcpy)(errors->errlist[errors->size-1], err, sizeof(Error));
+>    VG_(printf)("errlist in ErrorVT hosts %d errors", errors->size);
+> 
+411a463
+> 
+1267a1320,1322
+> /* For PiCO QL */
+> static Bool picoQLSuppset = False;
+> 
+1269a1325,1331
+> 
+> /* For PiCO QL */
+>    if (!picoQLSuppset) {
+>      pico_ql_register(su, "suppressionList");
+>      picoQLSuppset = True;
+>    }
+> 

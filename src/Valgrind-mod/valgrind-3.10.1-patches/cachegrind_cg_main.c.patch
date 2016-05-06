@@ -1,21 +1,21 @@
-53,55d52
-< /* For PiCO QL */
-< #include "pico_ql_search.h"
-< 
-338,339d334
-< static long picoQL = 0;
-< 
-350,357d344
-< 
-<    /* For PiCO QL */
-<    picoQL++;
-<    if (picoQL % 5000000 == 0) {
-<      pico_ql_serve();
-<      VG_(umsg)("Just touched pico_ql_serve for the %ld time out of %ld times.\n", picoQL / 5000000, picoQL);
-<    }
-< 
-1858,1861d1844
-< 
-< /* PiCO QL */
-<    pico_ql_register(CC_table, "cachegrind_out_table");
-< 
+52a53,55
+> /* For PiCO QL */
+> #include "pico_ql_search.h"
+> 
+334a338,339
+> static long picoQL = 0;
+> 
+344a350,357
+> 
+>    /* For PiCO QL */
+>    picoQL++;
+>    if (picoQL % 5000000 == 0) {
+>      pico_ql_serve();
+>      VG_(umsg)("Just touched pico_ql_serve for the %ld time out of %ld times.\n", picoQL / 5000000, picoQL);
+>    }
+> 
+1844a1858,1861
+> 
+> /* PiCO QL */
+>    pico_ql_register(CC_table, "cachegrind_out_table");
+> 

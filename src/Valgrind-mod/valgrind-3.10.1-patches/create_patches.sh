@@ -15,6 +15,6 @@ memcheck/Makefile.in"
 
 for f in $FILES;
 do
-  diff $VG_TAPPED_DIR/$f $VG_DIR/$f > $(dirname $f)_$(basename $f).patch
+  diff $VG_DIR/$f $VG_TAPPED_DIR/$f > $(dirname $f)_$(basename $f).patch
   echo "Created patch for file $f"
 done

@@ -1,32 +1,32 @@
-53,54d52
-< /* For PiCO QL */
-< #include "pico_ql_search.h"
-404,406d401
-<    /* For PiCO QL */
-<    pico_ql_register(auxmap_L1, "aux_primary_L1_map");
-< 
-412,415d406
-< 
-<    /* For PiCO QL */
-<    pico_ql_register(auxmap_L2, "aux_primary_L2_map");
-< 
-2380,2383d2370
-< 
-<    /* For PiCO QL */
-<    pico_ql_register(ocacheL1, "ocache_L1");
-< 
-5065,5067d5051
-<    /* For PiCO QL */
-<    pico_ql_register(primary_map, "primary_map");
-<    pico_ql_register(sm_distinguished, "distinguished_sec_map");
-5077,5078d5060
-<    /* For PiCO QL */
-<    pico_ql_register(secVBitTable, "sec_vbit_table");
-5105,5108d5086
-<    /* For PiCO QL */
-<    pico_ql_serve();
-<    VG_(umsg)("Just touched PiCO QL serve.\n");
-< 
-6996,6997d6973
-<    /* For PiCO QL */
-<    pico_ql_register(&MC_(malloc_list), "malloc_list");
+52a53,54
+> /* For PiCO QL */
+> #include "pico_ql_search.h"
+401a404,406
+>    /* For PiCO QL */
+>    pico_ql_register(auxmap_L1, "aux_primary_L1_map");
+> 
+406a412,415
+> 
+>    /* For PiCO QL */
+>    pico_ql_register(auxmap_L2, "aux_primary_L2_map");
+> 
+2370a2380,2383
+> 
+>    /* For PiCO QL */
+>    pico_ql_register(ocacheL1, "ocache_L1");
+> 
+5051a5065,5067
+>    /* For PiCO QL */
+>    pico_ql_register(primary_map, "primary_map");
+>    pico_ql_register(sm_distinguished, "distinguished_sec_map");
+5060a5077,5078
+>    /* For PiCO QL */
+>    pico_ql_register(secVBitTable, "sec_vbit_table");
+5086a5105,5108
+>    /* For PiCO QL */
+>    pico_ql_serve();
+>    VG_(umsg)("Just touched PiCO QL serve.\n");
+> 
+6973a6996,6997
+>    /* For PiCO QL */
+>    pico_ql_register(&MC_(malloc_list), "malloc_list");

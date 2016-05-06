@@ -1,15 +1,15 @@
-34,36d33
-< /* For PiCO QL */
-< #include "pico_ql_search.h"
-< 
-550,551d546
-< /* For PiCO QL */
-< static long picoQL = 0;
-571,577d565
-< 
-<   /* For PiCO QL */
-<   picoQL++;
-<   if (picoQL % 20000000 == 0) {
-<     pico_ql_serve();
-<     VG_(umsg)("Just touched pico_ql_serve for the %ld time out of %ld times.\n", picoQL / 20000000, picoQL);
-<   }
+33a34,36
+> /* For PiCO QL */
+> #include "pico_ql_search.h"
+> 
+546a550,551
+> /* For PiCO QL */
+> static long picoQL = 0;
+565a571,577
+> 
+>   /* For PiCO QL */
+>   picoQL++;
+>   if (picoQL % 20000000 == 0) {
+>     pico_ql_serve();
+>     VG_(umsg)("Just touched pico_ql_serve for the %ld time out of %ld times.\n", picoQL / 20000000, picoQL);
+>   }

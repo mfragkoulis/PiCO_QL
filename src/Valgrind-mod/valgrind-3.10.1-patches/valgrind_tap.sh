@@ -24,6 +24,7 @@
 
 
 VG_DIR="../../../.."
+PATCH_DIR="$(pwd)"
 
 FILES="configure
 cachegrind/cg_main.c
@@ -37,7 +38,7 @@ memcheck/Makefile.in"
 
 for f in $FILES;
 do
-  patch $VG_DIR/$f $(dirname $f)_$(basename $f).patch
+  patch -d $VG_DIR $f $PATCH_DIR/$(dirname $f)_$(basename $f).patch
 done
 
 printf "\nNow you can configure, compile, and install Valgrind\n \
