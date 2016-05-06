@@ -22,11 +22,6 @@
 #define AddrVAbitsVT_advance(X) X += 4     // each VAbits entry tracks the state of 4 Bytes. So hopping 4 Bytes after each iteration.
 #define AddrVAbitsVT_end(X,Y) X < Y
 
-#define IPVT_decl(X) Addr X;int i = 0
-#define IPVT_begin(X,Y,Z) X = Y[Z]
-#define IPVT_advance(X,Y,Z) X = Y[Z]
-#define IPVT_end(X, Y) X != Y
-
 #define SecMapVT_decl(X) int *X; int i = 0
 #define SecMapVT_begin(X,Y,Z) X = (int *)&Y[Z]
 #define SecMapVT_advance(X,Y,Z) X = (int *)&Y[Z]
@@ -696,9 +691,9 @@ CREATE STRUCT VIEW MemProfileV (
         sizeB BIGINT FROM szB,
         allocKind INT FROM allockind,
         excnt_alloc_id INT FROM where[0]->ecu,
-        FOREIGN KEY(ec_alloc_ips_id) FROM where[0] REFERENCES IPVT POINTER,
+        FOREIGN KEY(ec_alloc_ips_id) FROM where[0] REFERENCES ExecutionContext POINTER,
         excnt_free_id INT FROM where[1]->ecu,
-        FOREIGN KEY(ec_free_ips_id) FROM where[1] REFERENCES IPVT POINTER
+        FOREIGN KEY(ec_free_ips_id) FROM where[1] REFERENCES ExecutionContext POINTER
 )$
 
 CREATE VIRTUAL TABLE MemProfileVT
@@ -910,7 +905,7 @@ CREATE STRUCT VIEW ErrorUserV (
 
 CREATE STRUCT VIEW ErrorRegParamV (
         originTag INT FROM Err.RegParam.otag,
-        FOREIGN KEY(origin_execontext_id) FROM Err.RegParam.origin_ec REFERENCES IPVT POINTER
+        FOREIGN KEY(origin_execontext_id) FROM Err.RegParam.origin_ec REFERENCES ExecutionContext POINTER
 )$
 
 CREATE VIRTUAL TABLE ErrorRegParamVT
@@ -919,7 +914,7 @@ WITH REGISTERED C TYPE MC_Error$
 
 CREATE STRUCT VIEW ErrorMemParamV (
         originTag INT FROM Err.MemParam.otag,
-        FOREIGN KEY(origin_execontext_id) FROM Err.MemParam.origin_ec REFERENCES IPVT POINTER
+        FOREIGN KEY(origin_execontext_id) FROM Err.MemParam.origin_ec REFERENCES ExecutionContext POINTER
 )$
 
 CREATE VIRTUAL TABLE ErrorMemParamVT
@@ -983,7 +978,7 @@ CREATE STRUCT VIEW ErrorV (
         addr_data BIGINT FROM addr,
         thread_id INT FROM tid,
         count INT FROM count,
-        FOREIGN KEY(execontext_id) FROM where REFERENCES IPVT POINTER,
+        FOREIGN KEY(execontext_id) FROM where REFERENCES ExecutionContext POINTER,
         kind INT FROM ekind,
         mc_kind INT FROM VG_(get_error_kind)(tuple_iter),
         FOREIGN KEY(value_id) FROM {send_MC_Error(tuple_iter, 0)} REFERENCES ErrorValueVT POINTER,
@@ -1121,13 +1116,13 @@ CREATE VIEW OrderSizeGetStackMemProfileQ AS
                 IP.addr_data, IP.file_name,
                 IP.obj_name, sizeB
         FROM MemProfileVT M
-        JOIN IPVT IP
+        JOIN ExecutionContext IP
         ON base = ec_alloc_ips_id
         ORDER BY sizeB DESC, M.addr_data;$
 
 	
 CREATE VIEW RangeSizeMemProfileQ AS
-	SELECT (sizeB / 256) * 256 AS size_ranges,
+	SELECT fn_name, sizeB/1000000 AS size_ranges,
 	  COUNT(*) AS blocks_in_range
 	FROM MemProfileVT
 	GROUP BY size_ranges
@@ -1136,7 +1131,7 @@ CREATE VIEW RangeSizeMemProfileQ AS
 CREATE VIEW SizePerLOCMemProfileQ AS
 	SELECT fn_name, line_no, addr_data,
 		file_name, obj_name,
-		 SUM(sizeB)*4 AS totalSizePerLOC
+		 SUM(sizeB) AS totalSizePerLOC
 	FROM MemProfileVT
 	GROUP BY file_name, fn_name, line_no
         HAVING totalSizePerLOC > 1000000
@@ -1145,11 +1140,10 @@ CREATE VIEW SizePerLOCMemProfileQ AS
 CREATE VIEW GroupFunctionMemProfileQ AS
 	SELECT fn_name, line_no, addr_data,
 		file_name, obj_name, alloc_by,
-		 SUM(sizeB)
+		sizeB
 	FROM MemProfileVT
-        WHERE fn_name LIKE '%insert%'
-	GROUP BY file_name, fn_name
-	ORDER BY SUM(sizeB) DESC;$
+        WHERE fn_name LIKE '%lookup%'
+	ORDER BY sizeB DESC;$
 
 CREATE VIEW LocatePDBMemProfileQ AS
         SELECT M.addr_data, fn_name,
@@ -1165,19 +1159,20 @@ CREATE VIEW LocatePDBMemProfileQ AS
         ORDER BY PDBs;$
 
 CREATE VIEW wordBytesWastedMemProfileQ AS
-        SELECT block_addr, fn_name,
-                SUM(wordBytesWasted), COUNT(*) AS Clusters
+        SELECT block_addr, sizeB, fn_name, line_no,
+                SUM(wordBytesWasted), COUNT(*) AS words
         FROM (
-                SELECT M.addr_data AS block_addr, fn_name,
-                        (VAtag_1B <> 'defined' +
-                         VAtag_2B <> 'defined' +
-                         VAtag_3B <> 'defined' +
-                         VAtag_4B <> 'defined') wordBytesWasted
+                SELECT M.addr_data AS block_addr, sizeB, fn_name,
+                       line_no,
+                        CAST(VAtag_1B <> 'defined' AS INTEGER) +
+                        CAST(VAtag_2B <> 'defined' AS INTEGER) +
+                        CAST(VAtag_3B <> 'defined' AS INTEGER) +
+                        CAST(VAtag_4B <> 'defined' AS INTEGER) wordBytesWasted
                 FROM MemProfileVT M
                 JOIN VAbitTags
                 ON base=vabits_id
                 WHERE VATag <> 'defined'
         ) BW
         GROUP BY block_addr
-        ORDER BY SUM(wordBytesWasted) DESC, clusters DESC;$
+        ORDER BY SUM(wordBytesWasted) DESC, words DESC;$
 

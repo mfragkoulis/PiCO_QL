@@ -75,20 +75,34 @@ CREATE VIEW FilterOrderCacheQ AS
 
 CREATE VIEW FilterFuncCacheQ AS
         SELECT codeLocationFile, codeLocationFunction, codeLocationLine,
-               SUM(cacheInstructionReadAccesses), SUM(cacheInstructionReadMissL1), SUM(cacheInstructionReadMissL2),
-               SUM(cacheDataReadAccesses), SUM(cacheDataReadMissL1), SUM(cacheDataReadMissL2),
-               SUM(cacheDataWriteAccesses), SUM(cacheDataWriteMissL1), SUM(cacheDataWriteMissL2)
+               SUM(cacheDataWriteAccesses) AS dataWriteAccesses,
+               SUM(cacheDataWriteMissL1) AS dataWriteMissesL1,
+               SUM(cacheDataWriteMissL2) AS dataWriteMissesL2,
+               SUM(cacheDataWriteMissL1)*100/SUM(cacheDataWriteAccesses) AS MissRateL1,
+               SUM(cacheDataWriteMissL2)*100/SUM(cacheDataWriteAccesses) AS MissRateL2
         FROM CacheProfile
-        WHERE codeLocationFunction LIKE '%lookup%'
+        WHERE codeLocationFunction LIKE '%memset%'
         GROUP BY codeLocationFile, codeLocationFunction, codeLocationLine
-        ORDER BY SUM(cacheDataReadMissL1) DESC;$
+        ORDER BY dataWriteMissesL1 DESC;$
 
 CREATE VIEW GroupFuncCacheQ AS
-        SELECT codeLocationFile, codeLocationFunction, codeLocationLine,
+        SELECT codeLocationFile, codeLocationFunction,
                SUM(cacheInstructionReadAccesses), SUM(cacheInstructionReadMissL1), SUM(cacheInstructionReadMissL2),
                SUM(cacheDataReadAccesses), SUM(cacheDataReadMissL1), SUM(cacheDataReadMissL2),
                SUM(cacheDataWriteAccesses), SUM(cacheDataWriteMissL1), SUM(cacheDataWriteMissL2)
         FROM CacheProfile
         GROUP BY codeLocationFile, codeLocationFunction
         ORDER BY SUM(cacheDataWriteMissL1) DESC;$
+
+CREATE VIEW GroupFuncDataCacheQ AS
+        SELECT codeLocationFile, codeLocationFunction,
+               SUM(cacheDataWriteAccesses) AS dataWriteAccesses,
+               SUM(cacheDataWriteMissL1) AS dataWriteMissesL1,
+               SUM(cacheDataWriteMissL2) AS dataWriteMissesL2,
+               SUM(cacheDataWriteMissL1)*100/SUM(cacheDataWriteAccesses) AS MissRateL1,
+               SUM(cacheDataWriteMissL2)*100/SUM(cacheDataWriteAccesses) AS MissRateL2
+        FROM CacheProfile
+        GROUP BY codeLocationFile, codeLocationFunction
+        HAVING dataWriteAccesses > 1000000
+        ORDER BY dataWriteMissesL1 DESC;$
 

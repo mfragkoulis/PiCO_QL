@@ -169,3 +169,29 @@ CREATE VIEW OrderedCallCounterJumpCallQ AS
         GROUP BY BC.basicBlockID
         ORDER BY SUM(callCounter) DESC;
 
+CREATE VIEW OrderedCallCounterJumpCallQ AS
+        SELECT BB1.memoryAddress, FN1.codeLocationFunction,
+               BB1.codeLocationLine, BB1.codeLocationObject,
+               BB2.memoryAddress, FN2.codeLocationFunction,
+               BB2.codeLocationLine, BB2.codeLocationObject,
+               SUM(callCounter), SUM(BC1.executionCounterSum),
+               InstructionFetches
+        FROM ApplicationThread T 
+        JOIN JumpCallCostCentersAll JC 
+        ON JC.base=T.jumpCallCostCentersAllId 
+        JOIN BasicBlockCostCenter BC1 
+        ON BC1.base=JC.fromBasicBlockCostCenterId 
+        JOIN BasicBlock BB1
+        ON BB1.base = BC1.basicBlockId 
+        JOIN FunctionNode FN1
+        ON FN1.base = BB1.functionNodeId 
+        JOIN FullCost FC
+        ON FC.base = JC.costId 
+        JOIN BasicBlockCostCenter BC2 
+        ON BC2.base=JC.toBasicBlockCostCenterId 
+        JOIN BasicBlock BB2
+        ON BB2.base = BC2.basicBlockId 
+        JOIN FunctionNode FN2
+        ON FN2.base = BB2.functionNodeId 
+        GROUP BY BC1.basicBlockID
+        ORDER BY SUM(callCounter) DESC;
