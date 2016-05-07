@@ -110,6 +110,8 @@ void CLG_(zero_bbcc)(BBCC* bbcc)
   bbcc->ret_counter = 0;
 }
 
+
+
 void CLG_(forall_bbccs)(void (*func)(BBCC*))
 {
   BBCC *bbcc, *bbcc2;
@@ -567,12 +569,12 @@ void CLG_(setup_bbcc)(BB* bb)
   Bool ret_without_call = False;
   Int popcount_on_return = 1;
 
-   /* For PiCO QL */
-   picoQL++;
-   if (picoQL % 20000000 == 0) {
-     pico_ql_serve();
-     VG_(umsg)("Just touched pico_ql_serve for the %ld time out of %ld times.\n", picoQL / 20000000, picoQL);
-   }
+  /* For PiCO QL */
+  picoQL++;
+  if (picoQL % 20000000 == 0) {
+    pico_ql_serve();
+    VG_(umsg)("Just touched pico_ql_serve for the %ld time out of %ld times.\n", picoQL / 20000000, picoQL);
+  }
 
   CLG_DEBUG(3,"+ setup_bbcc(BB %#lx)\n", bb_addr(bb));
 
@@ -895,6 +897,10 @@ void CLG_(setup_bbcc)(BB* bb)
   }
   
   CLG_(current_state).bbcc = bbcc;
+  /* Even though this will be set in instrumented code directly before
+   * side exits, it needs to be set to 0 here in case an exception
+   * happens in first instructions of the BB */
+  CLG_(current_state).jmps_passed = 0;
   // needed for log_* handlers called in this BB
   CLG_(bb_base)   = bb->obj->offset + bb->offset;
   CLG_(cost_base) = bbcc->cost;

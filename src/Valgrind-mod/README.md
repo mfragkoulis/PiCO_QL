@@ -6,7 +6,7 @@
   * chmod +x valgrind\_tap.sh
   * ./valgrind\_tap.sh
 * Compile and install Valgrind with PiCO QL
-  * ./configure $(pwd) && make && make install (from the root directory of Valgrind)
+  * ./configure --prefix=$(pwd) && make && make install (from the root directory of Valgrind)
 sets up a local installation.
 * Setup client-server communication.
   * Input the absolute tty file name of the terminal on which the Valgrind process is running
