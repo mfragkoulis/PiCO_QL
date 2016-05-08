@@ -6,6 +6,12 @@
 #include "pub_core_options.h"       // coregrind/ VG_(clo_sym_offsets)
 #include "pub_tool_errormgr.h"      // typedef struct _Error Error, typedef struct _Supp Supp
 #include "pub_tool_xarray.h"        // typedef struct _XArray XArray
+#include "pub_tool_poolalloc.h"     // typedef struct _PoolAlloc PoolAlloc
+                                    // found as extern in mc_include.h
+#include "pub_tool_tooliface.h"     // typedef struct VgCallbackClosure
+                                    // found as extern in mc_include.h
+#include "mc_include.h"             // MC_(helperc_LOADV8)
+
 
 #define MemProfileVT_decl(X) MC_Chunk* X;
 #define MemProfileVT_begin(X,Y) X = (MC_Chunk *)VG_(HT_Next)(Y)
@@ -17,10 +23,15 @@
 #define ExecutionContext_advance(X,Y,Z) X = Y[Z]
 #define ExecutionContext_end(X, Y) X != Y
 
-#define AddrVAbitsVT_decl(X) Addr X
-#define AddrVAbitsVT_begin(X,Y,Z) X = Y->data, Z = Y->data + Y->szB
-#define AddrVAbitsVT_advance(X) X += 4     // each VAbits entry tracks the state of 4 Bytes. So hopping 4 Bytes after each iteration.
-#define AddrVAbitsVT_end(X,Y) X < Y
+#define AddrVbitsVT_decl(X) Addr X
+#define AddrVbitsVT_begin(X,Y,Z) X = Y->data, Z = Y->data + Y->szB
+#define AddrVbitsVT_advance(X) X += 1     // each Vbits entry tracks the state of 1 Bytes. 1 shadow bit for each memory bit. So hopping 1 Byte after each iteration.
+#define AddrVbitsVT_end(X,Y) X < Y
+
+//#define AddrVAbitsVT_decl(X) Addr X
+//#define AddrVAbitsVT_begin(X,Y,Z) X = Y->data, Z = Y->data + Y->szB
+//#define AddrVAbitsVT_advance(X) X += 4     // each VAbits entry tracks the state of 4 Bytes. So hopping 4 Bytes after each iteration.
+//#define AddrVAbitsVT_end(X,Y) X < Y
 
 #define SecMapVT_decl(X) int *X; int i = 0
 #define SecMapVT_begin(X,Y,Z) X = (int *)&Y[Z]
@@ -108,15 +119,6 @@
 #define MAX_PRIMARY_ADDRESS (Addr)((((Addr)65536) * N_PRIMARY_MAP)-1)
 
 
-typedef
-   enum {
-      MC_AllocMalloc = 0,
-      MC_AllocNew    = 1,
-      MC_AllocNewVec = 2,
-      MC_AllocCustom = 3
-   }
-   MC_AllocKind;
-
 
 struct _ExeContext {
    struct _ExeContext* chain;
@@ -133,17 +135,6 @@ struct _ExeContext {
    Addr ips[0];
 };
 
-typedef
-   struct _MC_Chunk {
-      struct _MC_Chunk* next;
-      Addr         data;            // Address of the actual block.
-      SizeT        szB : (sizeof(SizeT)*8)-2; // Size requested; 30 or 62 bits.
-      MC_AllocKind allockind : 2;   // Which operation did the allocation.
-      ExeContext*  where[0];
-      /* Variable-length array. The size depends on MC_(clo_keep_stacktraces).
-         This array optionally stores the alloc and/or free stack trace. */
-   }
-   MC_Chunk;
 
 typedef
    struct {
@@ -211,43 +202,6 @@ typedef enum {
    Block_UserG
 } BlockKind;
 
-
-typedef
-   enum {
-      // Nb: the order is important -- it dictates the order of loss records
-      // of equal sizes.
-      Reachable    =0,  // Definitely reachable from root-set.
-      Possible     =1,  // Possibly reachable from root-set;  involves at
-                        //   least one interior-pointer along the way.
-      IndirectLeak =2,  // Leaked, but reachable from another leaked block
-                        //   (be it Unreached or IndirectLeak).
-      Unreached    =3,  // Not reached, ie. leaked.
-                        //   (At best, only reachable from itself via a cycle.)
-  }
-  Reachedness;
-
-/* When a LossRecord is put into an OSet, these elements represent the key. */
-typedef
-   struct _LossRecordKey {
-      Reachedness  state;        // LC_Extra.state value shared by all blocks.
-      ExeContext*  allocated_at; // Where they were allocated.
-   }
-   LossRecordKey;
-
-/* A loss record, used for generating err msgs.  Multiple leaked blocks can be
- * merged into a single loss record if they have the same state and similar
- * enough allocation points (controlled by --leak-resolution). */
-typedef
-   struct _LossRecord {
-      LossRecordKey key;  // Key, when used in an OSet.
-      SizeT szB;          // Sum of all MC_Chunk.szB values.
-      SizeT indirect_szB; // Sum of all LC_Extra.indirect_szB values.
-      UInt  num_blocks;   // Number of blocks represented by the record.
-      SizeT old_szB;          // old_* values are the values found during the
-      SizeT old_indirect_szB; // previous leak search. old_* values are used to
-      UInt  old_num_blocks;   // output only the changed/new loss records
-   }
-   LossRecord;
 
 /* The classification of a faulting address. */
 typedef
@@ -494,6 +448,8 @@ Error_PiCO_QL* errors;
 
 //#define BUF_LEN 4096
 #define BUF_LEN 1024
+static Addr blockEnd;
+//static Addr addrSize;
 static HChar alloc_by[BUF_LEN];
 static HChar obj_name[BUF_LEN];
 static HChar dir_name[BUF_LEN];
@@ -600,6 +556,10 @@ static int inPrim(Addr base) {
   else return 0;
 };
 
+static short getVbits(Addr base) {
+  return (short)MC_(helperc_LOADV8)(base);
+};
+/*
 static short getVAbits(Addr base) {
   UChar vabits = -1;
   if (inPrim(base)) {
@@ -610,9 +570,9 @@ static short getVAbits(Addr base) {
 #endif
     SecMap *sm = pqlPub_primary_map[ pm_off ];
     vabits = sm->vabits8[ sm_off ];
-/*  char m[100];
+/ *  char m[100];
     sprintf(m, "%d", (int)vabits);
-    printf("returning vabits8: %c (%s)\n", vabits, m);*/
+    printf("returning vabits8: %c (%s)\n", vabits, m);* /
   } else {
     AuxMapEnt  key;
     AuxMapEnt* res;
@@ -639,42 +599,44 @@ static short getVAbits(Addr base) {
   return vabits;
 };
 
-static short extract_vabits2(Addr base, UChar vabits8) {
+
+static short extract_vabits2(Addr base, short vabits8) {
    UInt shift = (base & 3) << 1;          // shift by 0, 2, 4, or 6
    vabits8 >>= shift;                     // shift the two bits to the bottom
-/*   char m[100];
+/ *   char m[100];
    sprintf(m, "In extract: for addr %ld returning vabits2 %d.\n", (long)base, (int)(0x3 & vabits8));
-   printf("%s", m);*/
+   printf("%s", m);* /
    return 0x3 & vabits8;                  // mask out the rest
 };
 
-static Addr addrSize;
 static short getVAbits2(Addr base, int indexB) {
   if (base + indexB >= addrSize) return -1;
-  UChar vabits8 = getVAbits(base);
-/*  char m[100];
+  short vabits8 = getVAbits(base);
+/ *  char m[100];
   sprintf(m, "vabits8 in 1B is: %d, addr is %ld, threshold size is %ld.\n", (int)vabits8, (long)base, (long)addrSize);
-  printf("%s", m);*/
+  printf("%s", m);* /
   return extract_vabits2(base + indexB, vabits8);
 };
 
 static UWord getVbits8(Addr base, int indexB) {
-  UChar vabits2 = getVAbits2(base, indexB);
+  UWord vabits2 = getVAbits2(base, indexB);
   if (vabits2 == VA_BITS2_PARTDEFINED) {
     Addr aAligned = VG_ROUNDDN(base, BYTES_PER_SEC_VBIT_NODE);
     Int amod     = base % BYTES_PER_SEC_VBIT_NODE;
     SecVBitNode* n = VG_(OSetGen_Lookup)(pqlPub_sec_vbit_table, &aAligned);
     UChar vbits8;
     tl_assert2(n, "get_sec_vbits8: no node for address %p (%p)\n", aAligned, base);
-    /* Shouldn't be fully defined or fully undefined -- those cases shouldn't
+    / * Shouldn't be fully defined or fully undefined--those cases shouldn't
      * make it to the secondary V bits table.
-     */
+     * /
     vbits8 = n->vbits8[amod];
+//    sth is wrong with this implementation; the assert below is triggered.
 //    tl_assert(V_BITS8_DEFINED != vbits8 && V_BITS8_UNDEFINED != vbits8);
     return vbits8;
   }
   return -1;
 };
+*/
 
 $
 
@@ -687,7 +649,8 @@ CREATE STRUCT VIEW MemProfileV (
         line_no INT FROM {getLOCNo(tuple_iter->where[0]->ips[1], file_name, dir_name)},
         alloc_by TEXT FROM {getFnName(tuple_iter->where[0]->ips[0], alloc_by)},
         inPrim BIGINT FROM inPrim(tuple_iter->data),
-        FOREIGN KEY(vabits_id) FROM tuple_iter REFERENCES AddrVAbitsVT POINTER,
+        FOREIGN KEY(vabits_id) FROM tuple_iter REFERENCES AddrVbitsVT POINTER,
+        //FOREIGN KEY(vabits_id) FROM tuple_iter REFERENCES AddrVAbitsVT POINTER,
         sizeB BIGINT FROM szB,
         allocKind INT FROM allockind,
         excnt_alloc_id INT FROM where[0]->ecu,
@@ -704,22 +667,28 @@ USING LOOP VG_(HT_ResetIter)(*base);for (MemProfileVT_begin(tuple_iter, *base);M
 
 CREATE STRUCT VIEW AddrVAbitsV (
         addr_data BIGINT FROM tuple_iter,
-        inPrim BIGINT FROM inPrim(tuple_iter),
-        vabits INT FROM getVAbits(tuple_iter),
-        vabits_1B INT FROM {getVAbits2(tuple_iter, 0)},
-        vbits_1B INT FROM {getVbits8(tuple_iter, 0)},
-        vabits_2B INT FROM {getVAbits2(tuple_iter, 1)},
-        vbits_2B INT FROM {getVbits8(tuple_iter, 1)},
-        vabits_3B INT FROM {getVAbits2(tuple_iter, 2)},
-        vbits_3B INT FROM {getVbits8(tuple_iter, 2)},
-        vabits_4B INT FROM {getVAbits2(tuple_iter, 3)},
-        vbits_4B INT FROM {getVbits8(tuple_iter, 3)}
+        inPrimaryTable BIGINT FROM inPrim(tuple_iter),
+        vbits INT FROM getVbits(tuple_iter)
+        //vabits INT FROM getVAbits(tuple_iter),
+        //vabits_1B INT FROM {getVAbits2(tuple_iter, 0)},
+        //vbits_1B INT FROM {getVbits8(tuple_iter, 0)},
+        //vabits_2B INT FROM {getVAbits2(tuple_iter, 1)},
+        //vbits_2B INT FROM {getVbits8(tuple_iter, 1)},
+        //vabits_3B INT FROM {getVAbits2(tuple_iter, 2)},
+        //vbits_3B INT FROM {getVbits8(tuple_iter, 2)},
+        //vabits_4B INT FROM {getVAbits2(tuple_iter, 3)},
+        //vbits_4B INT FROM {getVbits8(tuple_iter, 3)}
 )$
 
-CREATE VIRTUAL TABLE AddrVAbitsVT
+CREATE VIRTUAL TABLE AddrVbitsVT
 USING STRUCT VIEW AddrVAbitsV
 WITH REGISTERED C TYPE MC_Chunk*:Addr
-USING LOOP for (AddrVAbitsVT_begin(tuple_iter, base, addrSize); AddrVAbitsVT_end(tuple_iter, addrSize); AddrVAbitsVT_advance(tuple_iter))$
+USING LOOP for (AddrVbitsVT_begin(tuple_iter, base, blockEnd); AddrVbitsVT_end(tuple_iter, blockEnd); AddrVbitsVT_advance(tuple_iter))$
+
+//CREATE VIRTUAL TABLE AddrVAbitsVT
+//USING STRUCT VIEW AddrVAbitsV
+//WITH REGISTERED C TYPE MC_Chunk*:Addr
+//USING LOOP for (AddrVAbitsVT_begin(tuple_iter, base, addrSize); AddrVAbitsVT_end(tuple_iter, addrSize); AddrVAbitsVT_advance(tuple_iter))$
 // addrSize is static global variable defined above in the boilerplate part of the DSL
 
 
@@ -1020,43 +989,50 @@ WITH REGISTERED C NAME suppressionList
 WITH REGISTERED C TYPE Supp
 USING LOOP for(tuple_iter = base; tuple_iter != NULL; tuple_iter = tuple_iter->next)$
 
-CREATE VIEW VAbitTags AS
-        SELECT base, addr_data, inPrim, vabits,
-                (SELECT CASE WHEN vabits = 170 THEN 'defined'
-                        ELSE 'some_undefined' END) VATag,
-                (SELECT CASE WHEN vabits & 3 = 0 THEN 'noaccess'
-                        WHEN vabits & 3 = 1 THEN 'undefined'
-                        WHEN vabits & 3 = 2 THEN 'defined'
-                        WHEN vabits & 3 = 3 THEN 'partdefined' END) VATag_1B,
-                (SELECT CASE WHEN vbits_1B = 0 THEN 'defined-VG_BUG?'
-                        WHEN vbits_1B = -1 THEN '-'
-                        WHEN vbits_1B = 255 THEN 'undefined-VG_BUG?'
-                        ELSE vbits_1B END) VTag_1B,
-                (SELECT CASE WHEN (vabits >> 2) & 3 = 0 THEN 'noaccess'
-                        WHEN (vabits >> 2) & 3 = 1 THEN 'undefined'
-                        WHEN (vabits >> 2) & 3 = 2 THEN 'defined'
-                        WHEN (vabits >> 2) & 3 = 3 THEN 'partdefined' END) VATag_2B,
-                (SELECT CASE WHEN vbits_2B = 0 THEN 'defined-VG_BUG?'
-                        WHEN vbits_2B = -1 THEN '-'
-                        WHEN vbits_2B = 255 THEN 'undefined-VG_BUG?'
-                        ELSE vbits_2B END) VTag_2B,
-                (SELECT CASE WHEN (vabits >> 4) & 3 = 0 THEN 'noaccess'
-                        WHEN (vabits >> 4) & 3 = 1 THEN 'undefined'
-                        WHEN (vabits >> 4) & 3 = 2 THEN 'defined'
-                        WHEN (vabits >> 4) & 3 = 3 THEN 'partdefined' END) VATag_3B,
-                (SELECT CASE WHEN vbits_3B = 0 THEN 'defined-VG_BUG?'
-                        WHEN vbits_3B = -1 THEN '-'
-                        WHEN vbits_3B = 255 THEN 'undefined-VG_BUG?'
-                        ELSE vbits_3B END) VTag_3B,
-                (SELECT CASE WHEN (vabits >> 6) & 3 = 0 THEN 'noaccess'
-                        WHEN (vabits >> 6) & 3 = 1 THEN 'undefined'
-                        WHEN (vabits >> 6) & 3 = 2 THEN 'defined'
-                        WHEN (vabits >> 6) & 3 = 3 THEN 'partdefined' END) VATag_4B,
-                (SELECT CASE WHEN vbits_4B = 0 THEN 'defined-VG_BUG?'
-                        WHEN vbits_4B = -1 THEN '-'
-                        WHEN vbits_4B = 255 THEN 'undefined-VG_BUG?'
-                        ELSE vbits_4B END) VTag_4B
-        FROM AddrVAbitsVT;$
+CREATE VIEW VBitTagged AS
+        SELECT base, addr_data, inPrimaryTable, vBits,
+                (SELECT CASE WHEN vBits = 0 THEN 'defined'
+                        WHEN vBits = 255 THEN 'undefined'
+                        ELSE 'partdefined' END) vBitTag
+        FROM AddrVbitsVT;$
+
+//CREATE VIEW VAbitTags AS
+//        SELECT base, addr_data, inPrimaryTable, vabits,
+//                (SELECT CASE WHEN vabits = 170 THEN 'defined'
+//                        ELSE 'some_undefined' END) VATag,
+//                (SELECT CASE WHEN vabits & 3 = 0 THEN 'noaccess'
+//                        WHEN vabits & 3 = 1 THEN 'undefined'
+//                        WHEN vabits & 3 = 2 THEN 'defined'
+//                        WHEN vabits & 3 = 3 THEN 'partdefined' END) VATag_1B,
+//                (SELECT CASE WHEN vbits_1B = 0 THEN 'defined-VG_BUG?'
+//                        WHEN vbits_1B = -1 THEN '-'
+//                        WHEN vbits_1B = 255 THEN 'undefined-VG_BUG?'
+//                        ELSE vbits_1B END) VTag_1B,
+//                (SELECT CASE WHEN (vabits >> 2) & 3 = 0 THEN 'noaccess'
+//                        WHEN (vabits >> 2) & 3 = 1 THEN 'undefined'
+//                        WHEN (vabits >> 2) & 3 = 2 THEN 'defined'
+//                        WHEN (vabits >> 2) & 3 = 3 THEN 'partdefined' END) VATag_2B,
+//                (SELECT CASE WHEN vbits_2B = 0 THEN 'defined-VG_BUG?'
+//                        WHEN vbits_2B = -1 THEN '-'
+//                        WHEN vbits_2B = 255 THEN 'undefined-VG_BUG?'
+//                        ELSE vbits_2B END) VTag_2B,
+//                (SELECT CASE WHEN (vabits >> 4) & 3 = 0 THEN 'noaccess'
+//                        WHEN (vabits >> 4) & 3 = 1 THEN 'undefined'
+//                        WHEN (vabits >> 4) & 3 = 2 THEN 'defined'
+//                        WHEN (vabits >> 4) & 3 = 3 THEN 'partdefined' END) VATag_3B,
+//                (SELECT CASE WHEN vbits_3B = 0 THEN 'defined-VG_BUG?'
+//                        WHEN vbits_3B = -1 THEN '-'
+//                        WHEN vbits_3B = 255 THEN 'undefined-VG_BUG?'
+//                        ELSE vbits_3B END) VTag_3B,
+//                (SELECT CASE WHEN (vabits >> 6) & 3 = 0 THEN 'noaccess'
+//                        WHEN (vabits >> 6) & 3 = 1 THEN 'undefined'
+//                        WHEN (vabits >> 6) & 3 = 2 THEN 'defined'
+//                        WHEN (vabits >> 6) & 3 = 3 THEN 'partdefined' END) VATag_4B,
+//                (SELECT CASE WHEN vbits_4B = 0 THEN 'defined-VG_BUG?'
+//                        WHEN vbits_4B = -1 THEN '-'
+//                        WHEN vbits_4B = 255 THEN 'undefined-VG_BUG?'
+//                        ELSE vbits_4B END) VTag_4B
+//        FROM AddrVAbitsVT;$
 
 CREATE VIEW ClassifyOCacheLine AS
         SELECT addr_tag, classification,
@@ -1145,34 +1121,50 @@ CREATE VIEW GroupFunctionMemProfileQ AS
         WHERE fn_name LIKE '%lookup%'
 	ORDER BY sizeB DESC;$
 
-CREATE VIEW LocatePDBMemProfileQ AS
-        SELECT M.addr_data, fn_name,
-                sizeB, COUNT(*) AS PDBs
-        FROM MemProfileVT M
-        JOIN VAbitTags
-        ON base=vabits_id
-        WHERE VAtag_1B = 'partdefined'
-        OR VAtag_2B = 'partdefined'
-        OR VAtag_3B = 'partdefined'
-        OR VAtag_4B = 'partdefined'
-        GROUP BY M.addr_data
-        ORDER BY PDBs;$
-
-CREATE VIEW wordBytesWastedMemProfileQ AS
+CREATE VIEW bytesWastedMemProfileQ AS
         SELECT block_addr, sizeB, fn_name, line_no,
-                SUM(wordBytesWasted), COUNT(*) AS words
+                SUM(bytesWasted)
         FROM (
                 SELECT M.addr_data AS block_addr, sizeB, fn_name,
-                       line_no,
-                        CAST(VAtag_1B <> 'defined' AS INTEGER) +
-                        CAST(VAtag_2B <> 'defined' AS INTEGER) +
-                        CAST(VAtag_3B <> 'defined' AS INTEGER) +
-                        CAST(VAtag_4B <> 'defined' AS INTEGER) wordBytesWasted
+                       line_no, vbits, vBitTag,
+                       CAST(vbitTag = 'undefined' AS INTEGER) AS bytesWasted
                 FROM MemProfileVT M
-                JOIN VAbitTags
+                JOIN VBitTagged
                 ON base=vabits_id
-                WHERE VATag <> 'defined'
+                WHERE vBitTag = 'undefined'
         ) BW
         GROUP BY block_addr
-        ORDER BY SUM(wordBytesWasted) DESC, words DESC;$
+        ORDER BY SUM(bytesWasted) DESC;$
+
+
+//CREATE VIEW LocatePDBMemProfileQ AS
+//        SELECT M.addr_data, fn_name,
+//                sizeB, COUNT(*) AS PDBs
+//        FROM MemProfileVT M
+//        JOIN VAbitTags
+//        ON base=vabits_id
+//        WHERE VAtag_1B = 'partdefined'
+//        OR VAtag_2B = 'partdefined'
+//        OR VAtag_3B = 'partdefined'
+//        OR VAtag_4B = 'partdefined'
+//        GROUP BY M.addr_data
+//        ORDER BY PDBs;$
+
+//CREATE VIEW wordBytesWastedMemProfileQ AS
+//        SELECT block_addr, sizeB, fn_name, line_no,
+//                SUM(wordBytesWasted), COUNT(*) AS words
+//        FROM (
+//                SELECT M.addr_data AS block_addr, sizeB, fn_name,
+//                       line_no,
+//                        CAST(VAtag_1B <> 'defined' AS INTEGER) +
+//                        CAST(VAtag_2B <> 'defined' AS INTEGER) +
+//                        CAST(VAtag_3B <> 'defined' AS INTEGER) +
+//                        CAST(VAtag_4B <> 'defined' AS INTEGER) wordBytesWasted
+//                FROM MemProfileVT M
+//                JOIN VAbitTags
+//                ON base=vabits_id
+//                WHERE VATag <> 'defined'
+//        ) BW
+//        GROUP BY block_addr
+//        ORDER BY SUM(wordBytesWasted) DESC, words DESC;$
 
