@@ -1,3 +1,3 @@
 ACLOCAL_AMFLAGS = -I m4
-SUBDIRS = src
+SUBDIRS = src examples/BankApp
 dist_doc_DATA = doc/README.mediawiki

@@ -7,12 +7,7 @@ AM_PROG_AR
 LT_INIT
 
 AC_PROG_CC
-
-#AC_CHECK_LIB(swill,
-#             swill_init,
-#             [],
-#             [echo "Library swill is required"
-#              exit -1])
+AC_PROG_CXX
 
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
@@ -20,6 +15,7 @@ AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([
  Makefile
  src/Makefile
+ examples/BankApp/Makefile
 ])
 
 AC_OUTPUT

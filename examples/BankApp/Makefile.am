@@ -1,2 +1,10 @@
-lib_LTLIBRARIES = libpicoql.la
-libpicoql_la_SOURCES = sqlite3.c pico_ql_error_page.c pico_ql_interface.c pico_ql_logo.c pico_ql_search_helper.c pico_ql_test.c pico_ql_vt.c
+bin_PROGRAMS = bankapp
+
+bankapp_SOURCES = main.cpp Account.cpp SuperAccount.cpp SpecialAccount.cpp pico_ql_search.cpp pico_ql_internal.cpp
+
+pico_ql_search.cpp:
+	ruby ../../src/pico_ql_generator.rb pico_ql_dsl.sql
+
+pico_ql_internal.cpp: pico_ql_search.cpp
+
+bankapp_LDADD = ../../lib/libpicoql.la -lpthread
