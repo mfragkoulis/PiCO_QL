@@ -18,6 +18,7 @@ AC_CONFIG_FILES([
  examples/BankApp/Makefile
  examples/Chess/Makefile
  examples/VRP/Makefile
+ examples/CApp/Makefile
 ])
 
 AC_OUTPUT
