@@ -16,6 +16,7 @@ AC_CONFIG_FILES([
  Makefile
  src/Makefile
  examples/BankApp/Makefile
+ examples/Chess/Makefile
 ])
 
 AC_OUTPUT

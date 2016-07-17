@@ -1,9 +1,13 @@
 bin_PROGRAMS = bankapp
 
-bankapp_SOURCES = main.cpp Account.cpp SuperAccount.cpp SpecialAccount.cpp pico_ql_search.cpp pico_ql_internal.cpp
+AM_CXXFLAGS = -I../../src
+
+bankapp_SOURCES = pico_ql_search.cpp pico_ql_internal.cpp main.cpp Account.cpp SuperAccount.cpp SpecialAccount.cpp
 
 pico_ql_search.cpp:
-	ruby ../../src/pico_ql_generator.rb pico_ql_dsl.sql
+	cp ../../src/pico_ql_generator.rb .
+	cp -R ../../src/pico_ql_erb_templates .
+	ruby pico_ql_generator.rb pico_ql_dsl.sql
 
 pico_ql_internal.cpp: pico_ql_search.cpp
 
