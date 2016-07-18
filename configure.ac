@@ -19,6 +19,7 @@ AC_CONFIG_FILES([
  examples/Chess/Makefile
  examples/VRP/Makefile
  examples/CApp/Makefile
+ examples/Polymorphism/Makefile
 ])
 
 AC_OUTPUT
