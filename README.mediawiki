@@ -75,32 +75,35 @@ waiting to be executed.
 * [http://swill.sourceforge.net SWILL] Once plugged in an application, PiCO QL uses the same  or a separate thread and utilises the SWILL library to present a local server with a web-like, user friendly query interface. In case of the kernel configuration this interface wraps the /proc interface.
 * [http://www.boost.org Boost] For C++ the library accepts any container iterable in some fashion and provides concept checks (compile-time), implemented by Boost, for containers modelled after the ForwardContainer and ForwardIterator concepts
 
+==Installation==
+
+```bash
+./configure [--enable-run-tests=yes] [--prefix=...]
+make
+make install
+make test      # if --enable-run-tests has been used
+```
+
+To see the PiCO QL library in action:
+* do not use --enable-run-tests
+* head to the installation directory
+* run one of the examples: bankapp, chess, capp, vrp, polymoprhism
+
 ==Package structure==
 
 * At the ''examples/'' directory, users can browse:
 Several implemented userspace application example scenarios 
-which can be executed effortlessly (provided the
-dependencies are installed in one's system):
+which can be executed effortlessly as mentioned above.
 
-        cd examples/ && test_all.sh
-
-or
-
-        cd examples/<worked-example-dir>/ && test.sh
-
-to run the tests of a particular example. Behind the scenes
-''test.sh'' does:
+Behind the scenes a compiler written in Ruby parses a relational specification and
+creates the source code of the relational interface that is later used to execute queries
+on the application's data structures. Here is how the compiler is invoked and the arguments it accepts:
 
         ruby generator.rb pico_ql_dsl.sql [debug] [kernel] [C] [no_mem_mgt] [concept_check]
 
-        make
-with various 
+There are also different configuration alternatives available at the make step
 [https://github.com/mfragkoulis/PiCO_QL/wiki/Plug-in-process#compile-options 
-configuration options]
-
-        ./<executable>
-
-* At the ''bin/'' directory reside image files that PiCO QL uses.
+configuration options].
 
 * At the ''doc/'' directory there is the BNF of the DSL that grounds the user description syntax and the wiki pages.
 
