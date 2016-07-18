@@ -96,153 +96,149 @@ int test_prep_exec(FILE *f, sqlite3 *db, const char *q) {
 /* Executes test queries. */
 int call_test(sqlite3 *db) {
   FILE *f;
-  f = fopen("pico_ql_test_current.txt", "w");
+  f = fopen("capp_test_current.txt", "w");
 
-  int result, i = 0;
+  int i = 0;
   char *q;
 
   q = "select nCurrency, name, price_mode, price, weight_mode from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select name, price_mode, price, weight_mode from Moneylist;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select name, price_mode, price, weight_mode from MoneyArray;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select nCurrency, name, price_mode, price, weight_mode from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where name like '%eu';";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select name, price_mode, price, weight_mode from Moneylist where name like '%eu';";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select name, price_mode, price, weight_mode from MoneyArray where name like '%eu';";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select nCurrency, name, price_mode, price, weight_mode from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where price > 10;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select name, price_mode, price, weight_mode from Moneylist where price > 10;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select name, price_mode, price, weight_mode from MoneyArray where price > 10;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select nCurrency, name, price_mode, price, weight_mode from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where price like 'f%';";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select name, price_mode, price, weight_mode from Moneylist where price like 'f%';";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select name, price_mode, price, weight_mode from MoneyArray where price like 'f%';";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select nCurrency, name, price_mode, price, weight_mode from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where price like 'd%';";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select name, price_mode, price, weight_mode from Moneylist where price like 'd%';";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select name, price_mode, price, weight_mode from MoneyArray where price like 'd%';";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select name, price_mode, price, weight_mode from (select DISTINCT name, price_mode, price, weight_mode, weight from Moneylist where price like '%pr%') m join GoldEquivalent on GoldEquivalent.base = m.weight where ounce > 10;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select name, price_mode, price, weight_mode from (select DISTINCT name, price_mode, price, weight_mode, weight from MoneyArray where price like '%pr%') m join GoldEquivalent on GoldEquivalent.base = m.weight where ounce > 10;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select nCurrency, name, price_mode, price, weight_mode from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency join GoldEquivalent on GoldEquivalent.base = Money.weight where ounce > 10;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select name, price_mode, price, weight_mode from Moneylist join GoldEquivalent on GoldEquivalent.base = Moneylist.weight where ounce > 10;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select name, price_mode, price, weight_mode from MoneyArray join GoldEquivalent on GoldEquivalent.base = MoneyArray.weight where ounce > 10;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select nCurrency, name, price_mode, price, weight_mode from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where weight like 'a%';";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select name, price_mode, price, weight_mode from Moneylist where weight like 'a%';";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select name, price_mode, price, weight_mode from MoneyArray where weight like 'a%';";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select nCurrency, name, price_mode, price, weight_mode from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency where weight like '%o%';";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select name, price_mode, price, weight_mode from Moneylist where weight like '%o%';";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select name, price_mode, price, weight_mode from MoneyArray where weight like '%o%';";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select * from Price;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select * from Price where price > 10;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select number from Number;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select number from Number where number > 5;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select number from Number where number > 8;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select number from ENumber;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select number from ENumber where number > 5;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select number from ENumber where number > 8;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   deinit_vt_selectors();
   sqlite3_close(db);
   fclose(f);
-  if (system("./pico_ql_diff_test.sh")) {
-    printf("Invoking pico_ql_diff_test script failed.\n");
-    exit(1);
-  }
   return SQLITE_DONE;
 }

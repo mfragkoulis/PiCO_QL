@@ -92,14 +92,11 @@ Position* LinehaulCustomer::get_pos() {
 
 // Picks a linehaul customer from the list at random.
 LinehaulCustomer* LinehaulCustomer::random_sel(int& pos, int i) {
-    vector<LinehaulCustomer*> *list_a, *list_b;
-    if ((i % 2) == 0) {
+    vector<LinehaulCustomer*> *list_a;
+    if ((i % 2) == 0)
 	list_a = &list_l;
-	list_b = &list_ll;
-    } else {
+    else
 	list_a = &list_ll;
-	list_b = &list_l;
-    }
     // cout << " list_a size : " << list_a->size() << endl;
     // cout << "list_b size : " << list_b->size() << endl;
     if (list_a->size() > 1) {        

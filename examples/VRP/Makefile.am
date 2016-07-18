@@ -1,6 +1,6 @@
-bin_PROGRAMS = bankapp
+bin_PROGRAMS = vrp
 
-bindata_DATA = bankapp_test_success.txt
+bindata_DATA = vrp_test_success.txt
 bindatadir = $(bindir)
 
 AM_CFLAGS = -I../../src
@@ -18,7 +18,7 @@ else
 AM_CXXFLAGS += -D_NDEBUG -O2
 endif
 
-bankapp_SOURCES = pico_ql_search.cpp pico_ql_internal.cpp pico_ql_test.c main.cpp Account.cpp SuperAccount.cpp SpecialAccount.cpp
+vrp_SOURCES = pico_ql_search.cpp pico_ql_internal.cpp pico_ql_test.c main.cpp Customer.cpp LinehaulCustomer.cpp BackhaulCustomer.cpp Truck.cpp Fleet.cpp Position.cpp mtrand.cpp
 
 pico_ql_search.cpp:
 	cp ../../src/pico_ql_generator.rb .
@@ -27,4 +27,4 @@ pico_ql_search.cpp:
 
 pico_ql_internal.cpp: pico_ql_search.cpp
 
-bankapp_LDADD = ../../lib/libpicoql.la -lpthread
+vrp_LDADD = ../../lib/libpicoql.la -lpthread

@@ -86,36 +86,32 @@ int test_prep_exec(FILE *f, sqlite3 *db, const char *q) {
 
 int call_test(sqlite3 *db) {
   FILE *f;
-  f = fopen("pico_ql_test_current.txt", "w");
-  int result, i = 1;
+  f = fopen("chess_test_current.txt", "w");
+  int i = 1;
   char *q;
 
   q = "select rownum from ChessBoard;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select * from ChessRow;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select ChessBoard.rownum,ChessRow.rownum,color,name from ChessBoard,ChessRow where ChessRow.base=ChessBoard.row_id";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select ChessBoard.rownum,ChessRow.rownum,color,name from ChessBoard,ChessRow where ChessRow.base=ChessBoard.row_id and color=\"white\" and name=\"bishop\";";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select * from ReducedBoard;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   deinit_vt_selectors();
   sqlite3_close(db);
   fclose(f);
-  if (system("./pico_ql_diff_test.sh")) {
-    printf("Invoking pico_ql_diff_test script failed.\n");
-    exit(1);
-  }
   return SQLITE_DONE;
 }

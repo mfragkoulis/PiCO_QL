@@ -86,52 +86,48 @@ int test_prep_exec(FILE *f, sqlite3 *db, const char *q) {
 
 int call_test(sqlite3 *db) {
   FILE *f;
-  f = fopen("pico_ql_test_current.txt", "w");
-  int result, i = 1;
+  f = fopen("bankapp_test_current.txt", "w");
+  int i = 1;
   char *q;
 
   q = "select * from SuperAccounts;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select * from SuperAccounts where SuperAccountisbn > 0 and SuperAccountbalance < 500 and SuperAccountaccount_no>1000 order by id;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select * from Accounts;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select * from AccountsNULL;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select * from Accounts where rate >10 and balance<20000 order by account_no;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select * from AccountsNULL where rate >10 and balance<20000 order by account_no;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select * from SpecialAccounts;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select * from SpecialAccounts where bonus > 20 and rate >15 order by account_no;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select * from Myaccounts;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   deinit_vt_selectors();
   sqlite3_close(db);
   fclose(f);
-  if (system("./pico_ql_diff_test.sh")) {
-    printf("Invoking pico_ql_diff_test script failed.\n");
-    exit(1);
-  }
   return SQLITE_DONE;
 }

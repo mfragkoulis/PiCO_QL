@@ -96,25 +96,21 @@ int test_prep_exec(FILE *f, sqlite3 *db, const char *q) {
 /* Executes test queries. */
 int call_test(sqlite3 *db) {
   FILE *f;
-  f = fopen("pico_ql_test_current.txt", "w");
+  f = fopen("polymorphism_test_current.txt", "w");
 
-  int result, i = 0;
+  int i = 0;
   char *q;
 
   q = "select rownum, description, balance, available_amount, binded_amount from Account;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   q = "select rownum, description, balance, available_amount, binded_amount, overlimit, due_date from Account JOIN PremiumAccount ON PremiumAccount.base=Account.premiumaccount_id JOIN SavingsAccount ON SavingsAccount.base=Account.savingsaccount_id;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  result = test_prep_exec(f, db, q);
+  test_prep_exec(f, db, q);
 
   deinit_vt_selectors();
   sqlite3_close(db);
   fclose(f);
-  if (system("./pico_ql_diff_test.sh")) {
-    printf("Invoking pico_ql_diff_test script failed.\n");
-    exit(1);
-  }
   return SQLITE_DONE;
 }
