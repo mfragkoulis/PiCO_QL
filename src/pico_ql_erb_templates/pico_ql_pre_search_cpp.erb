@@ -26,24 +26,6 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
   ResultSet *rs = &cursors[cur];
 <%      end %>
   if (struct_empty_null(cur, val, picoQL->embedded, nCol)) {
-<%      if @container_class.length == 0 %>
-    stcsr->size = 1;
-<%	else %>
-    rs->res.clear();
-    rs->resBts.clear();
-<%        if @@C_container_types.include?(@container_class) %>
-    <%= type_retype %> dummy;
-    rs->res.push_back(dummy);
-<%	  else %>
-<%          if /\[/.match(@signature) %>
-    <%= @assignable_signature.gsub("<variable_name>", "any_dstr") %>;
-<%          else %>
-    <%= sign_untype %> dummy;
-<%          end %>
-    rs->res.push_back(dummy.begin());
-<%        end %>
-    rs->resIter = rs->res.begin();
-<%      end %>
     return SQLITE_OK;
   }
   if (!((picoQLTableCursor *)cur)->active_checked) {
@@ -107,11 +89,6 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
 <%# C container %>
 <%          if @loop_root.length > 0 %>
   if (<%= @loop_root %> == NULL) {
-    rs->res.clear();
-    rs->resBts.clear();
-    <%= type_retype %> dummy;
-    rs->res.push_back(dummy);
-    rs->resIter = rs->res.begin();
     return SQLITE_OK;
   }
 <%          end %>
@@ -198,17 +175,6 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
             stcsr->size = 1;
 <%	  else %>
 // BASE is first constraint by default, so no need to delete resultset here.
-<%          if @@C_container_types.include?(@container_class) %>
-            <%= type_retype %> dummy;
-            rs->res.push_back(dummy);
-<%	    else %>
-<%            if /\[/.match(@signature) %>
-            <%= @assignable_signature.gsub("<variable_name>", "any_dstr") %>;
-<%            else %>
-            <%= sign_untype %> dummy;
-<%            end %>
-            rs->res.push_back(dummy.begin());
-<%	    end %>
 <%        end %>
             return SQLITE_OK;
           }
@@ -217,30 +183,14 @@ int <%= @name %>_vt::operator() (sqlite3_vtab_cursor *cur, int op, int nCol, sql
 <%        if (@signature <=> @type) != 0 %>
 <%          if @loop_root.length > 0 %>
 <%# C containers: only then @loop_root %>
-          if (<%= @loop_root %> == NULL) {
-            rs->res.clear();
-            rs->resBts.clear();
-            <%= type_retype %> dummy;
-            rs->res.push_back(dummy);
-            rs->resIter = rs->res.begin();
-            return SQLITE_OK;
-          }
+	  if (<%= @loop_root %> == NULL) {
+	    return SQLITE_OK;
+	    }
 <%          end %>
 <%        end %>
 <%        if @container_class.length > 0 %>
           if ((stcsr->max_size = (int)(*this)(cur, cur->pVtab)) == 0) {
             stcsr->isInstanceEmpty = 1;
-<%          if @@C_container_types.include?(@container_class) %>
-            <%= type_retype %> dummy;
-            rs->res.push_back(dummy);
-<%	    else %>
-<%            if /\[/.match(@signature) %>
-            <%= @assignable_signature.gsub("<variable_name>", "any_dstr") %>;
-<%            else %>
-            <%= sign_untype %> dummy;
-<%            end %>
-            rs->res.push_back(dummy.begin());
-<%	    end %>
             return SQLITE_OK;
           } else {
             rs->resBts.resize(stcsr->max_size, 0);

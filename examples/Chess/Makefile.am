@@ -28,3 +28,6 @@ pico_ql_search.cpp:
 pico_ql_internal.cpp: pico_ql_search.cpp
 
 chess_LDADD = ../../lib/libpicoql.la -lpthread
+
+clean-local:
+	-rm pico_ql_search.cpp

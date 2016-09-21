@@ -1,6 +1,6 @@
 bin_PROGRAMS = vrp
 
-bindata_DATA = vrp_test_success.txt
+bindata_DATA = vrp_test_success.txt solomon.txt
 bindatadir = $(bindir)
 
 AM_CFLAGS = -I../../src
@@ -28,3 +28,6 @@ pico_ql_search.cpp:
 pico_ql_internal.cpp: pico_ql_search.cpp
 
 vrp_LDADD = ../../lib/libpicoql.la -lpthread
+
+clean-local:
+	-rm pico_ql_search.cpp

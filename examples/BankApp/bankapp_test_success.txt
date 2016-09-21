@@ -61,7 +61,6 @@ Query 4:
 Statement prepared.
 rownum balance account_no rate isbn isbn_root type 
 
-(null) (null) (null) (null) (null) (null) (null) 
 
 Done
 
@@ -80,7 +79,6 @@ Query 6:
 Statement prepared.
 rownum balance account_no rate isbn isbn_root type 
 
-(null) (null) (null) (null) (null) (null) (null) 
 
 Done
 

@@ -23,9 +23,9 @@
 
 cmd=$1
 
-if ! diff {$cmd}_test_current.txt {$cmd}_test_success.txt >/dev/null 2>&1
+if diff ${cmd}_test_current.txt ${cmd}_test_success.txt >/dev/null
 then 
     echo "Test $cmd successful."
 else
-	echo "Test $cmd produced unexpected results. See $cmd_test_current.txt"
+	echo "Test $cmd produced unexpected results. See ${cmd}_test_current.txt"
 fi

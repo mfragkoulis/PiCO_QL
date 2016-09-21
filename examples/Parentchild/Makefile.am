@@ -1,10 +1,10 @@
-bin_PROGRAMS = polymorphism
+bin_PROGRAMS = parentchild
 
-bindata_DATA = polymorphism_test_success.txt
+bindata_DATA = parentchild_test_success.txt
 bindatadir = $(bindir)
 
-AM_CFLAGS = -I../../src
-AM_CXXFLAGS = -I../../src
+AM_CFLAGS = -I../../src -DPICO_QL_DEBUG
+AM_CXXFLAGS = -I../../src -DPICO_QL_DEBUG
 
 if ENABLE_TESTS
 AM_CFLAGS += -O3 -Wall -Werror -g -D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC -D_GLIBCXX_DEBUG -D_GLIBCXX_CONCEPT_CHECKS -D_GLIBCXX_FULLY_DYNAMIC_STRING -DPICO_QL_TEST
@@ -18,9 +18,7 @@ else
 AM_CXXFLAGS += -D_NDEBUG -O2
 endif
 
-AM_CXXFLAGS += -DPICO_QL_SINGLE_THREADED -DPICO_QL_HANDLE_TEXT_ARRAY -DPICO_QL_HANDLE_POLYMORPHISM
-
-polymorphism_SOURCES = pico_ql_search.cpp pico_ql_internal.cpp pico_ql_test.c main.cpp Account.cpp PremiumAccount.cpp SavingsAccount.cpp
+parentchild_SOURCES = pico_ql_search.cpp pico_ql_internal.cpp pico_ql_test.c main.cpp
 
 pico_ql_search.cpp:
 	cp ../../src/pico_ql_generator.rb .
@@ -29,7 +27,7 @@ pico_ql_search.cpp:
 
 pico_ql_internal.cpp: pico_ql_search.cpp
 
-polymorphism_LDADD = ../../lib/libpicoql.la -lpthread
+parentchild_LDADD = ../../lib/libpicoql.la -lpthread
 
 clean-local:
 	-rm pico_ql_search.cpp

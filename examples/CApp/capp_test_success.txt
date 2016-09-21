@@ -160,9 +160,9 @@ Query 15:
 Statement prepared.
 name price_mode price weight_mode 
 
+Dollar 1 dlr_price 3 
 Euro 1 Euro_price 3 
 Pound 1 pnd_price 3 
-Dollar 1 dlr_price 3 
 
 Done
 
@@ -172,9 +172,9 @@ Query 16:
 Statement prepared.
 name price_mode price weight_mode 
 
+Dollar 1 dlr_price 3 
 Euro 1 Euro_price 3 
 Pound 1 pnd_price 3 
-Dollar 1 dlr_price 3 
 
 Done
 

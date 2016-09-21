@@ -26,6 +26,7 @@ AC_CONFIG_FILES([
  examples/VRP/Makefile
  examples/CApp/Makefile
  examples/Polymorphism/Makefile
+ examples/Parentchild/Makefile
 ])
 
 AC_OUTPUT
