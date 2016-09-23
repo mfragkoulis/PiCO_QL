@@ -1,7 +1,10 @@
 #include <list>
 #include <vector>
 
-#include "pico_ql_search.h"
+#ifndef PICO_QL_SINGLE_THREADED
+#include <pthread.h>
+#endif
+#include "pico_ql.h"
 #include "Child.h"
 #include "Parent.h"
 /*------------*/

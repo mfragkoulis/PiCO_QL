@@ -35,7 +35,7 @@
 #ifndef PICO_QL_SINGLE_THREADED
 #include "pthread.h"     // For PiCO_QL
 #endif
-#include "pico_ql_search.h"     // For PiCO_QL
+#include "pico_ql.h"     // For PiCO_QL
 
 using namespace std;
 using namespace picoQL;

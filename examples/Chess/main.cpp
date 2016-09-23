@@ -26,7 +26,7 @@
 #ifndef PICO_QL_SINGLE_THREADED
 #include <pthread.h>
 #endif
-#include "pico_ql_search.h"
+#include "pico_ql.h"
 /*-------------*/
 
 using namespace picoQL;
