@@ -113,9 +113,9 @@ int main() {
 #ifndef PICO_QL_SINGLE_THREADED
   void *exit_status = NULL;
   pthread_t t;
-  pico_ql_serve(8080, &t);
+  pico_ql_init(NULL, 0, 8080, &t);
 #else
-  pico_ql_serve(8080, NULL);
+  pico_ql_init(NULL, 0, 8080, NULL);
 #endif
   printf("Money M Price main: %f\n", M->prc.main);
   printf("Money N Price main: %f\n", N->prc.main);

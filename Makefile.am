@@ -6,4 +6,4 @@ test: test-clean
 	cd $(bindir) && bash run_tests.sh
 
 test-clean:
-	cd $(bindir) && rm *_test_current.txt
+	-cd $(bindir) && rm *_test_current.txt

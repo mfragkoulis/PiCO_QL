@@ -23,7 +23,7 @@
 #define PICO_QL_INTERFACE_H
 
 #include <stdio.h>
-#include <sqlite3.h>
+#include "sqlite3.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -33,7 +33,8 @@ int register_table(int argc,
 		   int view_index,
 		   const char **queries, 
 		   const char **table_names, 
-		   int port_number);
+		   int port_number,
+		   sqlite3 *db);
 int prep_exec(FILE *f, sqlite3 *db, const char *q, const char *response_type);
 
 #ifdef __cplusplus

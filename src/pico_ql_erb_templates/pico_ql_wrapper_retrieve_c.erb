@@ -92,25 +92,27 @@ void * thread_sqlite(void *data) {
 <%    if $argK == "KERNEL" %>
   sqlite3 *db = (sqlite3 *)data;
 <%    else %>
-  int port_number = *(int *)data;
+  config *conf = (config *)data;
 <%    end %>
   char **queries, **sqlite_names;
   int failure = 0, i;
-  void *re = (void *)(long)SQLITE_DONE;
+  int re = SQLITE_OK;
 <% view_length = 0 %>
 <% @views == nil ? views_length = 0 : views_length = @views.length %>
-  queries = (char **)sqlite3_malloc(sizeof(char *) * <%= (@tables.length + views_length).to_s %>);
-  sqlite_names = (char **)sqlite3_malloc(sizeof(char *) * <%= (@tables.length + views_length).to_s %>);
-<%    if $argK != "KERNEL" %>
-  sqlite3_free(data);
-<%    end %>
+  queries = (char **)sqlite3_malloc(sizeof(char *) * <%= (@tables.length + views_length).to_s %> + conf->npragmas);
+  sqlite_names = (char **)sqlite3_malloc(sizeof(char *) * <%= (@tables.length + views_length).to_s %> + conf->npragmas);
   if (queries == NULL) {
-    re = (void *)SQLITE_NOMEM;
+    printf("Out of memory\n");
     goto exit;
   }
   if (sqlite_names == NULL) {
-    re = (void *)SQLITE_NOMEM;
+    printf("Out of memory\n");
     goto exit;
+  }
+
+  for (i = 0; i < conf->npragmas; i++) {
+    strcpy(queries[i], conf->pragmas[i]);
+    strcpy(sqlite_names[i], "PRAGMA");
   }
 <%# <database_name>.<table> does not work for some reason. test. %>
 <%# counter %>
@@ -121,36 +123,36 @@ void * thread_sqlite(void *data) {
 <%        query += "#{c.name} #{c.data_type}, " %>
 <%      } %>
 <%      query = query.chomp(", ") + ")" %>
-  queries[<%= vt %>] = (char *)sqlite3_malloc(sizeof(char) * <%= query.length %>);
-  strcpy(queries[<%= vt %>], "<%= query %>");
-  sqlite_names[<%= vt %>] = "<%= @tables[vt].name %>";
+  queries[<%= vt %> + conf->npragmas] = (char *)sqlite3_malloc(sizeof(char) * <%= query.length %>);
+  strcpy(queries[<%= vt %> + conf->npragmas], "<%= query %>");
+  sqlite_names[<%= vt %> + conf->npragmas] = "<%= @tables[vt].name %>";
 <%    } %>
 <%    if views_length > 0 %>
 <%      @views.each_index { |vs| %>
-  queries[<%= vs + @tables.length %>] = (char *)sqlite3_malloc(sizeof(char) * <%= @views[vs].stmt.length.to_s %>);
-  strcpy(queries[<%= vs + @tables.length %>], "<%= @views[vs].stmt %>");
-  sqlite_names[<%= vs + @tables.length %>] = "<%= @views[vs].name %>";
+  queries[<%= vs + @tables.length %> + conf->npragmas] = (char *)sqlite3_malloc(sizeof(char) * <%= @views[vs].stmt.length.to_s %>);
+  strcpy(queries[<%= vs + @tables.length %> + conf->npragmas], "<%= @views[vs].stmt %>");
+  sqlite_names[<%= vs + @tables.length %> + conf->npragmas] = "<%= @views[vs].name %>";
 <%      } %>
 <%    end %>
   if ((failure = set_VtblImpl()) > 0) {
-    re = (void *)(long)failure;
+    printf("set_VtblImpl() failed with error code: %d\n", failure);
     goto exit;
   }
 <%    if $argK == "KERNEL" %>
   if ((failure = register_table(db, <%= (@tables.length + views_length).to_s %>, <%= @tables.length.to_s %>, (const char **)queries, (const char **)sqlite_names)) != SQLITE_DONE) {
-<%    else %>
-  if ((failure = register_table(<%= (@tables.length + views_length).to_s %>, <%= @tables.length.to_s %>, (const char **)queries, (const char **)sqlite_names, port_number)) != SQLITE_DONE) {
-<%    end %>
-    printf("Register table returns with error code %i.\n", failure);
+    printf("Register table returns with error code %i.\n", (int)re);
     re = (void *)(long)failure;
-    goto exit;
   }
+<%    else %>
+	re = register_table(<%= (@tables.length + views_length).to_s %> + conf->npragmas, <%= @tables.length.to_s %> + conf->npragmas, (const char **)queries, (const char **)sqlite_names, conf->port, conf->db);
+<%    end %>
 
   exit:
     for (i = 0; i < <%= (@tables.length + views.length).to_s %>; i++)
       sqlite3_free(queries[i]);
     sqlite3_free(queries);
     sqlite3_free(sqlite_names);
-    return re;
+    sqlite3_free(data);
+    return (void *)(long)re;
 }
 

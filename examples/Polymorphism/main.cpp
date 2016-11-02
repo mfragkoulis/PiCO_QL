@@ -23,10 +23,10 @@ int main() {
 #ifndef PICO_QL_SINGLE_THREADED
   pthread_t t;
   void *exit_status = NULL;
-  pico_ql_serve(8080, &t);
+  pico_ql_init(NULL, 0, 8080, &t);
   pthread_join(t, &exit_status);
 #else
-  pico_ql_serve(8080, NULL);
+  pico_ql_init(NULL, 0, 8080, NULL);
 #endif
   return 0;
 }

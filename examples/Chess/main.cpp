@@ -100,9 +100,9 @@ int main() {
 #ifndef PICO_QL_SINGLE_THREADED
     void *exit_status = NULL;
     pthread_t t;
-    pico_ql_serve(8082, &t);
+    pico_ql_init(NULL, 0, 8082, &t);
 #else
-    pico_ql_serve(8082, NULL);
+    pico_ql_init(NULL, 0, 8082, NULL);
 #endif
 //    move(Position(1, 'c'), Position(2, 'c'));
 

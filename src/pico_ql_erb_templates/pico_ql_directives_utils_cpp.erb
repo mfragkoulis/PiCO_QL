@@ -110,16 +110,29 @@ extern <%= vt.signature %> <%= retype %>pico_ql_table_<%= vt.base_var %>_<%= typ
 // Thread. Creates the queries and passes them on to PiCO_QL.
 void * thread_sqlite(void *data) {
   const char **queries, **sqlite_names;
-  void *re = (void *)(long)SQLITE_DONE;
+  int re = SQLITE_OK;
+  config *conf = (config *)data;
+  int i;
 <% view_length = 0 %>
 <% @views == nil ? views_length = 0 : views_length = @views.length %>
-  queries = (const char **)sqlite3_malloc(sizeof(char *) * <%= (@tables.length + views_length).to_s %>);
-  if (queries == NULL)
-    return (void *)SQLITE_NOMEM;
-  sqlite_names = (const char **)sqlite3_malloc(sizeof(char *) * <%= (@tables.length + views_length).to_s %>);
-  if (sqlite_names == NULL)
-    return (void *)SQLITE_NOMEM;
-  int failure = 0;
+  queries = (const char **)sqlite3_malloc(sizeof(const char *) * <%= (@tables.length + views_length).to_s %> + conf->npragmas);
+  if (queries == NULL) {
+    printf("Out of memory\n");
+    return NULL;
+  }
+  sqlite_names = (const char **)sqlite3_malloc(sizeof(const char *) * <%= (@tables.length + views_length).to_s %> + conf->npragmas);
+  if (sqlite_names == NULL) {
+    printf("Out of memory\n");
+    return NULL;
+  }
+
+  for (i = 0; i < conf->npragmas; i++) {
+    queries[i] = conf->pragmas[i];
+#ifdef PICO_QL_DEBUG
+    printf("Set pragma: %s\n", queries[i]);
+#endif
+    sqlite_names[i] = "PRAGMA";
+  }
 <%# <database_name>.<table> does not work for some reason. test. %>
 <%# counter %>
 <%    @tables.each_index { |vt| %>
@@ -129,26 +142,21 @@ void * thread_sqlite(void *data) {
 <%        query += "#{c.name} #{c.data_type}, " %>
 <%      } %>
 <%      query = query.chomp(", ") + ")" %>
-  queries[<%= vt %>] = "<%= query %>";
-  sqlite_names[<%= vt %>] = "<%= @tables[vt].name %>";
+  queries[<%= vt %> + conf->npragmas] = "<%= query %>";
+  sqlite_names[<%= vt %>+ conf->npragmas] = "<%= @tables[vt].name %>";
 <%    } %>
 <%    if views_length > 0 %>
 <%      @views.each_index { |vs| %>
-  queries[<%= vs + @tables.length %>] = "<%= @views[vs].stmt %>";
-  sqlite_names[<%= vs + @tables.length %>] = "<%= @views[vs].name %>";
+  queries[<%= vs + @tables.length %> + conf->npragmas] = "<%= @views[vs].stmt %>";
+  sqlite_names[<%= vs + @tables.length %> + conf->npragmas] = "<%= @views[vs].name %>";
 <%      } %>
 <%    end %>
   set_selectors();
-  int port_number = *(int *)data;
-  delete (int *)data;
-  if ((failure = register_table(<%= (@tables.length + views_length).to_s %>, <%= @tables.length.to_s %>, queries, sqlite_names, port_number)) != SQLITE_DONE) {
-    printf("Register table returns with error code %i.\n    ", failure);
-    re = (void *)(long)failure;
-  }
-  printf("Thread sqlite returns %i\n", failure);
+  re = register_table(<%= (@tables.length + views_length).to_s %> + conf->npragmas, <%= @tables.length.to_s %> + conf->npragmas, queries, sqlite_names, conf->port, conf->db);
   sqlite3_free(queries);
   sqlite3_free(sqlite_names);
-  return re;
+  delete conf;
+  return (void *)(long)re;
 }
 
 

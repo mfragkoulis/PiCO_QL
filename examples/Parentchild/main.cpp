@@ -44,12 +44,17 @@ int main()
 
 	pico_ql_register((const void *)&p, "parent");
 
+	const char *pragmas[2];
+	pragmas[0] = "PRAGMA synchronous = OFF";
+	pragmas[1] = "PRAGMA journal_mode = OFF";
+
 #ifndef PICO_QL_SINGLE_THREADED
 	pthread_t t;
-	pico_ql_serve(8083, &t);
+	sqlite3 *db = pico_ql_init(pragmas, 2, 8083, &t);
 #else
-	pico_ql_serve(8083, NULL);
-#endif    
+	sqlite3 *db = pico_ql_init(pragmas, 2, 8083, NULL);
+#endif
+	(void)db;
 
 #ifndef PICO_QL_SINGLE_THREADED
 	void *exit_status = NULL;

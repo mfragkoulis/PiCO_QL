@@ -382,21 +382,13 @@ int register_table(int argc,
 		   int view_index, 
 		   const char **q, 
 		   const char **sqlite_names, 
-		   int port_number) {
+		   int port_number,
+		   sqlite3 *db) {
   /* This definition implicitly constraints a table name 
    * to 140 characters. It should be more than enough.
    */
   char sqlite_query[200];
-  int re, i=0;
-  sqlite3 *db;
-/* Virtual table schema will be in-memory and will not
-   persist. Views can be included in the DSL */
-  re = sqlite3_open(":memory:", &db); 
-  if (re) {
-    printf("can't open database\n");
-    sqlite3_close(db);
-    return re;
-  }
+  int re, i = 0;
 
 #ifdef PICO_QL_DEBUG
   for (i = 0; i < argc; i++) {
@@ -424,9 +416,9 @@ int register_table(int argc,
     if (prep_exec(NULL, db, (const char *)sqlite_query, NULL) != SQLITE_ROW) {
       re = prep_exec(NULL, db, (const char *)q[i], NULL);
 #ifdef PICO_QL_DEBUG
-      printf("Query %s returned %i\n", q[i], re);
+      printf("Query %s returned: %i\n", q[i], re);
 #endif
-      if (re != 101) {
+      if ((re = sqlite3_extended_errcode(db)) != SQLITE_DONE && re != SQLITE_OK) {
 	printf("Extended error code: %i.\n", sqlite3_extended_errcode(db));
 	printf("Extended error message:\n%s.\n", sqlite3_errmsg(db));
 	return re;
@@ -435,8 +427,12 @@ int register_table(int argc,
   }
   start_serving();
 #ifndef PICO_QL_TEST
-  printf("Please visit http://localhost:%i to be served\n", port_number);
-  call_swill(db, port_number);
+  if (port_number == -1)
+    return re;
+  else {
+    printf("Please visit http://localhost:%i to be served\n", port_number);
+    call_swill(db, port_number);
+  }
 #else
   re = call_test(db);
 #endif

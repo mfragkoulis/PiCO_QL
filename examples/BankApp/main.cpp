@@ -114,9 +114,9 @@ int main() {
 
 #ifndef PICO_QL_SINGLE_THREADED
     pthread_t t;
-    pico_ql_serve(8081, &t);
+    pico_ql_init(NULL, 0, 8081, &t);
 #else
-    pico_ql_serve(8081, NULL);
+    pico_ql_init(NULL, 0, 8081, NULL);
 #endif    
 
 /* For testing json web service

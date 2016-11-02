@@ -22,9 +22,7 @@
 #ifndef PICO_QL_H
 #define PICO_QL_H
 
-<%    if $argK == "KERNEL" %>
-#include <sqlite3.h>
-<%    end %>
+#include "sqlite3.h"
 
 #ifdef __cplusplus
 namespace picoQL {
@@ -36,7 +34,7 @@ namespace picoQL {
 <%    else %>
 #include <pthread.h>
 
-  int pico_ql_serve(int port_number, pthread_t *t);
+  sqlite3* pico_ql_init(const char** pragmas, int npragmas, int port_number, pthread_t *t);
 <%    end %>
   void pico_ql_register(const void *collection, const char * col_name);
 

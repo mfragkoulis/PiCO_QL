@@ -34,7 +34,7 @@
 #include <cstdio>
 #include <cstring>
 #include <sqlite3.h>
-#include "pico_ql_search.h"
+#include "pico_ql.h"
 #include "pico_ql_internal.h"
 
 namespace picoQL {
@@ -86,19 +86,30 @@ void pico_ql_register(const void *data_structure, const char *ds_name) {
 
 
 // The API with user application code. Creates the PiCO_QL thread.
-int pico_ql_serve(int port, pthread_t *sqlite_thread) {
-  int *portN = new int(port);
+sqlite3 * pico_ql_init(const char **pragmas, int npragmas, int port, pthread_t *sqlite_thread) {
+  //int *portN = new int(port);
+  sqlite3 *db = NULL;
+  /**
+   * Virtual table schema will be in-memory and will not
+   * persist. Views can be included in the DSL
+   */
+  int re = sqlite3_open(":memory:", &db);
+  if (re) {
+    printf("can't open database\n");
+    sqlite3_close(db);
+    return NULL;
+  }
+  config *conf = new config();
+  conf->db = db;
+  conf->port = port;
+  conf->pragmas = pragmas;
+  conf->npragmas = npragmas;
 #ifndef PICO_QL_SINGLE_THREADED
-  pthread_create(sqlite_thread, NULL, thread_sqlite, (void *)portN);
-  return SQLITE_DONE;
+  pthread_create(sqlite_thread, NULL, thread_sqlite, (void *)conf);
 #else
-  void *exit_status = thread_sqlite((void *)portN);
-  if (((int)(long)exit_status) != SQLITE_DONE)
-    printf("PiCO QL library terminating abnormally with error code %i\n.", (int)(long)exit_status);
-  else
-    printf("PiCO QL library terminating normally.\n");
-  return (int)(long)exit_status;
+  db = (sqlite3 *)thread_sqlite((void *)conf);
 #endif
+  return db;
 }
 
 }

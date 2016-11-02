@@ -312,9 +312,9 @@ int main(int argc, const char *argv[]) {
 #ifndef PICO_QL_SINGLE_THREADED
     void *exit_status = NULL;
     pthread_t t;
-    pico_ql_serve(8083, &t);
+    pico_ql_init(NULL, 0, 8083, &t);
 #else
-    pico_ql_serve(8083, NULL);
+    pico_ql_init(NULL, 0, 8083, NULL);
 #endif
 
     cout << endl << "Optimised solution after " << 
