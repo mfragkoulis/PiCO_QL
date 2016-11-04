@@ -25,7 +25,9 @@
 #include "pico_ql.h"
 #include "pico_ql_internal.h"
 #include "pico_ql_db.h"
+#ifdef PICO_QL_SWILL
 #include "pico_ql_swill.h"
+#endif
 #include "pico_ql_vt.h"
 #include "pico_ql_test.h"
 #include "pico_ql_swill_access_func.h"
@@ -121,10 +123,12 @@ int register_table(int argc,
 #ifndef PICO_QL_TEST
   if (port_number == -1)
     return re;
+#ifdef PICO_QL_SWILL
   else {
     printf("Please visit http://localhost:%i to be served\n", port_number);
     init_pico_ql_swill(port_number);
   }
+#endif
 #else
   re = exec_tests();
 #endif
