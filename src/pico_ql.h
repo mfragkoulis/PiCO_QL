@@ -1,7 +1,7 @@
 /*
- *   Declare the user interface to pico_ql_search.cpp.
+ *   Declare the piblic interface to pico_ql.
  *
- *   Copyright 2012 Marios Fragkoulis
+ *   Copyright 2016 Marios Fragkoulis
  *
  *   Licensed under the Apache License, Version 2.0
  *   (the "License");you may not use this file except in
@@ -22,6 +22,7 @@
 #ifndef PICO_QL_H
 #define PICO_QL_H
 
+#include <stdio.h>
 #include "sqlite3.h"
 
 #ifdef __cplusplus
@@ -29,14 +30,18 @@ namespace picoQL {
   extern "C" {
 #endif
 
-<%    if $argK == "KERNEL" %>
-  int pico_ql_serve(sqlite3 *db);
-<%    else %>
 #include <pthread.h>
 
-  sqlite3* pico_ql_init(const char** pragmas, int npragmas, int port_number, pthread_t *t);
-<%    end %>
   void pico_ql_register(const void *collection, const char * col_name);
+  int pico_ql_init(const char** pragmas, int npragmas, int port_number,
+		  pthread_t *t);
+  int pico_ql_exec_query(const char *query, FILE *f,
+  			 int (*callback)(sqlite3 *db, sqlite3_stmt *, FILE *));
+  int pico_ql_step_mute(sqlite3 *db, sqlite3_stmt *stmt, FILE *f);
+  int pico_ql_step_text(sqlite3 *db, sqlite3_stmt *stmt, FILE *f);
+  int pico_ql_step_swill_html(sqlite3 *db, sqlite3_stmt *stmt, FILE *f);
+  int pico_ql_step_swill_json(sqlite3 *db, sqlite3_stmt *stmt, FILE *f);
+  int pico_ql_shutdown();
 
 #ifdef __cplusplus
   }

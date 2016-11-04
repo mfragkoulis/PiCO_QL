@@ -6,6 +6,6 @@ else
 AM_CFLAGS = -D_NDEBUG -O2
 endif
 
-libpicoql_la_SOURCES = sqlite3.c pico_ql_error_page.c pico_ql_interface.c pico_ql_logo.c pico_ql_search_helper.c pico_ql_vt.c
+libpicoql_la_SOURCES = sqlite3.c pico_ql_error_page.c pico_ql_db.c pico_ql_step.c pico_ql_logo.c pico_ql_search_helper.c pico_ql_vt.c pico_ql_swill.c
 
 libpicoql_la_LIBADD = -lswill -ldl

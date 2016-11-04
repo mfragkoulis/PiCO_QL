@@ -21,6 +21,7 @@
 
 #include <iostream>
 #include <string>
+#include <unistd.h>	// sleep()
 #include <fstream>
 #include <ctime>
 #include <cstdio>
@@ -309,13 +310,24 @@ int main(int argc, const char *argv[]) {
     pico_ql_register((const void *)best_fl.get_fleet(), "vehicles");
     pico_ql_register((const void *)&test, "test");
 
+    int re;
 #ifndef PICO_QL_SINGLE_THREADED
     void *exit_status = NULL;
     pthread_t t;
-    pico_ql_init(NULL, 0, 8083, &t);
+    re = pico_ql_init(NULL, 0, 8083, &t);
+    //sleep(1);
 #else
-    pico_ql_init(NULL, 0, 8083, NULL);
+    re = pico_ql_init(NULL, 0, 8083, NULL);
 #endif
+
+    if (re)
+	    fprintf(stderr, "pico_ql_init() failed with code %d", re);
+
+    /*FILE *f = fopen("VRP_resultset", "w");
+    pico_ql_exec_query("select * from Fleet;", stdout, pico_ql_step_text);
+    pico_ql_shutdown();
+    fclose(f);
+    */
 
     cout << endl << "Optimised solution after " << 
         restarts << 

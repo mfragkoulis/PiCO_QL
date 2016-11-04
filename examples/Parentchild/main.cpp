@@ -4,6 +4,7 @@
 #ifndef PICO_QL_SINGLE_THREADED
 #include <pthread.h>
 #endif
+#include <unistd.h>	// sleep()
 #include "pico_ql.h"
 #include "Child.h"
 #include "Parent.h"
@@ -48,13 +49,23 @@ int main()
 	pragmas[0] = "PRAGMA synchronous = OFF";
 	pragmas[1] = "PRAGMA journal_mode = OFF";
 
+	int re;
 #ifndef PICO_QL_SINGLE_THREADED
 	pthread_t t;
-	sqlite3 *db = pico_ql_init(pragmas, 2, 8083, &t);
+	re = pico_ql_init(pragmas, 2, 8083, &t);
+	//sleep(1);
 #else
-	sqlite3 *db = pico_ql_init(pragmas, 2, 8083, NULL);
+	re = pico_ql_init(pragmas, 2, 8083, NULL);
 #endif
-	(void)db;
+
+	if (re)
+		fprintf(stderr, "pico_ql_init() failed with code %d\n", re);
+
+	/*FILE *f = fopen("parentchild_resultset", "w");
+	pico_ql_exec_query("select * from parent;", f, pico_ql_step_text);
+	pico_ql_shutdown();
+	fclose(f);
+	*/
 
 #ifndef PICO_QL_SINGLE_THREADED
 	void *exit_status = NULL;

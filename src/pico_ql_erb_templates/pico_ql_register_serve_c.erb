@@ -102,7 +102,7 @@ int pico_ql_serve(sqlite3 *db) {
 }
 <%      else %>
 // The API with user application code. Creates the PiCO_QL thread.
-sqlite3 * pico_ql_init(const char **pragmas, int npragmas, int port, pthread_t *sqlite_thread) {
+int pico_ql_init(const char **pragmas, int npragmas, int port, pthread_t *sqlite_thread) {
   //int *portN = (int *)sqlite3_malloc(sizeof(int));
   //*portN = port;
   sqlite3 *db = NULL;
@@ -114,7 +114,7 @@ sqlite3 * pico_ql_init(const char **pragmas, int npragmas, int port, pthread_t *
   if (re) {
     printf("can't open database\n");
     sqlite3_close(db);
-    return NULL;
+    return SQLITE_ERROR;
   }
   config *conf = (config *)sqlite3_malloc(sizeof(config));
   conf->db = db;
@@ -122,10 +122,10 @@ sqlite3 * pico_ql_init(const char **pragmas, int npragmas, int port, pthread_t *
   conf->pragmas = pragmas;
   conf->npragmas = npragmas;
 #ifndef PICO_QL_SINGLE_THREADED
-  pthread_create(sqlite_thread, NULL, thread_sqlite, (void *)conf);
+  re = (int)(long)pthread_create(sqlite_thread, NULL, thread_sqlite, (void *)conf);
 #else
-  sqlite3 *db = (sqlite3 *)thread_sqlite((void *)conf);
+  re = (int)(long)thread_sqlite((void *)conf);
 #endif
-  return db;
+  return re;
 }
 <%      end %>

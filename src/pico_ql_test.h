@@ -22,9 +22,7 @@
 #ifndef PICO_QL_TEST_H
 #define PICO_QL_TEST_H
 
-#include <sqlite3.h>
-
-int call_test(sqlite3 *db);      /* The interface for 
+int exec_tests();      /* The interface for 
 				    testing purposes.
 				 */
 #endif

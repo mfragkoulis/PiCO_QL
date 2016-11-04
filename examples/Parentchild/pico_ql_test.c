@@ -25,76 +25,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include "pico_ql.h"
 #include "pico_ql_test.h"
-#include "pico_ql_internal.h"
+//#include "pico_ql_internal.h"
 
-/* Takes care of query preparation and execution. 
- * Writes results to file.
- */
-int test_prep_exec(FILE *f, sqlite3 *db, const char *q) {
-  sqlite3_stmt  *stmt;
-  int result, col, prepare;
-  if ((prepare = sqlite3_prepare_v2(db, q, -1, &stmt, 0)) == SQLITE_OK) {
-    fprintf(f,"Statement prepared.\n");
-    for (col = 0; col < sqlite3_column_count(stmt); col++) {
-      fprintf(f, "%s ", sqlite3_column_name(stmt, col));
-    }
-    fprintf(f, "\n");
-    while ((result = sqlite3_step(stmt)) == SQLITE_ROW) {
-      fprintf(f, "\n");
-      for (col = 0; col < sqlite3_column_count(stmt); col++) {
-	switch (sqlite3_column_type(stmt, col)) {
-	case 1:
-	  fprintf(f, "%i ", sqlite3_column_int(stmt, col));
-	  break;
-	case 2:
-	  fprintf(f, "%f ", 
-		  sqlite3_column_double(stmt, col));
-	  break;
-	case 3:
-	  fprintf(f, "%s ", 
-		  sqlite3_column_text(stmt, col));
-	  break;
-	case 4:
-	  fprintf(f, "%s ", 
-		  (char *)sqlite3_column_blob(stmt, col));
-	  break;
-	case 5:
-	  fprintf(f, "(null) ");
-	  break;
-	}
-      }
-    }
-    switch (result) {
-    case SQLITE_DONE:
-      fprintf(f, "\n\nDone\n");
-      break;
-    case SQLITE_OK:
-      fprintf(f, "\n\nOK\n");
-      break;
-    case SQLITE_ERROR:
-      fprintf(f, "\n\nSQL error or missing database\n");
-      break;
-    case SQLITE_MISUSE:
-      fprintf(f, "\n\nLibrary used incorrectly\n");
-      break;
-    default:
-      fprintf(f, "\n\nError code: %i.\nPlease advise Sqlite error codes (http://www.sqlite.org/c3ref/c_abort.html)", result);
-    }
-    fprintf(f, "\n");
-  } else {
-    fprintf(f, "Error in preparation of query: error no %i\n", prepare);
-    fprintf(f, "\nExtended error code %i.\n", sqlite3_extended_errcode(db));
-    fprintf(f, "\nExtended error message:\n%s\n\n", sqlite3_errmsg(db));
-    return prepare;
-  }
-  deinit_temp_structs();
-  sqlite3_finalize(stmt);
-  return result;
-}
 
 /* Executes test queries. */
-int call_test(sqlite3 *db) {
+int exec_tests() {
   FILE *f;
   f = fopen("parentchild_test_current.txt", "w");
 
@@ -103,18 +40,18 @@ int call_test(sqlite3 *db) {
 
   q = "select count(distinct p.rownum) from parent p;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  test_prep_exec(f, db, q);
+  pico_ql_exec_query(q, f, pico_ql_step_text);
 
   q = "select count(distinct p.rownum) from parent p, child c where c.base=p.child_id;";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  test_prep_exec(f, db, q);
+  pico_ql_exec_query(q, f, pico_ql_step_text);
 
   q = "select count( * ) from parent p where exists( select * from child c where c.base=p.child_id )";
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  test_prep_exec(f, db, q);
+  pico_ql_exec_query(q, f, pico_ql_step_text);
 
-  deinit_vt_selectors();
-  sqlite3_close(db);
+  //deinit_vt_selectors();
+  //pico_ql_shutdown();
   fclose(f);
   return SQLITE_DONE;
 }

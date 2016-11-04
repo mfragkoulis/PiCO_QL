@@ -22,6 +22,7 @@
 #include <cstdio>
 #include <cstdlib> /* rand() */
 #include <string>
+#include <unistd.h>	// sleep()
 #include <map>
 #include <list>
 #include <vector>
@@ -112,12 +113,23 @@ int main() {
     pico_ql_register((const void *)&superaccounts, "superaccounts");
     pico_ql_register((const void *)&specialaccounts, "specialaccounts");
 
+    int re;
 #ifndef PICO_QL_SINGLE_THREADED
     pthread_t t;
-    pico_ql_init(NULL, 0, 8081, &t);
+    re = pico_ql_init(NULL, 0, 8081, &t);
+    //sleep(1);
 #else
-    pico_ql_init(NULL, 0, 8081, NULL);
-#endif    
+    re = pico_ql_init(NULL, 0, 8081, NULL);
+#endif 
+
+    if (re)
+	    fprintf(stderr, "pico_ql_init() failed with code %d", re);
+
+    /*FILE *f = fopen("bankapp_resultset", "w");
+    pico_ql_exec_query("select * from accounts;", f, pico_ql_step_text);
+    pico_ql_shutdown();
+    fclose(f);
+    */
 
 /* For testing json web service
     while (1) {

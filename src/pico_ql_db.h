@@ -35,7 +35,8 @@ int register_table(int argc,
 		   const char **table_names, 
 		   int port_number,
 		   sqlite3 *db);
-int prep_exec(FILE *f, sqlite3 *db, const char *q, const char *response_type);
+//int pico_ql_exec_query(const char *query, FILE *f,
+			//int (*callback)(sqlite3_step *, FILE *));
 
 #ifdef __cplusplus
 }

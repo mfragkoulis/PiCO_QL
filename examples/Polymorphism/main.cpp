@@ -6,6 +6,7 @@
 #ifndef PICO_QL_SINGLE_THREADED
 #include <pthread.h>
 #endif
+#include <unistd.h>	// sleep()
 #include "pico_ql.h"
 
 using namespace std;
@@ -20,13 +21,28 @@ int main() {
   accounts.push_back(&sa989);
   pico_ql_register(&accounts, "accounts");
 
+  int re;
 #ifndef PICO_QL_SINGLE_THREADED
   pthread_t t;
   void *exit_status = NULL;
-  pico_ql_init(NULL, 0, 8080, &t);
-  pthread_join(t, &exit_status);
+  re = pico_ql_init(NULL, 0, 8080, &t);
+  //sleep(1);
 #else
-  pico_ql_init(NULL, 0, 8080, NULL);
+  re = pico_ql_init(NULL, 0, 8080, NULL);
 #endif
+
+  if (re)
+    fprintf(stderr, "pico_ql_init() failed with code %d", re);
+
+  /*FILE *f = fopen("polymorphism_resultset", "w");
+  pico_ql_exec_query("select * from Account;", f, pico_ql_step_text);
+  pico_ql_shutdown();
+  fclose(f);
+  */
+
+#ifndef PICO_QL_SINGLE_THREADED
+  pthread_join(t, &exit_status);
+#endif
+
   return 0;
 }

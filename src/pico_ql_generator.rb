@@ -2410,21 +2410,9 @@ class InputDescription
     fw.puts app_interface.result(get_binding)
   end
 
-# Generates the LICENSE copyright notice and application interface 
-# functions in pico_ql.h
-  def print_search_h(fw)
-    file = File.open("pico_ql_erb_templates/pico_ql_h.erb").read
-    app_interface = ERB.new(file, 0, '>')
-    fw.puts app_interface.result(get_binding)
-  end
-
 # Generates application-specific code to complement the PiCO QL library.
 # There is a call to each of the above generative functions.
   def generate()
-    myfile = File.open("pico_ql.h", "w") do |fw|
-      print_search_h(fw)
-    end
-    puts "Created/updated pico_ql.h"
     myfile = File.open("pico_ql_search.#{$argLB.downcase}", "w") do |fw|
       print_register_serve(fw)
     end

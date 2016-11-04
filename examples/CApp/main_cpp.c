@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>	// sleep
 #include "Monetary_System.h"
 #include "Money.h"
 #include "MoneyArray.h"
@@ -110,13 +111,26 @@ int main() {
   pico_ql_register(M, "money");
   pico_ql_register(&ms, "monetary_system");
   pico_ql_register(&ma, "money_array");
+
+  int re;
 #ifndef PICO_QL_SINGLE_THREADED
   void *exit_status = NULL;
   pthread_t t;
-  pico_ql_init(NULL, 0, 8080, &t);
+  re = pico_ql_init(NULL, 0, 8080, &t);
+  //sleep(1);
 #else
-  pico_ql_init(NULL, 0, 8080, NULL);
+  re = pico_ql_init(NULL, 0, 8080, NULL);
 #endif
+
+  if (re)
+    fprintf(stderr, "pico_ql_init() failed with code %d", re);
+
+  /*FILE *f = fopen("CppApp_resultset", "w");
+  pico_ql_exec_query("select * from Money;", f, pico_ql_step_text);
+  pico_ql_shutdown();
+  fclose(f);
+  */
+
   printf("Money M Price main: %f\n", M->prc.main);
   printf("Money N Price main: %f\n", N->prc.main);
   printf("Money O Price main: %f\n", O->prc.main);
