@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <unistd.h>	// sleep()
 #include "Monetary_System.h"
 #include "Money.h"
 #include "MoneyArray.h"
@@ -117,7 +116,7 @@ int main() {
   void *exit_status = NULL;
   pthread_t t;
   re = pico_ql_init(NULL, 0, 8080, &t);
-  //sleep(1);
+  pthread_join(t, &exit_status);
 #else
   re = pico_ql_init(NULL, 0, 8080, NULL);
 #endif
@@ -127,18 +126,15 @@ int main() {
 
   /*FILE *f = fopen("CApp_resultset", "w");
   pico_ql_exec_query("select * from Money;", f, pico_ql_step_text);
-  pico_ql_shutdown();
   fclose(f);
   */
+
+  pico_ql_shutdown();
 
   printf("Money M Price main: %f\n", M->prc.main);
   printf("Money N Price main: %f\n", N->prc.main);
   printf("Money O Price main: %f\n", O->prc.main);
   //  printf("Money Price sub: %i\n", O->prc.sub);
-
-#ifndef PICO_QL_SINGLE_THREADED
-  pthread_join(t, &exit_status);
-#endif
 
   free(M);
   free(N);

@@ -22,7 +22,6 @@
 #include "ChessPiece.h"
 #include "Position.h"
 #include <stdio.h>
-#include <unistd.h>	// sleep()
 /* PiCO_QL header */
 #ifndef PICO_QL_SINGLE_THREADED
 #include <pthread.h>
@@ -103,7 +102,7 @@ int main() {
     void *exit_status = NULL;
     pthread_t t;
     re = pico_ql_init(NULL, 0, 8082, &t);
-    //sleep(1);
+    pthread_join(t, &exit_status);
 #else
     re = pico_ql_init(NULL, 0, 8082, NULL);
 #endif
@@ -113,9 +112,10 @@ int main() {
 
     /*FILE *f = fopen("chess_resultset", "w");
     pico_ql_exec_query("select * from chessboard;", f, pico_ql_step_text);
-    pico_ql_shutdown();
     fclose(f);
     */
+
+    pico_ql_shutdown();
 
 //    move(Position(1, 'c'), Position(2, 'c'));
 
@@ -133,9 +133,6 @@ int main() {
 	endl << endl;          
     }
 */
-#ifndef PICO_QL_SINGLE_THREADED
-    pthread_join(t, &exit_status);
-#endif
     return 0;
 }
 

@@ -21,7 +21,6 @@
 
 #include <iostream>
 #include <string>
-#include <unistd.h>	// sleep()
 #include <fstream>
 #include <ctime>
 #include <cstdio>
@@ -315,7 +314,7 @@ int main(int argc, const char *argv[]) {
     void *exit_status = NULL;
     pthread_t t;
     re = pico_ql_init(NULL, 0, 8083, &t);
-    //sleep(1);
+    pthread_join(t, &exit_status);
 #else
     re = pico_ql_init(NULL, 0, 8083, NULL);
 #endif
@@ -325,9 +324,10 @@ int main(int argc, const char *argv[]) {
 
     /*FILE *f = fopen("VRP_resultset", "w");
     pico_ql_exec_query("select * from Fleet;", stdout, pico_ql_step_text);
-    pico_ql_shutdown();
     fclose(f);
     */
+
+    pico_ql_shutdown();
 
     cout << endl << "Optimised solution after " << 
         restarts << 
@@ -347,10 +347,6 @@ int main(int argc, const char *argv[]) {
 	      double(start_clock)) / CLOCKS_PER_SEC;
     cout << "Ellapsed time given by c++ : " << c_time << 
       "s." << endl << endl;
-
-#ifndef PICO_QL_SINGLE_THREADED
-    pthread_join(t, &exit_status);
-#endif
 
     best_fl.deallocate();    
     for (it1 = positions.begin(); it1 != positions.end(); it1++)
