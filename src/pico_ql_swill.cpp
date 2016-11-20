@@ -20,17 +20,20 @@
  *   permissions and limitations under the License.
  */
 
-#include <stdlib.h>
-#include <time.h>
+#include <cstdlib>
+#include <ctime>
 #include <swill.h>
-#include <string.h>
+#include <cstring>
+#include <unistd.h>
+#include <sstream>
+using namespace std;
 
 #include "pico_ql_swill.h"
 #include "pico_ql.h"
 #include "pico_ql_db.h"
-//#include "pico_ql_vt.h"
-//#include "pico_ql_test.h"
 #include "pico_ql_swill_access_func.h"
+
+namespace picoQL {
 
 /* Calls the function that prints the PiCO QL error page (.html).
  */
@@ -48,7 +51,7 @@ void print_pico_ql_logo(FILE *f) {
  * retrieves the database schema and promotes inputted 
  * queries to sqlite_engine.
  */
-void app_index(FILE *f, sqlite3 *db) {
+void app_index(FILE *f) {
   swill_fprintf(f, "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"\n\"http://www.w3.org/TR/html4/loose.dtd\">"
 		"<html>"
 		"<head>"
@@ -83,7 +86,10 @@ void app_index(FILE *f, sqlite3 *db) {
 		"</div>"
 		"<div class=\"div_tbl\">"
 		"<span class=\"style_text\"><b>Your database schema is:</b></span>");
-  pico_ql_exec_query("SELECT * FROM sqlite_master;", f, pico_ql_step_swill_html);
+  stringstream s;
+  pico_ql_exec_query("SELECT * FROM sqlite_master;", s, pico_ql_step_swill_html);
+  swill_fprintf(f, "%s", s.str().c_str());
+  s.str("");
   swill_fprintf(f, "</div>"
 		"<br>"
 		"<p class=\"aligned\">");
@@ -100,7 +106,7 @@ void app_index(FILE *f, sqlite3 *db) {
  * along with the time it took to execute and the query 
  * itself.
  */
-void serve_query(FILE *f, sqlite3 *db) {
+void serve_query(FILE *f) {
   const char *query = "\0";
   char response_type[50];
   char *rt = swill_getheader("Http_Choose_Response_Type");
@@ -125,13 +131,16 @@ void serve_query(FILE *f, sqlite3 *db) {
     int rc = 0;
     clock_t start_clock,finish_clock;
     double c_time;
+    stringstream s;
     start_clock = clock();
     if (!strcmp(response_type, "text/html")) {
       swill_fprintf(f, "<b>For SQL query: ");
       swill_fprintf(f, "<span class=\"styled\">%s</span><br><br>", query);
       swill_fprintf(f, "Result set is:</b><br><br>");
     }
-    rc = pico_ql_exec_query(query, f, pico_ql_step_swill_html); 
+    rc = pico_ql_exec_query(query, s, pico_ql_step_swill_html);
+    swill_fprintf(f, "%s", s.str().c_str());
+    s.str("");
     if (rc == SQLITE_DONE) {
       finish_clock = clock();
       c_time = ((double)finish_clock - 
@@ -158,7 +167,7 @@ void serve_query(FILE *f, sqlite3 *db) {
 }
 
 // Terminates connection to the embedded web-server.
-void terminate(FILE *f, sqlite3 *db) {
+void terminate(FILE *f) {
   char response_type[50];
   char *rt = swill_getheader("Http_Choose_Response_Type");
   if (rt)
@@ -197,3 +206,4 @@ void init_pico_ql_swill(int port_number) {
   }
 }
 
+} // namespace picoQL

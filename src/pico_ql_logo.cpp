@@ -1,5 +1,7 @@
-#include <stdio.h>
+#include <cstdio>
 #include "pico_ql_swill_access_func.h"
+
+namespace picoQL {
 
 const char logo_bytes[] = {
 0211,0120,0116,0107,0015,0012,0032,0012,0000,0000,0000,0015,0111,0110,0104,0122,
@@ -858,3 +860,4 @@ void logo(FILE *fo) {
   fwrite(logo_bytes, logo_len, 1, fo);
 }
 
+}  // namespace picoQL

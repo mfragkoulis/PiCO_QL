@@ -98,7 +98,7 @@ int pico_ql_step_swill_html(sqlite3 *db, sqlite3_stmt *stmt, stringstream &s) {
   s << "<table>";
   s << "</tr>";
   for (col = 0; col < sqlite3_column_count(stmt); col++) {
-    s << "<td><b>" << sqlite3_column_name(stmt, col) << "%s</td></b>";
+    s << "<td><b>" << sqlite3_column_name(stmt, col) << "</td></b>";
   }
   s << "</tr>";
   while ((result = sqlite3_step(stmt)) == SQLITE_ROW) {
@@ -127,7 +127,7 @@ int pico_ql_step_swill_html(sqlite3 *db, sqlite3_stmt *stmt, stringstream &s) {
   }
   s << "</table>";
   s << "<br>";
-  s << "<b>" << rows << "rows in result set.</b><br>";
+  s << "<b>" << rows << " rows in result set.</b><br>";
   s << "<br>";
   switch (result) {
   case SQLITE_DONE:

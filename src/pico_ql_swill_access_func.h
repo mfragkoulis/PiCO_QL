@@ -22,7 +22,11 @@
 #ifndef PICO_QL_SWILL_ACCESS_FUNC_H
 #define PICO_QL_SWILL_ACCESS_FUNC_H
 
-void logo(FILE *fo);
-void error_page(FILE *fo);
+namespace picoQL {
+
+  void logo(FILE *fo);
+  void error_page(FILE *fo);
+
+}
 
 #endif

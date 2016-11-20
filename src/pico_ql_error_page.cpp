@@ -1,5 +1,7 @@
-#include <stdio.h>
+#include <cstdio>
 #include "pico_ql_swill_access_func.h"
+
+namespace picoQL {
 
 const char error_page_bytes[] = {
 "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01//EN\" \"http://www.w3.org/TR/html4/strict.dtd\">\n"
@@ -115,3 +117,5 @@ int len = sizeof(error_page_bytes);
 void error_page(FILE *fo) {
   fwrite(error_page_bytes, len, 1, fo);
 }
+
+}  // namespace picoQL
