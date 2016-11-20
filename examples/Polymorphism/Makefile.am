@@ -28,7 +28,7 @@ endif
 
 AM_CXXFLAGS += -DPICO_QL_SINGLE_THREADED -DPICO_QL_HANDLE_TEXT_ARRAY -DPICO_QL_HANDLE_POLYMORPHISM
 
-polymorphism_SOURCES = pico_ql_search.cpp pico_ql_internal.cpp pico_ql_test.c main.cpp Account.cpp PremiumAccount.cpp SavingsAccount.cpp
+polymorphism_SOURCES = pico_ql_search.cpp pico_ql_internal.cpp pico_ql_test.cpp main.cpp Account.cpp PremiumAccount.cpp SavingsAccount.cpp
 
 pico_ql_search.cpp:
 	cp ../../src/pico_ql_generator.rb .

@@ -26,7 +26,7 @@ if ENABLE_DEBUG
 AM_CXXFLAGS += -DPICO_QL_DEBUG
 endif
 
-chess_SOURCES = pico_ql_search.cpp pico_ql_internal.cpp pico_ql_test.c main.cpp ChessPiece.cpp Position.cpp
+chess_SOURCES = pico_ql_search.cpp pico_ql_internal.cpp pico_ql_test.cpp main.cpp ChessPiece.cpp Position.cpp
 
 pico_ql_search.cpp:
 	cp ../../src/pico_ql_generator.rb .

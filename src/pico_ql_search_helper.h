@@ -22,12 +22,9 @@
 #ifndef PICO_QL_SEARCH_HELPER_H
 #define PICO_QL_SEARCH_HELPER_H
 
-#include <sqlite3.h>
+#include "sqlite3.h"
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+namespace picoQL {
 
 int struct_empty_null(sqlite3_vtab_cursor *cur, sqlite3_value *val, int structEmbedded, int nCol);
 int struct_is_empty_null(sqlite3_vtab_cursor *cur, sqlite3_context *con);
@@ -39,9 +36,6 @@ int compare_blob(const void *dstr_value, int op,
 int compare_text(const unsigned char *dstr_value, int op,
 	    const unsigned char *value);
 
-#ifdef __cplusplus
 }
-#endif
-
 
 #endif

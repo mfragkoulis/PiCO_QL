@@ -21,14 +21,18 @@
  *   permissions and limitations under the License.
  */
 
-#include <stdio.h>
-#include <string.h>
-#include <assert.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstring>
+#include <cassert>
+#include <cstdlib>
 #include "pico_ql_vt.h"
 #include "pico_ql_internal.h"
 
+#include "sqlite3.h"
+
 static int serving = 0;
+
+namespace picoQL {
 
 void start_serving(void) {
   serving = 1;
@@ -149,7 +153,7 @@ int init_vtable(int iscreate,
     assert(temp <= &((char *)picoQL)[nByte]);
   }
 
-  create(db, argc, argv, query);
+  create(db, argc, argv, (char *)query);
 #ifdef PICO_QL_DEBUG
   printf("Query is: %s \n", query);
 #endif
@@ -340,11 +344,9 @@ int best_index_vtable(sqlite3_vtab *pVtab,
     memset(nidxStr, 0, sizeof(nidxStr));
     assert(pInfo->idxStr == 0);
     for (i = 0; i < pInfo->nConstraint; i++){
-      struct sqlite3_index_constraint *pCons = 
-	&pInfo->aConstraint[i];
-      if (pCons->usable == 0) 
+      if (pInfo->aConstraint[i].usable == 0) 
 	continue;
-      nCol = pCons->iColumn;
+      nCol = pInfo->aConstraint[i].iColumn;
       if (equals(st->azColumn[nCol], "base"))
 	score += 2;
       else if (equals(st->azColumn[nCol], "rownum"))
@@ -352,11 +354,9 @@ int best_index_vtable(sqlite3_vtab *pVtab,
     }
     order_constraints(score, &j, &counter, nidxStr);
     for (i = 0; i < pInfo->nConstraint; i++) {
-      struct sqlite3_index_constraint *pCons = 
-	&pInfo->aConstraint[i];
-      if (pCons->usable == 0) 
+      if (pInfo->aConstraint[i].usable == 0) 
 	continue;
-      nCol = pCons->iColumn;
+      nCol = pInfo->aConstraint[i].iColumn;
       if (equals(st->azColumn[nCol], "base")) {
 	pInfo->aConstraintUsage[i].argvIndex = 1;
       } else if (equals(st->azColumn[nCol], "rownum")) {
@@ -367,7 +367,7 @@ int best_index_vtable(sqlite3_vtab *pVtab,
       } else {
 	pInfo->aConstraintUsage[i].argvIndex = counter++;
       }
-      eval_constraint(pCons->op, st->azColumn[nCol], nCol,
+      eval_constraint(pInfo->aConstraint[i].op, st->azColumn[nCol], nCol,
 		      score, nidxStr, nidxLen);
       pInfo->aConstraintUsage[i].omit = 1;
     }
@@ -587,4 +587,6 @@ void fill_module(sqlite3_module *m) {
   m->xCommit = 0;
   m->xRollback = 0;
   m->xRename = 0;
+}
+
 }

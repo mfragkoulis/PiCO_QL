@@ -8,7 +8,9 @@
 #ifndef PICO_QL_SINGLE_THREADED
 #include <pthread.h>
 #endif
+
 #include "pico_ql.h"
+using namespace picoQL;
 
 /* .cpp
 #include <vector>

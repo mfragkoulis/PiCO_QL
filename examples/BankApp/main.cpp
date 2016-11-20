@@ -143,6 +143,7 @@ int main() {
 */
 #ifndef PICO_QL_SINGLE_THREADED
 #endif
+    printf("exit with code %d\n", re);
     return 0;
 }
 

@@ -22,8 +22,9 @@
 #ifndef PICO_QL_VT_H
 #define PICO_QL_VT_H
 
-#include <sqlite3.h>
+#include "sqlite3.h"
 
+namespace picoQL {
 
 int create_vtable(sqlite3 *db, 
 		  void *paux, 
@@ -93,5 +94,7 @@ void clear_temp_structs(void);
 void deinit_selectors(void);
 
 void start_serving(void);
+
+}
 
 #endif

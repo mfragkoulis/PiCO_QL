@@ -1,5 +1,7 @@
 #include <list>
 #include <vector>
+#include <fstream>
+#include <sstream>
 
 #ifndef PICO_QL_SINGLE_THREADED
 #include <pthread.h>
@@ -61,9 +63,12 @@ int main()
 	if (re)
 		fprintf(stderr, "pico_ql_init() failed with code %d\n", re);
 
-	FILE *f = fopen("parentchild_resultset", "w");
-	pico_ql_exec_query("select * from parent;", f, pico_ql_step_text);
-	fclose(f);
+	stringstream s;
+	fstream fs;
+	fs.open("parentchild_resultset", fstream::out);
+	pico_ql_exec_query("select * from parent;", s, pico_ql_step_text);
+	fs << s.str() << endl;
+	fs.close();
 
 	pico_ql_shutdown();
 

@@ -20,10 +20,11 @@
  *   permissions and limitations under the License.
  */
 
-#include <string.h>
+#include <cstring>
 #include "pico_ql_search_helper.h"
 #include "pico_ql_internal.h"
 
+namespace picoQL {
 
 /* Tests if current data structure or value passed by 
  * sqlite are either null or empty and returns 1 if so.
@@ -166,3 +167,5 @@ int compare_text(const unsigned char *dstr_value, int op,
   }
   return SQLITE_INTERNAL;
 }
+
+} // namespace picoQL

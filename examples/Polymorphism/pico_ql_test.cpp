@@ -22,30 +22,37 @@
  *   permissions and limitations under the License.
  */
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include "pico_ql_test.h"
+#include <cstdio>
+#include <cstring>
+#include <cstdlib>
+#include <fstream>
+#include <sstream>
 #include "pico_ql.h"
+using namespace picoQL;
 
 /* Executes test queries. */
 int exec_tests() {
-  FILE *f;
-  f = fopen("polymorphism_test_current.txt", "w");
+  stringstream s;
+  fstream fs;
+  fs.open("polymorphism_test_current.txt", fstream::out);
 
   int i = 0;
-  char *q;
+  char q[400];
 
-  q = "select rownum, description, balance, available_amount, binded_amount from Account;";
-  fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  pico_ql_exec_query(q, f, pico_ql_step_text);
+  strcpy(q, "select rownum, description, balance, available_amount, binded_amount from Account;");
+  fs << "Query " << i++ << ":\n " << q << endl << endl;
+  pico_ql_exec_query(q, s, pico_ql_step_text);
+  fs << s.str();
+  s.str("");
 
-  q = "select rownum, description, balance, available_amount, binded_amount, overlimit, due_date from Account JOIN PremiumAccount ON PremiumAccount.base=Account.premiumaccount_id JOIN SavingsAccount ON SavingsAccount.base=Account.savingsaccount_id;";
-  fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  pico_ql_exec_query(q, f, pico_ql_step_text);
+  strcpy(q, "select rownum, description, balance, available_amount, binded_amount, overlimit, due_date from Account JOIN PremiumAccount ON PremiumAccount.base=Account.premiumaccount_id JOIN SavingsAccount ON SavingsAccount.base=Account.savingsaccount_id;");
+  fs << "Query " << i++ << ":\n " << q << endl << endl;
+  pico_ql_exec_query(q, s, pico_ql_step_text);
+  fs << s.str();
+  s.str("");
 
   //deinit_vt_selectors();
   //sqlite3_close(db);
-  fclose(f);
+  fs.close();
   return SQLITE_DONE;
 }

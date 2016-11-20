@@ -41,10 +41,11 @@
 #endif
 #endif
 
-#include <sqlite3.h>
-
-#ifdef __cplusplus
 #include <map>
+using namespace std;
+
+#include "sqlite3.h"
+
 namespace picoQL {
 
   class Cursor {
@@ -85,13 +86,11 @@ namespace picoQL {
 
     virtual void operator() (sqlite3_vtab_cursor *, void *) {};
 
-    virtual int operator() (Cursor *, int, std::map<Cursor *, bool> *, long) {return SQLITE_ERROR;};
+    virtual int operator() (Cursor *, int, map<Cursor *, bool> *, long) {return SQLITE_ERROR;};
 
     virtual void operator() (const char *) {};
   };
 
-  extern "C" {
-#endif
 
     typedef struct {
       sqlite3 *db;
@@ -148,9 +147,6 @@ namespace picoQL {
 		 sqlite3_context *con);
     
     
-#ifdef __cplusplus
-  }
 }
-#endif
 
 #endif

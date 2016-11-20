@@ -32,20 +32,22 @@
 #include "pico_ql_test.h"
 #include "pico_ql_swill_access_func.h"
 
+namespace picoQL {
+
 static sqlite3 *db = NULL;
 
-int pico_ql_exec_query(const char *query, FILE *f,
-		int (*callback)(sqlite3 *db, sqlite3_stmt*, FILE *f)) {
+int pico_ql_exec_query(const char *query, stringstream &s,
+		int (*callback)(sqlite3 *db, sqlite3_stmt*,
+			stringstream &s)) {
   sqlite3_stmt *stmt;
   int prepare;
 #ifdef PICO_QL_DEBUG
   fprintf(stderr, "Query to process: %s\n", query);
 #endif
   if ((prepare = sqlite3_prepare_v2(db, query, -1, &stmt, 0)) == SQLITE_OK) {
-    if (f)
-      fprintf(f, "Statement prepared.\n");
+      s << "Statement prepared.\n";
     if (callback)
-      (*callback)(db, stmt, f);
+      (*callback)(db, stmt, s);
     else {
       fprintf(stderr, "Callback to step to query is NULL. Exiting now.");
       return SQLITE_ERROR;
@@ -106,9 +108,10 @@ int register_table(int argc,
       strcpy(sqlite_type, "table");
     else
       strcpy(sqlite_type, "view");
+    stringstream s;
     sprintf(sqlite_query, "SELECT * FROM sqlite_master WHERE type='%s' AND name='%s';", sqlite_type, sqlite_names[i]);
-    if (pico_ql_exec_query((const char *)sqlite_query, NULL, pico_ql_step_mute) != SQLITE_ROW) {
-      re = pico_ql_exec_query((const char *)q[i], NULL, pico_ql_step_mute);
+    if (pico_ql_exec_query((const char *)sqlite_query, s, pico_ql_step_mute) != SQLITE_ROW) {
+      re = pico_ql_exec_query((const char *)q[i], s, pico_ql_step_mute);
 #ifdef PICO_QL_DEBUG
       printf("Query %s returned: %i\n", q[i], re);
 #endif
@@ -135,3 +138,5 @@ int register_table(int argc,
   sqlite3_free(mod);
   return re;
 }
+
+} //namespace picoQL

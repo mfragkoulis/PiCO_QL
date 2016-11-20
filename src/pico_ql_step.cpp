@@ -27,61 +27,65 @@
 #ifdef PICO_QL_SWILL
 #include <swill.h>
 #endif
-#include <string.h>
+#include <string>
+#include <sstream>
+using namespace std;
 
 #include "pico_ql.h"
+#include "sqlite3.h"
+
+namespace picoQL {
 
 /* Takes care of query preparation and execution. 
  * Writes results to file.
  */
-int pico_ql_step_text(sqlite3 *db, sqlite3_stmt *stmt, FILE *f) {
+int pico_ql_step_text(sqlite3 *db, sqlite3_stmt *stmt, stringstream &s) {
   int result, col;
   for (col = 0; col < sqlite3_column_count(stmt); col++)
-    fprintf(f, "%s ", sqlite3_column_name(stmt, col));
-  fprintf(f, "\n");
+    s << sqlite3_column_name(stmt, col) << " ";
+  s << "\n";
   while ((result = sqlite3_step(stmt)) == SQLITE_ROW) {
-    fprintf(f, "\n");
+    s << "\n";
     for (col = 0; col < sqlite3_column_count(stmt); col++) {
       switch (sqlite3_column_type(stmt, col)) {
       case 1:
-	fprintf(f, "%i ", sqlite3_column_int(stmt, col));
+	s << sqlite3_column_int(stmt, col) << " ";
 	break;
       case 2:
-	fprintf(f, "%f ", sqlite3_column_double(stmt, col));
+	s << sqlite3_column_double(stmt, col) << " ";
 	break;
       case 3:
-	fprintf(f, "%s ", sqlite3_column_text(stmt, col));
+	s << sqlite3_column_text(stmt, col) << " ";
 	break;
       case 4:
-	fprintf(f, "%s ", (char *)sqlite3_column_blob(stmt, col));
+	s << (char *)sqlite3_column_blob(stmt, col) << " ";
 	break;
       case 5:
-	fprintf(f, "(null) ");
+	s << "(null) ";
 	break;
       }
     }
   }
   switch (result) {
   case SQLITE_DONE:
-    fprintf(f, "\n\nDone\n");
+    s << "\n\nDone\n";
     break;
   case SQLITE_OK:
-    fprintf(f, "\n\nOK\n");
+    s << "\n\nOK\n";
     break;
   case SQLITE_ERROR:
-    fprintf(f, "\n\nSQL error or missing database\n");
-    fprintf(f, "\nExtended error message: \n<b>%s</b>\n\n",
-		    sqlite3_errmsg(db));
-    fprintf(f, "Extended error code <b>%i.\nPlease advise SQLite error codes in pico_ql_error_page.html",
-		    sqlite3_extended_errcode(db));
+    s << "\n\nSQL error or missing database\n";
+    s << "\nExtended error message: \n<b>" << sqlite3_errmsg(db) << "%s</b>\n\n";
+    s << "Extended error code <b>" << sqlite3_extended_errcode(db) <<
+	    "\nPlease advise SQLite error codes in pico_ql_error_page.html";
     break;
   case SQLITE_MISUSE:
-    fprintf(f, "\n\nLibrary used incorrectly\n");
+    s << "\n\nLibrary used incorrectly\n";
     break;
   default:
-    fprintf(f, "\n\nError code: %i.\nPlease advise Sqlite error codes (http://www.sqlite.org/c3ref/c_abort.html)", result);
+    s << "\n\nError code: " << result << "\nPlease advise Sqlite error codes (http://www.sqlite.org/c3ref/c_abort.html)";
   }
-  fprintf(f, "\n");
+  s << "\n";
   return result;
 }
 
@@ -89,149 +93,134 @@ int pico_ql_step_text(sqlite3 *db, sqlite3_stmt *stmt, FILE *f) {
 /* Forwards  a query for execution to sqlite and 
  * presents the resultset of a query.
  */
-int pico_ql_step_swill_html(sqlite3 *db, sqlite3_stmt *stmt, FILE *f) {
+int pico_ql_step_swill_html(sqlite3 *db, sqlite3_stmt *stmt, stringstream &s) {
   int col, result, rows = 0;
-  swill_fprintf(f, "<table>");
-  swill_fprintf(f, "</tr>");
+  s << "<table>";
+  s << "</tr>";
   for (col = 0; col < sqlite3_column_count(stmt); col++) {
-    swill_fprintf(f, "<td><b>%s</td></b>",
-		    sqlite3_column_name(stmt, col));
+    s << "<td><b>" << sqlite3_column_name(stmt, col) << "%s</td></b>";
   }
-  swill_fprintf(f, "</tr>");
+  s << "</tr>";
   while ((result = sqlite3_step(stmt)) == SQLITE_ROW) {
     rows++;
-    swill_fprintf(f, "<tr>");
+    s << "<tr>";
     for (col = 0; col < sqlite3_column_count(stmt); col++) {
       switch (sqlite3_column_type(stmt, col)) {
       case 1:
-	swill_fprintf(f, "<td><b>%li</b></td>",
-		        (long)sqlite3_column_int64(stmt, col));
+	s << "<td><b>" << (long)sqlite3_column_int64(stmt, col) << "</b></td>";
 	break;
       case 2:
-	swill_fprintf(f, "<td><b>%f</b></td>", 
-		      sqlite3_column_double(stmt, col));
+	s << "<td><b>" << sqlite3_column_double << "</b></td>";
 	break;
       case 3:
-	swill_fprintf(f, "<td><b>%s</b></td>", 
-		      sqlite3_column_text(stmt, col));
+	s << "<td><b>" << sqlite3_column_text(stmt, col) << "</b></td>";
 	break;
       case 4:
-	swill_fprintf(f, "<td><b>%s</b></td>", 
-		      (char *)sqlite3_column_blob(stmt, 
-						  col));
+	s << "<td><b>" << (char *)sqlite3_column_blob << "</b></td>";
 	break;
       case 5:
-	swill_fprintf(f, "<td><b>(null)</td></b>");
+	s << "<td><b>(null)</td></b>";
 	break;
       }
     }
-    swill_fprintf(f, "</tr>");
+    s << "</tr>";
   }
-  swill_fprintf(f,"</table>");
-  swill_fprintf(f, "<br>");
-  swill_fprintf(f, "<b>%i rows in result set.</b><br>", rows);
-  swill_fprintf(f, "<br>");
+  s << "</table>";
+  s << "<br>";
+  s << "<b>" << rows << "rows in result set.</b><br>";
+  s << "<br>";
   switch (result) {
   case SQLITE_DONE:
-    swill_fprintf(f, "<b>Done<br></b>");
+    s << "<b>Done<br></b>";
     break;
   case SQLITE_OK:
-    swill_fprintf(f, "<b>OK<br></b>");
+    s << "<b>OK<br></b>";
     break;
   case SQLITE_ERROR:
-    swill_fprintf(f, "<b>SQL error or missing database\n</b>");
-    swill_fprintf(f, "<br><b>Extended error message:<br><b>%s</b><br><br>",
-		    sqlite3_errmsg(db));
-    swill_fprintf(f, "Extended error code <b>%i.<br>Please advise </b><a href=\"",
-		    sqlite3_extended_errcode(db));
-    swill_printurl(f, "pico_ql_error_page.html", "", 0);
-    swill_fprintf(f,"\">SQLite error codes</a>.<br><br>");
+    s << "<b>SQL error or missing database\n</b>";
+    s << "<br><b>Extended error message:<br><b>" << sqlite3_errmsg(db) << "</b><br><br>";
+    s << "Extended error code <b>" << sqlite3_extended_errcode(db) << "<br>Please advise </b><a href=\"";
+    s << "pico_ql_error_page.html";
+    s << "\">SQLite error codes</a>.<br><br>";
     break;
   case SQLITE_MISUSE:
-    fprintf(f, "<b>Library used incorrectly<br></b>");
+    s << "<b>Library used incorrectly<br></b>";
     break;
   default:
-    fprintf(f, "<b>Error code: %i.\nPlease advise Sqlite error codes (http://www.sqlite.org/c3ref/c_abort.html)<br></b>", result);
+    s << "<b>Error code: " << result << "\nPlease advise Sqlite error codes (http://www.sqlite.org/c3ref/c_abort.html)<br></b>";
   }
-  fprintf(f, "<br>");
+  s << "<br>";
   return result;
 }
 
 /* Forwards  a query for execution to sqlite and 
  * presents the resultset of a query.
  */
-int pico_ql_step_swill_json(sqlite3 *db, sqlite3_stmt *stmt, FILE *f) {
+int pico_ql_step_swill_json(sqlite3 *db, sqlite3_stmt *stmt, stringstream &s) {
   int col, result, rows = 0;
-  swill_fprintf(f, "[");
+  s << "[";
   while ((result = sqlite3_step(stmt)) == SQLITE_ROW) {
     rows++;
     if (rows == 1)
-      swill_fprintf(f, " {");
+      s << " {";
     else
-      swill_fprintf(f, ", {");
+      s << ", {";
     for (col = 0; col < sqlite3_column_count(stmt); col++) {
       if (col != 0)
-        swill_fprintf(f, ",");
+        s << ",";
       switch (sqlite3_column_type(stmt, col)) {
       case 1:
-	swill_fprintf(f, " \"%s\" : %li",
-                        sqlite3_column_name(stmt, col),
-		        (long)sqlite3_column_int64(stmt, col));
+	s << " \"" << sqlite3_column_name(stmt, col) << "\" : " <<
+		        (long)sqlite3_column_int64(stmt, col);
 	break;
       case 2:
-	swill_fprintf(f, " \"%s\" : %f",
-                        sqlite3_column_name(stmt, col),
-		        sqlite3_column_double(stmt, col));
+	s << " \"" << sqlite3_column_name(stmt, col) << "\" : " <<
+		        sqlite3_column_double(stmt, col);
 	break;
       case 3:
-	swill_fprintf(f, " \"%s\" : \"%s\"",
-                        sqlite3_column_name(stmt, col),
-		        sqlite3_column_text(stmt, col));
+	s << " \"" << sqlite3_column_name(stmt, col) << "\" : \"" << sqlite3_column_text(stmt, col) << "\"";
 	break;
       case 4:
-	swill_fprintf(f, " \"%s\" : \"%s\"",
-                        sqlite3_column_name(stmt, col),
-		        (char *)sqlite3_column_blob(stmt, col));
+	s << " \"" << sqlite3_column_name(stmt, col) << "\" : \"" << (char *)sqlite3_column_blob(stmt, col) << "\"";
 	break;
       case 5:
-	swill_fprintf(f, " \"%s\" : \"(null)\"",
-                        sqlite3_column_name(stmt, col));
+	s << " \"" << sqlite3_column_name(stmt, col) << "\" : \"(null)\"";
 	break;
       }
     }
-    swill_fprintf(f, " }");
+    s << " }";
   }
-  swill_fprintf(f, " ]");
+  s << " ]";
   switch (result) {
   case SQLITE_DONE:
-    swill_fprintf(f, "Done\n");
+    s << "Done\n";
     break;
   case SQLITE_OK:
-    swill_fprintf(f, "OK\n");
+    s << "OK\n";
     break;
   case SQLITE_ERROR:
-    swill_fprintf(f, "SQL error or missing database\n");
-    swill_fprintf(f, "Extended error message:\n%s</b>\n\n",
-		    sqlite3_errmsg(db));
-    swill_fprintf(f, "Extended error code %i. Please advise <a href=\"",
-		    sqlite3_extended_errcode(db));
-    swill_printurl(f, "pico_ql_error_page.html", "", 0);
-    swill_fprintf(f,"\">SQLite error codes</a>.\n\n");
+    s << "SQL error or missing database\n";
+    s << "Extended error message:\n" << sqlite3_errmsg(db) << "</b>\n\n";
+    s << "Extended error code " << sqlite3_extended_errcode(db) << ". Please advise <a href=\"";
+    s << "pico_ql_error_page.html";
+    s << "\">SQLite error codes</a>.\n\n";
     break;
   case SQLITE_MISUSE:
-    swill_fprintf(f, "Library used incorrectly\n");
+    s << "Library used incorrectly\n";
     break;
   default:
-    swill_fprintf(f, "Error code: %i.\nPlease advise Sqlite error codes (http://www.sqlite.org/c3ref/c_abort.html)", result);
+    s << "Error code: " << result << ".\nPlease advise Sqlite error codes (http://www.sqlite.org/c3ref/c_abort.html)";
   }
-  swill_fprintf(f, "\n");
+  s << "\n";
   return result;
 }
 #endif
 
 /* No output expected, e.g. CREATE query */
-int pico_ql_step_mute(sqlite3 *db, sqlite3_stmt *stmt, FILE *f) {
+int pico_ql_step_mute(sqlite3 *db, sqlite3_stmt *stmt, stringstream &s) {
   (void)db;
-  (void)f;
+  (void)s;
   return sqlite3_step(stmt);
 }
+
+} // namespace picoQL

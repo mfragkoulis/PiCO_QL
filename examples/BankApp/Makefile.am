@@ -26,7 +26,7 @@ if ENABLE_DEBUG
 AM_CXXFLAGS += -DPICO_QL_DEBUG
 endif
 
-bankapp_SOURCES = pico_ql_search.cpp pico_ql_internal.cpp pico_ql_test.c main.cpp Account.cpp SuperAccount.cpp SpecialAccount.cpp
+bankapp_SOURCES = pico_ql_search.cpp pico_ql_internal.cpp pico_ql_test.cpp main.cpp Account.cpp SuperAccount.cpp SpecialAccount.cpp
 
 pico_ql_search.cpp:
 	cp ../../src/pico_ql_generator.rb .
