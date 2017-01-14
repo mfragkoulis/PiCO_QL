@@ -1,3 +1,5 @@
+#ifndef HAS_SQLITE
+
 /*
 ** 2001 September 15
 **
@@ -6327,3 +6329,4 @@ struct sqlite3_rtree_geometry {
 
 #endif  /* ifndef _SQLITE3RTREE_H_ */
 
+#endif  /* ifndef HAS_SQLITE */

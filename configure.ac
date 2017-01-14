@@ -9,6 +9,8 @@ LT_INIT
 AC_PROG_CC
 AC_PROG_CXX
 
+AC_ARG_ENABLE([has-sqlite],
+	      AS_HELP_STRING([--omit-sqlite], [Omit compilation and linking with SQLite]))
 AC_ARG_ENABLE([run-tests],
 	      AS_HELP_STRING([--enable-run-tests], [Enable test configuration]))
 AC_ARG_ENABLE([debug],
@@ -16,6 +18,7 @@ AC_ARG_ENABLE([debug],
 AC_ARG_ENABLE([swill],
 	      AS_HELP_STRING([--enable-swill], [Enable swill web server]))
 
+AM_CONDITIONAL([OMIT_SQLITE], [test "$omit_sqlite" = "yes"])
 AM_CONDITIONAL([ENABLE_TESTS], [test "$enable_run_tests" = "yes"])
 AM_CONDITIONAL([ENABLE_DEBUG], [test "$enable_debug" = "yes"])
 AM_CONDITIONAL([ENABLE_SWILL], [test "$enable_swill" = "yes"])
