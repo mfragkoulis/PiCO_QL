@@ -25,11 +25,8 @@
 #include <swill.h>
 #include <string.h>
 
-#include "pico_ql_swill.h"
 #include "pico_ql.h"
-#include "pico_ql_db.h"
-//#include "pico_ql_vt.h"
-//#include "pico_ql_test.h"
+#include "pico_ql_swill.h"
 #include "pico_ql_swill_access_func.h"
 
 /* Calls the function that prints the PiCO QL error page (.html).
@@ -48,7 +45,7 @@ void print_pico_ql_logo(FILE *f) {
  * retrieves the database schema and promotes inputted 
  * queries to sqlite_engine.
  */
-void app_index(FILE *f, sqlite3 *db) {
+void app_index(FILE *f) {
   swill_fprintf(f, "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"\n\"http://www.w3.org/TR/html4/loose.dtd\">"
 		"<html>"
 		"<head>"
@@ -80,6 +77,11 @@ void app_index(FILE *f, sqlite3 *db) {
 		"<input type=\"submit\" value=\"Submit\" class=\"button\"></input>"
 		"</div>"
 		"</form>"
+		"<div class=\"bottom\">"
+		"<a href=\"");
+  swill_printurl(f,"interruptQuery.html", "", 0);
+  swill_fprintf(f,"\">Interrupt query</a>"
+		"</div>"
 		"</div>"
 		"<div class=\"div_tbl\">"
 		"<span class=\"style_text\"><b>Your database schema is:</b></span>");
@@ -100,7 +102,7 @@ void app_index(FILE *f, sqlite3 *db) {
  * along with the time it took to execute and the query 
  * itself.
  */
-void serve_query(FILE *f, sqlite3 *db) {
+void serve_query(FILE *f) {
   const char *query = "\0";
   char response_type[50];
   char *rt = swill_getheader("Http_Choose_Response_Type");
@@ -158,7 +160,7 @@ void serve_query(FILE *f, sqlite3 *db) {
 }
 
 // Terminates connection to the embedded web-server.
-void terminate(FILE *f, sqlite3 *db) {
+void terminate(FILE *f) {
   char response_type[50];
   char *rt = swill_getheader("Http_Choose_Response_Type");
   if (rt)
@@ -184,6 +186,50 @@ void terminate(FILE *f, sqlite3 *db) {
   swill_close();
 }
 
+// Terminates connection to the embedded web-server.
+void interrupt_query(FILE *f) {
+  char response_type[50];
+  char *rt = swill_getheader("Http_Choose_Response_Type");
+  if (rt)
+    strcpy(response_type, rt);
+  else
+    strcpy(response_type, "text/html");    /* default */
+  if (!strcmp(response_type, "text/html")) {
+    swill_fprintf(f, "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"\n\"http://www.w3.org/TR/html4/loose.dtd\">"
+		"<html>"
+		"<head>"
+		"<style type=\"text/css\">"
+		"body{bgcolor=\"#ffffff\";}"
+		"img{height:116px;width:109px;align:left}"
+		".div_style{width:500px; border:2px solid; background-color:#ccc;margin:0px auto;margin-top:-40px;}"
+		".top{border-bottom:1px solid;padding-top:10px;padding-left:10px;padding-bottom:2px;}"
+		".middle{padding-top:5px;padding-left:9px; padding-bottom:5px;}"
+		".bottom{border-top:1px solid;padding-top:5px; padding-bottom:10px; text-align:center;}"
+		"</style>"
+		"</head>"
+		"<body>");
+  }
+  pico_ql_interrupt();
+  if (!strcmp(response_type, "text/html")) {
+    swill_fprintf(f, "<p><left><img src=\"pico_ql_logo.png\"></left>\n");
+    swill_fprintf(f, "<div class=\"bottom\">"
+		"<b>Query interrupted</b>"
+		"<br>"
+		"<br>");
+    swill_fprintf(f, "<p class=\"aligned\">");
+    swill_fprintf(f, "<a href=\"");
+    swill_printurl(f,"index.html", "", 0);
+    swill_fprintf(f,"\">[ Input new Query ]</a>"
+		  "</p>");
+    swill_fprintf(f, "<a href=\"");
+    swill_printurl(f,"terminateConnection.html", "", 0);
+    swill_fprintf(f,"\">[ Terminate Server Connection ]</a>");
+    swill_fprintf(f, "</div>"
+		    "</body>"
+		    "</html>");
+  }
+}
+
 // Interface to the swill server functionality.
 void init_pico_ql_swill(int port_number) {
   swill_init(port_number);
@@ -191,6 +237,7 @@ void init_pico_ql_swill(int port_number) {
   swill_handle("pico_ql_error_page.html", print_pico_ql_error_page, 0);
   swill_handle("index.html", app_index, 0);
   swill_handle("serveQuery.html", serve_query, 0);
+  swill_handle("interruptQuery.html", interrupt_query, 0);
   swill_handle("terminateConnection.html", terminate, 0);
   while (swill_serve()) {
 

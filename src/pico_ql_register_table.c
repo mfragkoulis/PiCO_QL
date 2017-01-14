@@ -22,24 +22,16 @@
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
-#include "pico_ql_internal.h"
-#include "pico_ql_db.h"
+
+#include "pico_ql.h" /* pico_ql_exec_query() */
+
 #ifdef PICO_QL_SWILL
 #include "pico_ql_swill.h"
 #endif
 #include "pico_ql_vt.h"
 #include "pico_ql_swill_access_func.h"
 
-#include "pico_ql.h"
-
 sqlite3 *db = NULL;
-
-
-int pico_ql_name(shutdown)() {
-  sqlite3_close(db);
-  deinit_selectors();
-  return SQLITE_OK;
-}
 
 /* Executes the SQL CREATE queries, opens the sqlite 
  * database connection and calls swill or pico_ql_test 

@@ -1,3 +1,6 @@
+#include <csignal>   /* signal() */
+#include <cstdlib>   /* exit() */
+#include <iostream>  /* cout */
 #include <list>
 #include <vector>
 #include <fstream>
@@ -15,19 +18,32 @@ using namespace std;
 #include "pico_ql.h"
 using namespace picoQL;
 
+void interrupt_handler(int s) {
+	cout << "\nCaught interrupt signal: " <<  s << endl;
 
-int main()
-{
+	cout << "Interrupt query" << endl;
+	interrupt();
+
+	cout << "Exit program" << endl;
+	exit(s);
+}
+	
+
+int main() {
+	signal(SIGINT, interrupt_handler);
 
 	Parent p1;
+	int i = 0;
 	p1.m_data = "parent_1";
 	Child c1, c2, c3;
 	c1.m_data = "child_1";
 	c2.m_data = "child_2";
 	c3.m_data = "child_3";
-	p1.m_children.push_back(c1);
-	p1.m_children.push_back(c2);
-	p1.m_children.push_back(c3);
+	while (i++ < 100000) {
+		p1.m_children.push_back(c1);
+		p1.m_children.push_back(c2);
+		p1.m_children.push_back(c3);
+	}
 
 	Parent p2;
 	p2.m_data = "parent_2";
@@ -68,7 +84,7 @@ int main()
         fstream fs;
         fs.open("parentchild_resultset", fstream::out);
 
-	exec_query("select * from parent;", s, step_text);
+	exec_query("select * from parent join child on base = child_id;", s, step_text);
         fs << s.str();
         s.str("");
 	fs.close();

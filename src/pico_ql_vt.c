@@ -84,14 +84,6 @@ void clear_temp_structs(void) {
   deinit_temp_structs();
 }
 
-/* Calls function to deallocate memory reserved
- * for storing copies of temporary variables.
- */
-void deinit_selectors(void) {
-  deinit_vt_selectors();
-}
-
-
 /* Creates/connects a virtual table to the provided 
  * database.
  * isCreate for activating e.g. extra storage utilised. 

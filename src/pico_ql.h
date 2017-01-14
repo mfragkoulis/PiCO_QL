@@ -58,6 +58,7 @@ namespace picoQL {
   int pico_ql_name(init)(const char** pragmas, int npragmas, int port_number,
 		  pthread_t *t);
   int pico_ql_name(shutdown)();
+  int pico_ql_name(interrupt)();
 
   int exec_tests();      /* The C/C++ interface for running tests. */
 

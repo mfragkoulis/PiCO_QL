@@ -19,8 +19,8 @@
  *   permissions and limitations under the License.
  */
 
-#ifndef PICO_QL_INTERFACE_H
-#define PICO_QL_INTERFACE_H
+#ifndef PICO_QL_REGISTER_TABLE_H
+#define PICO_QL_REGISTER_TABLE_H
 
 #include <stdio.h>
 #include "sqlite3.h"
@@ -35,8 +35,6 @@ int register_table(int argc,
 		   const char **table_names, 
 		   int port_number,
 		   sqlite3 *db);
-//int pico_ql_exec_query(const char *query, FILE *f,
-			//int (*callback)(sqlite3_step *, FILE *));
 
 #ifdef __cplusplus
 }

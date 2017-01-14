@@ -22,7 +22,7 @@ AM_CFLAGS += -DPICO_QL_SWILL
 AM_CXXFLAGS += -DPICO_QL_SWILL
 endif
 
-libpicoql_la_SOURCES = sqlite3.c pico_ql_db.c pico_ql_exec.cpp pico_ql_exec_c.c pico_ql_step.cpp pico_ql_step_c.c pico_ql_search_helper.c pico_ql_vt.c
+libpicoql_la_SOURCES = sqlite3.c pico_ql_db.cpp pico_ql_exec.cpp pico_ql_exec_c.c pico_ql_step.cpp pico_ql_step_c.c pico_ql_register_table.c pico_ql_search_helper.c pico_ql_vt.c
 
 if ENABLE_SWILL
 libpicoql_la_SOURCES += pico_ql_error_page.c pico_ql_logo.c pico_ql_swill.c

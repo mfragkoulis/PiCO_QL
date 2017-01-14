@@ -90,8 +90,6 @@ void fill_module(sqlite3_module *m);
 
 void clear_temp_structs(void);
 
-void deinit_selectors(void);
-
 void start_serving(void);
 
 #endif

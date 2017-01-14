@@ -41,8 +41,10 @@ int pico_ql_exec_query(const char *query, FILE *f,
   fprintf(stderr, "Query to process: %s\n", query);
 #endif
   if ((prepare = sqlite3_prepare_v2(db, query, -1, &stmt, 0)) == SQLITE_OK) {
+#ifdef PICO_QL_TEST
     if (f)
       fprintf(f, "Statement prepared.\n");
+#endif
     if (callback)
       (*callback)(db, stmt, f);
     else {
