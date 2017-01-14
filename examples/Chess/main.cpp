@@ -33,7 +33,7 @@ using namespace picoQL;
 
 int main() {
     vector<vector<ChessPiece> > board;
-    pico_ql_register((const void *)&board, "board");
+    register_data((const void *)&board, "board");
     vector<vector<ChessPiece> >::iterator iter;
     vector<ChessPiece>::iterator it;
 
@@ -101,10 +101,10 @@ int main() {
 #ifndef PICO_QL_SINGLE_THREADED
     void *exit_status = NULL;
     pthread_t t;
-    re = pico_ql_init(NULL, 0, 8082, &t);
+    re = init(NULL, 0, 8082, &t);
     pthread_join(t, &exit_status);
 #else
-    re = pico_ql_init(NULL, 0, 8082, NULL);
+    re = init(NULL, 0, 8082, NULL);
 #endif
 
     if (re)
@@ -115,7 +115,7 @@ int main() {
     fclose(f);
     */
 
-    pico_ql_shutdown();
+    shutdown();
 
 //    move(Position(1, 'c'), Position(2, 'c'));
 

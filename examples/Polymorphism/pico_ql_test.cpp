@@ -22,36 +22,42 @@
  *   permissions and limitations under the License.
  */
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include "pico_ql.h"
-#include "pico_ql_test.h"
-//#include "pico_ql_internal.h"
+#include <cstdio>
+#include <cstring>
+#include <cstdlib>
+#include <fstream>
+#include <sstream>
+using namespace std;
 
+#include "pico_ql.h"
+
+namespace picoQL {
 
 /* Executes test queries. */
 int exec_tests() {
-  FILE *f;
-  f = fopen("parentchild_test_current.txt", "w");
+  stringstream s;
+  fstream fs;
+  fs.open("polymorphism_test_current.txt", fstream::out);
 
-  int i = 1;
-  char *q;
+  int i = 0;
+  char q[400];
 
-  q = "select count(distinct p.rownum) from parent p;";
-  fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  pico_ql_exec_query(q, f, pico_ql_step_text);
+  strcpy(q, "select rownum, description, balance, available_amount, binded_amount from Account;");
+  fs << "Query " << i++ << ":\n " << q << endl << endl;
+  exec_query(q, s, step_text);
+  fs << s.str();
+  s.str("");
 
-  q = "select count(distinct p.rownum) from parent p, child c where c.base=p.child_id;";
-  fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  pico_ql_exec_query(q, f, pico_ql_step_text);
-
-  q = "select count( * ) from parent p where exists( select * from child c where c.base=p.child_id )";
-  fprintf(f, "Query %i:\n %s\n\n", i++, q);
-  pico_ql_exec_query(q, f, pico_ql_step_text);
+  strcpy(q, "select rownum, description, balance, available_amount, binded_amount, overlimit, due_date from Account JOIN PremiumAccount ON PremiumAccount.base=Account.premiumaccount_id JOIN SavingsAccount ON SavingsAccount.base=Account.savingsaccount_id;");
+  fs << "Query " << i++ << ":\n " << q << endl << endl;
+  exec_query(q, s, step_text);
+  fs << s.str();
+  s.str("");
 
   //deinit_vt_selectors();
-  //pico_ql_shutdown();
-  fclose(f);
+  //sqlite3_close(db);
+  fs.close();
   return SQLITE_DONE;
 }
+
+} // namespace picoQL

@@ -57,10 +57,12 @@ namespace picoQL {
 <%      end %>
 <%     } %>
 
+extern "C" {
+
 /* Registers the base variables of user application code
  * with PiCO QL.
  */
-void pico_ql_register(const void *data_structure, const char *ds_name) {
+void pico_ql_name(register_data)(const void *data_structure, const char *ds_name) {
 <%    count = 0 %>
 <%    @tables.each_index { |vt| %>
 <%      if @tables[vt].base_var.length > 0 %>
@@ -86,7 +88,7 @@ void pico_ql_register(const void *data_structure, const char *ds_name) {
 
 
 // The API with user application code. Creates the PiCO_QL thread.
-int pico_ql_init(const char **pragmas, int npragmas, int port, pthread_t *sqlite_thread) {
+int pico_ql_name(init)(const char **pragmas, int npragmas, int port, pthread_t *sqlite_thread) {
   //int *portN = new int(port);
   sqlite3 *db = NULL;
   /**
@@ -111,5 +113,5 @@ int pico_ql_init(const char **pragmas, int npragmas, int port, pthread_t *sqlite
 #endif
   return SQLITE_OK;
 }
-
-}
+} // extern C
+} // namespace picoQL

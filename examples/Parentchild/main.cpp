@@ -1,15 +1,18 @@
 #include <list>
 #include <vector>
+#include <fstream>
+#include <sstream>
 
 #ifndef PICO_QL_SINGLE_THREADED
 #include <pthread.h>
 #endif
-#include "pico_ql.h"
 #include "Child.h"
 #include "Parent.h"
 /*------------*/
 
 using namespace std;
+
+#include "pico_ql.h"
 using namespace picoQL;
 
 
@@ -42,7 +45,7 @@ int main()
 	p.push_back(p2);
 	p.push_back(p3);
 
-	pico_ql_register((const void *)&p, "parent");
+	register_data((const void *)&p, "parent");
 
 	const char *pragmas[2];
 	pragmas[0] = "PRAGMA synchronous = OFF";
@@ -52,20 +55,25 @@ int main()
 	void *exit_status = NULL;
 #ifndef PICO_QL_SINGLE_THREADED
 	pthread_t t;
-	re = pico_ql_init(pragmas, 2, 8083, &t);
+	re = init(pragmas, 2, 8083, &t);
 	pthread_join(t, &exit_status);
 #else
-	re = pico_ql_init(pragmas, 2, 8083, NULL);
+	re = init(pragmas, 2, 8083, NULL);
 #endif
 
 	if (re)
 		fprintf(stderr, "pico_ql_init() failed with code %d\n", re);
 
-	FILE *f = fopen("parentchild_resultset", "w");
-	pico_ql_exec_query("select * from parent;", f, pico_ql_step_text);
-	fclose(f);
+        stringstream s;
+        fstream fs;
+        fs.open("parentchild_resultset", fstream::out);
 
-	pico_ql_shutdown();
+	exec_query("select * from parent;", s, step_text);
+        fs << s.str();
+        s.str("");
+	fs.close();
+
+	shutdown();
 
 	return 0;
 }

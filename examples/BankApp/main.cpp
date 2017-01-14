@@ -107,19 +107,19 @@ int main() {
     superaccounts.insert(make_pair("9", sa5));
     superaccounts.insert(make_pair("21", sa6));
 
-    pico_ql_register((const void *)&accounts, "accounts");
-    pico_ql_register((const void *)accountsNULL, "accountsNULL");
-    pico_ql_register((const void *)&superaccounts, "superaccounts");
-    pico_ql_register((const void *)&specialaccounts, "specialaccounts");
+    register_data((const void *)&accounts, "accounts");
+    register_data((const void *)accountsNULL, "accountsNULL");
+    register_data((const void *)&superaccounts, "superaccounts");
+    register_data((const void *)&specialaccounts, "specialaccounts");
 
     int re;
 #ifndef PICO_QL_SINGLE_THREADED
     void *exit_status = NULL;
     pthread_t t;
-    re = pico_ql_init(NULL, 0, 8081, &t);
+    re = init(NULL, 0, 8081, &t);
     pthread_join(t, &exit_status);
 #else
-    re = pico_ql_init(NULL, 0, 8081, NULL);
+    re = init(NULL, 0, 8081, NULL);
 #endif 
 
     if (re)
@@ -130,7 +130,7 @@ int main() {
     fclose(f);
     */
 
-    pico_ql_shutdown();
+    shutdown();
 
 /* For testing json web service
     while (1) {

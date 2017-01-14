@@ -23,25 +23,43 @@
 #define PICO_QL_H
 
 #include <stdio.h>
+#include <pthread.h>
 #include "sqlite3.h"
 
 #ifdef __cplusplus
-namespace picoQL {
-  extern "C" {
+#define pico_ql_name(x) x
+#else
+#define pico_ql_name(x) pico_ql_## x
 #endif
 
-#include <pthread.h>
+#ifdef __cplusplus
 
-  void pico_ql_register(const void *collection, const char * col_name);
-  int pico_ql_init(const char** pragmas, int npragmas, int port_number,
-		  pthread_t *t);
+#include <string>
+#include <sstream>
+using namespace std;
+
+namespace picoQL {
+  int exec_query(const char *query, stringstream &s,
+  			 int (*callback)(sqlite3 *, sqlite3_stmt *, stringstream &));
+  int step_mute(sqlite3 *db, sqlite3_stmt *stmt, stringstream &s);
+  int step_text(sqlite3 *db, sqlite3_stmt *stmt, stringstream &s);
+  int step_swill_html(sqlite3 *db, sqlite3_stmt *stmt, stringstream &s);
+  int step_swill_json(sqlite3 *db, sqlite3_stmt *stmt, stringstream &s);
+  extern "C" {
+#endif
   int pico_ql_exec_query(const char *query, FILE *f,
   			 int (*callback)(sqlite3 *db, sqlite3_stmt *, FILE *));
   int pico_ql_step_mute(sqlite3 *db, sqlite3_stmt *stmt, FILE *f);
   int pico_ql_step_text(sqlite3 *db, sqlite3_stmt *stmt, FILE *f);
   int pico_ql_step_swill_html(sqlite3 *db, sqlite3_stmt *stmt, FILE *f);
   int pico_ql_step_swill_json(sqlite3 *db, sqlite3_stmt *stmt, FILE *f);
-  int pico_ql_shutdown();
+
+  void pico_ql_name(register_data)(const void *collection, const char * col_name);
+  int pico_ql_name(init)(const char** pragmas, int npragmas, int port_number,
+		  pthread_t *t);
+  int pico_ql_name(shutdown)();
+
+  int exec_tests();      /* The C/C++ interface for running tests. */
 
 #ifdef __cplusplus
   }

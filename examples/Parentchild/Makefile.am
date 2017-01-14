@@ -26,7 +26,7 @@ if ENABLE_DEBUG
 AM_CXXFLAGS += -DPICO_QL_DEBUG
 endif
 
-parentchild_SOURCES = pico_ql_search.cpp pico_ql_internal.cpp pico_ql_test.c main.cpp
+parentchild_SOURCES = pico_ql_search.cpp pico_ql_internal.cpp pico_ql_test.cpp main.cpp
 
 pico_ql_search.cpp:
 	cp ../../src/pico_ql_generator.rb .
@@ -35,7 +35,7 @@ pico_ql_search.cpp:
 
 pico_ql_internal.cpp: pico_ql_search.cpp
 
-parentchild_LDADD = ../../lib/libpicoql.la -lpthread
+parentchild_LDADD = ../../src/libpicoql.la -lpthread
 
 clean-local:
 	-rm pico_ql_search.cpp

@@ -41,9 +41,9 @@ using namespace std;
 using namespace picoQL;
 
 
-unsigned long init[4] = {0x123, 0x234, 0x345, 0x456};
+unsigned long rand_init[4] = {0x123, 0x234, 0x345, 0x456};
 unsigned long length = 4;  
-MTRand_int32 irand(init, length);
+MTRand_int32 irand(rand_init, length);
 
 int main(int argc, const char *argv[]) {
     ifstream fin(argv[1]);
@@ -306,17 +306,17 @@ int main(int argc, const char *argv[]) {
     // variable name is ok as long as the passed variable 
     // name (vehicles) is the same with base in DSL 
     // description e.g. (WITH BASE = vehicles").
-    pico_ql_register((const void *)best_fl.get_fleet(), "vehicles");
-    pico_ql_register((const void *)&test, "test");
+    register_data((const void *)best_fl.get_fleet(), "vehicles");
+    register_data((const void *)&test, "test");
 
     int re;
 #ifndef PICO_QL_SINGLE_THREADED
     void *exit_status = NULL;
     pthread_t t;
-    re = pico_ql_init(NULL, 0, 8083, &t);
+    re = init(NULL, 0, 8083, &t);
     pthread_join(t, &exit_status);
 #else
-    re = pico_ql_init(NULL, 0, 8083, NULL);
+    re = init(NULL, 0, 8083, NULL);
 #endif
 
     if (re)
@@ -327,7 +327,7 @@ int main(int argc, const char *argv[]) {
     fclose(f);
     */
 
-    pico_ql_shutdown();
+    shutdown();
 
     cout << endl << "Optimised solution after " << 
         restarts << 

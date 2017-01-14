@@ -31,7 +31,7 @@ capp_CFLAGS = $(AM_CFLAGS)
 cppapp_CFLAGS = $(AM_CXXFLAGS)
 
 capp_SOURCES = pico_ql_search.c pico_ql_internal.c pico_ql_test.c main.c
-cppapp_SOURCES = pico_ql_search_cpp.cpp pico_ql_internal_cpp.cpp pico_ql_test_cpp.c main_cpp.c
+cppapp_SOURCES = pico_ql_search_cpp.cpp pico_ql_internal_cpp.cpp pico_ql_test_cpp.cpp main_cpp.cpp
 
 pico_ql_search.c:
 	cp ../../src/pico_ql_generator.rb .
@@ -49,8 +49,8 @@ pico_ql_search_cpp.cpp:
 
 pico_ql_internal_cpp.cpp: pico_ql_search_cpp.cpp
 
-capp_LDADD = ../../lib/libpicoql.la -lpthread
-cppapp_LDADD = ../../lib/libpicoql.la -lpthread
+capp_LDADD = ../../src/libpicoql.la -lpthread
+cppapp_LDADD = ../../src/libpicoql.la -lpthread
 
 clean-local:
 	-rm pico_ql_search_cpp.cpp pico_ql_search.c

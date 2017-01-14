@@ -18,13 +18,13 @@ using namespace picoQL;
 
 int main() {
   int num[] = {1, 2, 3, 4, 5, 6, 7, 8};
-  pico_ql_register(num, "numbers");
+  pico_ql_register_data(num, "numbers");
 
   Monetary_System ms;
   MoneyArray ma;
   ma.intArray = num;
   ma.iArraySize = 8;
-  pico_ql_register(&ma, "int_array");
+  pico_ql_register_data(&ma, "int_array");
   ma.mArraySize = 3;
   ma.mArray = (struct Money **)malloc(sizeof(struct Money *) * ma.mArraySize);
   struct Money* M = (struct Money *)malloc(sizeof(struct Money));
@@ -43,7 +43,7 @@ int main() {
   price prc;
   prc.p.main = 12.5;
   prc.price_mode = 0;
-  pico_ql_register(&prc, "price");
+  pico_ql_register_data(&prc, "price");
 
   M->wgt.gr = 612;
   M->weight_mode = 2;
@@ -107,9 +107,9 @@ int main() {
   O->weight_mode = 3;
   O->next = NULL;
   //.cpp:  mon.push_back(O);
-  pico_ql_register(M, "money");
-  pico_ql_register(&ms, "monetary_system");
-  pico_ql_register(&ma, "money_array");
+  pico_ql_register_data(M, "money");
+  pico_ql_register_data(&ms, "monetary_system");
+  pico_ql_register_data(&ma, "money_array");
 
   int re;
 #ifndef PICO_QL_SINGLE_THREADED

@@ -22,46 +22,20 @@
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
-#include "pico_ql.h"
 #include "pico_ql_internal.h"
 #include "pico_ql_db.h"
 #ifdef PICO_QL_SWILL
 #include "pico_ql_swill.h"
 #endif
 #include "pico_ql_vt.h"
-#include "pico_ql_test.h"
 #include "pico_ql_swill_access_func.h"
 
-static sqlite3 *db = NULL;
+#include "pico_ql.h"
 
-int pico_ql_exec_query(const char *query, FILE *f,
-		int (*callback)(sqlite3 *db, sqlite3_stmt*, FILE *f)) {
-  sqlite3_stmt *stmt;
-  int prepare;
-#ifdef PICO_QL_DEBUG
-  fprintf(stderr, "Query to process: %s\n", query);
-#endif
-  if ((prepare = sqlite3_prepare_v2(db, query, -1, &stmt, 0)) == SQLITE_OK) {
-    if (f)
-      fprintf(f, "Statement prepared.\n");
-    if (callback)
-      (*callback)(db, stmt, f);
-    else {
-      fprintf(stderr, "Callback to step to query is NULL. Exiting now.");
-      return SQLITE_ERROR;
-    }
-  } else {
-    fprintf(stderr, "Error in preparation of query: error no %i\n", prepare);
-    fprintf(stderr, "\nExtended error code %i.\n", sqlite3_extended_errcode(db));
-    fprintf(stderr, "\nExtended error message:\n%s\n\n", sqlite3_errmsg(db));
-    return prepare;
-  }
-  deinit_temp_structs();
-  sqlite3_finalize(stmt);
-  return SQLITE_OK;
-}
+sqlite3 *db = NULL;
 
-int pico_ql_shutdown() {
+
+int pico_ql_name(shutdown)() {
   sqlite3_close(db);
   deinit_selectors();
   return SQLITE_OK;

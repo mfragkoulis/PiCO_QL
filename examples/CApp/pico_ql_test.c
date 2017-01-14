@@ -25,7 +25,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "pico_ql_test.h"
 #include "pico_ql.h"
 
 /* Executes test queries. */

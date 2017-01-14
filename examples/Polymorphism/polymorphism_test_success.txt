@@ -4,8 +4,8 @@ Query 0:
 Statement prepared.
 rownum description balance available_amount binded_amount 
 
-0 pa121 1292.760000 1231.200000 0.000000 
-1 sa989 865.370000 586.700000 200.000000 
+0 pa121 1292.76 1231.2 0 
+1 sa989 865.37 586.7 200 
 
 Done
 
@@ -15,8 +15,8 @@ Query 1:
 Statement prepared.
 rownum description balance available_amount binded_amount overlimit due_date 
 
-0 pa121 1292.760000 1231.200000 0.000000 200.000000 (null) 
-1 sa989 865.370000 586.700000 200.000000 (null) 31/12/2013 
+0 pa121 1292.76 1231.2 0 200 (null) 
+1 sa989 865.37 586.7 200 (null) 31/12/2013 
 
 Done
 

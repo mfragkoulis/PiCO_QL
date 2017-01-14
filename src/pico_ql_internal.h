@@ -45,6 +45,8 @@
 
 #ifdef __cplusplus
 #include <map>
+#include <cstdlib>
+
 namespace picoQL {
 
   class Cursor {

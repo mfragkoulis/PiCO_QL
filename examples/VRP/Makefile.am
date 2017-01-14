@@ -26,7 +26,7 @@ if ENABLE_DEBUG
 AM_CXXFLAGS += -DPICO_QL_DEBUG
 endif
 
-vrp_SOURCES = pico_ql_search.cpp pico_ql_internal.cpp pico_ql_test.c main.cpp Customer.cpp LinehaulCustomer.cpp BackhaulCustomer.cpp Truck.cpp Fleet.cpp Position.cpp mtrand.cpp
+vrp_SOURCES = pico_ql_search.cpp pico_ql_internal.cpp pico_ql_test.cpp main.cpp Customer.cpp LinehaulCustomer.cpp BackhaulCustomer.cpp Truck.cpp Fleet.cpp Position.cpp mtrand.cpp
 
 pico_ql_search.cpp:
 	cp ../../src/pico_ql_generator.rb .
@@ -35,7 +35,7 @@ pico_ql_search.cpp:
 
 pico_ql_internal.cpp: pico_ql_search.cpp
 
-vrp_LDADD = ../../lib/libpicoql.la -lpthread
+vrp_LDADD = ../../src/libpicoql.la -lpthread
 
 clean-local:
 	-rm pico_ql_search.cpp

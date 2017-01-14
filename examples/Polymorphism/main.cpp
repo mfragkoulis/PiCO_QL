@@ -18,16 +18,16 @@ int main() {
   accounts.push_back(&pa121);
   SavingsAccount sa989("sa989", 786.7, 586.7, 200, "31/12/2013");
   accounts.push_back(&sa989);
-  pico_ql_register(&accounts, "accounts");
+  register_data(&accounts, "accounts");
 
   int re;
 #ifndef PICO_QL_SINGLE_THREADED
   pthread_t t;
   void *exit_status = NULL;
-  re = pico_ql_init(NULL, 0, 8080, &t);
+  re = init(NULL, 0, 8080, &t);
   pthread_join(t, &exit_status);
 #else
-  re = pico_ql_init(NULL, 0, 8080, NULL);
+  re = init(NULL, 0, 8080, NULL);
 #endif
 
   if (re)
@@ -38,7 +38,7 @@ int main() {
   fclose(f);
   */
 
-  pico_ql_shutdown();
+  shutdown();
 
   return 0;
 }
