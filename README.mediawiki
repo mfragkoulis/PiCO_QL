@@ -95,6 +95,7 @@ To compile under Cygwin you might need to use:
 
 ==The C++ API==
 
+```cpp
    int init(const char** pragmas, int npragmas, int port_number, pthread_t *t);
    void register_data(const void *collection, const char * col_name);
    int exec_query(const char *query, stringstream &s,
@@ -111,6 +112,7 @@ To compile under Cygwin you might need to use:
 		  void (*xFunc)(sqlite3_context*,int,sqlite3_value**),
 		  void (*xStep)(sqlite3_context*,int,sqlite3_value**),
 		  void (*xFinal)(sqlite3_context*));
+```
 
 See [https://github.com/mfragkoulis/PiCO_QL/blob/ng/src/pico_ql.h src/pico_ql.h] for the full C/C++ API
 
