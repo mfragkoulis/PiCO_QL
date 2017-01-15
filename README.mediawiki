@@ -112,7 +112,7 @@ To compile under Cygwin you might need to use:
 		  void (*xStep)(sqlite3_context*,int,sqlite3_value**),
 		  void (*xFinal)(sqlite3_context*));
 
-See src/pico_ql.h for the full C/C++ API
+See [https://github.com/mfragkoulis/PiCO_QL/blob/ng/src/pico_ql.h src/pico_ql.h] for the full C/C++ API
 
 ==Package structure==
 
