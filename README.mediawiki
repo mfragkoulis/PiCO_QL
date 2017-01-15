@@ -108,8 +108,8 @@ To compile under Cygwin you might need to use:
    int shutdown();
    int create_function(const char *name, int argc, int text_rep, void *p,
    		void (*xFunc)(sqlite3_context*,int,sqlite3_value**),
-		void (*xStep)(sqlite3_context*,int,sqlite3_value**),
-		void (*xFinal)(sqlite3_context*));
+   		void (*xStep)(sqlite3_context*,int,sqlite3_value**),
+   		void (*xFinal)(sqlite3_context*));
 
 See [https://github.com/mfragkoulis/PiCO_QL/blob/ng/src/pico_ql.h src/pico_ql.h] for the full C/C++ API
 
