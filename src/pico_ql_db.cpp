@@ -28,6 +28,14 @@ namespace picoQL {
 
 extern "C" {
 
+int pico_ql_create_function(const char *name, int argc, int text_rep, void *p,
+		  void (*xFunc)(sqlite3_context*,int,sqlite3_value**),
+		  void (*xStep)(sqlite3_context*,int,sqlite3_value**),
+		  void (*xFinal)(sqlite3_context*)) {
+	return sqlite3_create_function(db, name, argc, text_rep, p,
+			xFunc, xStep, xFinal);
+}
+
 int pico_ql_progress(int n, int (*callback)(void *p), void *p) {
   sqlite3_progress_handler(db, n, callback, p);
   return SQLITE_OK;
@@ -42,6 +50,14 @@ int pico_ql_shutdown() {
   sqlite3_close(db);
   deinit_vt_selectors();
   return SQLITE_OK;
+}
+
+int create_function(const char *name, int argc, int text_rep, void *p,
+		  void (*xFunc)(sqlite3_context*,int,sqlite3_value**),
+		  void (*xStep)(sqlite3_context*,int,sqlite3_value**),
+		  void (*xFinal)(sqlite3_context*)) {
+	return pico_ql_create_function(name, argc, text_rep, p,
+			xFunc, xStep, xFinal);
 }
 
 int progress(int n, int (*callback)(void*), void *p) {

@@ -61,6 +61,11 @@ namespace picoQL {
   int pico_ql_name(interrupt)();
   int pico_ql_name(progress)(int n, int (*callback)(void *p), void *p);
 
+  int pico_ql_name(create_function)(const char *name, int argc, int text_rep, void *p,
+		  void (*xFunc)(sqlite3_context*,int,sqlite3_value**),
+		  void (*xStep)(sqlite3_context*,int,sqlite3_value**),
+		  void (*xFinal)(sqlite3_context*));
+
   int exec_tests();      /* The C/C++ interface for running tests. */
 
 #ifdef __cplusplus

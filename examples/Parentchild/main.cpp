@@ -18,6 +18,18 @@ using namespace std;
 #include "pico_ql.h"
 using namespace picoQL;
 
+void contains(sqlite3_context *c, int argc, sqlite3_value **argv) {
+	if (argc == 1) {
+		const unsigned char *text = sqlite3_value_text(argv[0]);
+		if (text && text[0]) {
+			char result[2];
+			result[0] = text[0]; result[1] = '\0';
+			sqlite3_result_text(c, result, -1, SQLITE_TRANSIENT);
+		}
+	} else
+		sqlite3_result_null(c);
+}
+
 int count = 0;
 /* Requires application logic */
 int progress_handler(void *p) {
@@ -96,11 +108,16 @@ int main() {
 	 */
 	progress(10, progress_handler, ptr);
 
+	void *ptr2 = NULL;
+	/* Create a function that returns whether a string contains a character */
+	create_function("contains", 1, SQLITE_UTF8, ptr2, &contains, NULL, NULL);
+
         stringstream s;
         fstream fs;
         fs.open("parentchild_resultset", fstream::out);
 
-	exec_query("select * from parent join child on base = child_id;", s, step_text);
+	exec_query("select *, contains(parent.data) from parent join child on base = child_id;",
+			s, step_text);
         fs << s.str();
         s.str("");
 	fs.close();
