@@ -18,6 +18,14 @@ using namespace std;
 #include "pico_ql.h"
 using namespace picoQL;
 
+int count = 0;
+/* Requires application logic */
+int progress_handler(void *p) {
+	count++;
+	cout << "count: " << count << endl;
+	return 0;	// if non-zero is returned the query will be interrupted
+}
+
 void interrupt_handler(int s) {
 	cout << "\nCaught interrupt signal: " <<  s << endl;
 
@@ -79,6 +87,14 @@ int main() {
 
 	if (re)
 		fprintf(stderr, "pico_ql_init() failed with code %d\n", re);
+
+	void *ptr = NULL;
+	/* The progress handler should be tweaked according to the application's
+	 * logic in order to be useful.
+	 * 10: no of VM instructions between invocations of progress_handler
+	 * ptr: user-provided pointer passed as an argument to progress_handler
+	 */
+	progress(10, progress_handler, ptr);
 
         stringstream s;
         fstream fs;
