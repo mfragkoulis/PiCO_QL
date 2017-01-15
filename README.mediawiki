@@ -95,11 +95,10 @@ To compile under Cygwin you might need to use:
 
 ==The C++ API==
 
-```cpp
    int init(const char** pragmas, int npragmas, int port_number, pthread_t *t);
    void register_data(const void *collection, const char * col_name);
    int exec_query(const char *query, stringstream &s,
-  			 int (*callback)(sqlite3 *, sqlite3_stmt *, stringstream &));
+   		int (*callback)(sqlite3 *, sqlite3_stmt *, stringstream &));
    int step_mute(sqlite3 *db, sqlite3_stmt *stmt, stringstream &s);
    int step_text(sqlite3 *db, sqlite3_stmt *stmt, stringstream &s);
    int step_swill_html(sqlite3 *db, sqlite3_stmt *stmt, stringstream &s);
@@ -107,12 +106,10 @@ To compile under Cygwin you might need to use:
    int progress(int n, int (*callback)(void *p), void *p);
    int interrupt();
    int shutdown();
-
    int create_function(const char *name, int argc, int text_rep, void *p,
-		  void (*xFunc)(sqlite3_context*,int,sqlite3_value**),
-		  void (*xStep)(sqlite3_context*,int,sqlite3_value**),
-		  void (*xFinal)(sqlite3_context*));
-```
+   		void (*xFunc)(sqlite3_context*,int,sqlite3_value**),
+		void (*xStep)(sqlite3_context*,int,sqlite3_value**),
+		void (*xFinal)(sqlite3_context*));
 
 See [https://github.com/mfragkoulis/PiCO_QL/blob/ng/src/pico_ql.h src/pico_ql.h] for the full C/C++ API
 
