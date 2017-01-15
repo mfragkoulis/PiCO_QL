@@ -1,4 +1,4 @@
-// Retrieves column values of virtual table <%= @name %>.
+/* Retrieves column values of virtual table <%= @name %>. */
 int <%= @name %>_vt_retrieve (sqlite3_vtab_cursor *cur, int nCol, sqlite3_context *con, struct Vtbl *vtbl) {
   cursor **cursors = ((<%= @name %>_vt *)vtbl)->cursors;
   size_t cursorsSize = ((<%= @name %>_vt *)vtbl)->cursorsSize;

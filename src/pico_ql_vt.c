@@ -34,7 +34,7 @@ void start_serving(void) {
   serving = 1;
 }
 
-// Constructs the SQL CREATE query.
+/* Constructs the SQL CREATE query. */
 void create(sqlite3 *db, 
 	    int argc, 
 	    const char * const * as, 
@@ -98,14 +98,15 @@ int init_vtable(int iscreate,
 		char **pzErr) {
   picoQLTable *picoQL;
   int nDb, nName, nByte, nCol, nString, i, n;
-  char query[arrange_size(argc, argv)];
+  const int size = arrange_size(argc, argv);
+  char *query = sqlite3_malloc(sizeof(char) * size);
   char *temp;
   (void)iscreate;
   (void)paux;
   nDb = (int)strlen(argv[1]) + 1;
   nName = (int)strlen(argv[2]) + 1;
   nString = 0;
-  // explore fts3 way
+  /* explore the fts3 way */
   for (i = 3; i < argc; i++){
     nString += (int)strlen(argv[i]) + 1;
   }
@@ -151,6 +152,7 @@ int init_vtable(int iscreate,
       *pzErr = sqlite3_mprintf("Error while declaring virtual table %s.\n", picoQL->zName);
       printf("%s \n", *pzErr);
       sqlite3_free(*pzErr);
+      sqlite3_free(query);
       return SQLITE_ERROR;
     } else if (output == 0) {
       *ppVtab = &picoQL->vtab;
@@ -158,7 +160,8 @@ int init_vtable(int iscreate,
 	*pzErr = sqlite3_mprintf("WARNING: Virtual table %s is NULL at the time of registration.\n", picoQL->zName);
 	printf("%s \n", *pzErr);
         sqlite3_free(*pzErr);
-	//	return SQLITE_ERROR;
+        sqlite3_free(query);
+	/*	return SQLITE_ERROR; */
       }
 #ifdef PICO_QL_DEBUG
       printf("Virtual table declared successfully.\n");
@@ -169,12 +172,13 @@ int init_vtable(int iscreate,
     *pzErr = sqlite3_mprintf("Unknown error");
     printf("%s \n", *pzErr);
     sqlite3_free(*pzErr);
+    sqlite3_free(query);
     return SQLITE_ERROR;
   } 
   return SQLITE_INTERNAL;
 }
 
-//xConnect
+/* xConnect */
 int connect_vtable(sqlite3 *db, 
 		   void *paux, 
 		   int argc,
@@ -188,7 +192,7 @@ int connect_vtable(sqlite3 *db,
 		     ppVtab, pzErr);
 }
 
-// xCreate
+/* xCreate */
 int create_vtable(sqlite3 *db, 
 		  void *paux, 
 		  int argc,
@@ -209,13 +213,13 @@ int create_vtable(sqlite3 *db,
   }
 }
 
-// xDestroy
+/* xDestroy */
 int destroy_vtable(sqlite3_vtab *ppVtab) {
   (void)ppVtab;
   return SQLITE_MISUSE;
 }
 
-// xDisconnect. Called when closing a database connection.
+/* xDisconnect. Called when closing a database connection. */
 int disconnect_vtable(sqlite3_vtab *ppVtab) {
   picoQLTable *s=(picoQLTable *)ppVtab;
 #ifdef PICO_QL_DEBUG
@@ -234,8 +238,8 @@ void eval_constraint(int sqlite3_op,
 		     int score,
 		     char *nidxStr, 
 		     int nidxLen) {
-  char iOp[2], iCol[4]; // iCol supports up to 999 columns.
-  char op_iCol[9];      // iColLen + 5
+  char iOp[2], iCol[4]; /* iCol supports up to 999 columns */
+  char op_iCol[9];      /* iColLen + 5 */
   int iColLen;
   int op = 0;
   sprintf(iCol, "%d", nCol);
@@ -261,9 +265,9 @@ void eval_constraint(int sqlite3_op,
   if (equals(colName, "base")) {
     assert(nCol == 0);
     nidxStr[0] = '{';
-    nidxStr[1] = *iOp;     // 7 evaluation qualifiers
+    nidxStr[1] = *iOp;     /* 7 evaluation qualifiers */
     nidxStr[2] = '-';
-    nidxStr[3] = '0';      // should always be 0
+    nidxStr[3] = '0';      /* should always be 0 */
     nidxStr[4] = '}';
   } else if (equals(colName, "rownum")) {
     assert((nCol == 0) || (nCol == 1));
@@ -271,13 +275,13 @@ void eval_constraint(int sqlite3_op,
       nidxStr[5] = '{';
       nidxStr[6] = *iOp;     
       nidxStr[7] = '-';
-      nidxStr[8] = *iCol;    // 0 or 1 always
+      nidxStr[8] = *iCol;    /* 0 or 1 always */
       nidxStr[9] = '}';
     } else {
       nidxStr[0] = '{';
       nidxStr[1] = *iOp;
       nidxStr[2] = '-';
-      nidxStr[3] = *iCol;    // 0 or 1 always
+      nidxStr[3] = *iCol;    /* 0 or 1 always */
       nidxStr[4] = '}';
     }
   } else {
@@ -409,10 +413,11 @@ int filter_vtable(sqlite3_vtab_cursor *cur,
     char *where = (char *)sqlite3_malloc(sizeof(char) * (strlen(idxStr)+1));
     strcpy(where, idxStr);
     where_root = where;
-    token = strsep(&where, "{-}"); 
-    while ((token != NULL) && ((token = strsep(&where, "{-}")) != NULL)) {     // constr: {<op>-<nCol>}
+    token = strsep(&where, "{-}");
+    /* constr: {<op>-<nCol>} */
+    while ((token != NULL) && ((token = strsep(&where, "{-}")) != NULL)) {
       op[i] = (int)strtol(token, NULL, 10);
-      token = strsep(&where, "{-}"); // Matched '}', token is <nCol>
+      token = strsep(&where, "{-}"); /* Matched '}', token is <nCol> */
       nCol[i] = (int)strtol(token, NULL, 10);
       token = strsep(&where, "{-}"); /* Near eo string or new constraint, token is empty. */
       i++;
@@ -428,7 +433,7 @@ int filter_vtable(sqlite3_vtab_cursor *cur,
   return next_vtable(cur);
 }
 
-//xNext. Advances the cursor to next record of resultset.
+/* xNext. Advances the cursor to next record of resultset. */
 int next_vtable(sqlite3_vtab_cursor *cur) {
   return advance_result_set_iter(cur);
 }
@@ -493,7 +498,7 @@ int open_vtable(sqlite3_vtab *pVtab,
 	stc->isInstanceEmpty = 0;
 	stc->max_size = arraySize;
       }
-      //      pCsr->pVtab = NULL;   why set to NULL?
+      /*      pCsr->pVtab = NULL;   why set to NULL? */
     }
   } else {
     /* Embedded struct. Size will be synced in search when 
@@ -534,14 +539,15 @@ int close_vtable(sqlite3_vtab_cursor *cur) {
   picoQLTable *st = (picoQLTable *)cur->pVtab;
   printf("Closing vtable %s \n\n", st->zName);
 #endif
-  // Second argument dummy
-  // (part of polymorphized arsenal of methods).
+  /* Second argument dummy
+   * (part of polymorphized arsenal of methods).
+   */
   deinit_result_set(cur, stc);
   sqlite3_free(stc);
   return SQLITE_OK;
 }
 
-//xEof. Signifies the end of resultset.
+/* xEof. Signifies the end of resultset. */
 int eof_vtable(sqlite3_vtab_cursor *cur) {
   return ((picoQLTableCursor *)cur)->isEof;
 }

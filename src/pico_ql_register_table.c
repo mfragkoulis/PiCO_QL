@@ -47,7 +47,8 @@ int register_table(int argc,
    * to 140 characters. It should be more than enough.
    */
   char sqlite_query[200];
-  int re, i = 0;
+  int re, i = 0, output;
+  sqlite3_module *mod;
 
   db = this_db;
 #ifdef PICO_QL_DEBUG
@@ -55,17 +56,16 @@ int register_table(int argc,
     printf("\nquery to be executed: %s.\n", q[i]);
   }
 #endif
-  sqlite3_module *mod;
   mod = (sqlite3_module *)sqlite3_malloc(sizeof(sqlite3_module));
   fill_module(mod);
-  int output = sqlite3_create_module(db, "PicoQL", mod, NULL);
+  output = sqlite3_create_module(db, "PicoQL", mod, NULL);
   if (output == 1) 
     printf("Error while registering module\n");
 #ifdef PICO_QL_DEBUG
   else if (output == 0) 
     printf("Module registered successfully\n");
 #endif
-  // sqlite3_create_function() calls
+  /* sqlite3_create_function() calls */
   for (i = 0; i < argc; i++) {
     char sqlite_type[10];
     if (i < view_index)

@@ -82,7 +82,7 @@ void pico_ql_name(register_data)(const void *data_structure, const char *ds_name
 }
 
 <%      if $argK == "KERNEL" %>
-// The API with user application code. Creates the PiCO_QL thread.
+/* The API with user application code. Creates the PiCO_QL thread. */
 int pico_ql_serve(sqlite3 *db) {
   void *exit_status = NULL;
 #ifndef PICO_QL_SINGLE_THREADED
@@ -101,11 +101,10 @@ int pico_ql_serve(sqlite3 *db) {
   return (int)(long)exit_status;
 }
 <%      else %>
-// The API with user application code. Creates the PiCO_QL thread.
+/* The API with user application code. Creates the PiCO_QL thread. */
 int pico_ql_name(init)(const char **pragmas, int npragmas, int port, pthread_t *sqlite_thread) {
-  //int *portN = (int *)sqlite3_malloc(sizeof(int));
-  //*portN = port;
   sqlite3 *db = NULL;
+  config *conf;
   /**
    * Virtual table schema will be in-memory and will not
    * persist. Views can be included in the DSL
@@ -116,7 +115,7 @@ int pico_ql_name(init)(const char **pragmas, int npragmas, int port, pthread_t *
     sqlite3_close(db);
     return SQLITE_ERROR;
   }
-  config *conf = (config *)sqlite3_malloc(sizeof(config));
+  conf = (config *)sqlite3_malloc(sizeof(config));
   conf->db = db;
   conf->port = port;
   conf->pragmas = pragmas;

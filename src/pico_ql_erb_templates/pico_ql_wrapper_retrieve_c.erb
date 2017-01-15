@@ -1,4 +1,4 @@
-// Redirect to the appropriate retrieve function for a virtual table.
+/* Redirect to the appropriate retrieve function for a virtual table. */
 int retrieve(sqlite3_vtab_cursor *cur, int nCol, sqlite3_context *con) {
   picoQLTable *picoQL = (picoQLTable *)cur->pVtab;
   struct Vtbl *retrieveVT;
@@ -87,7 +87,7 @@ int set_VtblImpl(void) {
   return SQLITE_OK;
 }
 
-// Thread. Creates the queries and passes them on to PiCO_QL.
+/* Thread. Creates the queries and passes them on to PiCO_QL. */
 void * thread_sqlite(void *data) {
 <%    if $argK == "KERNEL" %>
   sqlite3 *db = (sqlite3 *)data;

@@ -8,7 +8,7 @@ void <%= @name %>_vt_to_open (sqlite3_vtab *vtab, struct Vtbl *vtbl) {
 #endif
 }
 
-// Returns the size (records) for each virtual table.
+/* Returns the size (records) for each virtual table. */
 size_t <%= @name %>_vt_get_datastructure_size (sqlite3_vtab_cursor *cur, sqlite3_vtab *vtab) {
   picoQLTable *picoQL = (picoQLTable *)vtab;
 <%      if @container_class.length > 0 %>
@@ -85,7 +85,7 @@ int <%= @name %>_vt_init_result_set (sqlite3_vtab *vtab, sqlite3_vtab_cursor *cu
     ((<%= @name %>_vt *)vtbl)->cursors = (cursor **)sqlite3_realloc(((<%= @name %>_vt *)vtbl)->cursors, sizeof(cursor *)*cursorsSize);
     if (((<%= @name %>_vt *)vtbl)->cursors == NULL)
       return SQLITE_NOMEM;
-//    cursors = ((<%= @name %>_vt *)vtbl)->cursors;
+/*    cursors = ((<%= @name %>_vt *)vtbl)->cursors; */
     ((<%= @name %>_vt *)vtbl)->cursors[cursorsSize-1] = c;
 #ifdef PICO_QL_DEBUG
     printf("Table %s, Cursor: %lx inserted, max_size %i.\n", ((picoQLTable *)cur->pVtab)->zName, (long)cur, ((picoQLTableCursor *)cur)->max_size);
@@ -202,7 +202,7 @@ int <%= @name %>_report_charge (cursor *c, int offset, cursorCharged ***oCharged
   int i = 0;
   sqlite3_vtab_cursor *joining_cur = NULL;
   int joining = 0;
-  if (!picoQL) return SQLITE_OK; // VT not participating in this query.
+  if (!picoQL) return SQLITE_OK; /* VT not participating in this query. */
   if (offset) {
     int j = 0;
 #ifdef PICO_QL_DEBUG
@@ -227,7 +227,7 @@ int <%= @name %>_report_charge (cursor *c, int offset, cursorCharged ***oCharged
       j++;
     }
     if ((cursorsSize > 0) && (!joining))
-      return SQLITE_OK;  // Done servicing searches.
+      return SQLITE_OK;  /* Done servicing searches. */
     j = 0;
     while ((j < (int)chargedSize) && (charged[j]->c != c)) {j++;}
     ((<%= @name %>_vt *)vtbl)->nTimesCharged++;

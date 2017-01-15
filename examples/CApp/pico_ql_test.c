@@ -171,8 +171,6 @@ int exec_tests() {
   fprintf(f, "Query %i:\n %s\n\n", i++, q);
   pico_ql_exec_query(q, f, pico_ql_step_text);
 
-  //deinit_vt_selectors();
-  //sqlite3_close(db);
   fclose(f);
   return SQLITE_DONE;
 }

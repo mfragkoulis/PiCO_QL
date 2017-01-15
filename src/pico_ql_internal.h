@@ -25,14 +25,14 @@
 #ifndef PICO_QL_INTERNAL_H
 #define PICO_QL_INTERNAL_H
 
-// Check windows
+/* Check windows */
 #ifdef _WIN64
 #define ENVIRONMENT64
 #elif defined(_WIN32)
 #define ENVIRONMENT32
 #endif
 
-// Check GCC
+/* Check GCC */
 #if __GNUC__
 #if __x86_64__ || __ppc64__
 #define ENVIRONMENT64
@@ -97,7 +97,8 @@ namespace picoQL {
 
     typedef struct {
       sqlite3 *db;
-      int port;		// -1 ? don't start web server : web server (swill) access port
+      /* -1 ? don't start web server : web server (swill) access port */
+      int port;	
       const char **pragmas;
       int npragmas;
     } config;
@@ -115,7 +116,7 @@ namespace picoQL {
       char **azColumn;
       void *data;
       char *zErr;
-    } picoQLTable;  // The virtual table struct.
+    } picoQLTable;  /* The virtual table struct. */
     
     typedef struct {
       sqlite3_vtab_cursor pCsr;
@@ -124,19 +125,21 @@ namespace picoQL {
       int active_verify;
       int active_checked;
       int active_owed;
-      int max_size;        // 
-      int size;            // For objects only.
-      int offset;         // For objects only.
+      int max_size;
+      int size;		/* For objects only */
+      int offset;	/* ditto */
       int isEof; 
       int first_constr; 
       void *source;
-    } picoQLTableCursor; /* The cursor struct for the 
-			  * virtual table. 
-			  */
+    } picoQLTableCursor;
+    /* The cursor struct for the 
+     * virtual table. 
+     */
+
     void * thread_sqlite(void *data);
     int register_vt(picoQLTable *picoQL);
     int equals(const char *zCol, const char *key);
-    void set_selectors(void); // internal but inconvenient to position
+    void set_selectors(void); /* internal but inconvenient to position */
     void deinit_temp_structs(void);
     void deinit_vt_selectors(void);
     int init_result_set(sqlite3_vtab *vtab, sqlite3_vtab_cursor *stc);

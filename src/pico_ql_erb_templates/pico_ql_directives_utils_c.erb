@@ -49,7 +49,7 @@
 <%      if vt.base_var.length > 0 %>
 <%        /\*/.match(vt.signature_pointer) == nil ? retype = "*" : retype = "" %>
 <%        if $argD == "DEBUG" %>
-// C NAME (pico_ql_table_)<%= vt.base_var %>_<%= vt.type.gsub(/(\s*)/, "").gsub(/\*/, "ptr") %> in line <%= vt.base_var_line + 1 %> <%= $argF %> 
+/* C NAME (pico_ql_table_)<%= vt.base_var %>_<%= vt.type.gsub(/(\s*)/, "").gsub(/\*/, "ptr") %> in line <%= vt.base_var_line + 1 %> <%= $argF %>*/
 <%        end %>
 <%        if /\[/.match(vt.signature) %>
 extern <%= vt.assignable_signature.gsub("<variable_name>", "pico_ql_table_#{vt.base_var}_#{vt.type.gsub(/(\s*)/, "").gsub(/\*/, "ptr")}") %>;
@@ -92,8 +92,9 @@ int register_vt(picoQLTable *picoQL) {
 }
 
 
-// Each embedded virtual table has a column named 'base'.
-// This function checks if a provided column name is indeed 'base'.
+/* Each embedded virtual table has a column named 'base'.
+ * This function checks if a provided column name is indeed 'base'.
+ */
 int equals(const char *zCol, const char *key) {
   int length = (int)strlen(zCol) + 1;
   char *copy = (char *)sqlite3_malloc(sizeof(char) * length);
@@ -198,10 +199,10 @@ typedef struct <%= vt.name %>VtblImpl {
 <%      } %>
 
   cursor **cursors;
-  size_t cursorsSize;   // how many malloced
+  size_t cursorsSize;   /* how many malloced */
 <%      if vt.base_var.length == 0 %>
   cursorCharged **charged;
-  size_t chargedSize; // how many malloced
+  size_t chargedSize; /* how many malloced */
   int nTimesCharged;
   long *earlyRequestsArray;
   int nEarlyRequests;

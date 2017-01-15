@@ -20,15 +20,11 @@
  */
 
 #include <stdlib.h>
-//#include <time.h>
-//#include <string.h>
 #include "pico_ql.h"
 #include "pico_ql_internal.h"
-//#include "pico_ql_db.h"
 #ifdef PICO_QL_SWILL
 #include "pico_ql_swill.h"
 #endif
-//#include "pico_ql_vt.h"
 #include "pico_ql_swill_access_func.h"
 
 extern sqlite3 *db;
