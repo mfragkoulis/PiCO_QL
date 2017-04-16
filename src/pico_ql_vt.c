@@ -28,6 +28,22 @@
 #include "pico_ql_vt.h"
 #include "pico_ql_internal.h"
 
+#ifdef _WIN32
+char* strsep(char** stringp, const char* delim)
+{
+  char* start = *stringp;
+  char* p;
+  p = (start != NULL) ? strpbrk(start, delim) : NULL;
+  if (p == NULL) {
+    *stringp = NULL;
+  } else {
+    *p = '\0';
+    *stringp = p + 1;
+  }
+  return start;
+}
+#endif // _WIN32
+
 static int serving = 0;
 
 void start_serving(void) {
