@@ -348,7 +348,7 @@ int best_index_vtable(sqlite3_vtab *pVtab,
     int nCol;
     int nidxLen = pInfo->nConstraint*7 + 1;
     int i, j = 0, counter = 0, score = 0;
-    char nidxStr[nidxLen];
+    char *nidxStr = (char *)sqlite3_malloc(sizeof(char) * nidxLen);
     memset(nidxStr, 0, sizeof(nidxStr));
     assert(pInfo->idxStr == 0);
     for (i = 0; i < pInfo->nConstraint; i++){
@@ -386,9 +386,11 @@ int best_index_vtable(sqlite3_vtab *pVtab,
     pInfo->needToFreeIdxStr = 1;
     if ((((int)strlen(nidxStr)) > 0) && 
       0 == (pInfo->idxStr = 
-	    sqlite3_mprintf("%s", nidxStr)))
+	    sqlite3_mprintf("%s", nidxStr))) {
+      free(nidxStr);
       return SQLITE_NOMEM;
   }
+  free(nidxStr);
   return SQLITE_OK;
 }
 
@@ -424,7 +426,9 @@ int filter_vtable(sqlite3_vtab_cursor *cur,
     if ((re = search(cur, 0, 0, NULL)) != 0)
       return re;
   } else {
-    int i = 0, op[argc], nCol[argc];
+    int i = 0;
+    int *op = (int *)sqlite3_malloc(sizeof(int) * argc);
+    int *nCol = (int *)sqlite3_malloc(sizeof(int) * argc);
     char *token, *where_root;
     char *where = (char *)sqlite3_malloc(sizeof(char) * (strlen(idxStr)+1));
     strcpy(where, idxStr);
@@ -440,10 +444,14 @@ int filter_vtable(sqlite3_vtab_cursor *cur,
     }
     for (i = 0; i < argc; i++) {
       if ((re = search(cur, op[i], nCol[i], argv[i])) != 0) {
+        sqlite3_free(op);
+        sqlite3_free(nCol);
         sqlite3_free(where_root);
 	return re;
       }
     }
+    sqlite3_free(op);
+    sqlite3_free(nCol);
     sqlite3_free(where_root);
   }
   return next_vtable(cur);

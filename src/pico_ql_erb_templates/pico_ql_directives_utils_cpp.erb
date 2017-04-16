@@ -194,17 +194,21 @@ int register_vt(picoQLTable *picoQL) {
 // Each embedded virtual table has a column named 'base'.
 // This function checks if a provided column name is indeed 'base'.
 int equals(const char *zCol, const char *key) {
+  int status;
   int length = (int)strlen(zCol) + 1;
-  char copy[length], *token;
+  char *copy = (char *)sqlite3_malloc(sizeof(char) * length);
+  char *token;
   memcpy(copy, zCol, length);
   token = strtok(copy, " ");
   if (token != NULL) {
     if (!strcmp(token, key))
-      return true;
+      status = true;
     else
-      return false;
+      status = false;
   } else
-    return SQLITE_NOMEM;
+    status = SQLITE_NOMEM;
+  sqlite3_free(copy);
+  return status;
 }
 
 /* Deinitiates vectors which store temporary FK
