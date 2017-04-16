@@ -632,7 +632,7 @@ class Column
       if !pre_ap.empty?
         fw.puts "#{space}#{pre_ap}"
       end
-      fw.puts "#{space}typeof(#{access_path}) t = #{access_path};"
+      fw.puts "#{space}TYPEOF(#{access_path}) t = #{access_path};"
       fw.puts "#{space}if (#{notC}compare_#{sqlite3_type}(#{column_cast}&t, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_type}(val))) {"
     else
       if !pre_ap.empty?
@@ -649,7 +649,7 @@ class Column
       if !pre_ap.empty?
         fw.puts "#{space}#{pre_ap}"
       end
-      fw.puts "#{space}typeof(#{access_path}) t = #{access_path};"
+      fw.puts "#{space}TYPEOF(#{access_path}) t = #{access_path};"
       fw.puts "#{space}if (#{notC}compare_#{sqlite3_parameters}(#{column_cast}&t, op, #{column_cast.chomp('&')}sqlite3_value_#{sqlite3_parameters}(val))) {"
     else
       if !pre_ap.empty?

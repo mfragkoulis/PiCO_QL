@@ -26,6 +26,14 @@
 #include <pthread.h>
 #include "sqlite3.h"
 
+#ifdef _WIN32
+#define TYPEOF(x) decltype(x)
+#pragma warning(disable:4244)
+#pragma warning(disable:4267)
+#else
+#define TYPEOF(x) typeof(x)
+#endif // _WIN32
+
 #ifdef __cplusplus
 #define pico_ql_name(x) x
 #else
