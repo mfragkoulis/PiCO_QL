@@ -88,7 +88,11 @@ void pico_ql_name(register_data)(const void *data_structure, const char *ds_name
 
 
 // The API with user application code. Creates the PiCO_QL thread.
+#ifdef PICO_QL_SINGLE_THREADED
+int pico_ql_name(init)(const char **pragmas, int npragmas, int port) {
+#else
 int pico_ql_name(init)(const char **pragmas, int npragmas, int port, pthread_t *sqlite_thread) {
+#endif
   //int *portN = new int(port);
   sqlite3 *db = NULL;
   /**

@@ -63,8 +63,12 @@ namespace picoQL {
   int pico_ql_step_swill_json(sqlite3 *db, sqlite3_stmt *stmt, FILE *f);
 
   void pico_ql_name(register_data)(const void *collection, const char * col_name);
+#ifdef PICO_QL_SINGLE_THREADED
+  int pico_ql_name(init)(const char** pragmas, int npragmas, int port_number);
+#else
   int pico_ql_name(init)(const char** pragmas, int npragmas, int port_number,
 		  pthread_t *t);
+#endif
   int pico_ql_name(shutdown)();
   int pico_ql_name(interrupt)();
   int pico_ql_name(progress)(int n, int (*callback)(void *p), void *p);

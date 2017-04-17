@@ -102,7 +102,11 @@ int pico_ql_serve(sqlite3 *db) {
 }
 <%      else %>
 /* The API with user application code. Creates the PiCO_QL thread. */
+#ifdef PICO_QL_SINGLE_THREADED
+int pico_ql_name(init)(const char **pragmas, int npragmas, int port) {
+#else
 int pico_ql_name(init)(const char **pragmas, int npragmas, int port, pthread_t *sqlite_thread) {
+#endif
   sqlite3 *db = NULL;
   config *conf;
   /**
