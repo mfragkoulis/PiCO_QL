@@ -27,7 +27,7 @@ int main() {
   re = init(NULL, 0, 8080, &t);
   pthread_join(t, &exit_status);
 #else
-  re = init(NULL, 0, 8080, NULL);
+  re = init(NULL, 0, 8080);
 #endif
 
   if (re)

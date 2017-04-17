@@ -349,7 +349,7 @@ int best_index_vtable(sqlite3_vtab *pVtab,
     int nidxLen = pInfo->nConstraint*7 + 1;
     int i, j = 0, counter = 0, score = 0;
     char *nidxStr = (char *)sqlite3_malloc(sizeof(char) * nidxLen);
-    memset(nidxStr, 0, sizeof(nidxStr));
+    memset(nidxStr, 0, sizeof(char) * nidxLen);
     assert(pInfo->idxStr == 0);
     for (i = 0; i < pInfo->nConstraint; i++){
       struct sqlite3_index_constraint *pCons = 
@@ -387,10 +387,11 @@ int best_index_vtable(sqlite3_vtab *pVtab,
     if ((((int)strlen(nidxStr)) > 0) && 
       0 == (pInfo->idxStr = 
 	    sqlite3_mprintf("%s", nidxStr))) {
-      free(nidxStr);
+      sqlite3_free(nidxStr);
       return SQLITE_NOMEM;
+    }
+    sqlite3_free(nidxStr);
   }
-  free(nidxStr);
   return SQLITE_OK;
 }
 
