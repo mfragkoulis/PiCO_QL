@@ -115,12 +115,12 @@ void * thread_sqlite(void *data) {
   int i;
 <% view_length = 0 %>
 <% @views == nil ? views_length = 0 : views_length = @views.length %>
-  queries = (const char **)sqlite3_malloc(sizeof(const char *) * <%= (@tables.length + views_length).to_s %> + conf->npragmas);
+  queries = (const char **)sqlite3_malloc(sizeof(const char *) * ( <%= (@tables.length + views_length).to_s %> + conf->npragmas ) );
   if (queries == NULL) {
     printf("Out of memory\n");
     return NULL;
   }
-  sqlite_names = (const char **)sqlite3_malloc(sizeof(const char *) * <%= (@tables.length + views_length).to_s %> + conf->npragmas);
+  sqlite_names = (const char **)sqlite3_malloc(sizeof(const char *) * ( <%= (@tables.length + views_length).to_s %> + conf->npragmas ) );
   if (sqlite_names == NULL) {
     printf("Out of memory\n");
     return NULL;
