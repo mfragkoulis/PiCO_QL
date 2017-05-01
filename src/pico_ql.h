@@ -23,7 +23,11 @@
 #define PICO_QL_H
 
 #include <stdio.h>
+
+#ifndef PICO_QL_SINGLE_THREADED
 #include <pthread.h>
+#endif
+
 #include "sqlite3.h"
 
 #ifdef __cplusplus
