@@ -101,13 +101,14 @@ int pico_ql_serve(sqlite3 *db) {
   return (int)(long)exit_status;
 }
 <%      else %>
+sqlite3 *db = NULL;
+
 /* The API with user application code. Creates the PiCO_QL thread. */
 #ifdef PICO_QL_SINGLE_THREADED
 int pico_ql_name(init)(const char **pragmas, int npragmas, int port) {
 #else
 int pico_ql_name(init)(const char **pragmas, int npragmas, int port, pthread_t *sqlite_thread) {
 #endif
-  sqlite3 *db = NULL;
   config *conf;
   /**
    * Virtual table schema will be in-memory and will not
@@ -120,7 +121,6 @@ int pico_ql_name(init)(const char **pragmas, int npragmas, int port, pthread_t *
     return SQLITE_ERROR;
   }
   conf = (config *)sqlite3_malloc(sizeof(config));
-  conf->db = db;
   conf->port = port;
   conf->pragmas = pragmas;
   conf->npragmas = npragmas;

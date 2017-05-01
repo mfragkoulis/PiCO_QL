@@ -22,7 +22,7 @@
 #include "pico_ql.h"
 #include "pico_ql_internal.h"
 
-extern sqlite3 *db;
+extern "C" sqlite3 *db;
 
 namespace picoQL {
 

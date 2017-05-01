@@ -33,8 +33,7 @@ int register_table(int argc,
 		   int view_index,
 		   const char **queries, 
 		   const char **table_names, 
-		   int port_number,
-		   sqlite3 *db);
+		   int port_number);
 
 #ifdef __cplusplus
 }

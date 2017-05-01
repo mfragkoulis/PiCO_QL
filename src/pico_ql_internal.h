@@ -104,7 +104,6 @@ namespace picoQL {
 #endif
 
     typedef struct {
-      sqlite3 *db;
       /* -1 ? don't start web server : web server (swill) access port */
       int port;	
       const char **pragmas;

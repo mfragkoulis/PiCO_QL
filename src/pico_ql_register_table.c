@@ -31,7 +31,7 @@
 #include "pico_ql_vt.h"
 #include "pico_ql_swill_access_func.h"
 
-sqlite3 *db = NULL;
+extern sqlite3 *db;
 
 /* Executes the SQL CREATE queries, opens the sqlite 
  * database connection and calls swill or pico_ql_test 
@@ -41,8 +41,7 @@ int register_table(int argc,
 		   int view_index, 
 		   const char **q, 
 		   const char **sqlite_names, 
-		   int port_number,
-		   sqlite3 *this_db) {
+		   int port_number) {
   /* This definition implicitly constraints a table name 
    * to 140 characters. It should be more than enough.
    */
@@ -50,7 +49,6 @@ int register_table(int argc,
   int re, i = 0, output;
   sqlite3_module *mod;
 
-  db = this_db;
 #ifdef PICO_QL_DEBUG
   for (i = 0; i < argc; i++) {
     printf("\nquery to be executed: %s.\n", q[i]);

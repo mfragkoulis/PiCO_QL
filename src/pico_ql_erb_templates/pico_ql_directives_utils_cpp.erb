@@ -152,7 +152,7 @@ void * thread_sqlite(void *data) {
 <%      } %>
 <%    end %>
   set_selectors();
-  re = register_table(<%= (@tables.length + views_length).to_s %> + conf->npragmas, <%= @tables.length.to_s %> + conf->npragmas, queries, sqlite_names, conf->port, conf->db);
+  re = register_table(<%= (@tables.length + views_length).to_s %> + conf->npragmas, <%= @tables.length.to_s %> + conf->npragmas, queries, sqlite_names, conf->port);
   sqlite3_free(queries);
   sqlite3_free(sqlite_names);
   delete conf;

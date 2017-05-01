@@ -32,7 +32,7 @@
 //#include "pico_ql_test.h"
 //#include "pico_ql_swill_access_func.h"
 
-extern sqlite3 *db;
+extern "C" sqlite3 *db;
 
 namespace picoQL {
 
