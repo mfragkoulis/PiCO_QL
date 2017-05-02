@@ -54,7 +54,7 @@ int update_vtable(sqlite3_vtab *pVtab,
 
 int destroy_vtable(sqlite3_vtab  *ppVtab);
 
-int bestindex_vtable(sqlite3_vtab *pVTab, 
+int best_index_vtable(sqlite3_vtab *pVTab,
 		     sqlite3_index_info *pinfo);
 
 int filter_vtable(sqlite3_vtab_cursor *cur, 
@@ -85,8 +85,6 @@ void create(sqlite3 *db,
 	    char *q);
 
 int disconnect_vtable(sqlite3_vtab *ppVtab);
-
-void fill_module(sqlite3_module *m);
 
 void clear_temp_structs(void);
 

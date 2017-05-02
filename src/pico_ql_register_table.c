@@ -33,6 +33,41 @@
 
 extern sqlite3 *db;
 
+/* Set virtual table module's function pointers
+ * to the implemented callback functions.
+ */
+static const sqlite3_module pico_ql_mod = {
+  /* iVersion */ 1,
+  /* xCreate */ create_vtable,
+  /* xConnect */ connect_vtable,
+  /* xBestIndex */ best_index_vtable,
+  /* xDisconnect */ disconnect_vtable,
+  /* destroy_vtable is a dummy implementation
+   * for xDestroy which returns SQLITE_MISUSE.
+   * I do not see any benefit in allowing DROP table.
+   * The virtual table schema is in-memory, hence
+   * transient, and CREATE VIRTUAL TABLE calls
+   * are auto-generated as per the DSL. So a manual
+   * CREATE call would have no effect as the underlying
+   * column mapping would be missing.
+   */
+  /* xDestroy */ destroy_vtable,
+  /* xOpen */ open_vtable,
+  /* xClose */ close_vtable,
+  /* xFilter */ filter_vtable,
+  /* xNext */ next_vtable,
+  /* xEof */ eof_vtable,
+  /* xColumn */ column_vtable,
+  /* xRowid */ 0,
+  /* xUpdate */ 0,
+  /* xBegin */ 0,
+  /* xSync */ 0,
+  /* xCommit */ 0,
+  /* xRollback */ 0,
+  /* xFindFunction */ 0,
+  /* xRename */ 0,
+};
+
 /* Executes the SQL CREATE queries, opens the sqlite 
  * database connection and calls swill or pico_ql_test 
  * depending on the compile flag TEST.
@@ -47,16 +82,13 @@ int register_table(int argc,
    */
   char sqlite_query[200];
   int re, i = 0, output;
-  sqlite3_module *mod;
 
 #ifdef PICO_QL_DEBUG
   for (i = 0; i < argc; i++) {
     printf("\nquery to be executed: %s.\n", q[i]);
   }
 #endif
-  mod = (sqlite3_module *)sqlite3_malloc(sizeof(sqlite3_module));
-  fill_module(mod);
-  output = sqlite3_create_module(db, "PicoQL", mod, NULL);
+  output = sqlite3_create_module(db, "PicoQL", &pico_ql_mod, NULL);
   if (output == 1) 
     printf("Error while registering module\n");
 #ifdef PICO_QL_DEBUG
@@ -96,6 +128,5 @@ int register_table(int argc,
 #else
   re = exec_tests();
 #endif
-  sqlite3_free(mod);
   return re;
 }

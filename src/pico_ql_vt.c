@@ -577,37 +577,3 @@ int eof_vtable(sqlite3_vtab_cursor *cur) {
   return ((picoQLTableCursor *)cur)->isEof;
 }
 
-/* Fills virtual table module's function pointers with 
- * implemented callback functions.
- */
-void fill_module(sqlite3_module *m) {
-  m->iVersion = 1;
-  m->xCreate = create_vtable;
-  m->xConnect = connect_vtable;
-  m->xBestIndex = best_index_vtable;
-  m->xDisconnect = disconnect_vtable;
-  /* destroy_vtable is a dummy implementation
-   * for xDestroy which returns SQLITE_MISUSE.
-   * I do not see any benefit in allowing DROP table.
-   * The virtual table schema is in-memory, hence
-   * transient, and CREATE VIRTUAL TABLE calls
-   * are auto-generated as per the DSL. So a manual
-   * CREATE call would have no effect as the underlying
-   * column mapping would be missing.
-   */
-  m->xDestroy = destroy_vtable;
-  m->xOpen = open_vtable;
-  m->xClose = close_vtable;
-  m->xEof = eof_vtable;
-  m->xFilter = filter_vtable;
-  m->xNext = next_vtable;
-  m->xColumn = column_vtable;
-  m->xRowid = 0;
-  m->xUpdate = 0;
-  m->xFindFunction = 0;
-  m->xBegin = 0;
-  m->xSync = 0;
-  m->xCommit = 0;
-  m->xRollback = 0;
-  m->xRename = 0;
-}
