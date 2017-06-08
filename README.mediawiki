@@ -51,6 +51,7 @@ waiting to be executed.
    Userspace (built-in examples):
    Tested under Mac OS X 10.6.7-8, 10.8.5, 10.10.5
      Linux 2.6
+     MSVS 2010 on Win64
      Windows 10 via Cygwin (under way)
    Linux kernel module:
      Tested on:
