@@ -1,0 +1,6 @@
+AT_SETUP([CScout])
+AT_KEYWORDS([cscout CScout])
+AT_CHECK([${abs_top_builddir}/examples/CScout/cscout], 0, [ignore], [stderr])
+AT_CHECK([diff cscout_test_current.txt ${abs_top_srcdir}/tests/CScout/post/cscout_test_success.txt], 0)
+AT_CLEANUP
+

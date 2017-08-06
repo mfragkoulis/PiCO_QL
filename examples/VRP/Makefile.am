@@ -1,8 +1,5 @@
 bin_PROGRAMS = vrp
 
-bindata_DATA = vrp_test_success.txt solomon.txt
-bindatadir = $(bindir)
-
 AM_CFLAGS = -I$(abs_top_srcdir)/src
 AM_CXXFLAGS = -I$(abs_top_srcdir)/src
 

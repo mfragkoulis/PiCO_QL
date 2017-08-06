@@ -1,0 +1,33 @@
+# Process with autom4te to create an -*- Autotest -*- test suite.
+
+AT_INIT([PiCO QL])
+AT_TESTED(diff)
+
+# Use colored output with new-enough Autotest.
+m4_ifdef([AT_COLOR_TESTS], [AT_COLOR_TESTS])
+
+m4_include(BankApp/testsuite-bankapp.at)
+
+m4_include(CApp/testsuite-capp.at)
+
+m4_include(Chess/testsuite-chess.at)
+
+
+m4_include(Parentchild/testsuite-parentchild.at)
+
+m4_include(Polymorphism/testsuite-polymorphism.at)
+
+m4_include(VRP/testsuite-vrp.at)
+
+# tests are present, but examples are not compiled so far
+
+#m4_include(CScout/testsuite-cscout.at)
+
+#m4_include(HD5Table/testsuite-hd5table.at)
+
+#m4_include(QLandKarte/testsuite-qlandkarte.at)
+
+#m4_include(SparseMatrixC/testsuite-sparsematrixc.at)
+
+#m4_include(Stellarium/testsuite-stellarium.at)
+

@@ -31,11 +31,16 @@ AC_CONFIG_FILES([
  src/Makefile
  examples/Makefile
  examples/BankApp/Makefile
- examples/Chess/Makefile
- examples/VRP/Makefile
  examples/CApp/Makefile
+ examples/Chess/Makefile
  examples/Polymorphism/Makefile
  examples/Parentchild/Makefile
+ examples/VRP/Makefile
+])
+
+AC_CONFIG_TESTDIR(tests)
+AC_CONFIG_FILES([
+ tests/Makefile
 ])
 
 AC_OUTPUT

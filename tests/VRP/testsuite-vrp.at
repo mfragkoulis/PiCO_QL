@@ -1,0 +1,7 @@
+AT_SETUP([VRP])
+AT_KEYWORDS([vrp VRP])
+AT_CHECK([cp -f ${abs_top_srcdir}/tests/VRP/pre/solomon.txt .], 0)
+AT_CHECK([${abs_top_builddir}/examples/VRP/vrp solomon.txt 2], 0, [ignore], [stderr])
+AT_CHECK([diff vrp_test_current.txt ${abs_top_srcdir}/tests/VRP/post/vrp_test_success.txt], 0)
+AT_CLEANUP
+

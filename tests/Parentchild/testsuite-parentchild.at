@@ -1,0 +1,6 @@
+AT_SETUP([Parentchild])
+AT_KEYWORDS([parentchild Parentchild])
+AT_CHECK([${abs_top_builddir}/examples/Parentchild/parentchild], 0, [ignore], [stderr])
+AT_CHECK([diff parentchild_test_current.txt ${abs_top_srcdir}/tests/Parentchild/post/parentchild_test_success.txt], 0)
+AT_CLEANUP
+

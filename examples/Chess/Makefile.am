@@ -1,8 +1,5 @@
 bin_PROGRAMS = chess
 
-bindata_DATA = chess_test_success.txt
-bindatadir = $(bindir)
-
 AM_CFLAGS = -I$(abs_top_srcdir)/src
 AM_CXXFLAGS = -I$(abs_top_srcdir)/src
 

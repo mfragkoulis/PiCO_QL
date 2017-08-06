@@ -1,0 +1,6 @@
+AT_SETUP([Stellarium])
+AT_KEYWORDS([stellarium Stellarium])
+AT_CHECK([${abs_top_builddir}/examples/Stellarium/stellarium], 0, [ignore], [stderr])
+AT_CHECK([diff stellarium_test_current.txt ${abs_top_srcdir}/tests/Stellarium/post/stellarium_test_success.txt], 0)
+AT_CLEANUP
+

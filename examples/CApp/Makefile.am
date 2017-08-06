@@ -1,8 +1,5 @@
 bin_PROGRAMS = cppapp capp
 
-bindata_DATA = capp_test_success.txt cppapp_test_success.txt
-bindatadir = $(bindir)
-
 AM_CFLAGS = -I$(abs_top_srcdir)/src
 AM_CXXFLAGS = -I$(abs_top_srcdir)/src
 

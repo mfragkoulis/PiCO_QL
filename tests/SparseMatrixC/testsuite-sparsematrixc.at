@@ -1,0 +1,6 @@
+AT_SETUP([SparseMatrixC])
+AT_KEYWORDS([sparsematrixc SparseMatrixC])
+AT_CHECK([${abs_top_builddir}/examples/SparseMatrixC/sparsematrixc], 0, [ignore], [stderr])
+AT_CHECK([diff sparsematrixc_test_current.txt ${abs_top_srcdir}/tests/SparseMatrixC/post/sparsematrixc_test_success.txt], 0)
+AT_CLEANUP
+
