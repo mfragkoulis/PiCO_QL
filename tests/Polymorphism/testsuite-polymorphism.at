@@ -1,0 +1,6 @@
+AT_SETUP([Polymorphism])
+AT_KEYWORDS([polymorphism Polymorphism])
+AT_CHECK([${abs_top_builddir}/examples/Polymorphism/polymorphism], 0, [ignore], [stderr])
+AT_CHECK([diff polymorphism_test_current.txt ${abs_top_srcdir}/tests/Polymorphism/post/polymorphism_test_success.txt], 0)
+AT_CLEANUP
+

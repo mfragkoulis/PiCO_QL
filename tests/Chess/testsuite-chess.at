@@ -1,0 +1,6 @@
+AT_SETUP([Chess])
+AT_KEYWORDS([chess Chess])
+AT_CHECK([${abs_top_builddir}/examples/Chess/chess], 0, [ignore], [stderr])
+AT_CHECK([diff chess_test_current.txt ${abs_top_srcdir}/tests/Chess/post/chess_test_success.txt], 0)
+AT_CLEANUP
+

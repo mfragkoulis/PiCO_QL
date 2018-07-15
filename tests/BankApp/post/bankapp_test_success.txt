@@ -1,0 +1,125 @@
+Query 1:
+ select * from SuperAccounts;
+
+Statement prepared.
+rownum id SuperAccountbalance SuperAccountaccount_no SuperAccountrate SuperAccountisbn SuperAccountisbn_root 
+
+0 0 500 10068 5 478923743 21884.3 
+1 1 394.28 10234 3.9428 692346729 26312.5 
+2 10 23489 34807 234.89 394847344 19870.8 
+3 12 -347389 22974 -3473.89 580383483 24091.1 
+4 15 445567 47023 4455.67 830343479 28815.7 
+5 18 48923 34369 489.23 347304830 18636.1 
+6 21 47235 3462 472.35 676328962 26006.3 
+7 22 346.23 2532 3.4623 234628621 15317.6 
+8 23 1000 23999 10 639269243 25283.8 
+9 31 131 69263 1.31 457349341 21385.7 
+10 33 -589045 28904 -5890.45 808023242 28425.7 
+11 34 4784.58 45483 47.8458 580540484 24094.4 
+12 36 2784.59 28902 27.8459 197396445 14049.8 
+13 39 284.58 04023 2.8458 347893488 18651.9 
+14 41 46423 46738 464.23 362626823 19042.8 
+15 5 -262 26738 -2.62 234674389 15319.1 
+16 59 26834 34734 268.34 236326823 15372.9 
+17 9 2363 23683 23.63 729367263 27006.8 
+
+Done
+
+Query 2:
+ select * from SuperAccounts where SuperAccountisbn > 0 and SuperAccountbalance < 500 and SuperAccountaccount_no>1000 order by id;
+
+Statement prepared.
+rownum id SuperAccountbalance SuperAccountaccount_no SuperAccountrate SuperAccountisbn SuperAccountisbn_root 
+
+1 1 394.28 10234 3.9428 692346729 26312.5 
+3 12 -347389 22974 -3473.89 580383483 24091.1 
+7 22 346.23 2532 3.4623 234628621 15317.6 
+9 31 131 69263 1.31 457349341 21385.7 
+10 33 -589045 28904 -5890.45 808023242 28425.7 
+15 5 -262 26738 -2.62 234674389 15319.1 
+
+Done
+
+Query 3:
+ select * from Accounts;
+
+Statement prepared.
+rownum balance account_no rate isbn isbn_root type 
+
+0 500 10068 10 478923743 21884.3 credit 
+1 394.28 10234 7.8856 692346729 26312.5 debit-consuming 
+2 -347389 22974 -6947.78 580383483 24091.1 debit-first house 
+3 48923 34369 978.46 347304830 18636.1 credit 
+4 445567 47023 8911.34 830343479 28815.7 debit-business 
+5 23489 34807 469.78 394847344 19870.8 credit-fundtrust 
+
+Done
+
+Query 4:
+ select * from AccountsNULL;
+
+Statement prepared.
+rownum balance account_no rate isbn isbn_root type 
+
+
+Done
+
+Query 5:
+ select * from Accounts where rate >10 and balance<20000 order by account_no;
+
+Statement prepared.
+rownum balance account_no rate isbn isbn_root type 
+
+
+Done
+
+Query 6:
+ select * from AccountsNULL where rate >10 and balance<20000 order by account_no;
+
+Statement prepared.
+rownum balance account_no rate isbn isbn_root type 
+
+
+Done
+
+Query 7:
+ select * from SpecialAccounts;
+
+Statement prepared.
+rownum balance account_no rate isbn isbn_root bonus 
+
+0 1000 23999 50 639269243 25283.8 350 
+1 131 69263 6.55 457349341 21385.7 45.85 
+2 4784.58 45483 239.229 580540484 24094.4 1674.6 
+3 2784.59 28902 139.23 197396445 14049.8 974.607 
+4 284.58 04023 14.229 347893488 18651.9 99.603 
+5 -589045 28904 -29452.3 808023242 28425.7 -206166 
+
+Done
+
+Query 8:
+ select * from SpecialAccounts where bonus > 20 and rate >15 order by account_no;
+
+Statement prepared.
+rownum balance account_no rate isbn isbn_root bonus 
+
+0 1000 23999 50 639269243 25283.8 350 
+3 2784.59 28902 139.23 197396445 14049.8 974.607 
+2 4784.58 45483 239.229 580540484 24094.4 1674.6 
+
+Done
+
+Query 9:
+ select * from Myaccounts;
+
+Statement prepared.
+balance type 
+
+500 credit 
+394.28 debit-consuming 
+48923 credit 
+445567 debit-business 
+23489 credit-fundtrust 
+
+Done
+

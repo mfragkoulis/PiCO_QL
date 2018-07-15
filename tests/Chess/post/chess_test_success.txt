@@ -1,0 +1,139 @@
+Query 1:
+ select rownum from ChessBoard;
+
+Statement prepared.
+rownum 
+
+0 
+1 
+2 
+3 
+4 
+5 
+6 
+7 
+
+Done
+
+Query 2:
+ select * from ChessRow;
+
+Statement prepared.
+base rownum name color 
+
+
+Library used incorrectly
+
+Query 3:
+ select ChessBoard.rownum,ChessRow.rownum,color,name from ChessBoard,ChessRow where ChessRow.base=ChessBoard.row_id
+
+Statement prepared.
+rownum rownum color name 
+
+0 0 white rook 
+0 1 white knight 
+0 2 white bishop 
+0 3 white king 
+0 4 white queen 
+0 5 white bishop 
+0 6 white knight 
+0 7 white rook 
+1 0 white pawn 
+1 1 white pawn 
+1 2 white pawn 
+1 3 white pawn 
+1 4 white pawn 
+1 5 white pawn 
+1 6 white pawn 
+1 7 white pawn 
+2 0   
+2 1   
+2 2   
+2 3   
+2 4   
+2 5   
+2 6   
+2 7   
+3 0   
+3 1   
+3 2   
+3 3   
+3 4   
+3 5   
+3 6   
+3 7   
+3 8   
+4 0   
+4 1   
+4 2   
+4 3   
+4 4   
+4 5   
+4 6   
+4 7   
+4 8   
+5 0   
+5 1   
+5 2   
+5 3   
+5 4   
+5 5   
+5 6   
+5 7   
+5 8   
+6 0 black pawn 
+6 1 black pawn 
+6 2 black pawn 
+6 3 black pawn 
+6 4 black pawn 
+6 5 black pawn 
+6 6 black pawn 
+6 7 black pawn 
+6 8 black pawn 
+7 0 black rook 
+7 1 black knight 
+7 2 black bishop 
+7 3 black king 
+7 4 black queen 
+7 5 black bishop 
+7 6 black knight 
+7 7 black rook 
+
+Done
+
+Query 4:
+ select ChessBoard.rownum,ChessRow.rownum,color,name from ChessBoard,ChessRow where ChessRow.base=ChessBoard.row_id and color="white" and name="bishop";
+
+Statement prepared.
+rownum rownum color name 
+
+0 2 white bishop 
+0 5 white bishop 
+
+Done
+
+Query 5:
+ select * from ReducedBoard;
+
+Statement prepared.
+name color 
+
+rook white 
+knight white 
+bishop white 
+king white 
+queen white 
+bishop white 
+knight white 
+rook white 
+pawn white 
+pawn white 
+pawn white 
+pawn white 
+pawn white 
+pawn white 
+pawn white 
+pawn white 
+
+Done
+
