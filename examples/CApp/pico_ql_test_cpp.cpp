@@ -40,7 +40,7 @@ int exec_tests() {
   fs.open("cppapp_test_current.txt", fstream::out);
 
   int i = 0;
-  char q[200];
+  char q[256];
 
   strcpy(q, "select nCurrency, rownum, name, price_mode, price, weight_mode, weight from MonetarySystem JOIN Money ON Money.base = MonetarySystem.currency;");
   fs << "Query " << i++ << ":\n " << q << endl << endl;
